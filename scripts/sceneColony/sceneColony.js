@@ -306,7 +306,7 @@ class _SceneColonyClass {
     this.window.add("trade", TradeUI.build(this)); // a merchant NPC's shop
     // the pick's prompt + this frame's pick (its update range-closes the station pages)
     this.interact = Interactable.build(this);
-    BuildMode.build(this); // grid build mode (HUD + per-scene state)
+    this.build = BuildMode.build(this); // grid build mode (its HUD + brush handle)
   }
 
   /**
@@ -320,7 +320,6 @@ class _SceneColonyClass {
       Time.scale = 1;
     }
     this.window.close();
-    this._buildActive = false;
     if (this.ui) {
       UI.remove(this.ui);
       this.ui.destroy();
@@ -406,7 +405,7 @@ class _SceneColonyClass {
     // auto-hide hotbar HUD: slides up on a keypress, back down after HOTBAR_HUD_SECS. Timer +
     // ease on Time.raw (UI timing); dragY is offset-not-mutation (see UIElement.getLayoutPosition).
     if (this._hotbarTimer > 0) this._hotbarTimer -= Time.raw;
-    const show = !this._buildActive && this._hotbarTimer > 0;
+    const show = !this.build.armed && this._hotbarTimer > 0;
     this._hotbarSlide = approach(
       this._hotbarSlide,
       show ? 1 : 0,
@@ -520,7 +519,7 @@ class _SceneColonyClass {
     this._updateNpc(); // the dialogue panel's text when the pick is an NPC (no input here)
     this._dlg.enabled = this.nearNpc; // show/hide the dialogue panel
     this._dispatchInteract(); // single E press → close an open window, else activate the pick
-    BuildMode.update(this); // build-mode toggle + place/deconstruct (outside tick loop)
+    BuildMode.update(this, this.build); // build-mode toggle + place/deconstruct (outside tick loop)
     BuildMode.reapDestroyed(this); // remove built entities enemies destroyed (e.g. turrets at 0 HP)
     WorldClock.update(Time.delta); // advance in-game time (sim time → pauses with the game)
     WorldEvents.update(WorldClock.absHours()); // fire due world events (trader travel) on the clock timeline
@@ -735,7 +734,7 @@ class _SceneColonyClass {
   _resolveContext() {
     let ctx = "play";
     if (this.window.isOpen()) ctx = "window";
-    else if (this._buildActive) ctx = "build";
+    else if (this.build.armed) ctx = "build";
     InputContext.set(ctx);
   }
 
@@ -763,8 +762,8 @@ class _SceneColonyClass {
       return true;
     }
     if (this.window.back()) return true;
-    if (this._buildActive) {
-      this._buildActive = false; // _resolveContext drops to "play" next frame; HUD hides
+    if (this.build.armed) {
+      this.build.armed = false; // _resolveContext drops to "play" next frame; HUD hides
       return true;
     }
     return false;
@@ -786,7 +785,7 @@ class _SceneColonyClass {
         lift: camera.pitch !== 0 ? 32 : 0,
       });
     Interactable.drawTarget(this, this.interact); // highlight the pick (world space)
-    BuildMode.drawWorld(this); // build-cursor cell highlight (world space)
+    BuildMode.drawWorld(this, this.build); // build-cursor cell highlight (world space)
     // attached streams then bursts (world space, additive — bright over the day/night tint)
     ParticleEmitterSystem.draw(
       this.level.entities,

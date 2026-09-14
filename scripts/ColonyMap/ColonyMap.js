@@ -225,8 +225,8 @@ globalThis.ColonyMap = {
    * restore a stale transient.
    */
   _activateReset(scene) {
-    scene._buildActive = false;
-    BuildMode.active = false;
+    scene.build.armed = false;
+    scene.build.active = false;
     scene.nearNpc = false;
     scene.window.dirty = true; // the bag, if it shows, re-reads this map's squad + store
     // Re-point CombatAI's shared store/grid statics. A resume keeps actors without re-attaching,

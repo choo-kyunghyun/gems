@@ -119,7 +119,7 @@ globalThis.Interactable = {
     pick.el.enabled =
       pick.text !== "" &&
       !scene.window.isOpen() &&
-      !BuildMode.active;
+      !scene.build.active;
   },
 
   // ── Scene hook (the scene's E dispatch: a station page open → close it, else activate)

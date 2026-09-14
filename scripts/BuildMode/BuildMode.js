@@ -11,9 +11,13 @@
  * the hovered cell at once, `rect`/`frame`/`line` drag from a press to a release and act on every
  * cell the shape spans as ONE build (the whole cost paid up front, solid layers remeshed once) —
  * a drag pressed on the grid stays the grid's until its release wherever the cursor goes (Input's
- * pointer ownership); an entity item is always single-cell. State on the scene (`_build*`); the
- * static `active` flag is mirrored each frame so drawWorld can gate the cursor highlight to
- * "build context owns input".
+ * pointer ownership); an entity item is always single-cell.
+ *
+ * build() returns the PANEL HANDLE holding this mode's whole state (`el`/`bar` the HUD, `armed`
+ * the B toggle, `active` armed AND the build context owning input, `item`/`shape`/`drag`/`cell`
+ * the brush) — the scene keeps that one field and hands it back to every member, the shape a
+ * `*UI` page already takes (see Window). `active` is the flag anything gating on build mode
+ * reads (Interactable, drawWorld); update() recomputes it each frame, before any draw.
  *
  * DEV authoring: F6 toggles FREE build (no settlement gate, no wood) and the shape row gains
  * `capture` — drag a rect and Blueprint.capture writes what stands there out as the prefab literal
@@ -24,9 +28,9 @@
  * the player's builds, and whose tilePasses it marks dirty.
  */
 globalThis.BuildMode = {
-  active: false, // mirror of (scene._buildActive && build context), read by drawWorld
   // DEV free build (F6): no settlement gate, no wood, no refund — the authoring mode, where a
   // structure is built to be captured (Blueprint), not paid for. Never reachable in release.
+  // Module-scope, not on the panel: a session-wide authoring toggle a HUD rebuild must not clear.
   free: false,
   // the brush shapes, in the shape row's order; `dev` rows only show in DEV_MODE
   SHAPES: [
@@ -486,14 +490,18 @@ globalThis.BuildMode = {
     return undefined;
   },
 
-  /** build the HUD + init per-scene state. call once from create(). */
+  /** build the HUD and return the panel handle. call once from create(). */
   build(scene) {
-    scene._buildActive = false;
-    scene._buildItem = BuildMode.CATALOG[0].items[0]; // selected catalog item (default Wall)
-    scene._buildCell = undefined; // last hovered cell, for drawWorld
-    scene._buildShape = "cell"; // the brush footprint (SHAPES id)
-    scene._buildDrag = undefined; // { x, y, remove } — the anchor cell while a shape drag is held
-    BuildMode.active = false;
+    const panel = {
+      el: null, // the HUD root
+      bar: null, // the catalog bar (its flyout closes when the mode leaves)
+      armed: false, // the B toggle
+      active: false, // armed AND the build context owns input — see the header
+      item: BuildMode.CATALOG[0].items[0], // selected catalog item (default Wall)
+      shape: "cell", // the brush footprint (SHAPES id)
+      drag: undefined, // { x, y, remove } — the anchor cell while a shape drag is held
+      cell: undefined, // last hovered cell, for drawWorld
+    };
 
     // bottom-center HUD: status line over the build bar. Placement is on the world grid through
     // the build actions, which Input mutes while the bar holds the pointer (see the header).
@@ -527,8 +535,8 @@ globalThis.BuildMode = {
         facetButton(
           I18n.textRef(sh.labelKey),
           () => {
-            scene._buildShape = sh.id;
-            scene._buildDrag = undefined;
+            panel.shape = sh.id;
+            panel.drag = undefined;
           },
           { width: 110, height: 28 },
         ),
@@ -538,7 +546,7 @@ globalThis.BuildMode = {
 
     const statusRow = new UIElement({ width: "100%", height: 22 });
     statusRow.insertChild(
-      facetLabel(() => BuildMode._statusText(scene), {
+      facetLabel(() => BuildMode._statusText(scene, panel), {
         halign: fa_center,
         color: FacetTheme.text,
       }),
@@ -555,7 +563,7 @@ globalThis.BuildMode = {
         items.push({
           label: () => I18n.text(it.labelKey) + "  (" + it.cost + ")",
           onSelect: () => {
-            scene._buildItem = it;
+            panel.item = it;
           },
         });
       }
@@ -563,25 +571,26 @@ globalThis.BuildMode = {
     }
     const bar = facetCatBar(cats, { width: 760, selCat: 0, selItem: 0 });
     col.insertChild(bar);
-    scene._buildBar = bar;
+    panel.bar = bar;
 
     wrap.insertChild(col);
     wrap.enabled = false;
-    scene._buildHud = wrap;
+    panel.el = wrap;
     scene.ui.insertChild(wrap);
+    return panel;
   },
 
-  _statusText(scene) {
+  _statusText(scene, panel) {
     const inv = scene.level.entities.get(scene.playerId, Inventory);
     const wood =
       inv !== undefined ? InventorySystem.count(inv, BuildMode.RESOURCE) : 0;
-    const it = scene._buildItem;
+    const it = panel.item;
     const text = I18n.text(
       "BUILD_STATUS",
       wood,
       I18n.text(it.labelKey),
       it.cost,
-      I18n.text(BuildMode._shape(scene._buildShape).labelKey),
+      I18n.text(BuildMode._shape(panel.shape).labelKey),
     );
     return BuildMode.free ? I18n.text("BUILD_FREE") + "   ·   " + text : text;
   },
@@ -597,7 +606,7 @@ globalThis.BuildMode = {
    * per-frame: toggle on B, then (while active) place on buildPlace / deconstruct on buildRemove
    * at the hovered cell. call from step() after Interactable.update, outside the tick loop.
    */
-  update(scene) {
+  update(scene, panel) {
     // DEV: F6 toggles free build (no settlement gate, no wood)
     if (DEV_MODE && Input.keyPressed(vk_f6)) {
       BuildMode.free = !BuildMode.free;
@@ -610,31 +619,30 @@ globalThis.BuildMode = {
     // the player's faction or an ally) — "you can only build in an allied settlement" — or under
     // free build. Closing is free.
     if (Input.get("build").pressed()) {
-      if (scene._buildActive) scene._buildActive = false;
-      else if (BuildMode.free || BuildMode._allied(scene))
-        scene._buildActive = true;
+      if (panel.armed) panel.armed = false;
+      else if (BuildMode.free || BuildMode._allied(scene)) panel.armed = true;
       else Toast.push(I18n.text("BUILD_NEED_SETTLEMENT"), { type: "info" });
     }
     // active only when toggled on AND the build context owns input — an open window makes the
     // context "window" (priority over build), so building pauses and window clicks can't place/remove.
-    const on = scene._buildActive === true && InputContext.is("build");
-    BuildMode.active = on;
-    scene._buildHud.enabled = on;
+    const on = panel.armed && InputContext.is("build");
+    panel.active = on;
+    panel.el.enabled = on;
     if (!on) {
-      scene._buildBar.catbar.close(); // collapse any open flyout when leaving build mode
-      scene._buildDrag = undefined;
+      panel.bar.catbar.close(); // collapse any open flyout when leaving build mode
+      panel.drag = undefined;
       return;
     }
 
     const grid = scene.level.grid;
-    const drag = scene._buildDrag;
+    const drag = panel.drag;
 
     // scene-latched world cursor (pitch-aware) — mouse_x/mouse_y are wrong under the pitched camera
     const cell = grid.worldToGrid(scene.mouseWorld.x, scene.mouseWorld.y);
-    scene._buildCell = cell;
+    panel.cell = cell;
     if (cell.x < 0 || cell.y < 0 || cell.x >= grid.cols || cell.y >= grid.rows) {
       if (drag !== undefined && !BuildMode._dragHeld(drag))
-        scene._buildDrag = undefined; // let go off the grid: cancelled
+        panel.drag = undefined; // let go off the grid: cancelled
       return;
     }
 
@@ -642,25 +650,25 @@ globalThis.BuildMode = {
       // a press: a single-cell brush acts at once, a shape anchors a drag. A press the UI took
       // (the bar, its flyout, any hovered widget) reads false here — Input muted it.
       if (Input.get("buildPlace").pressed()) {
-        if (BuildMode._single(scene)) BuildMode._tryPlace(scene, cell.x, cell.y);
-        else scene._buildDrag = { x: cell.x, y: cell.y, remove: false };
+        if (BuildMode._single(panel))
+          BuildMode._tryPlace(scene, panel, cell.x, cell.y);
+        else panel.drag = { x: cell.x, y: cell.y, remove: false };
       } else if (Input.get("buildRemove").pressed()) {
-        if (scene._buildShape === "cell")
-          BuildMode._tryRemove(scene, cell.x, cell.y);
-        else scene._buildDrag = { x: cell.x, y: cell.y, remove: true };
+        if (panel.shape === "cell") BuildMode._tryRemove(scene, cell.x, cell.y);
+        else panel.drag = { x: cell.x, y: cell.y, remove: true };
       }
       return;
     }
     if (BuildMode._dragHeld(drag)) return; // still dragging — drawWorld previews the shape
 
     // the release: act on every cell the shape spans between the anchor and this cell
-    scene._buildDrag = undefined;
-    const shape = scene._buildShape;
+    panel.drag = undefined;
+    const shape = panel.shape;
     const cells = BuildMode._shapeCells(shape, drag.x, drag.y, cell.x, cell.y);
-    if (drag.remove) BuildMode._removeCells(scene, cells);
+    if (drag.remove) BuildMode._removeCells(scene, panel, cells);
     else if (shape === "capture")
       BuildMode._capture(scene, drag.x, drag.y, cell.x, cell.y);
-    else BuildMode._placeCells(scene, cells);
+    else BuildMode._placeCells(scene, panel, cells);
   },
 
   /** is the button a drag started on still held — the grid's press, so it reads true over the HUD too */
@@ -674,11 +682,11 @@ globalThis.BuildMode = {
    * does the brush act on one cell at once: the cell shape, or an entity item under any brush
    * but capture (an entity never tiles a shape)
    */
-  _single(scene) {
-    const shape = scene._buildShape;
+  _single(panel) {
+    const shape = panel.shape;
     if (shape === "cell") return true;
     if (shape === "capture") return false;
-    return scene._buildItem.kind === "entity";
+    return panel.item.kind === "entity";
   },
 
   /**
@@ -731,12 +739,12 @@ globalThis.BuildMode = {
    * whole wood cost is paid up front (nothing partial — half a wall is worse than none), and each
    * solid layer touched is remeshed once at the end.
    */
-  _placeCells(scene, cells) {
-    const item = scene._buildItem;
+  _placeCells(scene, panel, cells) {
+    const item = panel.item;
     if (item.kind !== "tile") return; // an entity item never reaches here (_single)
     const todo = [];
     for (let i = 0; i < cells.length; i++)
-      if (BuildMode._cellFree(scene, cells[i][0], cells[i][1]))
+      if (BuildMode._cellFree(scene, panel, cells[i][0], cells[i][1]))
         todo.push(cells[i]);
     if (todo.length === 0) return;
     const cost = todo.length * item.cost;
@@ -757,17 +765,17 @@ globalThis.BuildMode = {
     }
     BuildMode.remeshLayers(scene, remesh);
     scene.window.dirty = true;
-    Log.info(`built ${todo.length}x ${item.id} (${scene._buildShape})`);
+    Log.info(`built ${todo.length}x ${item.id} (${panel.shape})`);
   },
 
   /** deconstruct over `cells` as one batch — each solid layer touched remeshed once */
-  _removeCells(scene, cells) {
+  _removeCells(scene, panel, cells) {
     const remesh = {};
     let n = 0;
     for (let i = 0; i < cells.length; i++)
       if (BuildMode._tryRemove(scene, cells[i][0], cells[i][1], remesh)) n++;
     BuildMode.remeshLayers(scene, remesh);
-    if (n > 0) Log.info(`removed ${n} (${scene._buildShape})`);
+    if (n > 0) Log.info(`removed ${n} (${panel.shape})`);
   },
 
   /** remesh the colliders of every solid layer keyed true in `remesh` — a batch's one remesh */
@@ -829,14 +837,14 @@ globalThis.BuildMode = {
    * entity — not a floor) not on the player's own cell. The per-cell test a shape runs; wood is
    * the batch's business.
    */
-  _cellFree(scene, gx, gy) {
+  _cellFree(scene, panel, gx, gy) {
     const grid = scene.level.grid;
     if (!BuildMode.free && !BuildMode._allied(scene)) return false;
     const lkeys = BuildMode.tileLayerKeys();
     for (let i = 0; i < lkeys.length; i++)
       if (TileEdit.occupied(scene.map[lkeys[i] + "Layer"], gx, gy)) return false;
     if (scene.map.builtEnts[gx + "," + gy] !== undefined) return false;
-    const item = scene._buildItem;
+    const item = panel.item;
     // a crop roots only on its species' ground, and never over a standing body or prop
     if (item.species !== undefined) {
       if (!FloraSystem.canRoot(scene, contentFlora.get(item.species), gx, gy))
@@ -856,17 +864,17 @@ globalThis.BuildMode = {
   },
 
   /** _cellFree plus the wood for ONE placement — shared by the single place + cursor highlight */
-  _canBuild(scene, gx, gy) {
-    if (!BuildMode._cellFree(scene, gx, gy)) return false;
+  _canBuild(scene, panel, gx, gy) {
+    if (!BuildMode._cellFree(scene, panel, gx, gy)) return false;
     if (BuildMode.free) return true;
     const inv = scene.level.entities.get(scene.playerId, Inventory);
     if (inv === undefined) return false;
-    return InventorySystem.has(inv, BuildMode.RESOURCE, scene._buildItem.cost);
+    return InventorySystem.has(inv, BuildMode.RESOURCE, panel.item.cost);
   },
 
-  _tryPlace(scene, gx, gy) {
-    if (!BuildMode._canBuild(scene, gx, gy)) return;
-    const item = scene._buildItem;
+  _tryPlace(scene, panel, gx, gy) {
+    if (!BuildMode._canBuild(scene, panel, gx, gy)) return;
+    const item = panel.item;
     if (!BuildMode.free) {
       const inv = scene.level.entities.get(scene.playerId, Inventory);
       InventorySystem.remove(inv, BuildMode.RESOURCE, item.cost);
@@ -1052,20 +1060,20 @@ globalThis.BuildMode = {
    * while a shape drag is held, the cells it would act on instead (yellow = remove, cyan =
    * capture, green = place). call from scene.draw().
    */
-  drawWorld(scene) {
-    if (!BuildMode.active) return;
-    const cell = scene._buildCell;
+  drawWorld(scene, panel) {
+    if (!panel.active) return;
+    const cell = panel.cell;
     if (cell === undefined) return;
     const grid = scene.level.grid;
     const cw = grid.cellWidth;
     const ch = grid.cellHeight;
 
-    const drag = scene._buildDrag;
+    const drag = panel.drag;
     if (drag !== undefined) {
       // the hovered cell clamped onto the grid, so a drag past the edge previews to the edge
       const cx = Math.min(Math.max(cell.x, 0), grid.cols - 1);
       const cy = Math.min(Math.max(cell.y, 0), grid.rows - 1);
-      const shape = scene._buildShape;
+      const shape = panel.shape;
       const cells = BuildMode._shapeCells(shape, drag.x, drag.y, cx, cy);
       let col = c_lime;
       if (drag.remove) col = c_yellow;
@@ -1096,7 +1104,7 @@ globalThis.BuildMode = {
     let col;
     if (scene.map.built[key] !== undefined || scene.map.builtEnts[key] !== undefined)
       col = c_yellow;
-    else col = BuildMode._canBuild(scene, cell.x, cell.y) ? c_lime : c_red;
+    else col = BuildMode._canBuild(scene, panel, cell.x, cell.y) ? c_lime : c_red;
 
     draw_set_color(col);
     draw_set_alpha(0.3);
