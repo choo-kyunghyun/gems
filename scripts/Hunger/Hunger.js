@@ -1,5 +1,5 @@
 /**
- * Survival need: hunger — a rising meter (`value` climbs by `rate`/sec; eating lowers it). HungerSystem
+ * Survival need: hunger — a rising meter (`value` climbs by `rate`/sec; eating lowers it). NeedSystem
  * applies the `status` debuff at/above `critical`. OPT-IN; flat scalars → entities.export-safe.
  *
  * @typedef {Object} Hunger

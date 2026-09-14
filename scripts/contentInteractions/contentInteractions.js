@@ -211,9 +211,10 @@ globalThis.contentInteractions = {
         id: "hydrate",
         prompt: "SURVIVAL_DRINK_PROMPT",
         run(ctx) {
-          const ok = ThirstSystem.restore(
+          const ok = NeedSystem.restore(
             ctx.entities,
             ctx.playerId,
+            Thirst,
             ctx.comp.amount ?? 60,
           );
           Toast.push(I18n.text(ok ? "SURVIVAL_DRINK_DONE" : "SURVIVAL_NO_NEED"), {
@@ -225,9 +226,10 @@ globalThis.contentInteractions = {
         id: "feed",
         prompt: "SURVIVAL_EAT_PROMPT",
         run(ctx) {
-          const ok = HungerSystem.restore(
+          const ok = NeedSystem.restore(
             ctx.entities,
             ctx.playerId,
+            Hunger,
             ctx.comp.amount ?? 60,
           );
           Toast.push(I18n.text(ok ? "SURVIVAL_EAT_DONE" : "SURVIVAL_NO_NEED"), {

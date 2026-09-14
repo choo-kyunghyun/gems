@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"contentNeeds",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"contentNeeds",
+  "parent":{
+    "name":"Content",
+    "path":"folders/Game/Content.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"contentNeeds.js",
+}

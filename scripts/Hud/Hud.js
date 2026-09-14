@@ -113,16 +113,20 @@ globalThis.Hud = {
   },
 
   /**
-   * one survival-need RESERVE bar: facetProgress of (1 - value/max), so full = satiated, read live
+   * one survival-need RESERVE bar: facetProgress of (1 - value/max), so full = satiated, read live;
+   * tinted like the need's critical debuff (its Status color)
    */
-  _needBar(scene, token, labelKey, fillColor) {
+  _needBar(scene, need) {
+    const status = Status.get(need.seed.status);
     const row = new UIElement({ width: "100%", height: 20 });
     row.insertChild(
       facetProgress(
-        () => 1 - Survival.fraction(scene.level.entities.get(scene.playerId, token)),
+        () =>
+          1 -
+          NeedSystem.fraction(scene.level.entities.get(scene.playerId, need.id)),
         {
-          label: I18n.textRef(labelKey),
-          fillColor: fillColor,
+          label: I18n.textRef(need.name),
+          fillColor: status !== undefined ? status.color : FacetTheme.text,
           height: 20,
           font: "description",
         },
@@ -224,16 +228,11 @@ globalThis.Hud = {
       ),
     );
     card.insertChild(staRow);
-    // survival needs — Thirst / Hunger / Drowsiness, then the environmental Exposure / Cold, as
-    // reserve bars; the critical debuff (dehydrated/starving/drowsy/hypoxic/hypothermic) shows in
-    // the status row below
-    card.insertChild(Hud._needBar(scene, Thirst, "SURVIVAL_THIRST", "#4aa3d6"));
-    card.insertChild(Hud._needBar(scene, Hunger, "SURVIVAL_HUNGER", "#c98a3a"));
-    card.insertChild(
-      Hud._needBar(scene, Drowsiness, "SURVIVAL_DROWSINESS", "#8a7ec0"),
-    );
-    card.insertChild(Hud._needBar(scene, Exposure, "SURVIVAL_EXPOSURE", "#7fb8c8"));
-    card.insertChild(Hud._needBar(scene, Cold, "SURVIVAL_COLD", "#9fc4e8"));
+    // the survival needs as reserve bars, in registry order; the critical debuff shows in the
+    // status row below
+    const needs = Need.all();
+    for (let i = 0; i < needs.length; i++)
+      card.insertChild(Hud._needBar(scene, needs[i]));
     // world clock: "Season · Day N  HH:MM", read live
     const timeRow = new UIElement({ width: "100%", height: 20 });
     timeRow.insertChild(

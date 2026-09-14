@@ -1,5 +1,5 @@
 /**
- * Survival need: thirst — a rising meter (`value` climbs by `rate`/sec; drinking lowers it). ThirstSystem
+ * Survival need: thirst — a rising meter (`value` climbs by `rate`/sec; drinking lowers it). NeedSystem
  * applies the `status` debuff at/above `critical`. OPT-IN; flat scalars → entities.export-safe.
  *
  * @typedef {Object} Thirst

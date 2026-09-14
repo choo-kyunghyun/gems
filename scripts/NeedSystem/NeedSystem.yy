@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"HungerSystem",
+  "%Name":"NeedSystem",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"HungerSystem",
+  "name":"NeedSystem",
   "parent":{
     "name":"System",
     "path":"folders/Game/System.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"HungerSystem.js",
+  "scriptSource":"NeedSystem.js",
 }

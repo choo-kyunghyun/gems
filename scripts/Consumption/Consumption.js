@@ -63,12 +63,14 @@ globalThis.Consumption = {
       );
       did = true;
     }
-    // Survival restores (drink/eat) via Survival. restore() returns false when the need is
-    // already satisfied, so a no-op drink/food isn't wasted (same rule as healing at full HP).
-    if (con.thirst > 0 && ThirstSystem.restore(entities, id, con.thirst))
-      did = true;
-    if (con.hunger > 0 && HungerSystem.restore(entities, id, con.hunger))
-      did = true;
+    // need restores (drink/eat). restore() returns false when the need is already satisfied, so a
+    // no-op drink/food isn't wasted (same rule as healing at full HP).
+    for (const token in con.needs)
+      if (
+        con.needs[token] > 0 &&
+        NeedSystem.restore(entities, id, token, con.needs[token])
+      )
+        did = true;
     return did;
   },
 };

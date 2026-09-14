@@ -55,49 +55,10 @@ globalThis.ColonyPlayer = {
     });
     entities.add(id, Inventory, { slots: [], capacity: 16, maxWeight: 50 });
     entities.add(id, Encumbrance, { threshold: 0.5, minScale: 0.4 });
-    // survival needs — each a rising meter 0..max; at `critical` applies the named debuff Status.
-    // OPT-IN like Stamina/Encumbrance. rate per second, tuned to deplete over minutes.
-    entities.add(id, Thirst, {
-      value: 0,
-      max: 100,
-      rate: 0.8,
-      critical: 0.8,
-      status: "dehydrated",
-    });
-    entities.add(id, Hunger, {
-      value: 0,
-      max: 100,
-      rate: 0.5,
-      critical: 0.8,
-      status: "starving",
-    });
-    entities.add(id, Drowsiness, {
-      value: 0,
-      max: 100,
-      rate: 0.4,
-      critical: 0.85,
-      status: "drowsy",
-    });
-    // the environmental needs — rise under the open sky / in the cold, recover in a room (or a
-    // suited body, for exposure); the same core, the rate signed by where the body stands
-    entities.add(id, Exposure, {
-      value: 0,
-      max: 100,
-      rate: 1.2,
-      recover: 4,
-      critical: 0.8,
-      status: "hypoxic",
-    });
-    entities.add(id, Cold, {
-      value: 0,
-      max: 100,
-      rate: 1.0,
-      recover: 3,
-      critical: 0.8,
-      status: "hypothermic",
-      comfort: Temperature.ZERO_C + 5,
-      span: 15,
-    });
+    // the survival needs, each from its def's seed (contentNeeds) — OPT-IN like Stamina/Encumbrance
+    const needs = Need.all();
+    for (let i = 0; i < needs.length; i++)
+      entities.add(id, needs[i].id, Object.assign({}, needs[i].seed));
     entities.add(id, Equipment, {
       slots: { weapon: "", armor: "", trinket: "", backpack: "" },
     });

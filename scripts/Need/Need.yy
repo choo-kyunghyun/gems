@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"Survival",
+  "%Name":"Need",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"Survival",
+  "name":"Need",
   "parent":{
     "name":"System",
     "path":"folders/Game/System.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"Survival.js",
+  "scriptSource":"Need.js",
 }

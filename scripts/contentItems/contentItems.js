@@ -103,7 +103,7 @@ globalThis.contentItems = {
         weight: 1,
         value: 4,
         rarity: "common",
-        components: [new Consumable({ thirst: 45 })],
+        components: [new Consumable({ needs: { [Thirst]: 45 } })],
       },
       {
         // pre-collapse fizzy drink — a lighter thirst hit than the bottle, and the can
@@ -115,7 +115,7 @@ globalThis.contentItems = {
         weight: 1,
         value: 6,
         rarity: "common",
-        components: [new Consumable({ thirst: 30, yields: "soda_trash" })],
+        components: [new Consumable({ needs: { [Thirst]: 30 }, yields: "soda_trash" })],
       },
       {
         // the empty can (no components — sellable junk; a future scrap recipe input)
@@ -135,7 +135,7 @@ globalThis.contentItems = {
         weight: 1,
         value: 5,
         rarity: "common",
-        components: [new Consumable({ hunger: 40 })],
+        components: [new Consumable({ needs: { [Hunger]: 40 } })],
       },
       {
         id: "cooked_meat",
@@ -145,7 +145,7 @@ globalThis.contentItems = {
         weight: 1,
         value: 12,
         rarity: "uncommon",
-        components: [new Consumable({ hunger: 60, heal: 3 })],
+        components: [new Consumable({ needs: { [Hunger]: 60 }, heal: 3 })],
       },
       // produce — what a plant yields (contentFlora), eaten raw
       {
@@ -156,7 +156,7 @@ globalThis.contentItems = {
         weight: 1,
         value: 3,
         rarity: "common",
-        components: [new Consumable({ hunger: 20, thirst: 5 })],
+        components: [new Consumable({ needs: { [Hunger]: 20, [Thirst]: 5 } })],
       },
       {
         id: "grain",
@@ -165,7 +165,7 @@ globalThis.contentItems = {
         weight: 1,
         value: 2,
         rarity: "common",
-        components: [new Consumable({ hunger: 25 })],
+        components: [new Consumable({ needs: { [Hunger]: 25 } })],
       },
       // permanent +1 to one attribute — item-driven progression instead of XP leveling
       {
@@ -691,7 +691,7 @@ globalThis.contentItems = {
         value: 12,
         rarity: "uncommon",
         maker: "helios",
-        components: [new Consumable({ hunger: 50, thirst: 25 })],
+        components: [new Consumable({ needs: { [Hunger]: 50, [Thirst]: 25 } })],
       },
       {
         id: "aeon_rounds",

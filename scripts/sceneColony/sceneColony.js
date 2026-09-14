@@ -1,7 +1,7 @@
 const START_CREDITS = 1000; // coins the player starts with (carried across maps via the inventory snapshot)
 const SLEEP_SCALE_MAX = 50; // Time.scale ceiling while sleeping
 const SLEEP_ACCEL = 0.5; // ramp growth per wall-second (multiplicative, on Time.raw)
-const SLEEP_RECOVER = 40; // Drowsiness drained per sim-second while sleeping
+const SLEEP_RECOVER = 40; // Drowsiness drained per sim-second while sleeping, over its clock rise
 const TEMPO_BPM = 60; // the BPM a timed BGM runs the sim at 1x — the tick rate then reads as the BPM (120 BPM = 2x)
 
 /**
@@ -405,18 +405,16 @@ class _SceneColonyClass {
       Interpolation.snapshot(this.level.entities); // pre-move positions for render lerp
       StatusSystem.update(this.level); // tick buffs/debuffs (dot/hot + duration), then ↓
       EncumbranceSystem.update(this.level); // refresh the "encumbered" status from carried weight
-      // survival needs rise; drowsiness DRAINS while sleeping (else rises)
-      ThirstSystem.update(this.level);
-      HungerSystem.update(this.level);
-      ExposureSystem.update(this.level); // the thin air: by shelter + the worn seal
-      ColdSystem.update(this.level); // by the temperature where each body stands
+      // every need moves (the clock ones rise; exposure/cold by where the body stands), then
+      // sleep drains the player's drowsiness over that rise
+      NeedSystem.update(this.level);
       if (this.sleeping)
-        DrowsinessSystem.restore(
+        NeedSystem.restore(
           this.level.entities,
           this.playerId,
+          Drowsiness,
           SLEEP_RECOVER * SimClock.tickDuration,
         );
-      else DrowsinessSystem.update(this.level);
       FollowerSystem.update(this.level); // seek, by live Follower query (before physics)
       // physics: brains decide velocity (player input, then AI) → resolve paths → collide → push
       // crowders apart → projectiles → fuses → expire.
@@ -625,11 +623,12 @@ class _SceneColonyClass {
     pos.y = sp.y;
     vel.x = 0;
     vel.y = 0;
-    for (const token of [Thirst, Hunger, Drowsiness, Exposure, Cold]) {
-      const need = this.level.entities.get(id, token);
+    const needs = Need.all();
+    for (let i = 0; i < needs.length; i++) {
+      const need = this.level.entities.get(id, needs[i].id);
       if (need === undefined) continue; // a save from before the need
       need.value = need.max * 0.5;
-      Survival.refresh(this.level.entities, id, need); // so the debuff lifts with the refill
+      NeedSystem.refresh(this.level.entities, id, need); // so the debuff lifts with the refill
     }
     Log.info("player died — respawned at spawn");
   }
