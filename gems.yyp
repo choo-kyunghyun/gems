@@ -232,6 +232,7 @@
     {"id":{"name":"contentSprites","path":"scripts/contentSprites/contentSprites.yy",},},
     {"id":{"name":"contentStatuses","path":"scripts/contentStatuses/contentStatuses.yy",},},
     {"id":{"name":"contentTiles","path":"scripts/contentTiles/contentTiles.yy",},},
+    {"id":{"name":"contentWeather","path":"scripts/contentWeather/contentWeather.yy",},},
     {"id":{"name":"Crafting","path":"scripts/Crafting/Crafting.yy",},},
     {"id":{"name":"CraftingUI","path":"scripts/CraftingUI/CraftingUI.yy",},},
     {"id":{"name":"Dialogue","path":"scripts/Dialogue/Dialogue.yy",},},

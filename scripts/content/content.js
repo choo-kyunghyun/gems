@@ -14,6 +14,7 @@ globalThis.content = {
     contentItems.register(); // rarity tiers + the full item set
     contentStatuses.register(); // buff/debuff Status defs (encumbered / regen / fortify)
     contentNeeds.register(); // the needs a body carries (thirst/hunger/drowsiness + exposure/cold), in HUD order
+    contentWeather.register(); // the sky's conditions, each with its look, temp and season weights
     contentRecipes.register(); // workbench recipes
     contentPrefabs.register(); // overworld prefabs (OverworldGen stamps these)
     contentInteractions.register(); // InteractAction defs (storage/workbench/claim/bed + hydrate/feed/buff)

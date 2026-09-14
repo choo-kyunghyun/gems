@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"contentWeather",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"contentWeather",
+  "parent":{
+    "name":"Content",
+    "path":"folders/Game/Content.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"contentWeather.js",
+}
