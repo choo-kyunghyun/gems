@@ -221,10 +221,14 @@ globalThis.GameOverlay = {
     if (GameOverlay._modal !== null) GameOverlay._modal.close();
   },
 
-  /** force-close + restore time scale on a scene swap. */
+  /**
+   * Drop the open sheet + restore the time scale on a scene swap. Synchronous (UIModal.remove),
+   * not the animated close: its deferred onClose would re-restore the outgoing scene's scale
+   * onto the next scene.
+   */
   reset() {
     if (GameOverlay._modal !== null) {
-      GameOverlay._modal.close();
+      GameOverlay._modal.remove();
       Time.scale = GameOverlay._scale;
     }
     GameOverlay._modal = null;
@@ -240,8 +244,7 @@ globalThis.GameOverlay = {
       return;
     }
     const resume = GameOverlay._scale; // preserve the real resume speed across the rebuild
-    UI.remove(GameOverlay._root);
-    GameOverlay._root.destroy();
+    GameOverlay._modal.remove();
     GameOverlay._modal = null;
     GameOverlay._root = null;
     GameOverlay.open(tabIndex); // re-captures _scale from the now-frozen live scale…

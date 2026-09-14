@@ -52,6 +52,18 @@ globalThis.UIModal = class UIModal {
     this._t = 0;
   }
 
+  /**
+   * Drop the root NOW — no exit animation, no onClose (idempotent). For an owner tearing the
+   * modal down outside its own flow (the Game object's scene switch, a rebuild), where a
+   * deferred onClose would land on state the owner has already replaced.
+   */
+  remove() {
+    if (this._phase === 3 || this._root === null) return;
+    this._phase = 3;
+    UI.remove(this._root);
+    this._root.destroy();
+  }
+
   /** Always returns true (exclusive) until removed. */
   onUpdate(element, block) {
     if (this._phase === 3) return block;

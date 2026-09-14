@@ -103,8 +103,10 @@ UINav.color = Color.parse(FacetTheme.accent); // focus ring from kit theme
 // destroys. switchTo() below is the only transition, and the closures are defined here because
 // instance state (the pointer, the queue) lives on the instance.
 //
-// Exactly ONE scene is live: a switch DESTROYS it and resets the cross-scene singletons before the
-// target builds, so nothing of a scene survives the swap — no stack, no frozen scene.
+// Exactly ONE scene is live: a switch DESTROYS it and sweeps the app singletons before the target
+// builds, so nothing of a scene survives the swap — no stack, no frozen scene. The sweep in _apply
+// is THE list (docs/ARCHITECTURE.md → the five homes of state): an app singleton a scene can touch
+// is reset here, never in a scene's destroy, which drops only what that scene itself wired.
 // ─────────────────────────────────────────────────────────────────────────────
 this.scene = null; // the live Scene — stepped + drawn
 this._label = null; // its resolved display label (localized), or null
@@ -144,13 +146,26 @@ this.label = () => {
  * cross-scene singletons, then build the target.
  */
 this._apply = (factory) => {
+  SlotDrag.cancel(); // before the scene goes: a carried item returns to its source slot
   this._destroyScene();
+  // input + GUI
   UINav.reset(); // drop focus held on the outgoing scene's UI
+  InputContext.reset(); // back to the "default" base context
   GameOverlay.reset(); // close the pause overlay + restore time scale
+  VirtualKeyboard.reset();
   Dialogue.clear();
-  FloatingText.clear(); // world coords are map-local
-  ParticleFx.clear(); // world coords are map-local
+  Toast.clear();
+  Tooltip.clear();
+  // clocks: a scene starts at full speed and on a fresh tick phase
+  Time.scale = 1;
+  Time.tempo = 1;
+  SimClock.reset();
+  // world-space transients (their coords are map-local) + the planner's grid (its level is gone)
+  FloatingText.clear();
+  ParticleFx.clear();
   ParticleEmitterSystem.clear();
+  WorldOverlay.clearTracers();
+  MotionPlanner.reset();
   Audio.restart(); // one scene's BGM/SFX must not bleed into the next
   // A class scene's `label` field never sets (GMRT skips subclass field inits — #15067), so the
   // registered label (localized) is the reliable source; built-ins fall back to their instance one.

@@ -63,6 +63,12 @@ globalThis.VirtualKeyboard = {
     inp.onConfirm(inp.value);
   },
 
+  /** Drop an open keyboard with its modal, discarding the buffer (the Game object's scene switch). */
+  reset() {
+    if (VirtualKeyboard._modal !== null) VirtualKeyboard._modal.remove();
+    VirtualKeyboard._reset();
+  },
+
   /**
    * from the modal's onClose (Done/Cancel/Esc/backdrop) — never closes the modal itself (no re-entrancy)
    */

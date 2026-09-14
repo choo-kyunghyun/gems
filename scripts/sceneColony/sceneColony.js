@@ -205,7 +205,7 @@ class _SceneColonyClass {
         },
       });
 
-    // push the base gameplay context; step() replaces it each frame, destroy() resets to "default"
+    // push the base gameplay context; step() replaces it each frame, the switch resets to "default"
     InputContext.push("play");
 
     Log.info(
@@ -811,11 +811,9 @@ class _SceneColonyClass {
     // HUD/dialogue/inventory are manager-drawn UI panels — nothing more here
   }
 
+  /** Only what this scene wired: its hooks, its world, its UI root (the Game object's switch sweeps the rest). */
   destroy() {
-    InputContext.reset(); // hand input back to "default" for the next scene
-    Time.tempo = 1; // the BGM stops with the scene (Audio.restart), so its tempo goes too
-    Radio.reset(); // and the dial with it — the next colony session starts on its map's bed
-    WorldOverlay.clearTracers(); // drop any in-flight hitscan streaks (world coords are map-local)
+    Radio.reset(); // drop the bed hook — the next colony session starts on its map's bed
     SolidSystem.onStatics = null; // the nav grids go with the maps below
     ColonyMap.suspend(this); // release the view before its camera is freed with the level
     World.reset(); // free every pooled level (its runtime with it), the world's records and the event wiring

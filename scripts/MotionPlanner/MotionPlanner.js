@@ -65,6 +65,18 @@ globalThis.MotionPlanner = {
     MotionPlanner._stamp = new Array(count).fill(0); // `_gen` starts above 0 so nothing reads live
   },
 
+  /** Unbind the grid and free its scratch (the Game object's scene switch — the grid's level is gone). */
+  reset() {
+    MotionPlanner.grid = undefined;
+    MotionPlanner._g = undefined;
+    MotionPlanner._from = undefined;
+    MotionPlanner._closed = undefined;
+    MotionPlanner._scratch = undefined;
+    MotionPlanner._stamp = undefined;
+    MotionPlanner._hn.length = 0;
+    MotionPlanner._hf.length = 0;
+  },
+
   /**
    * The cells from `start` to `goal` inclusive (grid coords), or `[]` when either end is out of
    * bounds or blocked, or the goal is unreachable within `opt.maxIter` expansions. `opt`:
