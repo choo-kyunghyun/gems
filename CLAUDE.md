@@ -47,7 +47,7 @@ head -40 scripts/<Name>/<Name>.js                             # the area's contr
 - `Screenshot.take()` captures the screen on the frame it runs; capture under different names at different frames to compare, then read the PNGs from `%LOCALAPPDATA%/gems/screenshots/`.
 - Inspect entity state with `entities.dump()`.
 - Drive a debug run with a temporary frame counter in the `Game` object's `Step` event: log/screenshot at the target frames, then call `game_end()` a few frames later so the run exits on its own.
-- Verify Core with the tests, not a fresh probe: `GEMS_TEST=1 gm-cli run gems.yyp` runs every `testCore` case and `testStress` scenario, logs a `[CHECK]` line per case and a `[BENCH]` line per measure or sample, and exits; a Core change that a case could catch gets the case, a per-op cost claim gets its measure in a `perf.*` case.
+- Verify Core with the tests, not a fresh probe: `GEMS_TEST=1 gm-cli run gems.yyp` runs every `testCore` case, `testGame` case and `testStress` scenario, logs a `[CHECK]` line per case and a `[BENCH]` line per measure or sample, and exits; a Core change that a case could catch gets the case, a per-op cost claim gets its measure in a `perf.*` case, and a Game asset's behaviour on the pinned runtime gets a `testGame` case, never a Core one.
 
 ## Tools
 
