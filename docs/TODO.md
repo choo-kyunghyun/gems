@@ -2,7 +2,6 @@
 
 ## Issues
 
-- Every consumer guards `entities.get` — 926 `!== undefined` checks, 52 in `Loadout` alone, because the store has no required-component accessor; and `Loadout.equip` folding five distinct refusals into one `false` is the same gap on the return side (CLAUDE.md → don't hide errors)
 - Spawn descriptors are read by an if-chain — `ColonySpawn.spawnEntity` is 175 lines of eight `s.preset ===` branches turning descriptor fields into component overrides, and the prop's `s.kind` → mesh model is an eight-arm if-chain standing beside `FURN_MODELS`, the same lookup written as data; the preset half is already an `EntityPreset` def, so the descriptor half wants the same — a per-preset field map over the shared adapter, not an engine edit per kind (docs/ARCHITECTURE.md → adding content is a data entry)
 - `Weather` is the last system holding its own content table — `_COND` and `_WEIGHTS` are 66 of its 237 lines (the five conditions' look/temp/chroma, then the per-season transition weights) while every sibling table sits in `Game/Content`; the cross-fade, the hold timer and the climate pin are the system, the conditions are `contentWeather`
 - One meter shape, two models — a need (`Thirst` / `Hunger` / `Drowsiness` / `Exposure` / `Cold`) carries `rate` / `max` / `critical` / `status` as per-entity component data seeded from its `contentNeeds` def, but `Endurance` holds `DRAIN` / `REGEN` / `RECOVER` as module constants, so a trait or an attribute can move a need and never a sprint; the sprint meter wants the same shape on `Stamina`

@@ -19,8 +19,8 @@ globalThis.Crafting = {
    */
   craft(entities, crafterId, recipeId, module) {
     const recipe = Recipe.get(recipeId);
-    const inv = entities.get(crafterId, Inventory);
-    if (recipe === undefined || inv === undefined) return false;
+    if (recipe === undefined) return false;
+    const inv = entities.require(crafterId, Inventory);
     if (!Crafting.canCraft(inv, recipe, module)) return false;
 
     // probe a clone so we don't mutate on a no-fit.

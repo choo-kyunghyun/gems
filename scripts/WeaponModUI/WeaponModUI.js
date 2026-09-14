@@ -80,8 +80,7 @@ globalThis.WeaponModUI = {
    * refilled via the shared facetFillList.
    */
   _fillList(scene, panel, inv, weapons) {
-    const eq = scene.level.entities.get(scene.playerId, Equipment);
-    const equippedUid = eq !== undefined ? eq.slots.weapon : "";
+    const equippedUid = scene.level.entities.require(scene.playerId, Equipment).slots.weapon;
     const entries = [];
     for (let i = 0; i < weapons.length; i++) {
       const slot = weapons[i];

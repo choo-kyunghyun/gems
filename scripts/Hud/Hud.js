@@ -84,8 +84,8 @@ globalThis.Hud = {
       facetRichText(
         () => {
           if (scene.playerId === undefined) return "";
-          const hb = scene.level.entities.get(scene.playerId, Hotbar);
-          const itemId = hb !== undefined ? hb.slots[i] : "";
+          const hb = scene.level.entities.require(scene.playerId, Hotbar);
+          const itemId = hb.slots[i];
           return itemId ? WorldOverlay.iconTag(itemId) : "";
         },
         { font: "description" },
@@ -96,13 +96,13 @@ globalThis.Hud = {
         () => {
           const key = i + 1;
           if (scene.playerId === undefined) return "[" + key + "]";
-          const hb = scene.level.entities.get(scene.playerId, Hotbar);
-          const itemId = hb !== undefined ? hb.slots[i] : "";
+          const hb = scene.level.entities.require(scene.playerId, Hotbar);
+          const itemId = hb.slots[i];
           if (itemId === "" || itemId === undefined) return "[" + key + "]  —";
           const it = Item.get(itemId);
           const name = it !== undefined ? I18n.text(it.name) : itemId;
-          const inv = scene.level.entities.get(scene.playerId, Inventory);
-          const n = inv !== undefined ? Bag.count(inv, itemId) : 0;
+          const inv = scene.level.entities.require(scene.playerId, Inventory);
+          const n = Bag.count(inv, itemId);
           return "[" + key + "]  " + name + " (" + n + ")";
         },
         { color: FacetTheme.text, font: "description" },
@@ -177,9 +177,8 @@ globalThis.Hud = {
     hpRow.insertChild(
       facetLabel(
         () => {
-          const st = scene.level.entities.get(scene.playerId, Stats);
-          const hpC = scene.level.entities.get(scene.playerId, Health);
-          const hp = hpC !== undefined ? hpC.hp : 0;
+          const st = scene.level.entities.require(scene.playerId, Stats);
+          const hp = scene.level.entities.require(scene.playerId, Health).hp;
           return I18n.text("HUD_HP", hp, st.maxHp);
         },
         { color: FacetTheme.text, font: "header" },
@@ -213,10 +212,9 @@ globalThis.Hud = {
     staRow.insertChild(
       facetProgress(
         () => {
-          const sta = scene.level.entities.get(scene.playerId, Stamina);
-          const st = scene.level.entities.get(scene.playerId, Stats);
-          if (sta === undefined || st === undefined || st.maxStamina <= 0)
-            return 0;
+          const sta = scene.level.entities.require(scene.playerId, Stamina);
+          const st = scene.level.entities.require(scene.playerId, Stats);
+          if (st.maxStamina <= 0) return 0;
           return sta.value / st.maxStamina;
         },
         {
@@ -254,11 +252,8 @@ globalThis.Hud = {
     tempRow.insertChild(
       facetLabel(
         () => {
-          const pos = scene.level.entities.get(scene.playerId, Position);
-          const k =
-            pos === undefined
-              ? Temperature.now()
-              : RoomSystem.tempAt(scene.level, pos.x, pos.y);
+          const pos = scene.level.entities.require(scene.playerId, Position);
+          const k = RoomSystem.tempAt(scene.level, pos.x, pos.y);
           return I18n.text(
             "HUD_CONDITION",
             I18n.text(Weather.current().name),

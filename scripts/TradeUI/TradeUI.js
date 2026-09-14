@@ -93,10 +93,10 @@ globalThis.TradeUI = {
    * player's balance in the active merchant's currencyId (else "coin").
    */
   _coins(scene) {
-    const inv = scene.level.entities.get(scene.playerId, Inventory);
+    const inv = scene.level.entities.require(scene.playerId, Inventory);
     const m = scene.level.entities.get(scene.window.target, Merchant);
     const cur = m !== undefined ? m.currencyId : "coin";
-    return inv !== undefined ? Bag.count(inv, cur) : 0;
+    return Bag.count(inv, cur);
   },
 
   /**

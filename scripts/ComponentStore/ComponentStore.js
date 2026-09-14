@@ -82,6 +82,16 @@ globalThis.ComponentStore = class ComponentStore {
     return set.column[EntityID.index(id)];
   }
 
+  /** The component the caller's contract requires — throws on a miss (an unregistered token
+   *  included), where `get` reads undefined for a component whose absence is a state. */
+  require(id, token) {
+    const set = this._byToken.get(token);
+    const data = set === undefined ? undefined : set.column[EntityID.index(id)];
+    if (data === undefined)
+      throw new Error(`entity ${id} carries no ${token}`);
+    return data;
+  }
+
   /** No `&&`: a short-circuit corrupts its left operand on this runtime (GMRT.md #15549). */
   has(id, token) {
     const set = this._byToken.get(token);

@@ -295,12 +295,10 @@ globalThis.FloraSystem = {
    */
   harvest(scene, id) {
     const entities = scene.level.entities;
-    const g = entities.get(id, Growth);
-    if (g === undefined) return false;
+    const g = entities.require(id, Growth);
     if (g.progress < 1) return false;
     const def = FloraSystem.species(g.species);
-    const inv = entities.get(scene.playerId, Inventory);
-    if (inv === undefined) return false;
+    const inv = entities.require(scene.playerId, Inventory);
     const qty = def.yield.qty;
     const left = Bag.add(inv, def.yield.itemId, qty);
     if (left > 0) {

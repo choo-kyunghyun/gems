@@ -69,6 +69,12 @@ globalThis.EntityStore = class EntityStore {
     return this.components.get(id, token);
   }
 
+  /** `get` for a component the caller's contract requires — throws on a miss (contract at
+   *  ComponentStore.require). */
+  require(id, token) {
+    return this.components.require(id, token);
+  }
+
   /** Presence test — what a marker component is queried with, since it carries no data to read. */
   has(id, token) {
     return this.components.has(id, token);

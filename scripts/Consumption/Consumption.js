@@ -19,8 +19,8 @@ globalThis.Consumption = {
     const con = item.getComponent(Consumable);
     if (con === undefined) return false;
 
-    const inv = entities.get(id, Inventory);
-    if (inv === undefined || !Bag.has(inv, itemId, 1)) return false;
+    const inv = entities.require(id, Inventory);
+    if (!Bag.has(inv, itemId, 1)) return false;
 
     if (!Consumption._apply(entities, id, con)) return false; // nothing to do — don't waste it
     Bag.remove(inv, itemId, 1);

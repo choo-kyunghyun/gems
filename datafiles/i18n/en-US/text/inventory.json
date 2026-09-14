@@ -57,5 +57,9 @@
   "INV_UNFAVORITE": "Unfavorite",
   "INV_HOTBAR": "Hotbar",
   "INV_SELECT_NONE": "Select an item",
+  "INV_NOT_OWNED": "You do not carry that item",
+  "INV_NOT_EQUIPPABLE": "That item cannot be equipped",
+  "INV_ALREADY_WORN": "Already equipped",
+  "INV_UNKNOWN_ITEM": "Unknown item",
   "INV_NOACTION": "-"
 }

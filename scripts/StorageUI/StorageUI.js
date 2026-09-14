@@ -137,10 +137,10 @@ globalThis.StorageUI = {
 
   refresh(scene, page) {
     const entities = scene.level.entities;
-    const bagInv = entities.get(scene.playerId, Inventory);
+    const bagInv = entities.require(scene.playerId, Inventory);
     const boxInv = entities.get(scene.window.target, Inventory);
-    if (bagInv === undefined || boxInv === undefined) return;
-    const fav = entities.get(scene.playerId, Favorites); // the "*" marker on both sides
+    if (boxInv === undefined) return; // the target went (a reaped corpse) — the engine range-closes
+    const fav = entities.require(scene.playerId, Favorites); // the "*" marker on both sides
     page.bagTable.setRows(InvTable.rows(bagInv, fav)); // re-applies the sort
     page.boxTable.setRows(InvTable.rows(boxInv, fav));
   },
@@ -205,9 +205,9 @@ globalThis.StorageUI = {
    */
   _doMove(scene, page, side, row, amount) {
     const entities = scene.level.entities;
-    const bag = entities.get(scene.playerId, Inventory);
+    const bag = entities.require(scene.playerId, Inventory);
     const box = entities.get(scene.window.target, Inventory);
-    if (bag === undefined || box === undefined) return;
+    if (box === undefined) return;
     let moved;
     if (side === "bag") {
       moved = Bag.transfer(bag, box, row.idx, amount);
@@ -230,9 +230,9 @@ globalThis.StorageUI = {
    */
   _allFrom(scene, page, side) {
     const entities = scene.level.entities;
-    const bag = entities.get(scene.playerId, Inventory);
+    const bag = entities.require(scene.playerId, Inventory);
     const box = entities.get(scene.window.target, Inventory);
-    if (bag === undefined || box === undefined) return;
+    if (box === undefined) return;
     const total =
       side === "bag"
         ? Bag.transferAll(bag, box, {
@@ -271,8 +271,7 @@ globalThis.StorageUI = {
   _afterStore(scene, bag, itemId) {
     const entities = scene.level.entities;
     if (!Bag.has(bag, itemId, 1)) {
-      const hb = entities.get(scene.playerId, Hotbar);
-      if (hb !== undefined) HotbarSystem.clearItem(hb, itemId);
+      HotbarSystem.clearItem(entities.require(scene.playerId, Hotbar), itemId);
     }
     Loadout.reconcile(entities, scene.playerId);
   },

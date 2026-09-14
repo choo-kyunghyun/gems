@@ -231,8 +231,8 @@ globalThis.CraftingUI = {
    */
   _installModule(scene, id) {
     const st = scene.level.entities.get(scene.window.target, Interaction);
-    const inv = scene.level.entities.get(scene.playerId, Inventory);
-    if (st === undefined || inv === undefined) return;
+    const inv = scene.level.entities.require(scene.playerId, Inventory);
+    if (st === undefined) return;
     if (Bag.remove(inv, id, 1) < 1) return; // didn't own it
     const prev = st.module;
     if (prev !== undefined && prev !== "") {
@@ -250,8 +250,8 @@ globalThis.CraftingUI = {
   /** pop the slotted module back into the bag (refused if the bag is full). */
   _removeModule(scene) {
     const st = scene.level.entities.get(scene.window.target, Interaction);
-    const inv = scene.level.entities.get(scene.playerId, Inventory);
-    if (st === undefined || inv === undefined) return;
+    const inv = scene.level.entities.require(scene.playerId, Inventory);
+    if (st === undefined) return;
     if (st.module === undefined || st.module === "") return;
     if (Bag.add(inv, st.module, 1) !== 0) {
       Toast.push(I18n.text("INV_FULL"), { type: "warn" });

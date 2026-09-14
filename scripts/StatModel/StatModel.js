@@ -44,8 +44,7 @@ globalThis.StatModel = {
   recompute(entities, id) {
     const attrs = entities.get(id, Attributes);
     if (attrs === undefined) return; // monster with authored Stats — leave alone
-    const stats = entities.get(id, Stats);
-    if (stats === undefined) return;
+    const stats = entities.require(id, Stats);
     const d = StatModel.derive(attrs);
     StatModel._foldEquipment(entities, id, d);
     StatModel._foldStatuses(entities, id, d); // buff/debuff mods on top of gear

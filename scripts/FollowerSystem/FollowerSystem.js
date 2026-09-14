@@ -78,8 +78,8 @@ globalThis.FollowerSystem = {
    * entity, so it rides a map change with no re-apply — never recompute it per map.
    */
   setState(entities, playerId, fid, state) {
-    const f = entities.get(fid, Follower);
-    if (f === undefined || f.state === state) return;
+    const f = entities.require(fid, Follower);
+    if (f.state === state) return;
     if (state === "follow") {
       f.state = "follow";
       FollowerSystem.applyBenefit(entities, playerId, f, 1);
@@ -94,9 +94,8 @@ globalThis.FollowerSystem = {
    * Interaction over the "rehire" one (it's a squad member now — E commands it, not recruits it).
    */
   hire(entities, playerId, fid) {
-    const squad = entities.get(playerId, Squad);
-    if (squad === undefined || !entities.has(fid, Follower))
-      return;
+    const squad = entities.require(playerId, Squad);
+    entities.require(fid, Follower);
     entities.add(fid, Squad, { id: squad.id });
     FollowerSystem.setState(entities, playerId, fid, "follow");
     entities.add(fid, Interaction, { kind: "companion" });
@@ -117,9 +116,7 @@ globalThis.FollowerSystem = {
    * balanced delta (like Loadout._applyContainer) so it never needs a recompute-from-base pass.
    */
   applyBenefit(entities, playerId, f, sign) {
-    if (f === undefined) return;
-    const inv = entities.get(playerId, Inventory);
-    if (inv === undefined) return;
+    const inv = entities.require(playerId, Inventory);
     if (f.bonusCapacity) {
       inv.capacity += f.bonusCapacity * sign;
       if (inv.capacity < 0) inv.capacity = 0;

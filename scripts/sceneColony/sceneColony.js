@@ -145,18 +145,10 @@ class _SceneColonyClass {
       // equipped so the attack is item-driven from frame one; travels with the carried inventory
       const startInv = this.level.entities.get(this.playerId, Inventory);
       Bag.add(startInv, "lead_pipe", 1); // mints a uid instance (equippable gear)
-      Loadout.equipFirst(
-        this.level.entities,
-        this.playerId,
-        "lead_pipe",
-      ); // equip that instance by uid
+      Loadout.equipFirst(this.level.entities, this.playerId, "lead_pipe");
       // the thin air's filter, worn from frame one (its seal slows Exposure under the open sky)
       Bag.add(startInv, "filter_mask", 1);
-      Loadout.equipFirst(
-        this.level.entities,
-        this.playerId,
-        "filter_mask",
-      );
+      Loadout.equipFirst(this.level.entities, this.playerId, "filter_mask");
       Bag.add(startInv, "coin", START_CREDITS); // starting credits (coin stacks high → 1 slot)
 
       // seed one companion programmatically (not file-authored, so a persistent-map reload won't
@@ -483,8 +475,7 @@ class _SceneColonyClass {
    * number-key hotbar: use the item bound to each pressed slot (useItem handles use/equip toggle)
    */
   _useHotbar() {
-    const hb = this.level.entities.get(this.playerId, Hotbar);
-    if (hb === undefined) return;
+    const hb = this.level.entities.require(this.playerId, Hotbar);
     for (let i = 0; i < hb.size; i++) {
       if (!Input.get("hotbar" + (i + 1)).pressed()) continue;
       this.showHotbar(); // any hotbar keypress reveals the bar (even an empty slot)
@@ -505,13 +496,13 @@ class _SceneColonyClass {
   _itemWorn(itemId) {
     const it = Item.get(itemId);
     if (it === undefined || !it.hasComponent(Equippable)) return false;
-    const eq = this.level.entities.get(this.playerId, Equipment);
-    if (eq === undefined) return false;
+    const eq = this.level.entities.require(this.playerId, Equipment);
     const uid = eq.slots[it.getComponent(Equippable).slot];
     if (uid === undefined || uid === "") return false;
-    const inv = this.level.entities.get(this.playerId, Inventory);
-    const inst =
-      inv !== undefined ? Bag.findByUid(inv, uid) : undefined;
+    const inst = Bag.findByUid(
+      this.level.entities.require(this.playerId, Inventory),
+      uid,
+    );
     return inst !== undefined && inst.itemId === itemId;
   }
 
@@ -520,10 +511,8 @@ class _SceneColonyClass {
    * "corpse" InteractAction) land here so collect quests/achievements can't diverge by loot path
    */
   onCollect(itemId, got) {
-    const pp = this.level.entities.get(this.playerId, Position);
-    // pickup blip (spatial, ~centred)
-    if (pp !== undefined)
-      Audio.play({ sound: sndCoin, position: { x: pp.x, y: pp.y } });
+    const pp = this.level.entities.require(this.playerId, Position);
+    Audio.play({ sound: sndCoin, position: { x: pp.x, y: pp.y } }); // pickup blip
     this.track("collect", itemId, got);
     Log.info(
       `picked up ${got}x ${itemId} — items=${Tracker.count("itemsCollected")}`,

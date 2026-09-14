@@ -151,9 +151,8 @@ globalThis.BuildMode = {
   },
 
   _statusText(scene, panel) {
-    const inv = scene.level.entities.get(scene.playerId, Inventory);
-    const wood =
-      inv !== undefined ? Bag.count(inv, BuildMode.RESOURCE) : 0;
+    const inv = scene.level.entities.require(scene.playerId, Inventory);
+    const wood = Bag.count(inv, BuildMode.RESOURCE);
     const it = panel.item;
     const text = I18n.text(
       "BUILD_STATUS",
@@ -324,11 +323,8 @@ globalThis.BuildMode = {
     if (todo.length === 0) return;
     const cost = todo.length * item.cost;
     if (!BuildMode.free) {
-      const inv = scene.level.entities.get(scene.playerId, Inventory);
-      if (
-        inv === undefined ||
-        !Bag.has(inv, BuildMode.RESOURCE, cost)
-      ) {
+      const inv = scene.level.entities.require(scene.playerId, Inventory);
+      if (!Bag.has(inv, BuildMode.RESOURCE, cost)) {
         Toast.push(I18n.text("BUILD_NO_WOOD", cost), { type: "warn" });
         return;
       }
@@ -435,11 +431,9 @@ globalThis.BuildMode = {
       item.kind === "tile" && contentTiles.get(item.layer).solid !== true
     );
     if (solid) {
-      const pp = scene.level.entities.get(scene.playerId, Position);
-      if (pp !== undefined) {
-        const pc = grid.worldToGrid(pp.x, pp.y);
-        if (pc.x === gx && pc.y === gy) return false;
-      }
+      const pp = scene.level.entities.require(scene.playerId, Position);
+      const pc = grid.worldToGrid(pp.x, pp.y);
+      if (pc.x === gx && pc.y === gy) return false;
     }
     return true;
   },
@@ -448,8 +442,7 @@ globalThis.BuildMode = {
   _canBuild(scene, panel, gx, gy) {
     if (!BuildMode._cellFree(scene, panel, gx, gy)) return false;
     if (BuildMode.free) return true;
-    const inv = scene.level.entities.get(scene.playerId, Inventory);
-    if (inv === undefined) return false;
+    const inv = scene.level.entities.require(scene.playerId, Inventory);
     return Bag.has(inv, BuildMode.RESOURCE, panel.item.cost);
   },
 
@@ -563,8 +556,7 @@ globalThis.BuildMode = {
       if (scene.level.entities.isValid(ent.ent)) {
         const st = scene.level.entities.get(ent.ent, Interaction);
         if (st !== undefined && st.module !== undefined && st.module !== "") {
-          const inv = scene.level.entities.get(scene.playerId, Inventory);
-          if (inv !== undefined) Bag.add(inv, st.module, 1);
+          Bag.add(scene.level.entities.require(scene.playerId, Inventory), st.module, 1);
         }
         // spill the entity's Inventory as drops first, else entities.remove silently deletes the
         // contents. no-op without an Inventory; preserves instance uid/mods on the drop.
@@ -612,9 +604,8 @@ globalThis.BuildMode = {
   _refund(scene, itemId) {
     if (BuildMode.free) return; // nothing was paid
     const item = contentBuild.item(itemId);
-    const inv = scene.level.entities.get(scene.playerId, Inventory);
-    if (item !== undefined && inv !== undefined)
-      Bag.add(inv, BuildMode.RESOURCE, item.cost);
+    const inv = scene.level.entities.require(scene.playerId, Inventory);
+    if (item !== undefined) Bag.add(inv, BuildMode.RESOURCE, item.cost);
   },
 
   /**

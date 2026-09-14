@@ -1,6 +1,10 @@
 // Pure operations on an entity's Equipment + Stats + Inventory (no world tick). Equipped items STAY in
 // the Inventory (still counting toward capacity/maxWeight); the slot only references their uid.
 /**
+ * The wearer CARRIES Inventory and Equipment — every entry point reads them with `require`, so a
+ * caller handing a bare entity fails at once. A refusal is stated, never folded into false: `equip`
+ * returns "" when equipped, else the i18n key of why (the TradeSystem shape), which the view shows.
+ *
  * On equip/unequip the derived Stats are REBUILT from source via StatModel.recompute (folds every
  * equipped item's mods onto the attribute base) — no +/- delta to keep balanced, so it can't drift.
  * Wearer must carry Attributes for mods to apply (today only the player). A +maxHp item raises the cap
@@ -9,21 +13,21 @@
  */
 globalThis.Loadout = {
   /**
-   * Equip the instance `uid` onto `id` (item stays in Inventory). Fails if not owned, not equippable,
-   * or already equipped; a different occupant is unequipped first. (For "some instance of an itemId"
-   * — e.g. the hotbar — use equipFirst.)
+   * Equip the instance `uid` onto `id` (item stays in Inventory); a different occupant is
+   * unequipped first. Returns "" when equipped, else the refusal: INV_NOT_OWNED (no such instance
+   * in the bag), INV_UNKNOWN_ITEM (the slot names no registered item), INV_NOT_EQUIPPABLE,
+   * INV_ALREADY_WORN. (For "some instance of an itemId" — e.g. the hotbar — use equipFirst.)
    */
   equip(entities, id, uid) {
-    const inv = entities.get(id, Inventory);
-    const eq = entities.get(id, Equipment);
-    if (inv === undefined || eq === undefined) return false;
+    const inv = entities.require(id, Inventory);
+    const eq = entities.require(id, Equipment);
     const slot = Bag.findByUid(inv, uid);
-    if (slot === undefined) return false; // must own this instance
+    if (slot === undefined) return "INV_NOT_OWNED";
     const item = Item.get(slot.itemId);
-    if (item === undefined) return false;
+    if (item === undefined) return "INV_UNKNOWN_ITEM";
     const eqp = item.getComponent(Equippable);
-    if (eqp === undefined) return false; // not equippable
-    if (eq.slots[eqp.slot] === uid) return false; // already equipped
+    if (eqp === undefined) return "INV_NOT_EQUIPPABLE";
+    if (eq.slots[eqp.slot] === uid) return "INV_ALREADY_WORN";
 
     if (eq.slots[eqp.slot] !== "")
       Loadout.unequip(entities, id, eqp.slot);
@@ -31,21 +35,20 @@ globalThis.Loadout = {
     StatModel.recompute(entities, id); // re-derive with the equipped mods folded in
     AppearanceSystem.rebuild(entities, id); // worn gear shows on the doll (no-op sans Appearance)
     Loadout._applyContainer(entities, id, item, 1);
-    return true;
+    return "";
   },
 
   /**
    * Equip the FIRST owned instance of `itemId` (the itemId-keyed entry point: starting-gear seed +
-   * hotbar, which only know an itemId). False if none owned / not equippable.
+   * hotbar, which only know an itemId). Returns as `equip`; INV_NOT_OWNED when none is owned.
    */
   equipFirst(entities, id, itemId) {
-    const inv = entities.get(id, Inventory);
-    if (inv === undefined) return false;
+    const inv = entities.require(id, Inventory);
     for (let i = 0; i < inv.slots.length; i++) {
       if (inv.slots[i].itemId === itemId && inv.slots[i].uid !== undefined)
         return Loadout.equip(entities, id, inv.slots[i].uid);
     }
-    return false;
+    return "INV_NOT_OWNED";
   },
 
   /**
@@ -53,17 +56,14 @@ globalThis.Loadout = {
    * Returns the unequipped uid, or "" if empty.
    */
   unequip(entities, id, slot) {
-    const eq = entities.get(id, Equipment);
-    if (eq === undefined) return "";
+    const eq = entities.require(id, Equipment);
     const uid = eq.slots[slot];
     if (uid === undefined || uid === "") return "";
 
     eq.slots[slot] = ""; // clear FIRST so the re-derive drops the removed item's mods
     StatModel.recompute(entities, id);
     AppearanceSystem.rebuild(entities, id); // bare the removed item's doll slot
-    const inv = entities.get(id, Inventory);
-    const s =
-      inv !== undefined ? Bag.findByUid(inv, uid) : undefined;
+    const s = Bag.findByUid(entities.require(id, Inventory), uid);
     const item = s !== undefined ? Item.get(s.itemId) : undefined;
     if (item !== undefined)
       Loadout._applyContainer(entities, id, item, -1); // capacity stays a direct delta
@@ -76,9 +76,8 @@ globalThis.Loadout = {
    * that can take a worn instance out. Returns the number of slots cleared.
    */
   reconcile(entities, id) {
-    const eq = entities.get(id, Equipment);
-    const inv = entities.get(id, Inventory);
-    if (eq === undefined || inv === undefined) return 0;
+    const eq = entities.require(id, Equipment);
+    const inv = entities.require(id, Inventory);
     let n = 0;
     for (const slot in eq.slots) {
       const uid = eq.slots[slot];
@@ -100,13 +99,10 @@ globalThis.Loadout = {
    * controller needs the real slot — not a copy — to decrement `rounds` on a shot.
    */
   weaponSlot(entities, id) {
-    const eq = entities.get(id, Equipment);
-    if (eq === undefined) return null;
+    const eq = entities.require(id, Equipment);
     const uid = eq.slots.weapon;
     if (uid === undefined || uid === "") return null;
-    const inv = entities.get(id, Inventory);
-    const slot =
-      inv !== undefined ? Bag.findByUid(inv, uid) : undefined;
+    const slot = Bag.findByUid(entities.require(id, Inventory), uid);
     return slot ?? null;
   },
 
@@ -140,9 +136,7 @@ globalThis.Loadout = {
   reload(entities, id) {
     const slot = Loadout.weaponSlot(entities, id);
     if (slot === null) return 0;
-    const inv = entities.get(id, Inventory);
-    if (inv === undefined) return 0;
-    return Loadout.reloadSlot(inv, slot);
+    return Loadout.reloadSlot(entities.require(id, Inventory), slot);
   },
 
   /**
@@ -176,9 +170,7 @@ globalThis.Loadout = {
   loadAmmo(entities, id, ammoItemId) {
     const slot = Loadout.weaponSlot(entities, id);
     if (slot === null) return false;
-    const inv = entities.get(id, Inventory);
-    if (inv === undefined) return false;
-    return Loadout.loadAmmoSlot(inv, slot, ammoItemId);
+    return Loadout.loadAmmoSlot(entities.require(id, Inventory), slot, ammoItemId);
   },
 
   /**
@@ -344,8 +336,7 @@ globalThis.Loadout = {
   _applyContainer(entities, id, item, sign) {
     const con = item.getComponent(Container);
     if (con === undefined) return;
-    const inv = entities.get(id, Inventory);
-    if (inv === undefined) return;
+    const inv = entities.require(id, Inventory);
     inv.capacity += con.capacity * sign;
     if (inv.capacity < 0) inv.capacity = 0;
   },

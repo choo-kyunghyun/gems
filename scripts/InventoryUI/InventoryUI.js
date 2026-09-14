@@ -284,8 +284,8 @@ globalThis.InventoryUI = {
   _hotbarBtn(scene, page, i) {
     return facetButton(
       () => {
-        const hb = scene.level.entities.get(scene.playerId, Hotbar);
-        const itemId = hb !== undefined ? hb.slots[i] : "";
+        const hb = scene.level.entities.require(scene.playerId, Hotbar);
+        const itemId = hb.slots[i];
         if (itemId === "" || itemId === undefined) return "[" + (i + 1) + "]";
         const it = Item.get(itemId);
         return (
@@ -301,8 +301,7 @@ globalThis.InventoryUI = {
   },
 
   _assignHotbar(scene, page, i) {
-    const hb = scene.level.entities.get(scene.playerId, Hotbar);
-    if (hb === undefined) return;
+    const hb = scene.level.entities.require(scene.playerId, Hotbar);
     if (page.sel !== null) HotbarSystem.set(hb, i, page.sel.itemId);
     else HotbarSystem.clear(hb, i);
     scene.showHotbar(); // pop the HUD bar so the change is visible
@@ -313,16 +312,15 @@ globalThis.InventoryUI = {
    */
   _favLabel(scene, page) {
     if (page.sel === null) return I18n.text("INV_NOACTION");
-    const fav = scene.level.entities.get(scene.playerId, Favorites);
-    return fav !== undefined && Star.has(fav, page.sel.itemId)
+    const fav = scene.level.entities.require(scene.playerId, Favorites);
+    return Star.has(fav, page.sel.itemId)
       ? I18n.text("INV_UNFAVORITE")
       : I18n.text("INV_FAVORITE");
   },
 
   _toggleFav(scene, page) {
     if (page.sel === null) return;
-    const fav = scene.level.entities.get(scene.playerId, Favorites);
-    if (fav === undefined) return;
+    const fav = scene.level.entities.require(scene.playerId, Favorites);
     Star.toggle(fav, page.sel.itemId);
     scene.window.dirty = true;
   },
@@ -380,11 +378,12 @@ globalThis.InventoryUI = {
    * rebuild(), not build() — the squad isn't seeded until after the window is built.
    */
   _buildFollowerRows(scene, host) {
-    const squad = scene.level.entities.get(scene.playerId, Squad);
-    const ids =
-      squad !== undefined
-        ? FollowerSystem.members(scene.level.entities, squad.id, scene.playerId)
-        : [];
+    const squad = scene.level.entities.require(scene.playerId, Squad);
+    const ids = FollowerSystem.members(
+      scene.level.entities,
+      squad.id,
+      scene.playerId,
+    );
     if (ids.length <= 1) {
       // [0] is the player
       const empty = new UIElement({ width: "100%", height: 24 });
@@ -479,8 +478,8 @@ globalThis.InventoryUI = {
     const tab = new UIElement({ width: "100%", gap: FacetTheme.gapSm });
     const statRow = (labelKey, getter) =>
       facetKeyValueRow(I18n.textRef(labelKey), () => {
-        const st = scene.level.entities.get(scene.playerId, Stats);
-        return st === undefined ? "" : String(getter(st));
+        const st = scene.level.entities.require(scene.playerId, Stats);
+        return String(getter(st));
       });
     tab.insertChild(statRow("STAT_ATK", (st) => st.attack));
     tab.insertChild(statRow("STAT_DEF", (st) => st.defense));
@@ -494,8 +493,8 @@ globalThis.InventoryUI = {
     );
     const attrRow = (def) =>
       facetKeyValueRow(I18n.textRef(def.name), () => {
-        const at = scene.level.entities.get(scene.playerId, Attributes);
-        return at === undefined ? "" : String(at[def.id]);
+        const at = scene.level.entities.require(scene.playerId, Attributes);
+        return String(at[def.id]);
       });
     for (let i = 0; i < StatModel.ATTRS.length; i++) {
       tab.insertChild(attrRow(StatModel.ATTRS[i]));
@@ -1001,12 +1000,11 @@ globalThis.InventoryUI = {
    * the equipped INSTANCE uid; resolve it to the live bag slot for the itemId + mods.
    */
   _equipRow(scene, slot, labelKey) {
-    const eq = scene.level.entities.get(scene.playerId, Equipment);
-    const uid = eq !== undefined ? eq.slots[slot] : "";
+    const eq = scene.level.entities.require(scene.playerId, Equipment);
+    const uid = eq.slots[slot];
     if (uid !== undefined && uid !== "") {
-      const inv = scene.level.entities.get(scene.playerId, Inventory);
-      const inst =
-        inv !== undefined ? Bag.findByUid(inv, uid) : undefined;
+      const inv = scene.level.entities.require(scene.playerId, Inventory);
+      const inst = Bag.findByUid(inv, uid);
       const itemId = inst !== undefined ? inst.itemId : "";
       const it = Item.get(itemId);
       const base = it !== undefined ? I18n.text(it.name) : itemId;
@@ -1052,7 +1050,7 @@ globalThis.InventoryUI = {
         Loadout.unequip(scene.level.entities, scene.playerId, eqp.slot);
         Log.info(`unequipped ${itemId}`);
       } else {
-        const ok =
+        const why =
           uid !== undefined
             ? Loadout.equip(scene.level.entities, scene.playerId, uid)
             : Loadout.equipFirst(
@@ -1060,7 +1058,8 @@ globalThis.InventoryUI = {
                 scene.playerId,
                 itemId,
               );
-        if (ok) Log.info(`equipped ${itemId}`);
+        if (why === "") Log.info(`equipped ${itemId}`);
+        else Toast.push(I18n.text(why), { type: "warn" });
       }
     } else if (item.hasComponent(Consumable)) {
       if (Consumption.use(scene.level.entities, scene.playerId, itemId)) {

@@ -67,7 +67,10 @@ and are cited from here, never restated):
       exposing named query/resolve methods a consumer calls on demand
       (`PathfindingSystem.current`/`advance`).
     - Each `Level` owns its `EntityStore`, one sparse set per token, whose walks run down the LEAD
-      token's carriers in an order that is never by index (contract at `ComponentStore`).
+      token's carriers in an order that is never by index (contract at `ComponentStore`). A
+      component the caller's contract requires is read with `entities.require`, which throws on a
+      miss; `entities.get` and its `undefined` guard are for a component whose absence is a state
+      (an opt-in `Skeleton`, a lazily seeded `StatusEffects`, a window target that may have gone).
     - Nothing auto-runs systems — the active scene's `update()` dispatches them explicitly. (Store
       handles are canonically `entities`, level handles `level`.)
 - The five homes of state (data and logic apart): every mutable fact lives in exactly one of five

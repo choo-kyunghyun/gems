@@ -30,11 +30,9 @@ globalThis.TradeSystem = {
    * buys as much as fits. reason set only when amount is 0 (NO_FUNDS / NO_ROOM).
    */
   buy(entities, buyerId, merchantId, idx, qty) {
-    const m = entities.get(merchantId, Merchant);
-    const mInv = entities.get(merchantId, Inventory);
-    const bInv = entities.get(buyerId, Inventory);
-    if (m === undefined || mInv === undefined || bInv === undefined)
-      return { amount: 0, reason: "" };
+    const m = entities.require(merchantId, Merchant);
+    const mInv = entities.require(merchantId, Inventory);
+    const bInv = entities.require(buyerId, Inventory);
     const slot = mInv.slots[idx];
     if (slot === undefined) return { amount: 0, reason: "" };
     const itemId = slot.itemId;
@@ -83,11 +81,9 @@ globalThis.TradeSystem = {
    * Equip/favorite protection is the caller's (TradeUI). The currency item itself is never sellable.
    */
   sell(entities, sellerId, merchantId, idx, qty) {
-    const m = entities.get(merchantId, Merchant);
-    const mInv = entities.get(merchantId, Inventory);
-    const sInv = entities.get(sellerId, Inventory);
-    if (m === undefined || mInv === undefined || sInv === undefined)
-      return { amount: 0, reason: "" };
+    const m = entities.require(merchantId, Merchant);
+    const mInv = entities.require(merchantId, Inventory);
+    const sInv = entities.require(sellerId, Inventory);
     const slot = sInv.slots[idx];
     if (slot === undefined) return { amount: 0, reason: "" };
     const itemId = slot.itemId;

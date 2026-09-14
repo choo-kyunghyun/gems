@@ -922,6 +922,39 @@ globalThis.testCore = {
       },
     },
     {
+      // `require` is `get` for a component the contract needs: the data, or a throw naming the
+      // entity and the token — never undefined
+      id: "entity.require",
+      setup(ctx) {
+        const s = new EntityStore(8);
+        ctx.entities = s;
+        ctx.a = s.create();
+        s.add(ctx.a, Position, { x: 1, y: 2, z: 3 });
+      },
+      verify(ctx, t) {
+        const s = ctx.entities;
+        t.eq(s.require(ctx.a, Position).x, 1, "require reads a carried component");
+        let missing = "";
+        try {
+          s.require(ctx.a, Velocity);
+        } catch (e) {
+          missing = e.message;
+        }
+        t.ok(missing.indexOf("Velocity") !== -1, "an absent component throws, naming the token");
+        let unregistered = "";
+        try {
+          s.require(ctx.a, PrevPosition);
+        } catch (e) {
+          unregistered = e.message;
+        }
+        t.ok(unregistered !== "", "an unregistered token throws too");
+        t.eq(s.get(ctx.a, Velocity), undefined, "get still reads undefined for an absent one");
+      },
+      teardown(ctx) {
+        ctx.entities.destroy();
+      },
+    },
+    {
       // a facade is a plain object with no storage of its own: Registry seeds it on first use,
       // `make` normalizes each def, and a re-registered id keeps its position (docs/ARCHITECTURE.md
       // → Registry pattern)
