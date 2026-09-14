@@ -2,7 +2,6 @@
 
 ## Issues
 
-- One meter shape, two models — a need (`Thirst` / `Hunger` / `Drowsiness` / `Exposure` / `Cold`) carries `rate` / `max` / `critical` / `status` as per-entity component data seeded from its `contentNeeds` def, but `Endurance` holds `DRAIN` / `REGEN` / `RECOVER` as module constants, so a trait or an attribute can move a need and never a sprint; the sprint meter wants the same shape on `Stamina`
 - `contentInteractions` carries the one rule it cannot delegate — the `door` def is 46 of the table's 253 lines (the blocked-body sweep, the solid flip, the mesh yaw, `SolidSystem.invalidate`) where the other fifteen defs are one to six lines of delegation, and `companion` is another 35; the file's own contract is `run` → a system, so the door rule wants a home and its def wants to be a call
 - Comment mass stands in for structure — 0.32 comment:code overall, `UIElement` at 1.31 and `ColonyMap` at 0.58, carrying ordering constraints (`BEFORE the tick loop`, `after SolidSystem`) that the code cannot state; it is the measure the items above move, not a task of its own
 - [#15998] Foot rotation for Spine sprites is broken

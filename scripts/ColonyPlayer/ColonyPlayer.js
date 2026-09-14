@@ -42,7 +42,14 @@ globalThis.ColonyPlayer = {
     entities.add(id, Squad, { id: uuid() });
     entities.add(id, Health, { hp: 10 });
     entities.add(id, Mortal, { kind: "respawn" }); // hp 0 → refill to Stats.maxHp + reposition (ColonyCombat)
-    entities.add(id, Stamina, { value: 100, exhausted: false });
+    // the sprint meter's rates ride the component (Stamina): ~3 s from full, ~4.5 s back
+    entities.add(id, Stamina, {
+      value: 100,
+      exhausted: false,
+      drain: 34,
+      regen: 22,
+      recover: 0.3,
+    });
     // primary attributes (stat INPUTS); StatModel.recompute derives the combat fields from these
     entities.add(id, Attributes, StatModel.defaults());
     entities.add(id, Stats, {

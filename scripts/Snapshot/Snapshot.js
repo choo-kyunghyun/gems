@@ -23,7 +23,7 @@
  *                              the caller frees only what was never taken
  */
 globalThis.Snapshot = class Snapshot {
-  static VERSION = 9; // bump when the manifest/blob layout changes incompatibly (9: the world's and each map's records export whole)
+  static VERSION = 10; // bump when the manifest/blob layout changes incompatibly (10: Stamina carries its rates)
 
   constructor() {
     this.passes = [];
