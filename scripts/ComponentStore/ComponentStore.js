@@ -16,6 +16,10 @@
  * the walk skips the emptied slot by its column read, so a callback may detach the lead token
  * from ANY entity. A carrier added mid-walk lands past the walk's end and is visited from the
  * next walk. Entity removal stays deferred (EntityStore.remove).
+ *
+ * Persistence: a set is TRANSIENT once its token is minted (`mint`) — runtime-rebuilt by the
+ * minting system, so `export` and `persistentOf` skip it, and a later `add` keeps it so. The mint
+ * site owns that fact; no consumer names a transient token by hand.
  */
 globalThis.ComponentStore = class ComponentStore {
   constructor(maxEntities, ids) {
@@ -42,6 +46,7 @@ globalThis.ComponentStore = class ComponentStore {
         sparse: new Array(this.maxEntities).fill(-1),
         walking: 0, // forEach nesting depth with this token as the lead
         pending: [], // indices whose swap-remove waits for the walk to end
+        transient: false, // minted — skipped by export/persistentOf
       };
       this._byToken.set(token, set);
       this._tokens.push(token);
@@ -62,6 +67,13 @@ globalThis.ComponentStore = class ComponentStore {
       set.sparse[i] = set.dense.length;
       set.dense.push(i);
     }
+  }
+
+  /** `add`, and mark the token transient: the caller rebuilds it at runtime, so no export
+   *  carries it. */
+  mint(id, token, data) {
+    this.add(id, token, data);
+    this._byToken.get(token).transient = true;
   }
 
   get(id, token) {
@@ -126,11 +138,24 @@ globalThis.ComponentStore = class ComponentStore {
     pending.length = 0;
   }
 
+  /** Every component of the entity, token → data (a debug dump's shape). */
   componentsOf(id) {
+    return this._of(id, false);
+  }
+
+  /** `componentsOf` minus the transient sets — the shape a whole-entity snapshot carries. */
+  persistentOf(id) {
+    return this._of(id, true);
+  }
+
+  _of(id, skipTransient) {
     const out = {};
     const i = EntityID.index(id);
     for (let c = 0; c < this._tokens.length; c++) {
-      const data = this._sets[c].column[i];
+      const set = this._sets[c];
+      // comparisons as the operands: a bare flag on the left of && is clobbered (#15549)
+      if (skipTransient === true && set.transient === true) continue;
+      const data = set.column[i];
       if (data !== undefined) out[this._tokens[c]] = data;
     }
     return out;
@@ -277,11 +302,13 @@ globalThis.ComponentStore = class ComponentStore {
     this._settle(lead);
   }
 
-  /** Per token its `[index, data]` entries in dense order — the shape `import` rebuilds from. */
+  /** Per persistent token its `[index, data]` entries in dense order — the shape `import`
+   *  rebuilds from; a transient set is left out. */
   export() {
     const components = {};
     for (let k = 0; k < this._tokens.length; k++) {
       const set = this._sets[k];
+      if (set.transient) continue;
       const dense = set.dense;
       const column = set.column;
       const entries = [];

@@ -44,7 +44,7 @@ globalThis.PathFollow = {
     if (state.pathCd <= 0) {
       const s = grid.worldToGrid(sp.x, sp.y);
       const g = grid.worldToGrid(tx, ty);
-      entities.add(id, PathRequest, {
+      entities.mint(id, PathRequest, {
         startX: s.x,
         startY: s.y,
         goalX: g.x,

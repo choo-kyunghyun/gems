@@ -79,7 +79,7 @@ globalThis.PathfindingSystem = {
     );
     entities.detach(id, PathRequest);
     if (path.length > 0) {
-      entities.add(id, PathResponse, { path, index: 0 });
+      entities.mint(id, PathResponse, { path, index: 0 });
     }
   },
 

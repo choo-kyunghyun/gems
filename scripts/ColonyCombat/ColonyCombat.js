@@ -56,7 +56,7 @@ globalThis.ColonyCombat = {
     if (hp === undefined) return;
     const base = entities.get(id, PrevHealth);
     if (base === undefined) {
-      entities.add(id, PrevHealth, { hp: hp.hp }); // first sight seeds, pops nothing
+      entities.mint(id, PrevHealth, { hp: hp.hp }); // first sight seeds, pops nothing
       return;
     }
     const prev = base.hp;

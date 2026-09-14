@@ -28,16 +28,6 @@ globalThis.SaveGame = {
   _index: null, // the index as last read or written (see _readIndex)
   _frame: null, // lazily-composed Snapshot (the pass stack)
   _pending: null, // a loaded bundle awaiting the colony scene's create() load-branch, which consumes it
-  // runtime-rebuilt components dropped from every serialized entity (the diff baselines and
-  // pathfinding are re-derived each tick, a puppet Instance is re-minted by SkeletonSystem — a
-  // restored handle would be dead; dropping them shrinks the save and avoids a cyclic runtime ref).
-  _TRANSIENT: [
-    "PrevPosition",
-    "PrevHealth",
-    "PathRequest",
-    "PathResponse",
-    "Instance",
-  ],
 
   /**
    * Compose the pass stack once. Order matters for restore: maps rebuild before world-sim reads
@@ -245,7 +235,7 @@ globalThis.SaveGame = {
    *   meta         the level's records whole (Records.export) — the map record (spawn, entries,
    *                the collider id lists, the terrain palette rows), the builds, indoor, climate,
    *                the settlement, the clocks
-   *   world        the store export whole (minus _TRANSIENT) — every entity under its index +
+   *   world        the store export whole — every entity under its index +
    *                generation; on-disk manifest key, renaming it orphans existing saves
    *   blob         the grid blob's name (map_<id>) — the tile layers, LevelGrid.pack
    *   layers       the LAYERS keys in pack order (ColonyLevel.restore checks the stack)
@@ -261,12 +251,7 @@ globalThis.SaveGame = {
         const level = World.get(mapId); // the map's data — pooled whether it's active or parked
         const entities = level.entities;
         const grid = level.grid;
-        // component export → JSON, minus the transient components (re-derived each tick or
-        // re-minted; dropping them also shrinks the save and dodges any cyclic reference a
-        // runtime component might carry — see Json's cycle guard).
-        const exp = entities.export();
-        for (let t = 0; t < SaveGame._TRANSIENT.length; t++)
-          delete exp.components[SaveGame._TRANSIENT[t]];
+        const exp = entities.export(); // a minted component stays behind (EntityStore.mint)
         const layers = [];
         for (let l = 0; l < contentTiles.LAYERS.length; l++)
           layers.push(contentTiles.LAYERS[l].key);

@@ -7,7 +7,7 @@ globalThis.Interpolation = {
     entities.forEach([Velocity, Position], (id, _vel, pos) => {
       const prev = entities.get(id, PrevPosition);
       if (prev === undefined) {
-        entities.add(id, PrevPosition, { x: pos.x, y: pos.y, z: pos.z });
+        entities.mint(id, PrevPosition, { x: pos.x, y: pos.y, z: pos.z });
       } else {
         prev.x = pos.x;
         prev.y = pos.y;

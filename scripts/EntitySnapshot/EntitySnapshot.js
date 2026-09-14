@@ -2,15 +2,17 @@
 /**
  * The substrate for whole-entity migration between level stores (World.take/put wrap it — the
  * squad travelling between maps, a trader hydrating) and for a Blueprint's exact
- * stamps. Data objects are REFERENCED, not deep-copied: a captured component re-attaches by
- * reference and the objects outlive the source store's destroy() (only the storage map is dropped).
+ * stamps. A whole capture (no list) takes the persistent components: a minted one
+ * (EntityStore.mint) stays behind for the destination to rebuild. Data objects are REFERENCED,
+ * not deep-copied: a captured component re-attaches by reference and the objects outlive the
+ * source store's destroy() (only the storage map is dropped).
  * For disk, serialize the record yourself (mind the JSON nested-value fault + Set fields).
  */
 globalThis.EntitySnapshot = {
   capture(entities, id, components) {
     let comps;
     if (components === undefined) {
-      comps = entities.componentsOf(id);
+      comps = entities.persistentOf(id);
     } else {
       comps = {};
       for (let i = 0; i < components.length; i++) {

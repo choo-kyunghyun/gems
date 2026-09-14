@@ -26,7 +26,7 @@ globalThis.InstanceSystem = {
     const held = entities.get(id, Instance);
     if (held !== undefined) return held;
     const data = { inst: instance_create_depth(0, 0, 0, Puppet) };
-    entities.add(id, Instance, data);
+    entities.mint(id, Instance, data);
     InstanceSystem._roster.push({ entities, id, inst: data.inst });
     return data;
   },

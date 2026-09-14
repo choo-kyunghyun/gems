@@ -59,6 +59,12 @@ globalThis.EntityStore = class EntityStore {
     this.components.add(id, token, data);
   }
 
+  /** `add` for a runtime-rebuilt component: no export or whole-entity snapshot carries a minted
+   *  token, so the system that rebuilds one declares it here and nowhere else. */
+  mint(id, token, data) {
+    this.components.mint(id, token, data);
+  }
+
   get(id, token) {
     return this.components.get(id, token);
   }
@@ -74,6 +80,11 @@ globalThis.EntityStore = class EntityStore {
 
   componentsOf(id) {
     return this.components.componentsOf(id);
+  }
+
+  /** The entity's components minus the minted ones — what a whole-entity snapshot carries. */
+  persistentOf(id) {
+    return this.components.persistentOf(id);
   }
 
   /** Ids carrying every token — contract at ComponentStore.query. No tokens → every live id. */

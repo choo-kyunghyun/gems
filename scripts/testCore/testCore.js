@@ -349,6 +349,56 @@ globalThis.testCore = {
       },
     },
     {
+      id: "entity.mint",
+      setup(ctx) {
+        const s = new EntityStore(8);
+        ctx.src = s;
+        ctx.dst = new EntityStore(8);
+        ctx.a = s.create();
+        s.add(ctx.a, Position, { x: 1, y: 2, z: 3 });
+        s.mint(ctx.a, PrevPosition, { x: 0, y: 0, z: 0 });
+        s.add(ctx.a, PrevPosition, { x: 1, y: 1, z: 1 }); // a later add keeps the token minted
+      },
+      verify(ctx, t) {
+        const s = ctx.src;
+        t.ok(
+          s.get(ctx.a, PrevPosition) !== undefined,
+          "a minted component reads like any other",
+        );
+        const exp = s.export();
+        t.ok(
+          exp.components[Position] !== undefined,
+          "export carries the added token",
+        );
+        t.eq(
+          exp.components[PrevPosition],
+          undefined,
+          "export skips the minted token",
+        );
+        const whole = s.persistentOf(ctx.a);
+        t.ok(whole[Position] !== undefined, "persistentOf carries the added token");
+        t.eq(whole[PrevPosition], undefined, "persistentOf skips the minted token");
+        t.ok(
+          s.componentsOf(ctx.a)[PrevPosition] !== undefined,
+          "componentsOf still lists the minted token",
+        );
+        ctx.dst.import(exp);
+        t.eq(
+          ctx.dst.get(ctx.a, PrevPosition),
+          undefined,
+          "a round trip drops the minted token",
+        );
+        t.ok(
+          ctx.dst.get(ctx.a, Position) !== undefined,
+          "a round trip keeps the added token",
+        );
+      },
+      teardown(ctx) {
+        ctx.src.destroy();
+        ctx.dst.destroy();
+      },
+    },
+    {
       id: "system.movement",
       setup(ctx) {
         ctx.level = new Level({ id: "test", capacity: 8 });

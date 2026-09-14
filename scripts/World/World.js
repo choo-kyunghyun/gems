@@ -57,25 +57,19 @@ globalThis.World = {
   },
 
   /**
-   * Capture a WHOLE entity (all components) out of a resident level's store and remove it. Returns
-   * the snapshot (the caller now owns it). EntitySnapshot references the component data objects,
-   * so they survive the remove/flush (see EntitySnapshot).
+   * Capture a WHOLE entity (every persistent component) out of a resident level's store and
+   * remove it. Returns the snapshot (the caller now owns it). EntitySnapshot references the
+   * component data objects, so they survive the remove/flush (see EntitySnapshot).
    *
-   * The one component that does NOT travel is `Instance`: a puppet belongs to the source store's
-   * roster, which reaps it once the entity leaves (InstanceSystem), so a carried handle would go
-   * dead — the destination mints its own puppet on its first SkeletonSystem pass and re-dresses it.
+   * A minted component (EntityStore.mint) does not travel: the puppet belongs to the source
+   * store's roster, which reaps it once the entity leaves (InstanceSystem), and the destination
+   * re-mints its own on its first pass; a path or a diff baseline is likewise the destination's.
    */
   take(mapId, id) {
     const lv = World.get(mapId);
     if (lv === null) throw new Error(`World.take: map "${mapId}" is not resident`);
-    const snap = EntitySnapshot.capture(lv.entities, id); // no component list → every component
+    const snap = EntitySnapshot.capture(lv.entities, id); // no list → every persistent one
     lv.entities.remove(id);
-    if (snap.components[Instance] !== undefined) {
-      const comps = {};
-      for (const token in snap.components)
-        if (token !== Instance) comps[token] = snap.components[token];
-      snap.components = comps;
-    }
     return snap;
   },
 
