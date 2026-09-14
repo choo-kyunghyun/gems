@@ -48,11 +48,14 @@ globalThis.SolidSystem = {
   _rect: AABB.rect(),
 
   // the dynamic solid bodies as of the last refresh — parallel arrays of the component objects
-  // themselves, reused (a stale tail past _bodyCount is never read) — for eachBody
+  // themselves, reused (a stale tail past _bodyCount is never read) — the one body list update's
+  // integrate loop, eachBody and its readers share. _bodyVels holds undefined for a body without
+  // Velocity (listed for a cast, never moved).
   _bodyIds: [],
   _bodyCols: [],
   _bodyPos: [],
   _bodyBoxes: [],
+  _bodyVels: [],
   _bodyCount: 0,
 
   /** Force the next update to re-derive the static snapshot (see the class doc's premise). */
@@ -202,7 +205,11 @@ globalThis.SolidSystem = {
    * Visit the dynamic solid bodies — every non-kinematic collider — as `fn(id, col, pos, box)`,
    * the component objects themselves so `solid` reads live (a corpse drops out of the hits the
    * frame it dies). As of the last refresh, like `statics`: a body removed since may linger
-   * (validate the id), one spawned since is not listed until the next update().
+   * (validate the id), one spawned since is not listed until the next update(). A per-tick
+   * consumer (SeparationSystem) therefore runs after update() in the same tick — the walk that
+   * lists the bodies is the one update() takes, never a second one here.
+   * TODO a scene running such a consumer without update() would want eachBody to refresh on a
+   * SimClock tick stamp instead; none does today.
    */
   eachBody(entities, fn) {
     if (SolidSystem._store !== entities) SolidSystem._refresh(entities);
@@ -216,7 +223,10 @@ globalThis.SolidSystem = {
 
   /**
    * Re-fingerprint the store's colliders and re-snapshot if the set moved; the same pass lists the
-   * dynamic bodies for eachBody.
+   * dynamic bodies for update's integrate loop and eachBody. THE collider walk of a tick: every
+   * wall is a Collision carrier, so a walk costs the level's collider count, and this is the only
+   * one. Velocity cannot join the walk's tokens (a static carries none, and the fingerprint needs
+   * every static), so it is one `get` per BODY — the movers, not the walls.
    */
   _refresh(entities) {
     const ids = SolidSystem._candidates;
@@ -224,6 +234,7 @@ globalThis.SolidSystem = {
     const bCols = SolidSystem._bodyCols;
     const bPos = SolidSystem._bodyPos;
     const bBoxes = SolidSystem._bodyBoxes;
+    const bVels = SolidSystem._bodyVels;
     let w = 0;
     let b = 0;
     entities.forEach([Collision, Position, BBox], (id, col, pos, box) => {
@@ -233,6 +244,7 @@ globalThis.SolidSystem = {
       bCols[b] = col;
       bPos[b] = pos;
       bBoxes[b] = box;
+      bVels[b] = entities.get(id, Velocity);
       b++;
     });
     ids.length = w;
@@ -246,31 +258,37 @@ globalThis.SolidSystem = {
     SolidSystem._refresh(entities);
     const statics = SolidSystem._statics;
 
-    entities.forEach(
-      [Collision, Position, BBox, Velocity],
-      (id, col, pos, box, vel) => {
-        if (!col.solid || col.kinematic) return;
+    // integrate the bodies _refresh listed (non-kinematic already) — the moving solid ones
+    const cols = SolidSystem._bodyCols;
+    const poss = SolidSystem._bodyPos;
+    const boxes = SolidSystem._bodyBoxes;
+    const vels = SolidSystem._bodyVels;
+    const n = SolidSystem._bodyCount;
+    for (let i = 0; i < n; i++) {
+      const vel = vels[i];
+      if (vel === undefined) continue;
+      if (!cols[i].solid) continue;
+      const pos = poss[i];
+      const box = boxes[i];
 
-        const dx = vel.x * dt;
-        const dy = vel.y * dt;
-        const steps = Math.max(
-          1,
-          Math.ceil(Math.max(Math.abs(dx), Math.abs(dy)) / SolidSystem.maxStep),
-        );
-        const sx = dx / steps;
-        const sy = dy / steps;
+      const dx = vel.x * dt;
+      const dy = vel.y * dt;
+      const steps = Math.max(
+        1,
+        Math.ceil(Math.max(Math.abs(dx), Math.abs(dy)) / SolidSystem.maxStep),
+      );
+      const sx = dx / steps;
+      const sy = dy / steps;
 
-        for (let s = 0; s < steps; s++) {
-          pos.x += sx;
-          if (SolidSystem._resolve(pos, box, statics, sx, true) !== 0)
-            vel.x = 0;
+      for (let s = 0; s < steps; s++) {
+        pos.x += sx;
+        if (SolidSystem._resolve(pos, box, statics, sx, true) !== 0) vel.x = 0;
 
-          pos.y += sy;
-          if (SolidSystem._resolve(pos, box, statics, sy, false) !== 0)
-            vel.y = 0;
-        }
-      },
-    );
+        pos.y += sy;
+        if (SolidSystem._resolve(pos, box, statics, sy, false) !== 0)
+          vel.y = 0;
+      }
+    }
   },
 
   /**

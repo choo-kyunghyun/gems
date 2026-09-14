@@ -1,4 +1,6 @@
-// equal-mass MTV push-apart for unit crowding. pure resolution — run after SolidSystem.
+// equal-mass MTV push-apart for unit crowding. Pure resolution, run after SolidSystem.update in
+// the SAME tick: the bodies come from SolidSystem.eachBody (that update's collider walk, so no
+// second walk here), and a scene that drops this system costs SolidSystem nothing.
 // O(n) via entities.broadphase (cellSize > max entity diameter), else O(n²).
 globalThis.SeparationSystem = {
   iterations: 1, // raise for dense clusters; broadphase re-buckets each pass
@@ -9,11 +11,12 @@ globalThis.SeparationSystem = {
   _b: AABB.rect(),
 
   update(entities) {
-    // collect once; positions shift per pass but the body list is stable
+    // collect once; positions shift per pass but the body list is stable. eachBody lists the
+    // non-kinematic colliders, `col` live — a corpse (solid flipped off) drops out this tick.
     const bodies = SeparationSystem._bodies;
     let w = 0;
-    entities.forEach([Collision, Position, BBox], (id, col) => {
-      if (col.solid && !col.kinematic) bodies[w++] = id;
+    SolidSystem.eachBody(entities, (id, col) => {
+      if (col.solid) bodies[w++] = id;
     });
     bodies.length = w;
 

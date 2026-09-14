@@ -426,6 +426,59 @@ globalThis.testCore = {
       },
     },
     {
+      // the one collider walk per tick: update's refresh lists the bodies, and both its integrate
+      // loop and SeparationSystem (through eachBody) read that list — a body without Velocity is
+      // listed but never moved, a solid-off body is listed but not separated
+      id: "system.solid.bodies",
+      setup(ctx) {
+        const s = new EntityStore(8);
+        ctx.entities = s;
+        ctx.wall = SolidSystem.box(s, 100, 0, 32, 64);
+        ctx.still = s.create(); // no Velocity: a cast target, not a mover
+        s.add(ctx.still, Position, { x: 10, y: 100, z: 0 });
+        s.add(ctx.still, BBox, { x: 0, y: 0, width: 16, height: 16 });
+        s.add(ctx.still, Collision, { solid: true });
+        ctx.a = s.create();
+        s.add(ctx.a, Position, { x: 40, y: 40, z: 0 });
+        s.add(ctx.a, BBox, { x: 0, y: 0, width: 16, height: 16 });
+        s.add(ctx.a, Collision, { solid: true });
+        s.add(ctx.a, Velocity, { x: 0, y: 0, z: 0 });
+        ctx.b = s.create(); // overlaps a by 8 px in x, 16 in y — separation pushes along x
+        s.add(ctx.b, Position, { x: 48, y: 40, z: 0 });
+        s.add(ctx.b, BBox, { x: 0, y: 0, width: 16, height: 16 });
+        s.add(ctx.b, Collision, { solid: true });
+        s.add(ctx.b, Velocity, { x: 0, y: 0, z: 0 });
+        ctx.corpse = s.create(); // solid off: listed, never separated
+        s.add(ctx.corpse, Position, { x: 40, y: 40, z: 0 });
+        s.add(ctx.corpse, BBox, { x: 0, y: 0, width: 16, height: 16 });
+        s.add(ctx.corpse, Collision, { solid: false });
+        s.add(ctx.corpse, Velocity, { x: 0, y: 0, z: 0 });
+      },
+      verify(ctx, t) {
+        const s = ctx.entities;
+        SolidSystem.update(s);
+        let listed = 0;
+        let sawStill = false;
+        SolidSystem.eachBody(s, (id) => {
+          listed++;
+          if (id === ctx.still) sawStill = true;
+        });
+        t.eq(listed, 4, "eachBody lists every non-kinematic collider");
+        t.ok(sawStill, "a body without Velocity is listed");
+        t.eq(s.get(ctx.still, Position).x, 10, "a body without Velocity is not integrated");
+
+        SeparationSystem.update(s);
+        const pa = s.get(ctx.a, Position);
+        const pb = s.get(ctx.b, Position);
+        t.near(pa.x, 36, 1e-6, "separation pushes a back half the overlap");
+        t.near(pb.x, 52, 1e-6, "separation pushes b forward half the overlap");
+        t.eq(s.get(ctx.corpse, Position).x, 40, "a solid-off body is not separated");
+      },
+      teardown(ctx) {
+        ctx.entities.destroy();
+      },
+    },
+    {
       id: "collision.aabb",
       setup(ctx) {
         const s = new EntityStore(8);

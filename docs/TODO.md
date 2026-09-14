@@ -4,7 +4,6 @@
 
 - [#15998] Foot rotation for Spine sprites is broken
 - [#15999] Mix is ​​not applied to single-key Spine animations like down
-- `SolidSystem` walks `Collision, Position, BBox` twice per tick (the static-cache fingerprint, which also lists the dynamic bodies for `eachBody`, then the body loop with `Velocity`) and `SeparationSystem` walks it a third time; one shared pass, seeded by `eachBody`, should serve all three
 
 ## Planned
 
