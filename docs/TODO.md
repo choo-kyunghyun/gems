@@ -2,7 +2,7 @@
 
 ## Issues
 
-- Comment mass stands in for structure — 0.32 comment:code overall, `UIElement` at 1.31 and `ColonyMap` at 0.58, carrying ordering constraints (`BEFORE the tick loop`, `after SolidSystem`) that the code cannot state; it is the measure the items above move, not a task of its own
+- Comment mass stands in for structure — 0.31 comment:code overall, `UIElement` at 1.30 and `ColonyMap` at 0.51, carrying ordering constraints (`BEFORE the tick loop`, `after SolidSystem`) that the code cannot state; it is the measure structural work moves, not a task of its own
 - [#15998] Foot rotation for Spine sprites is broken
 - [#15999] Mix is ​​not applied to single-key Spine animations like down
 
