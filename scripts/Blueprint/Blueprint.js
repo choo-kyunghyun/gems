@@ -5,7 +5,7 @@
  * capture() reads a plan off a cell rect of the LIVE map: every tile layer but the terrain,
  * greedy-meshed per material (the generator's walls and the player's alike — what stands there),
  * plus the built entities inside the rect as their catalog descriptors, each carrying `item` (its
- * BuildMode catalog id, which is what stamp() rebuilds it from) and, with opts.withState, its exact
+ * contentBuild id, which is what stamp() rebuilds it from) and, with opts.withState, its exact
  * EntitySnapshot as `snapshot` (a chest keeps its contents, a turret its damage). export() writes
  * a plan as the pretty literal contentPrefabs takes — the DEV capture tool's exit (BuildMode).
  *
@@ -61,10 +61,10 @@ globalThis.Blueprint = {
       const gy = Number(c[1]);
       if (gx < x1 || gx > x2 || gy < y1 || gy > y2) continue;
       const e = builtEnts[ek[i]];
-      const item = BuildMode.item(e.itemId);
+      const item = contentBuild.item(e.itemId);
       if (item === undefined) continue; // stale/removed catalog id
-      // make() at the LIVE cell (a door orients off its neighbours), then localise
-      const s = item.make(gx, gy, scene);
+      // the descriptor at the LIVE cell (a door orients off its neighbours), then localise
+      const s = BuildMode.descriptor(scene, item, gx, gy);
       s.gx = gx - x1;
       s.gy = gy - y1;
       s.item = e.itemId;
@@ -86,7 +86,7 @@ globalThis.Blueprint = {
     const tiles = plan.tiles ?? [];
     for (let i = 0; i < tiles.length; i++) {
       const t = tiles[i];
-      const item = Blueprint._tileItem(t.layer, t.material);
+      const item = contentBuild.tileItem(t.layer, t.material);
       if (item === undefined) {
         Log.warn(
           `Blueprint: no catalog item paints ${t.layer}/${t.material ?? "default"} — skipped`,
@@ -108,7 +108,7 @@ globalThis.Blueprint = {
     const spawns = plan.spawns ?? [];
     for (let i = 0; i < spawns.length; i++) {
       const s = spawns[i];
-      const item = s.item !== undefined ? BuildMode.item(s.item) : undefined;
+      const item = s.item !== undefined ? contentBuild.item(s.item) : undefined;
       if (item === undefined) {
         Log.warn(`Blueprint: spawn "${s.preset}" is no catalog item — skipped`);
         continue;
@@ -129,18 +129,5 @@ globalThis.Blueprint = {
     const text = Json.encode(plan, { pretty: true });
     if (text === undefined) return false; // codec already Log.error'd — never write a truncated plan
     return File.write(name, text);
-  },
-
-  /** the catalog tile item painting (layer, material) — `mat` undefined is the layer's default */
-  _tileItem(layer, material) {
-    for (let c = 0; c < BuildMode.CATALOG.length; c++) {
-      const items = BuildMode.CATALOG[c].items;
-      for (let i = 0; i < items.length; i++) {
-        const it = items[i];
-        if (it.kind === "tile" && it.layer === layer && it.mat === material)
-          return it;
-      }
-    }
-    return undefined;
   },
 };

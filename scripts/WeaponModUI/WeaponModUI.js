@@ -10,8 +10,7 @@
  * Install/remove re-derive Stats (an attachment may grant them) via StatModel.recompute and set
  * scene.window.dirty (the workbench page repopulates). Ammo Load/Reload act on the SELECTED
  * instance's slot (may not be equipped), via *Slot. State on the panel object buildPanel returns:
- * sel (the selected instance uid), list / detail (the hosts). Columns are PLAIN (no gpu_set_scissor
- * clip — unreliable in a master-detail row on GMRT 0.20; see CraftingUI).
+ * sel (the selected instance uid), list / detail (the hosts — a facetListDetail's, CraftingUI's).
  */
 globalThis.WeaponModUI = {
   /**
@@ -112,8 +111,7 @@ globalThis.WeaponModUI = {
    */
   _fillDetail(scene, panel, inv, weapons) {
     const host = panel.detail;
-    const kids = [...host.children];
-    for (let i = 0; i < kids.length; i++) kids[i].destroy();
+    facetClear(host);
 
     if (weapons.length === 0) {
       host.insertChild(

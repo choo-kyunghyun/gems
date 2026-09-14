@@ -25,7 +25,8 @@ globalThis.EquipmentSystem = {
     if (eqp === undefined) return false; // not equippable
     if (eq.slots[eqp.slot] === uid) return false; // already equipped
 
-    if (eq.slots[eqp.slot] !== "") EquipmentSystem.unequip(entities, id, eqp.slot);
+    if (eq.slots[eqp.slot] !== "")
+      EquipmentSystem.unequip(entities, id, eqp.slot);
     eq.slots[eqp.slot] = uid;
     StatModel.recompute(entities, id); // re-derive with the equipped mods folded in
     AppearanceSystem.rebuild(entities, id); // worn gear shows on the doll (no-op sans Appearance)
@@ -64,8 +65,29 @@ globalThis.EquipmentSystem = {
     const s =
       inv !== undefined ? InventorySystem.findByUid(inv, uid) : undefined;
     const item = s !== undefined ? Item.get(s.itemId) : undefined;
-    if (item !== undefined) EquipmentSystem._applyContainer(entities, id, item, -1); // capacity stays a direct delta
+    if (item !== undefined)
+      EquipmentSystem._applyContainer(entities, id, item, -1); // capacity stays a direct delta
     return uid;
+  },
+
+  /**
+   * Unequip every slot whose instance is no longer in the bag (it was stored, sold or dropped),
+   * so no slot — and no folded-in Stat mods — dangles; a caller runs it after a bag mutation
+   * that can take a worn instance out. Returns the number of slots cleared.
+   */
+  reconcile(entities, id) {
+    const eq = entities.get(id, Equipment);
+    const inv = entities.get(id, Inventory);
+    if (eq === undefined || inv === undefined) return 0;
+    let n = 0;
+    for (const slot in eq.slots) {
+      const uid = eq.slots[slot];
+      if (uid === undefined || uid === "") continue;
+      if (InventorySystem.findByUid(inv, uid) !== undefined) continue;
+      EquipmentSystem.unequip(entities, id, slot);
+      n++;
+    }
+    return n;
   },
 
   // Weapon composition. Kinetic-power tuning (gun): power = ammoPower + KIN_K * mass *
@@ -223,11 +245,11 @@ globalThis.EquipmentSystem = {
 
   _composeMelee(slot, wpn) {
     const base = { damage: wpn.damage, reach: wpn.reach, fireCd: wpn.fireCd };
-    const c = EquipmentSystem._applyOps(base, EquipmentSystem._modLayers(slot), [
-      "damage",
-      "reach",
-      "fireCd",
-    ]);
+    const c = EquipmentSystem._applyOps(
+      base,
+      EquipmentSystem._modLayers(slot),
+      ["damage", "reach", "fireCd"],
+    );
     return {
       kind: "melee",
       damage: c.damage,

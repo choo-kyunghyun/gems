@@ -133,7 +133,11 @@ globalThis.facetHint = function facetHint(label, opts = {}) {
  *     grow: true — CELL mode: flexGrow/flexBasis instead of width/height, for packing
  *     two label:value pairs side-by-side in one row (WeaponModUI's stat grid) }.
  */
-globalThis.facetKeyValueRow = function facetKeyValueRow(label, value, opts = {}) {
+globalThis.facetKeyValueRow = function facetKeyValueRow(
+  label,
+  value,
+  opts = {},
+) {
   const row = new UIElement(
     opts.grow
       ? {
@@ -163,13 +167,21 @@ globalThis.facetKeyValueRow = function facetKeyValueRow(label, value, opts = {})
 };
 
 /**
+ * Destroy every child of a host — the first step of every refill (a detail pane, a rebuilt
+ * row list). Snapshots the child list first, since destroy() unlinks as it goes.
+ */
+globalThis.facetClear = function facetClear(host) {
+  const kids = [...host.children];
+  for (let i = 0; i < kids.length; i++) kids[i].destroy();
+};
+
+/**
  * Clear + refill a list host with one selectable facetButton per entry, or a dim empty
  * notice. The refill shape shared by the workbench master lists (recipes / weapons):
  * `entries` is [{ label, onPick, selected: () => bool, textColor?, icon? }].
  */
 globalThis.facetFillList = function facetFillList(host, entries, emptyLabel) {
-  const kids = [...host.children];
-  for (let i = 0; i < kids.length; i++) kids[i].destroy();
+  facetClear(host);
   if (entries.length === 0) {
     host.insertChild(facetLabel(emptyLabel, { color: FacetTheme.textDim }));
     return;

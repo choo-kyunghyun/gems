@@ -255,10 +255,11 @@ globalThis.FloraSystem = {
     if (mat === undefined) return false;
     if (def.ground.indexOf(mat) < 0) return false;
     const rt = ColonyMap.runtime(level);
-    const lkeys = BuildMode.tileLayerKeys();
+    const lkeys = contentBuild.tileLayers();
     for (let i = 0; i < lkeys.length; i++)
       if (TileEdit.occupied(rt[lkeys[i] + "Layer"], gx, gy)) return false;
-    if (BuildMode.of(level).builtEnts[gx + "," + gy] !== undefined) return false;
+    if (BuildMode.of(level).builtEnts[gx + "," + gy] !== undefined)
+      return false;
     const w = grid.gridToWorld(gx, gy);
     const hw = grid.cellWidth / 2;
     const hh = grid.cellHeight / 2;

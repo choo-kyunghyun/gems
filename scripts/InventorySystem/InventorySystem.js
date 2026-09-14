@@ -80,6 +80,57 @@ globalThis.InventorySystem = {
     return 0;
   },
 
+  /**
+   * Move up to `amount` of slot `idx` from `src` to `dst`, capped at what fits; returns the amount
+   * moved (0 = nothing fit). THE bag transfer rule: an INSTANCE moves whole by reference (its uid
+   * and mods ride along — add() would mint a fresh one), a fungible stack moves as much as dst's
+   * slots and weight allow, and a slot the move empties is spliced out. `amount` only bounds a
+   * fungible stack; omit it for the whole stack.
+   */
+  transfer(src, dst, idx, amount) {
+    if (idx < 0 || idx >= src.slots.length) return 0;
+    const s = src.slots[idx];
+    const def = Item.get(s.itemId);
+    if (def !== undefined && def.isInstanced()) {
+      if (InventorySystem.addSlot(dst, s) !== 0) return 0; // dst full / weight-gated
+      src.slots.splice(idx, 1);
+      return 1;
+    }
+    const want = amount === undefined ? s.qty : Math.min(amount, s.qty);
+    if (want <= 0) return 0;
+    const moved = want - InventorySystem.add(dst, s.itemId, want);
+    if (moved <= 0) return 0; // dst full / weight-gated
+    s.qty -= moved;
+    if (s.qty <= 0) src.slots.splice(idx, 1);
+    return moved;
+  },
+
+  /**
+   * transfer() every slot of `src` into `dst` in slot order — the bulk Take / Store — leaving
+   * behind what dst can't take (a partial stack stays). `opts.skip(slot)` excludes a slot (a
+   * worn instance, a favorited item); `opts.onMoved(itemId, qty)` fires per stack moved.
+   * Returns the total moved.
+   */
+  transferAll(src, dst, opts = {}) {
+    let total = 0;
+    let i = 0;
+    while (i < src.slots.length) {
+      const s = src.slots[i];
+      if (opts.skip !== undefined && opts.skip(s)) {
+        i++;
+        continue;
+      }
+      const moved = InventorySystem.transfer(src, dst, i);
+      if (moved > 0) {
+        total += moved;
+        if (opts.onMoved !== undefined) opts.onMoved(s.itemId, moved);
+      }
+      // a moved-out slot shifts its successor into i; a partial or refused one stays put
+      if (src.slots[i] === s) i++;
+    }
+    return total;
+  },
+
   findByUid(inv, uid) {
     for (let i = 0; i < inv.slots.length; i++)
       if (inv.slots[i].uid === uid) return inv.slots[i];

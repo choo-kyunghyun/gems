@@ -7,11 +7,10 @@
  *   • a CONTENT area swapped by the module's kind: CRAFT mode (empty / "recipes" module) = a recipe
  *     master-detail filtered by Recipe.requires (base recipes always show); WEAPON-MOD mode (the
  *     Toolkit, "weaponmod") = the WeaponModUI panel.
- * The two content rows are SAME-SIZE, swapped STRUCTURALLY (insert/removeChild) on a mode change —
- * `enabled` only gates update/draw, a disabled sibling still reserves its flex space (CLAUDE.md).
- * Both rows are PLAIN columns (no gpu_set_scissor clip — unreliable in a master-detail row on
- * GMRT 0.20); the content body flex-grows to fill the card. State on the page: sel (recipe id),
- * mode ("craft" | "mod"), the hosts, and `mod` (the WeaponModUI panel's own state).
+ * The two content rows are SAME-SIZE facetListDetail rows, swapped STRUCTURALLY (insert/removeChild)
+ * on a mode change — `enabled` only gates update/draw, a disabled sibling still reserves its flex
+ * space; the content body flex-grows to fill the card. State on the page: sel (recipe id), mode
+ * ("craft" | "mod"), the hosts, and `mod` (the WeaponModUI panel's own state).
  */
 globalThis.CraftingUI = {
   WRAP: 320, // description wrap width (px) — a stable narrow column within the detail pane
@@ -60,53 +59,15 @@ globalThis.CraftingUI = {
     card.insertChild(body);
 
     // ── CRAFT row: left recipe list + right detail ──
-    const craftRow = new UIElement({
-      width: "100%",
-      height: "100%",
-      flexDirection: "row",
-      gap: FacetTheme.gap,
-    });
-    const left = new UIElement({
-      width: 210,
-      height: "100%",
-      flexShrink: 0,
-      gap: FacetTheme.gapSm,
-    });
-    page.list = left;
-    craftRow.insertChild(left);
-    const detail = new UIElement({
-      flexGrow: 1,
-      flexBasis: 0,
-      height: "100%",
-      gap: FacetTheme.gapSm,
-    });
-    page.detail = detail;
-    craftRow.insertChild(detail);
+    const craftRow = facetListDetail();
+    page.list = craftRow.list;
+    page.detail = craftRow.detail;
     page.craftRow = craftRow; // kept detached when mod mode is mounted
 
     // ── WEAPON-MOD row: left weapon list + right mod detail, filled by WeaponModUI ──
-    const modRow = new UIElement({
-      width: "100%",
-      height: "100%",
-      flexDirection: "row",
-      gap: FacetTheme.gap,
-    });
-    const modLeft = new UIElement({
-      width: 210,
-      height: "100%",
-      flexShrink: 0,
-      gap: FacetTheme.gapSm,
-    });
-    modRow.insertChild(modLeft);
-    const modDetail = new UIElement({
-      flexGrow: 1,
-      flexBasis: 0,
-      height: "100%",
-      gap: FacetTheme.gapSm,
-    });
-    modRow.insertChild(modDetail);
+    const modRow = facetListDetail();
     page.modRow = modRow;
-    page.mod = WeaponModUI.buildPanel(modLeft, modDetail);
+    page.mod = WeaponModUI.buildPanel(modRow.list, modRow.detail);
 
     // Mount craft mode by default.
     body.insertChild(craftRow);
@@ -179,8 +140,7 @@ globalThis.CraftingUI = {
    */
   _fillModuleBar(scene, page, module) {
     const bar = page.moduleBar;
-    const kids = [...bar.children];
-    for (let i = 0; i < kids.length; i++) kids[i].destroy();
+    facetClear(bar);
 
     // line 1: "Module: <name>" + Remove (when slotted).
     const line1 = new UIElement({
@@ -336,8 +296,7 @@ globalThis.CraftingUI = {
   /** Craft panel — right: selected recipe's name, description, ingredients, Craft button. */
   _fillDetail(scene, page, inv, recipes, module) {
     const host = page.detail;
-    const kids = [...host.children];
-    for (let i = 0; i < kids.length; i++) kids[i].destroy();
+    facetClear(host);
 
     if (inv === undefined || recipes.length === 0) {
       host.insertChild(

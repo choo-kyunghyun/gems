@@ -64,17 +64,20 @@ globalThis.TradeUI = {
     page.buyTable = buyTable.getComponent(UITable);
     page.sellTable = sellTable.getComponent(UITable);
     cols.insertChild(
-      // BUY column sub-label = the finite merchant's till (empty for an infinite one).
-      TradeUI._column(I18n.textRef("TRADE_BUY"), buyTable, () => {
-        const m = scene.level.entities.get(scene.window.target, Merchant);
-        return m === undefined || m.infinite
-          ? ""
-          : I18n.text("TRADE_MERCHANT_TILL", m.credits);
+      facetColumn(I18n.textRef("TRADE_BUY"), buyTable, {
+        // BUY column sub-label = the finite merchant's till (empty for an infinite one).
+        trailing: facetLabel(
+          () => {
+            const m = scene.level.entities.get(scene.window.target, Merchant);
+            return m === undefined || m.infinite
+              ? ""
+              : I18n.text("TRADE_MERCHANT_TILL", m.credits);
+          },
+          { color: FacetTheme.textMuted },
+        ),
       }),
     );
-    cols.insertChild(
-      TradeUI._column(I18n.textRef("TRADE_SELL"), sellTable, () => ""),
-    );
+    cols.insertChild(facetColumn(I18n.textRef("TRADE_SELL"), sellTable));
     cols.insertChild(TradeUI._deal(scene, page));
     page.el.insertChild(cols);
 
@@ -108,50 +111,11 @@ globalThis.TradeUI = {
   },
 
   /**
-   * column header: gold title + a live sub-label pushed to the right edge.
-   */
-  _header(titleRef, subFn) {
-    const header = new UIElement({
-      width: "100%",
-      height: 26,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: FacetTheme.gapSm,
-    });
-    const titleCell = new UIElement({ flexGrow: 1, flexBasis: 0 });
-    titleCell.insertChild(facetLabel(titleRef, { color: "warn" }));
-    header.insertChild(titleCell);
-    header.insertChild(facetLabel(subFn, { color: FacetTheme.textMuted }));
-    return header;
-  },
-
-  /**
-   * titled table column: the header over the sortable table, sharing the row's free width.
-   */
-  _column(titleRef, tableEl, subFn) {
-    const col = new UIElement({
-      flexGrow: 1,
-      flexBasis: 0,
-      gap: FacetTheme.gapSm,
-    });
-    col.insertChild(TradeUI._header(titleRef, subFn));
-    col.insertChild(tableEl);
-    return col;
-  },
-
-  /**
    * DEAL column: the selection's name and prices over the amount row and the one context button, in
    * the well the tables wear. Built ONCE — every readout is a live closure over `page`, so a pick
    * or a transaction moves page state and never rebuilds the panel.
    */
   _deal(scene, page) {
-    const col = new UIElement({
-      width: TradeUI.DEAL_W,
-      flexShrink: 0,
-      gap: FacetTheme.gapSm,
-    });
-    col.insertChild(TradeUI._header(I18n.textRef("TRADE_DEAL"), () => ""));
-
     const well = new UIElement({
       width: "100%",
       flexGrow: 1,
@@ -194,9 +158,8 @@ globalThis.TradeUI = {
 
     // the amount reads in the value column with the prices, so the slider keeps its whole width
     well.insertChild(
-      facetKeyValueRow(
-        I18n.textRef("TRADE_AMOUNT"),
-        () => string(page.slider.value),
+      facetKeyValueRow(I18n.textRef("TRADE_AMOUNT"), () =>
+        string(page.slider.value),
       ),
     );
     well.insertChild(TradeUI._amount(page));
@@ -235,8 +198,9 @@ globalThis.TradeUI = {
       ),
     );
 
-    col.insertChild(well);
-    return col;
+    return facetColumn(I18n.textRef("TRADE_DEAL"), well, {
+      width: TradeUI.DEAL_W,
+    });
   },
 
   /**
@@ -291,11 +255,7 @@ globalThis.TradeUI = {
    * nothing more — the deal column commits.
    */
   _table(scene, page, side) {
-    return facetTable(TradeUI._columns(side), {
-      grow: true, // fill the column; reflows row count on resize
-      rowH: 26,
-      headerH: 26,
-      sortBy: 0, // Name
+    return InvTable.table(TradeUI._columns(side), {
       emptyText: I18n.text(
         side === "buy" ? "TRADE_BUY_EMPTY" : "TRADE_SELL_EMPTY",
       ),
@@ -343,49 +303,45 @@ globalThis.TradeUI = {
   },
 
   /**
-   * row models for one side. BUY = merchant stock, SELL = player bag minus the currency item.
-   * `idx` valid until the next refresh. `worn`/`fav` (sell side) drive the no-sell guard in _blocked.
+   * row models for one side over InvTable.rows: BUY = merchant stock, SELL = player bag minus
+   * the currency item. Each adds `price`, `qtyText` and, on the sell side, `worn` — with `fav`
+   * the no-sell guard in _blocked.
    */
   _rows(scene, side) {
     const entities = scene.level.entities;
     const m = entities.get(scene.window.target, Merchant);
     if (m === undefined) return [];
-    const inv =
-      side === "buy"
-        ? entities.get(scene.window.target, Inventory)
-        : entities.get(scene.playerId, Inventory);
+    const inv = entities.get(
+      side === "buy" ? scene.window.target : scene.playerId,
+      Inventory,
+    );
     if (inv === undefined) return [];
     const fav =
       side === "sell" ? entities.get(scene.playerId, Favorites) : undefined;
     const eq =
       side === "sell" ? entities.get(scene.playerId, Equipment) : undefined;
+    const base = InvTable.rows(inv, fav);
     const rows = [];
-    for (let i = 0; i < inv.slots.length; i++) {
-      const s = inv.slots[i];
-      if (side === "sell" && s.itemId === m.currencyId) continue; // money isn't sellable
-      const price =
+    for (let i = 0; i < base.length; i++) {
+      const r = base[i];
+      if (side === "sell" && r.itemId === m.currencyId) continue; // money isn't sellable
+      r.price =
         side === "buy"
-          ? TradeSystem.buyPrice(m, s.itemId)
-          : TradeSystem.sellPrice(m, s.itemId);
-      let worn = false;
-      if (side === "sell" && s.uid !== undefined && eq !== undefined) {
-        const it = Item.get(s.itemId);
+          ? TradeSystem.buyPrice(m, r.itemId)
+          : TradeSystem.sellPrice(m, r.itemId);
+      // infinite merchant BUY qty shows "-" (SDF fonts are Latin-1, no ∞ glyph).
+      r.qtyText = side === "buy" && m.infinite ? "-" : string(r.qty);
+      r.worn = false;
+      if (eq !== undefined && r.uid !== undefined) {
+        const it = Item.get(r.itemId);
         if (
           it !== undefined &&
           it.hasComponent(Equippable) &&
-          eq.slots[it.getComponent(Equippable).slot] === s.uid
+          eq.slots[it.getComponent(Equippable).slot] === r.uid
         )
-          worn = true;
+          r.worn = true;
       }
-      rows.push({
-        ...InvTable.rowModel(s.itemId, s.qty, s.uid, s.mods),
-        idx: i,
-        price,
-        // infinite merchant BUY qty shows "-" (SDF fonts are Latin-1, no ∞ glyph).
-        qtyText: side === "buy" && m.infinite ? "-" : string(s.qty),
-        worn,
-        fav: fav !== undefined && FavoritesSystem.has(fav, s.itemId),
-      });
+      rows.push(r);
     }
     return rows;
   },

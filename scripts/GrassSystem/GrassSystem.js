@@ -88,7 +88,7 @@ globalThis.GrassSystem = {
     let rolls = Math.min(Math.floor(want), GrassSystem.MAX_ROLLS);
     if (rolls < GrassSystem.MAX_ROLLS && random(1) < want - Math.floor(want))
       rolls++;
-    const lkeys = BuildMode.tileLayerKeys();
+    const lkeys = contentBuild.tileLayers();
     let grew = false;
     for (let i = 0; i < rolls; i++) {
       if (count >= cap) break;
@@ -125,7 +125,7 @@ globalThis.GrassSystem = {
     const grid = level.grid;
     const rt = ColonyMap.runtime(level);
     const layer = rt.terrainLayer;
-    const lkeys = BuildMode.tileLayerKeys();
+    const lkeys = contentBuild.tileLayers();
     for (let gy = 0; gy < grid.rows; gy++)
       for (let gx = 0; gx < grid.cols; gx++) {
         if (layer.get(gx, gy) !== grass) continue;

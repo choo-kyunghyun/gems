@@ -360,7 +360,11 @@ globalThis.facetTabs = function facetTabs(tabs, opts = {}) {
     });
     overlay.insertChild(tabs[i].content);
     host.insertChild(overlay);
-    items.push({ label: tabs[i].label, short: tabs[i].short, content: overlay });
+    items.push({
+      label: tabs[i].label,
+      short: tabs[i].short,
+      content: overlay,
+    });
   }
 
   const tabsComp = new UITabs({
@@ -473,7 +477,10 @@ globalThis.facetCatBar = function facetCatBar(categories, opts = {}) {
   const flyouts = [];
   for (let c = 0; c < categories.length; c++) {
     const items = categories[c].items;
-    const card = facetCard({ padding: FacetTheme.padSm, gap: FacetTheme.gapSm });
+    const card = facetCard({
+      padding: FacetTheme.padSm,
+      gap: FacetTheme.gapSm,
+    });
     const grid = new UIElement({
       width: "100%",
       gap: FacetTheme.gapSm,
@@ -561,6 +568,69 @@ globalThis.facetCatBar = function facetCatBar(categories, opts = {}) {
     },
   };
   return root;
+};
+
+/**
+ * Titled column of a multi-column page: a header row — the title in the kit's gold, then
+ * `opts.trailing` (a bulk button, a live sub-label) pushed to the right edge — over `content`
+ * (one element or an array of them, in order), the last of which flex-fills the card height
+ * when it grows (a facetTable with `grow`). The column shares the row's free width unless
+ * `opts.width` fixes it (a deal panel beside the tables).
+ */
+globalThis.facetColumn = function facetColumn(title, content, opts = {}) {
+  const col = new UIElement(
+    opts.width !== undefined
+      ? { width: opts.width, flexShrink: 0, gap: FacetTheme.gapSm }
+      : { flexGrow: 1, flexBasis: 0, gap: FacetTheme.gapSm },
+  );
+  const header = new UIElement({
+    width: "100%",
+    height: opts.headerH ?? 26,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: FacetTheme.gapSm,
+  });
+  const titleCell = new UIElement({ flexGrow: 1, flexBasis: 0 });
+  titleCell.insertChild(facetLabel(title, { color: "warn" }));
+  header.insertChild(titleCell);
+  if (opts.trailing !== undefined) header.insertChild(opts.trailing);
+  col.insertChild(header);
+  const items = content instanceof UIElement ? [content] : content;
+  for (let i = 0; i < items.length; i++) col.insertChild(items[i]);
+  return col;
+};
+
+/**
+ * Master-detail row: a fixed-width list column (`.list`) beside a detail column (`.detail`)
+ * that takes the rest, both full-height and refilled by the page (facetFillList into the list,
+ * facetClear + inserts into the detail). The columns are PLAIN — no clip: a scissored column
+ * beside a non-clipped sibling is the batch-flush trap (docs/GMRT.md → gpu_set_scissor) — so a
+ * page sizes its content to the card. `opts`: { listWidth (210), gap }.
+ */
+globalThis.facetListDetail = function facetListDetail(opts = {}) {
+  const row = new UIElement({
+    width: "100%",
+    height: "100%",
+    flexDirection: "row",
+    gap: opts.gap ?? FacetTheme.gap,
+  });
+  const list = new UIElement({
+    width: opts.listWidth ?? 210,
+    height: "100%",
+    flexShrink: 0,
+    gap: FacetTheme.gapSm,
+  });
+  const detail = new UIElement({
+    flexGrow: 1,
+    flexBasis: 0,
+    height: "100%",
+    gap: FacetTheme.gapSm,
+  });
+  row.insertChild(list);
+  row.insertChild(detail);
+  row.list = list;
+  row.detail = detail;
+  return row;
 };
 
 /** Header / title bar. */

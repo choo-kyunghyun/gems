@@ -6,6 +6,7 @@
  */
 globalThis.InvTable = {
   DOUBLE_MS: 350, // re-click window of the double-click gesture below
+  ROW_H: 26, // a data row and its header — the compact table every page of the family shows
 
   /**
    * THE identity of a row model across the inventory family: the instance uid when present (so a
@@ -131,6 +132,40 @@ globalThis.InvTable = {
         sortValue: (r) => r.value,
       });
     return cols;
+  },
+
+  /**
+   * The family's table geometry over facetTable: grown to fill its column, compact rows, sorted
+   * by the first column (Name). `opts` are facetTable's (emptyText, onSelect, onActivate).
+   */
+  table(columns, opts = {}) {
+    return facetTable(columns, {
+      grow: true,
+      rowH: InvTable.ROW_H,
+      headerH: InvTable.ROW_H,
+      sortBy: 0,
+      emptyText: opts.emptyText,
+      onSelect: opts.onSelect,
+      onActivate: opts.onActivate,
+    });
+  },
+
+  /**
+   * Row models for every slot of `inv`, each carrying `idx` (its slot index — valid until the
+   * next refresh, which every mutation triggers) and `fav` (against the player's Favorites, when
+   * given). A page extends a row with its own fields (a price, a worn flag).
+   */
+  rows(inv, fav) {
+    const rows = [];
+    for (let i = 0; i < inv.slots.length; i++) {
+      const s = inv.slots[i];
+      rows.push({
+        ...InvTable.rowModel(s.itemId, s.qty, s.uid, s.mods),
+        idx: i,
+        fav: fav !== undefined && FavoritesSystem.has(fav, s.itemId),
+      });
+    }
+    return rows;
   },
 
   /**

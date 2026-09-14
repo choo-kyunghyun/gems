@@ -666,8 +666,7 @@ globalThis.InventoryUI = {
 
     // equipment rows: clear + re-add for the new contents
     const eh = page.equipHost;
-    const ek = [...eh.children];
-    for (let i = 0; i < ek.length; i++) ek[i].destroy();
+    facetClear(eh);
     for (let i = 0; i < opts.equipSlots.length; i++)
       eh.insertChild(
         InventoryUI._equipRow(
@@ -679,15 +678,13 @@ globalThis.InventoryUI = {
 
     // genre extra rows (the Tracker's records line) into the Stats tab
     const xh = page.extraHost;
-    const xk = [...xh.children];
-    for (let i = 0; i < xk.length; i++) xk[i].destroy();
+    facetClear(xh);
     if (opts.extraRows !== undefined) opts.extraRows(scene, xh);
 
     // party roster rebuilt here (not live) because present companions change across maps
     // (a "follow" one travels, a "wait" one is map-local). Per-row state is live off the Follower.
     const fh = page.followerHost;
-    const fk = [...fh.children];
-    for (let i = 0; i < fk.length; i++) fk[i].destroy();
+    facetClear(fh);
     InventoryUI._buildFollowerRows(scene, fh);
   },
 
@@ -807,8 +804,7 @@ globalThis.InventoryUI = {
    */
   _refreshDetail(scene, page) {
     const host = page.detailHost;
-    const kids = [...host.children];
-    for (let i = 0; i < kids.length; i++) kids[i].destroy();
+    facetClear(host);
 
     const row = page.sel;
     if (row === null) {

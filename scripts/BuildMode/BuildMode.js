@@ -2,8 +2,9 @@
  * Gated to an ALLIED Settlement — the level's (a settlement is a whole map), owned by the player's
  * faction or an ally of it (FactionSystem.isAlly). An unsettled level is founded by pressing E at a
  * Survey Post (Interactable routes to BuildMode.claim → Settlement.found). Build mode only OPENS
- * on an allied map, and placement is gated to it too. The palette (a bottom-center facetCatBar) item is a
- * TILE (TileLayer via TileEdit) or an ENTITY (via ColonySpawn.spawnEntity); the `buildPlace`
+ * on an allied map, and placement is gated to it too. The palette (a bottom-center facetCatBar) is
+ * contentBuild's catalog: an item is a TILE (TileLayer via TileEdit) or an ENTITY (its `spawn`
+ * fields through descriptor() to ColonySpawn.spawnEntity); the `buildPlace`
  * (LMB) action places, `buildRemove` (RMB) deconstructs — "build"-context actions from the app
  * keymap (PlayerSystem.bindKeys), read through Input, which mutes them while the bar (or any
  * widget) holds the pointer: a click on the palette never reaches the grid behind it, with no
@@ -59,452 +60,6 @@ globalThis.BuildMode = {
   // the player's faction: a map builds when its Settlement's owner is it or an ally (Game policy)
   FACTION: "player",
 
-  // build catalog driving the facetCatBar. kind "tile" edits a TileLayer via TileEdit; kind "entity"
-  // spawns via make()'s ColonySpawn.spawnEntity descriptor. `cost` = wood per placement. `id` is the
-  // token persisted in built / builtEnts + the map cache, so it MUST be unique across the catalog.
-  // `species` marks a crop (a contentFlora id): its ground gates the cell (_cellFree).
-  CATALOG: [
-    {
-      // tile items: `layer` names the contentTiles.LAYERS key (map[layer+"Layer"]/[layer+"Type"]);
-      // a wall item's `mat` picks the per-cell material TileType (map.wallTypes[mat]).
-      labelKey: "BUILD_CAT_TILES",
-      items: [
-        {
-          id: "wall",
-          labelKey: "BUILD_WALL",
-          cost: 1,
-          kind: "tile",
-          layer: "wall",
-          mat: "brick",
-        },
-        {
-          id: "wall_concrete",
-          labelKey: "BUILD_WALL_CONCRETE",
-          cost: 2,
-          kind: "tile",
-          layer: "wall",
-          mat: "concrete",
-        },
-        {
-          id: "wall_metal",
-          labelKey: "BUILD_WALL_METAL",
-          cost: 3,
-          kind: "tile",
-          layer: "wall",
-          mat: "metal",
-        },
-        {
-          id: "wall_plank",
-          labelKey: "BUILD_WALL_PLANK",
-          cost: 1,
-          kind: "tile",
-          layer: "wall",
-          mat: "plank",
-        },
-        {
-          // the fence layer — solid like a wall (own colliders + nav block), drawn by RenderFence
-          // as post-and-rail boxes joined to their 4-neighbors. The id predates the tile form: a
-          // blueprint's built-entity record carrying it lands as this tile (Blueprint.stamp).
-          id: "fence",
-          labelKey: "BUILD_FENCE",
-          cost: 1,
-          kind: "tile",
-          layer: "fence",
-        },
-        {
-          id: "floor",
-          labelKey: "BUILD_FLOOR",
-          cost: 1,
-          kind: "tile",
-          layer: "floor",
-        },
-        {
-          id: "floor_tile",
-          labelKey: "BUILD_FLOOR_TILE",
-          cost: 1,
-          kind: "tile",
-          layer: "floorTile",
-        },
-        {
-          id: "floor_carpet",
-          labelKey: "BUILD_FLOOR_CARPET",
-          cost: 2,
-          kind: "tile",
-          layer: "floorCarpet",
-        },
-        {
-          id: "floor_mosaic",
-          labelKey: "BUILD_FLOOR_MOSAIC",
-          cost: 2,
-          kind: "tile",
-          layer: "floorMosaic",
-        },
-      ],
-    },
-    {
-      labelKey: "BUILD_CAT_FURNITURE",
-      items: [
-        {
-          id: "crate",
-          labelKey: "BUILD_CRATE",
-          cost: 2,
-          kind: "entity",
-          /** furn sub-type picks the vox mesh (ColonySpawn prop branch, woodenCrate). */
-          make: (gx, gy) => ({
-            preset: "prop",
-            gx,
-            gy,
-            label: I18n.text("BUILD_CRATE"),
-            furn: "crate",
-          }),
-        },
-        {
-          id: "barrel",
-          labelKey: "BUILD_BARREL",
-          cost: 2,
-          kind: "entity",
-          make: (gx, gy) => ({
-            preset: "prop",
-            gx,
-            gy,
-            label: I18n.text("BUILD_BARREL"),
-            furn: "barrel",
-          }),
-        },
-        {
-          // openable door (woodenDoor slab; the "door" InteractAction toggles Collision.solid).
-          // auto-oriented at placement: walls above+below → a vertical door in a N-S wall run
-          // (make's optional 3rd arg is the scene — only this item reads it).
-          id: "door",
-          labelKey: "BUILD_DOOR",
-          cost: 4,
-          kind: "entity",
-          make: (gx, gy, scene) => ({
-            preset: "prop",
-            gx,
-            gy,
-            label: I18n.text("BUILD_DOOR"),
-            kind: "door",
-            vertical:
-              scene !== undefined &&
-              TileEdit.occupied(ColonyMap.runtime(scene.level).wallLayer, gx, gy - 1) &&
-              TileEdit.occupied(ColonyMap.runtime(scene.level).wallLayer, gx, gy + 1),
-          }),
-        },
-        {
-          // bed Interaction (kind "bed") — the "bed" InteractAction routes E to scene.sleep (fast-forward + drain Drowsiness).
-          id: "bed",
-          labelKey: "BUILD_BED",
-          cost: 6,
-          kind: "entity",
-          make: (gx, gy) => ({
-            preset: "prop",
-            gx,
-            gy,
-            label: I18n.text("BUILD_BED"),
-            color: "#b06a4f",
-            kind: "bed",
-          }),
-        },
-        {
-          // cheaper cot: the same "bed" sleep Interaction, the prisonBed bunk mesh (furn "cot")
-          id: "cot",
-          labelKey: "BUILD_COT",
-          cost: 4,
-          kind: "entity",
-          make: (gx, gy) => ({
-            preset: "prop",
-            gx,
-            gy,
-            label: I18n.text("BUILD_COT"),
-            kind: "bed",
-            furn: "cot",
-          }),
-        },
-        // decorative furniture — plain solid props over the spare vox models (ColonySpawn.FURN_MODELS);
-        // colliders come from the voxel-content footprint (ColonySpawn.footprint), no per-item wiring
-        {
-          id: "table",
-          labelKey: "BUILD_TABLE",
-          cost: 4,
-          kind: "entity",
-          make: (gx, gy) => ({
-            preset: "prop",
-            gx,
-            gy,
-            label: I18n.text("BUILD_TABLE"),
-            furn: "table",
-          }),
-        },
-        {
-          id: "table_coffee",
-          labelKey: "BUILD_TABLE_COFFEE",
-          cost: 3,
-          kind: "entity",
-          make: (gx, gy) => ({
-            preset: "prop",
-            gx,
-            gy,
-            label: I18n.text("BUILD_TABLE_COFFEE"),
-            furn: "table_coffee",
-          }),
-        },
-        {
-          id: "table_small",
-          labelKey: "BUILD_TABLE_SMALL",
-          cost: 3,
-          kind: "entity",
-          make: (gx, gy) => ({
-            preset: "prop",
-            gx,
-            gy,
-            label: I18n.text("BUILD_TABLE_SMALL"),
-            furn: "table_small",
-          }),
-        },
-        {
-          id: "dresser",
-          labelKey: "BUILD_DRESSER",
-          cost: 5,
-          kind: "entity",
-          make: (gx, gy) => ({
-            preset: "prop",
-            gx,
-            gy,
-            label: I18n.text("BUILD_DRESSER"),
-            furn: "dresser",
-          }),
-        },
-        {
-          id: "dresser_double",
-          labelKey: "BUILD_DRESSER_DOUBLE",
-          cost: 7,
-          kind: "entity",
-          make: (gx, gy) => ({
-            preset: "prop",
-            gx,
-            gy,
-            label: I18n.text("BUILD_DRESSER_DOUBLE"),
-            furn: "dresser_double",
-          }),
-        },
-        {
-          id: "stool",
-          labelKey: "BUILD_STOOL",
-          cost: 1,
-          kind: "entity",
-          make: (gx, gy) => ({
-            preset: "prop",
-            gx,
-            gy,
-            label: I18n.text("BUILD_STOOL"),
-            furn: "stool",
-          }),
-        },
-        {
-          id: "stool_round",
-          labelKey: "BUILD_STOOL_ROUND",
-          cost: 1,
-          kind: "entity",
-          make: (gx, gy) => ({
-            preset: "prop",
-            gx,
-            gy,
-            label: I18n.text("BUILD_STOOL_ROUND"),
-            furn: "stool_round",
-          }),
-        },
-        {
-          id: "nightstand",
-          labelKey: "BUILD_NIGHTSTAND",
-          cost: 2,
-          kind: "entity",
-          make: (gx, gy) => ({
-            preset: "prop",
-            gx,
-            gy,
-            label: I18n.text("BUILD_NIGHTSTAND"),
-            furn: "nightstand",
-          }),
-        },
-      ],
-    },
-    {
-      labelKey: "BUILD_CAT_LIGHTING",
-      items: [
-        {
-          id: "torch",
-          labelKey: "BUILD_TORCH",
-          cost: 3,
-          kind: "entity",
-          make: (gx, gy) => ({
-            preset: "torch",
-            gx,
-            gy,
-            label: I18n.text("BUILD_TORCH"),
-            color: "#ff9a3c",
-          }),
-        },
-        {
-          // standing lantern — steadier, wider, whiter light than the torch (lantern preset)
-          id: "lantern",
-          labelKey: "BUILD_LANTERN",
-          cost: 5,
-          kind: "entity",
-          make: (gx, gy) => ({
-            preset: "lantern",
-            gx,
-            gy,
-            label: I18n.text("BUILD_LANTERN"),
-          }),
-        },
-      ],
-    },
-    {
-      labelKey: "BUILD_CAT_STATIONS",
-      items: [
-        {
-          id: "chest",
-          labelKey: "BUILD_CHEST",
-          cost: 5,
-          kind: "entity",
-          make: (gx, gy) => ({
-            preset: "chest",
-            gx,
-            gy,
-            capacity: 12,
-            items: [],
-          }),
-        },
-        {
-          id: "workbench",
-          labelKey: "BUILD_WORKBENCH",
-          cost: 8,
-          kind: "entity",
-          make: (gx, gy) => ({
-            preset: "prop",
-            gx,
-            gy,
-            label: I18n.text("BUILD_WORKBENCH"),
-            color: "#6b8caa",
-            kind: "workbench",
-          }),
-        },
-      ],
-    },
-    {
-      labelKey: "BUILD_CAT_DEFENSE",
-      items: [
-        {
-          id: "turret",
-          labelKey: "BUILD_TURRET",
-          cost: 10,
-          kind: "entity",
-          make: (gx, gy) => ({
-            preset: "turret",
-            gx,
-            gy,
-            label: I18n.text("BUILD_TURRET"),
-          }),
-        },
-      ],
-    },
-    {
-      // survival stations — vox-mesh props (tub/bin/alter) carrying an Interaction whose
-      // InteractAction acts on the player (hydrate/feed/buff). Same prop pattern as
-      // bed/workbench; the action is data (contentInteractions).
-      labelKey: "BUILD_CAT_SURVIVAL",
-      items: [
-        {
-          id: "watertank",
-          labelKey: "BUILD_WATERTANK",
-          cost: 4,
-          kind: "entity",
-          make: (gx, gy) => ({
-            preset: "prop",
-            gx,
-            gy,
-            label: I18n.text("BUILD_WATERTANK"),
-            kind: "hydrate",
-          }),
-        },
-        {
-          id: "rationbox",
-          labelKey: "BUILD_RATIONBOX",
-          cost: 4,
-          kind: "entity",
-          make: (gx, gy) => ({
-            preset: "prop",
-            gx,
-            gy,
-            label: I18n.text("BUILD_RATIONBOX"),
-            kind: "feed",
-          }),
-        },
-        {
-          id: "shrine",
-          labelKey: "BUILD_SHRINE",
-          cost: 12,
-          kind: "entity",
-          make: (gx, gy) => ({
-            preset: "prop",
-            gx,
-            gy,
-            label: I18n.text("BUILD_SHRINE"),
-            kind: "buff",
-          }),
-        },
-      ],
-    },
-    {
-      // crops — a `plant` species (contentFlora) put down as a seedling; FloraSystem grows it and
-      // serves its harvest. Rooted only where the species' ground allows (_cellFree).
-      labelKey: "BUILD_CAT_FARMING",
-      items: [
-        {
-          id: "wheat",
-          labelKey: "BUILD_WHEAT",
-          cost: 1,
-          kind: "entity",
-          species: "wheat",
-          make: (gx, gy) => ({
-            preset: "plant",
-            gx,
-            gy,
-            species: "wheat",
-            progress: 0,
-          }),
-        },
-        {
-          id: "berry_bush",
-          labelKey: "BUILD_BERRY_BUSH",
-          cost: 2,
-          kind: "entity",
-          species: "berry_bush",
-          make: (gx, gy) => ({
-            preset: "plant",
-            gx,
-            gy,
-            species: "berry_bush",
-            progress: 0,
-          }),
-        },
-      ],
-    },
-  ],
-
-  /**
-   * resolve a catalog item by id (turns a persisted _built / _builtEnts entry back into its layer/cost).
-   */
-  item(id) {
-    for (let c = 0; c < BuildMode.CATALOG.length; c++) {
-      const items = BuildMode.CATALOG[c].items;
-      for (let i = 0; i < items.length; i++)
-        if (items[i].id === id) return items[i];
-    }
-    return undefined;
-  },
-
   /** build the HUD and return the panel handle. call once from create(). */
   build(scene) {
     const panel = {
@@ -512,7 +67,7 @@ globalThis.BuildMode = {
       bar: null, // the catalog bar (its flyout closes when the mode leaves)
       armed: false, // the B toggle
       active: false, // armed AND the build context owns input — see the header
-      item: BuildMode.CATALOG[0].items[0], // selected catalog item (default Wall)
+      item: contentBuild.CATEGORIES[0].items[0], // selected catalog item (default Wall)
       shape: "cell", // the brush footprint (SHAPES id)
       drag: undefined, // { x, y, remove } — the anchor cell while a shape drag is held
       cell: undefined, // last hovered cell, for drawWorld
@@ -570,8 +125,8 @@ globalThis.BuildMode = {
 
     // map the catalog to facetCatBar's shape; each item's onSelect sets the active brush.
     const cats = [];
-    for (let c = 0; c < BuildMode.CATALOG.length; c++) {
-      const cat = BuildMode.CATALOG[c];
+    for (let c = 0; c < contentBuild.CATEGORIES.length; c++) {
+      const cat = contentBuild.CATEGORIES[c];
       const items = [];
       for (let i = 0; i < cat.items.length; i++) {
         const it = cat.items[i];
@@ -655,7 +210,12 @@ globalThis.BuildMode = {
     // scene-latched world cursor (pitch-aware) — mouse_x/mouse_y are wrong under the pitched camera
     const cell = grid.worldToGrid(scene.mouseWorld.x, scene.mouseWorld.y);
     panel.cell = cell;
-    if (cell.x < 0 || cell.y < 0 || cell.x >= grid.cols || cell.y >= grid.rows) {
+    if (
+      cell.x < 0 ||
+      cell.y < 0 ||
+      cell.x >= grid.cols ||
+      cell.y >= grid.rows
+    ) {
       if (drag !== undefined && !BuildMode._dragHeld(drag))
         panel.drag = undefined; // let go off the grid: cancelled
       return;
@@ -765,7 +325,10 @@ globalThis.BuildMode = {
     const cost = todo.length * item.cost;
     if (!BuildMode.free) {
       const inv = scene.level.entities.get(scene.playerId, Inventory);
-      if (inv === undefined || !InventorySystem.has(inv, BuildMode.RESOURCE, cost)) {
+      if (
+        inv === undefined ||
+        !InventorySystem.has(inv, BuildMode.RESOURCE, cost)
+      ) {
         Toast.push(I18n.text("BUILD_NO_WOOD", cost), { type: "warn" });
         return;
       }
@@ -814,7 +377,13 @@ globalThis.BuildMode = {
   _capture(scene, x0, y0, x1, y1) {
     const ax = Math.min(x0, x1);
     const ay = Math.min(y0, y1);
-    const plan = Blueprint.capture(scene, ax, ay, Math.max(x0, x1), Math.max(y0, y1));
+    const plan = Blueprint.capture(
+      scene,
+      ax,
+      ay,
+      Math.max(x0, x1),
+      Math.max(y0, y1),
+    );
     const name = `prefab_${scene.level.id}_${ax}_${ay}.json`;
     if (Blueprint.export(plan, name))
       Toast.push(I18n.text("BUILD_CAPTURED", plan.cols, plan.rows, name), {
@@ -826,26 +395,12 @@ globalThis.BuildMode = {
     );
   },
 
-  // the distinct layer keys the catalog's tile items edit (derived once) — the cell-occupancy
-  // check spans them all, so one built thing per cell across every wall/floor variant.
-  _tileLayerKeys: null,
-  tileLayerKeys() {
-    if (BuildMode._tileLayerKeys !== null) return BuildMode._tileLayerKeys;
-    const keys = [];
-    for (let c = 0; c < BuildMode.CATALOG.length; c++) {
-      const items = BuildMode.CATALOG[c].items;
-      for (let i = 0; i < items.length; i++)
-        if (items[i].kind === "tile" && keys.indexOf(items[i].layer) === -1)
-          keys.push(items[i].layer);
-    }
-    BuildMode._tileLayerKeys = keys;
-    return keys;
-  },
-
   /** is the level an allied settlement — owned by the player's faction or an ally? gates build mode. */
   _allied(scene) {
     const owner = Settlement.owner(scene.level);
-    return owner !== undefined && FactionSystem.isAlly(owner, BuildMode.FACTION);
+    return (
+      owner !== undefined && FactionSystem.isAlly(owner, BuildMode.FACTION)
+    );
   },
 
   /**
@@ -858,14 +413,22 @@ globalThis.BuildMode = {
     const grid = scene.level.grid;
     if (!BuildMode.free && !BuildMode._allied(scene)) return false;
     const rt = ColonyMap.runtime(scene.level);
-    const lkeys = BuildMode.tileLayerKeys();
+    const lkeys = contentBuild.tileLayers();
     for (let i = 0; i < lkeys.length; i++)
       if (TileEdit.occupied(rt[lkeys[i] + "Layer"], gx, gy)) return false;
-    if (BuildMode.of(scene.level).builtEnts[gx + "," + gy] !== undefined) return false;
+    if (BuildMode.of(scene.level).builtEnts[gx + "," + gy] !== undefined)
+      return false;
     const item = panel.item;
     // a crop roots only on its species' ground, and never over a standing body or prop
     if (item.species !== undefined) {
-      if (!FloraSystem.canRoot(scene.level, contentFlora.get(item.species), gx, gy))
+      if (
+        !FloraSystem.canRoot(
+          scene.level,
+          contentFlora.get(item.species),
+          gx,
+          gy,
+        )
+      )
         return false;
     }
     const solid = !(
@@ -902,11 +465,30 @@ globalThis.BuildMode = {
     Log.info(`built ${item.id} at ${gx},${gy}`);
   },
 
+  /**
+   * The spawn descriptor for an entity item at a cell — the catalog's `spawn` fields over the build
+   * defaults (a "prop" preset at the cell, the item's label as the entity's name); an `orient` item
+   * (the door) turns vertical between walls above and below, the N-S run it closes. Blueprint.capture
+   * reads the same descriptor at the live cell, so a captured plan carries what a placement would.
+   */
+  descriptor(scene, item, gx, gy) {
+    const s = { preset: "prop", gx, gy, label: I18n.text(item.labelKey) };
+    const spawn = item.spawn;
+    for (const k in spawn) s[k] = spawn[k];
+    if (item.orient === true) {
+      const wall = ColonyMap.runtime(scene.level).wallLayer;
+      s.vertical =
+        TileEdit.occupied(wall, gx, gy - 1) &&
+        TileEdit.occupied(wall, gx, gy + 1);
+    }
+    return s;
+  },
+
   // Place a resolved catalog `item` at a cell — the SHARED placement core of live LMB placement
   // and Blueprint.stamp. It does NOT gate on cost/validity (the caller decides) or
   // touch inventory. Options:
   //   opts.snapshot    restore an EXACT entity from an EntitySnapshot (chest contents, turret
-  //                    damage) instead of a fresh make(); Position is overridden to this cell.
+  //                    damage) instead of a fresh descriptor; Position is overridden to this cell.
   //   opts.deferRemesh skip the solid-collider remesh (a batch stamp remeshes once at the end).
   // Updates the level's build record (built / builtEnts). Returns the entity id (entity) or
   // whether a solid tile was placed (so a deferred caller knows that layer's remesh is pending).
@@ -943,9 +525,8 @@ globalThis.BuildMode = {
       rec.built[key] = item.id;
       return solid;
     }
-    // entity: an exact snapshot restore (state preserved) or a fresh make() (a new instance).
-    // make's optional 3rd arg is the scene (the door auto-orients off the wall layer); a built
-    // prop is identical to a file/streamed one and persists via EntitySnapshot (see ColonyMap).
+    // entity: an exact snapshot restore (state preserved) or a fresh descriptor (a new instance);
+    // a built prop is identical to a file/streamed one and persists via EntitySnapshot (see ColonyMap).
     let id;
     if (opts.snapshot !== undefined) {
       const wp = grid.gridToWorld(gx, gy);
@@ -953,7 +534,11 @@ globalThis.BuildMode = {
         [Position]: { x: wp.x, y: wp.y, z: 0 },
       });
     } else {
-      id = ColonySpawn.spawnEntity(scene.level.entities, grid, item.make(gx, gy, scene));
+      id = ColonySpawn.spawnEntity(
+        scene.level.entities,
+        grid,
+        BuildMode.descriptor(scene, item, gx, gy),
+      );
     }
     rec.builtEnts[key] = { ent: id, itemId: item.id };
     GrassSystem.cut(level, gx, gy); // a built prop's pad kills the grass under it too
@@ -994,7 +579,7 @@ globalThis.BuildMode = {
     }
     const tileId = rec.built[key];
     if (tileId === undefined) return false; // only player-built cells are deconstructable
-    const item = BuildMode.item(tileId);
+    const item = contentBuild.item(tileId);
     const lkey = item !== undefined ? item.layer : "floor"; // stale id → floor (non-solid, safe)
     TileEdit.clear(rt[lkey + "Layer"], gx, gy);
     if (contentTiles.get(lkey).solid === true) {
@@ -1026,7 +611,7 @@ globalThis.BuildMode = {
 
   _refund(scene, itemId) {
     if (BuildMode.free) return; // nothing was paid
-    const item = BuildMode.item(itemId);
+    const item = contentBuild.item(itemId);
     const inv = scene.level.entities.get(scene.playerId, Inventory);
     if (item !== undefined && inv !== undefined)
       InventorySystem.add(inv, BuildMode.RESOURCE, item.cost);
@@ -1052,7 +637,7 @@ globalThis.BuildMode = {
       if (hp !== undefined && hp.hp <= 0) {
         entities.remove(e.ent);
         delete builtEnts[k];
-        const item = BuildMode.item(e.itemId);
+        const item = contentBuild.item(e.itemId);
         const label = item !== undefined ? I18n.text(item.labelKey) : e.itemId;
         Toast.push(I18n.text("BUILD_DESTROYED", label), { type: "warn" });
         Log.info(`built ${e.itemId} destroyed at ${k}`);
@@ -1128,7 +713,8 @@ globalThis.BuildMode = {
     const rec = BuildMode.of(scene.level);
     if (rec.built[key] !== undefined || rec.builtEnts[key] !== undefined)
       col = c_yellow;
-    else col = BuildMode._canBuild(scene, panel, cell.x, cell.y) ? c_lime : c_red;
+    else
+      col = BuildMode._canBuild(scene, panel, cell.x, cell.y) ? c_lime : c_red;
 
     draw_set_color(col);
     draw_set_alpha(0.3);

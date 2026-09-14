@@ -7,8 +7,10 @@
  * the refresh are the shell's (Window). Tables swap rows via setRows (not rebuilt) so column sort
  * survives every transfer. Caller contract: set scene.window.dirty whenever the bag changes from
  * outside this file (a craft, a pickup, an equip) — the refresh is flag-driven and would otherwise
- * show stale rows. State on the page: bagTable / boxTable (UITable), click (the InvTable.reclick
- * latch), onTake.
+ * show stale rows. The move itself is InventorySystem.transfer / transferAll; this file holds the
+ * rows, the gesture and the colony's guards — what the bag keeps back (_kept) and what a store
+ * drags along (_afterStore). State on the page: bagTable / boxTable (UITable), click (the
+ * InvTable.reclick latch), onTake.
  */
 globalThis.StorageUI = {
   /** build the page once; the scene adds it to its Window under "storage" */
@@ -75,44 +77,23 @@ globalThis.StorageUI = {
   },
 
   /**
-   * titled column: header (title + bulk "All" button) + live usage line + the table.
+   * one side's column: the title with its bulk "All" button, a live usage line, the table.
    * invFn is a live () => Inventory feeding the usage readout and the All empty-gate.
    */
   _column(titleRef, tableEl, allLabelRef, onAll, invFn) {
-    const col = new UIElement({
-      flexGrow: 1,
-      flexBasis: 0,
-      gap: FacetTheme.gapSm,
-    });
-    const header = new UIElement({
-      width: "100%",
-      height: 26,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: FacetTheme.gapSm,
-    });
-    const titleCell = new UIElement({ flexGrow: 1, flexBasis: 0 });
-    titleCell.insertChild(facetLabel(titleRef, { color: "warn" }));
-    header.insertChild(titleCell);
-    header.insertChild(
-      facetButton(allLabelRef, onAll, {
-        width: 100,
-        height: 24,
-        disabled: () => StorageUI._empty(invFn()),
-      }),
-    );
-    col.insertChild(header);
-
     const usage = new UIElement({ width: "100%", height: 20 });
     usage.insertChild(
       facetLabel(() => StorageUI._usageText(invFn()), {
         color: FacetTheme.textMuted,
       }),
     );
-    col.insertChild(usage);
-
-    col.insertChild(tableEl);
-    return col;
+    return facetColumn(titleRef, [usage, tableEl], {
+      trailing: facetButton(allLabelRef, onAll, {
+        width: 100,
+        height: 24,
+        disabled: () => StorageUI._empty(invFn()),
+      }),
+    });
   },
 
   /**
@@ -138,11 +119,7 @@ globalThis.StorageUI = {
    * per-side bag/chest table. `side` ("bag"/"box") routes the transfer direction.
    */
   _table(scene, page, side) {
-    return facetTable(InvTable.columns({ fav: true }), {
-      grow: true, // fill the column; reflows row count on resize
-      rowH: 26,
-      headerH: 26,
-      sortBy: 0, // Name
+    return InvTable.table(InvTable.columns({ fav: true }), {
       emptyText: I18n.text("COMMON_EMPTY"),
       onSelect: (row) => StorageUI._click(scene, page, side, row),
       onActivate: (row) => StorageUI._move(scene, page, side, row),
@@ -158,32 +135,14 @@ globalThis.StorageUI = {
     page.boxTable.setColumns(InvTable.columns({ fav: true }));
   },
 
-  /**
-   * row models for one inventory. `idx` (slot index) is valid until the next refresh =
-   * when a transfer happens, so it never drifts. `fav` drives the "*" marker on both sides.
-   */
-  _rows(scene, inv) {
-    const fav = scene.level.entities.get(scene.playerId, Favorites);
-    const rows = [];
-    for (let i = 0; i < inv.slots.length; i++) {
-      const s = inv.slots[i];
-      const favd = fav !== undefined && FavoritesSystem.has(fav, s.itemId);
-      rows.push({
-        ...InvTable.rowModel(s.itemId, s.qty, s.uid, s.mods),
-        idx: i, // transfer slot
-        fav: favd,
-      });
-    }
-    return rows;
-  },
-
   refresh(scene, page) {
     const entities = scene.level.entities;
     const bagInv = entities.get(scene.playerId, Inventory);
     const boxInv = entities.get(scene.window.target, Inventory);
     if (bagInv === undefined || boxInv === undefined) return;
-    page.bagTable.setRows(StorageUI._rows(scene, bagInv)); // re-applies the sort
-    page.boxTable.setRows(StorageUI._rows(scene, boxInv));
+    const fav = entities.get(scene.playerId, Favorites); // the "*" marker on both sides
+    page.bagTable.setRows(InvTable.rows(bagInv, fav)); // re-applies the sort
+    page.boxTable.setRows(InvTable.rows(boxInv, fav));
   },
 
   /**
@@ -197,7 +156,7 @@ globalThis.StorageUI = {
 
   /**
    * activate (double-click / confirm) on a row. a fungible stack > 1 opens the amount picker;
-   * a single unit or an instance transfers whole. storing a favorited item from the bag is
+   * a single unit or an instance transfers whole. storing a kept-back item (a favorite) is
    * refused; taking from the chest is never protected.
    */
   _move(scene, page, side, row) {
@@ -208,10 +167,9 @@ globalThis.StorageUI = {
       Inventory,
     );
     if (srcInv === undefined) return;
-    if (side === "bag" && StorageUI._storeBlocked(scene, false)[row.itemId])
-      return; // favorited
     const s = srcInv.slots[row.idx];
     if (s === undefined) return;
+    if (side === "bag" && StorageUI._kept(scene, false)(s)) return;
     const def = Item.get(s.itemId);
     if ((def === undefined || !def.isInstanced()) && s.qty > 1) {
       StorageUI._promptAmount(scene, page, side, row, s.qty);
@@ -242,181 +200,80 @@ globalThis.StorageUI = {
   },
 
   /**
-   * transfer `amount` to the opposite side. storing the LAST copy out of the bag unbinds
-   * its hotbar slot; a partial transfer keeps the binding usable.
+   * transfer `amount` of the row's slot to the opposite side, then what the direction drags
+   * along: a store's hotbar unbind / equipment reconcile, a take's per-open hook.
    */
   _doMove(scene, page, side, row, amount) {
     const entities = scene.level.entities;
     const bag = entities.get(scene.playerId, Inventory);
     const box = entities.get(scene.window.target, Inventory);
     if (bag === undefined || box === undefined) return;
+    let moved;
     if (side === "bag") {
-      const moved = StorageUI._transfer(scene, bag, box, row.idx, amount);
-      if (moved > 0 && !InventorySystem.has(bag, row.itemId, 1)) {
-        const hb = entities.get(scene.playerId, Hotbar);
-        if (hb !== undefined) HotbarSystem.clearItem(hb, row.itemId);
-      }
+      moved = InventorySystem.transfer(bag, box, row.idx, amount);
+      if (moved > 0) StorageUI._afterStore(scene, bag, row.itemId);
     } else {
-      const moved = StorageUI._transfer(scene, box, bag, row.idx, amount);
+      moved = InventorySystem.transfer(box, bag, row.idx, amount);
       // the per-open take hook (corpse looting reports pickup credit)
       if (moved > 0 && page.onTake !== undefined)
         page.onTake(row.itemId, moved);
     }
-  },
-
-  /**
-   * move up to `amount` of slot `idx` src→dst (capped at what fits). `amount` only bounds a
-   * fungible stack; an INSTANCE always moves whole by reference (preserving uid + mods).
-   * returns the amount moved (0 if nothing fit) so the caller can react (e.g. unbind hotbar).
-   */
-  _transfer(scene, srcInv, dstInv, idx, amount) {
-    if (idx < 0 || idx >= srcInv.slots.length) return 0;
-    const s = srcInv.slots[idx];
-    const itemId = s.itemId;
-    const def = Item.get(itemId);
-    let moved;
-    if (def !== undefined && def.isInstanced()) {
-      // move the whole instance slot by reference — add() would mint a fresh uid and drop the mods.
-      if (InventorySystem.addSlot(dstInv, s) !== 0) return 0; // dst full / weight-gated
-      srcInv.slots.splice(idx, 1);
-      moved = 1;
-    } else {
-      const want = amount === undefined ? s.qty : Math.min(amount, s.qty);
-      if (want <= 0) return 0;
-      const leftover = InventorySystem.add(dstInv, itemId, want);
-      moved = want - leftover;
-      if (moved <= 0) return 0; // dst full / weight-gated
-      s.qty -= moved;
-      if (s.qty <= 0) srcInv.slots.splice(idx, 1);
-    }
-    StorageUI._reconcileEquip(scene, srcInv);
-
+    if (moved <= 0) return;
     scene.window.dirty = true;
-    Log.info(`transferred ${moved}x ${itemId}`);
-    return moved;
+    Log.info(`transferred ${moved}x ${row.itemId}`);
   },
 
   /**
-   * bulk Take/Store All: move every stack of `side` to the other inventory, greedy fill that
-   * halts cleanly when the destination hits its slot/weight cap (per-stack add gate).
+   * bulk Take/Store All: every stack of `side` to the other inventory, as much as fits. A store
+   * keeps back what _kept names for a bulk move; a take keeps nothing back and reports each
+   * stack to the per-open hook.
    */
   _allFrom(scene, page, side) {
     const entities = scene.level.entities;
     const bag = entities.get(scene.playerId, Inventory);
     const box = entities.get(scene.window.target, Inventory);
     if (bag === undefined || box === undefined) return;
-    // storing from the bag keeps equipped copies behind (Equipment slot mustn't dangle) and
-    // skips protected items (favorited / hotbar-bound); taking from the chest protects nothing.
-    if (side === "bag")
-      StorageUI._transferAll(
-        scene,
-        bag,
-        box,
-        StorageUI._equipKeep(scene),
-        StorageUI._storeBlocked(scene, true), // bulk store protects hotbar items too
-      );
-    else StorageUI._transferAll(scene, box, bag, null, null, page.onTake);
-  },
-
-  /**
-   * items excluded from storing out of the bag, flat { itemId: true }. favorited always blocked;
-   * hotbar-bound blocked only for BULK Store All (`includeHotbar`) — a single double-click can
-   * still store one (it unbinds the hotbar; see _move).
-   */
-  _storeBlocked(scene, includeHotbar) {
-    const blocked = {};
-    const fav = scene.level.entities.get(scene.playerId, Favorites);
-    if (fav !== undefined)
-      for (let i = 0; i < fav.ids.length; i++) blocked[fav.ids[i]] = true;
-    if (includeHotbar) {
-      const hb = scene.level.entities.get(scene.playerId, Hotbar);
-      if (hb !== undefined)
-        for (let i = 0; i < hb.slots.length; i++)
-          if (hb.slots[i] !== "") blocked[hb.slots[i]] = true;
-    }
-    return blocked;
-  },
-
-  /**
-   * equipped instance uids to keep in the bag during a Store All — a worn instance must stay so
-   * its Equipment slot doesn't dangle. exact { uid: true } set (Equipment keys by uid).
-   */
-  _equipKeep(scene) {
-    const keep = {};
-    const eq = scene.level.entities.get(scene.playerId, Equipment);
-    if (eq === undefined) return keep;
-    for (const slot in eq.slots) {
-      const uid = eq.slots[slot];
-      if (uid !== undefined && uid !== "") keep[uid] = true;
-    }
-    return keep;
-  },
-
-  /**
-   * `keep` ({ uid: true } or null) = equipped instances to leave behind; `blocked` ({ itemId: true }
-   * or null) = fully excluded (favorited / hotbar-bound). instance moves whole, fungible as much as
-   * fits. `onMoved(itemId, qty)` (optional) fires per stack moved — the take-direction hook.
-   */
-  _transferAll(scene, srcInv, dstInv, keep, blocked, onMoved) {
-    let total = 0;
-    let i = 0;
-    while (i < srcInv.slots.length) {
-      const s = srcInv.slots[i];
-      if (blocked !== null && blocked[s.itemId]) {
-        i++;
-        continue; // favorited / hotbar-bound — never store
-      }
-      const def = Item.get(s.itemId);
-      if (def !== undefined && def.isInstanced()) {
-        // Equipped instance — keep it in the bag so its Equipment slot doesn't dangle.
-        if (keep !== null && s.uid !== undefined && keep[s.uid]) {
-          i++;
-          continue;
-        }
-        if (InventorySystem.addSlot(dstInv, s) === 0) {
-          srcInv.slots.splice(i, 1); // moved by reference — next slot shifts into i, don't advance
-          total += 1;
-          if (onMoved !== undefined) onMoved(s.itemId, 1);
-          continue;
-        }
-        i++; // dst full — leave it
-        continue;
-      }
-      const leftover = InventorySystem.add(dstInv, s.itemId, s.qty);
-      const moved = s.qty - leftover;
-      if (moved > 0) {
-        total += moved;
-        if (onMoved !== undefined) onMoved(s.itemId, moved);
-        s.qty -= moved;
-        if (s.qty <= 0) {
-          srcInv.slots.splice(i, 1); // emptied — next slot shifts into i, don't advance
-          continue;
-        }
-      }
-      i++; // partial (dst full) or nothing fit — leave the stack and move on
-    }
-    if (total === 0) return;
+    const total =
+      side === "bag"
+        ? InventorySystem.transferAll(bag, box, {
+            skip: StorageUI._kept(scene, true),
+          })
+        : InventorySystem.transferAll(box, bag, { onMoved: page.onTake });
+    if (total <= 0) return;
     scene.window.dirty = true;
     Log.info(`transferred all (${total} items)`);
   },
 
   /**
-   * unequip any worn item no longer in the bag, else its Equipment slot (and stat mods) dangle.
-   * no-op when srcInv isn't the player bag.
+   * The bag's keep-back rule as a slot predicate. A favorited item never stores. A BULK store
+   * (`bulk`) also keeps hotbar-bound items and worn instances — an Equipment slot must not
+   * dangle — where a single move stores one and unbinds / unequips it instead (_afterStore).
    */
-  _reconcileEquip(scene, srcInv) {
-    if (srcInv !== scene.level.entities.get(scene.playerId, Inventory)) return;
-    const eq = scene.level.entities.get(scene.playerId, Equipment);
-    if (eq === undefined) return;
-    for (const slot in eq.slots) {
-      const uid = eq.slots[slot];
-      if (
-        uid !== undefined &&
-        uid !== "" &&
-        InventorySystem.findByUid(srcInv, uid) === undefined
-      ) {
-        EquipmentSystem.unequip(scene.level.entities, scene.playerId, slot);
+  _kept(scene, bulk) {
+    const entities = scene.level.entities;
+    const fav = entities.get(scene.playerId, Favorites);
+    const hb = bulk ? entities.get(scene.playerId, Hotbar) : undefined;
+    const eq = bulk ? entities.get(scene.playerId, Equipment) : undefined;
+    return (s) => {
+      if (fav !== undefined && FavoritesSystem.has(fav, s.itemId)) return true;
+      if (hb !== undefined && hb.slots.indexOf(s.itemId) !== -1) return true;
+      if (eq !== undefined && s.uid !== undefined) {
+        for (const slot in eq.slots) if (eq.slots[slot] === s.uid) return true;
       }
+      return false;
+    };
+  },
+
+  /**
+   * what a store out of the bag drags along: the LAST copy unbinds its hotbar slot (a partial
+   * transfer keeps the binding usable), and a worn instance that left is unequipped.
+   */
+  _afterStore(scene, bag, itemId) {
+    const entities = scene.level.entities;
+    if (!InventorySystem.has(bag, itemId, 1)) {
+      const hb = entities.get(scene.playerId, Hotbar);
+      if (hb !== undefined) HotbarSystem.clearItem(hb, itemId);
     }
+    EquipmentSystem.reconcile(entities, scene.playerId);
   },
 };

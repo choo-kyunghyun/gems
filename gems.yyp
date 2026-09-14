@@ -218,6 +218,7 @@
     {"id":{"name":"content","path":"scripts/content/content.yy",},},
     {"id":{"name":"contentAchievements","path":"scripts/contentAchievements/contentAchievements.yy",},},
     {"id":{"name":"contentBiomes","path":"scripts/contentBiomes/contentBiomes.yy",},},
+    {"id":{"name":"contentBuild","path":"scripts/contentBuild/contentBuild.yy",},},
     {"id":{"name":"contentFlora","path":"scripts/contentFlora/contentFlora.yy",},},
     {"id":{"name":"contentInteractions","path":"scripts/contentInteractions/contentInteractions.yy",},},
     {"id":{"name":"contentItems","path":"scripts/contentItems/contentItems.yy",},},
