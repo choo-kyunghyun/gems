@@ -13,6 +13,8 @@
  *   Visual.xscale/yscale are DERIVED (design scale / SpriteMeta density), never authored.
  * @property {function} [post]   post(entities, id, ctx) spawn hook for what data can't express
  *   (AI attach, computed colors…); ctx = { x, y, z, scale, opts }. Inherited unless overridden.
+ * Any further field is stored as authored and inherited through `extends` the same way — a
+ * spawner's own hook lives there (ColonySpawn's `adapt`), never here.
  */
 globalThis.EntityPreset = {
   /** Register defs in order; `extends` flattens against the already-registered base, so a
@@ -29,9 +31,8 @@ globalThis.EntityPreset = {
     if (base === undefined)
       throw new Error(`Unknown base preset: ${def.extends}`);
     return {
-      id: def.id,
-      scale: def.scale ?? base.scale,
-      post: def.post ?? base.post,
+      ...base,
+      ...def,
       components: EntityPreset._merge(base.components, def.components),
     };
   },
@@ -41,8 +42,9 @@ globalThis.EntityPreset = {
    * `opts`: { size?, components? } — `size` is the per-spawn SCALAR for special entities
    * (bosses/alpha mobs), multiplying the def's basic `scale` factor; it bakes BBox + Visual +
    * Mesh uniformly, so a sized entity's look never diverges from its collider. `components`
-   * are per-spawn field overrides merged like `extends` (e.g. { Health: { hp: 12 } }).
-   * Returns the entity id.
+   * are per-spawn field overrides merged like `extends` (e.g. { Health: { hp: 12 } }). Any
+   * further field rides through untouched to `post` as `ctx.opts` (a spawner's grid, its
+   * descriptor). Returns the entity id.
    */
   spawn(entities, presetId, x, y, z = 0, opts = {}) {
     const preset = EntityPreset.get(presetId);

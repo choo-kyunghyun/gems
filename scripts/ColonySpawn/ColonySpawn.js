@@ -2,32 +2,40 @@
 // spawn descriptor becomes an entity. Archetypes and their descriptor fields are on the JSDoc below.
 /**
  * The entity kinds are EntityPreset DEFS (register(), called by content.register) — component data
- * + design scale + a `post` hook for wiring data can't express (CombatAI.attach). spawnEntity does
- * grid→world and per-spawn overrides (field-merged onto the def like a variant). A fresh map's
- * descriptors (ColonyMap._spawnWorld — the file's and the generator's alike), BuildMode, and the
- * Trader all route through it; a variant preset (`extends: "raider"`) uses the same path when its
- * descriptor fields match its base's.
+ * + design scale + two hooks the def owns: `adapt(s, over, ctx)` turns its own descriptor fields
+ * into per-spawn component overrides (field-merged onto the def like a variant) and `post(entities,
+ * id, ctx)` wires what data can't express once the id exists (CombatAI.attach, a merchant's stock),
+ * reading the descriptor off `ctx.opts.descriptor`. spawnEntity does the grid→world and the fields
+ * EVERY descriptor takes, then hands the preset its own — so a new kind, or a new field on one, is
+ * a def entry, never an edit here. A fresh map's descriptors (ColonyMap._spawnWorld — the file's
+ * and the generator's alike), BuildMode, FloraSystem and the Trader all route through it; a variant
+ * preset (`extends: "raider"`) inherits its base's hooks.
  *
  * Presets (grid coords gx/gy; sprites + box sizes are per-preset, kept in the defs):
  *   raider   hp? loot[]   (hostile human — camp + quest enemy)
  *   rat      hp? loot[]   (wildlife — the overworld ambient mobile-melee creature)
- *   npc      label nameKey questId merchant?
+ *   npc      nameKey questId merchant?
  *   chest    capacity items[]
- *   prop     label kind? furn?  (kind/furn picks the MESH — vertex-colored, so a descriptor color/material is ignored; kind → Interaction, else furniture. kind `travel` is a site's departure BEACON; the world map opens on it)
- *   torch    label? color?        (decorative light prop — small solid post; carries a Light and a Heat)
- *   lantern  label?               (standing lamp — steadier, wider light than the torch; vox mesh; a Heat)
- *   radio    label? sound? every? gain?  (spatial-audio test source — re-fires its cue on a timer)
- *   turret   label? color?        (auto-firing defense — immovable player-faction stationary ranged CombatAI)
- *   rock     w? h?                (wilderness boulder — kinematic solid over its w×h cell cluster, the sprite frame by that shape)
- *   tree     species? progress? wild? size?  (wilderness pine — trunk collider under an overhanging canopy sprite; with a
+ *   prop     kind? furn?  (the MESH by `furn` (FURN_MODELS), else by `kind` (KIND_MODELS), else the
+ *            crate — vertex-colored, so a descriptor color/material is ignored; kind → Interaction.
+ *            kind `travel` is a site's departure BEACON; the world map opens on it. A `door` takes
+ *            `vertical?` — BuildMode's auto-orient — for a N-S wall run)
+ *   torch                 (decorative light prop — small solid post; carries a Light and a Heat)
+ *   lantern               (standing lamp — steadier, wider light than the torch; vox mesh; a Heat)
+ *   radio    sound? every? gain?  (spatial-audio test source — re-fires its cue on a timer)
+ *   turret                (auto-firing defense — immovable player-faction stationary ranged CombatAI)
+ *   rock     w? h?        (wilderness boulder — kinematic solid over its w×h cell cluster, the sprite frame by that shape)
+ *   tree     species? progress? wild?  (wilderness pine — trunk collider under an overhanging canopy sprite; with a
  *            contentFlora `species` it GROWS — Growth via _flora, FloraSystem from there)
- *   plant    species progress? wild?         (a crop or shrub — walk-through, grown and harvested by FloraSystem)
+ *   plant    species progress? wild?   (a crop or shrub — walk-through, grown and harvested by FloraSystem)
  *   reach    half?                (quest zone marker — no entity)
  *   entry    id?                  (arrival-point marker, id default "default" — no entity; ColonyLevel._entries reads it)
- *   follower label? color? speed? range?   (companion; spawns UNHIRED — "wait" + a rehire Interaction, so talking to it recruits)
- * Every descriptor also takes `size?` — the per-spawn SCALAR (Alpha/boss knob) multiplying the def's
- * `scale` across BBox + Visual + Mesh (see EntityPreset.spawn — SpriteMeta density divides the DRAW
- * scale separately) — and, on mesh spawns, `yaw?`, a visual turn in degrees (BBox stays axis-aligned).
+ *   follower hp? recoverSecs? speed? range? state? bonusCapacity? bonusWeight?  (companion; spawns
+ *            UNHIRED — "wait" + a rehire Interaction, so talking to it recruits)
+ * Every descriptor also takes `label?` (its Name), `size?` — the per-spawn SCALAR (Alpha/boss knob)
+ * multiplying the def's `scale` across BBox + Visual + Mesh (see EntityPreset.spawn — SpriteMeta
+ * density divides the DRAW scale separately) — `settlement?` (the map whose settlement it is a
+ * Resident of) and, on mesh spawns, `yaw?`, a visual turn in degrees (BBox stays axis-aligned).
  */
 globalThis.ColonySpawn = {
   /**
@@ -54,9 +62,8 @@ globalThis.ColonySpawn = {
     };
   },
 
-  // Furniture `furn` → vox model for the prop adapter; an unknown/absent furn falls back to
-  // the crate (matching the old behavior). "cot" rides the kind:"bed" branch; the fence is a tile
-  // layer, not a prop (BuildMode).
+  // A prop's mesh model: `furn` names the piece (the cot is the bed station's bunk), `kind` a
+  // station's default piece; the fence is a tile layer, not a prop (BuildMode).
   FURN_MODELS: {
     barrel: "woodenBarrel",
     crate: "woodenCrate",
@@ -68,6 +75,17 @@ globalThis.ColonySpawn = {
     stool: "woodenStoolSquare",
     stool_round: "woodenStoolRound",
     nightstand: "woodenNightStand",
+    cot: "prisonBed",
+  },
+  KIND_MODELS: {
+    workbench: "woodenWorkbench",
+    bed: "woodenBed",
+    claim: "woodenSign",
+    door: "woodenDoor",
+    hydrate: "woodenTub",
+    feed: "woodenBin",
+    buff: "woodenAltar",
+    travel: "portal",
   },
 
   /**
@@ -94,10 +112,10 @@ globalThis.ColonySpawn = {
           Raider: {}, // species marker (radar color + kill-quest type)
           Faction: { id: "monster" }, // hostile to "player" → CombatAI aggro target
           Name: { name: "Raider" },
-          Persona: { sex: "male", age: 30 }, // baseline — the adapter re-picks per spawn (_persona)
+          Persona: { sex: "male", age: 30 }, // baseline — adapt re-picks per spawn (_persona)
           // loot table — no maxWeight (authored loot, never weight-gated)
           Inventory: { slots: [], capacity: 8 },
-          // doll bandit: the white humanoid body — per-spawn skin lands as body-slot tints (adapter)
+          // doll bandit: the white humanoid body — per-spawn skin lands as body-slot tints (adapt)
           Skeleton: {
             sprite: spineHuman,
             anim: ColonyPlayer.rest(spineHuman),
@@ -108,6 +126,13 @@ globalThis.ColonySpawn = {
             pixShoeDarkBrown,
             pixHatRedBandana,
           ),
+        },
+        adapt(s, over) {
+          ColonySpawn._adaptMob(s, over);
+          // deterministic skin over the white doll template — body-slot tints, so garments keep
+          // their authored colours
+          over.Skeleton = { tints: ColonySpawn.skinTints(ColonySpawn._skin(s)) };
+          over.Persona = ColonySpawn._persona(s, 18, 45); // outlaw fighters — no children, no elders
         },
         post(entities, id, ctx) {
           CombatAI.attach(entities, id); // Velocity + Brain + State (mobile melee)
@@ -131,6 +156,10 @@ globalThis.ColonySpawn = {
           // the rat rig; its states are ColonyPlayer.RIGS
           Skeleton: { sprite: spineRat, anim: ColonyPlayer.rest(spineRat) },
         },
+        adapt(s, over) {
+          ColonySpawn._adaptMob(s, over);
+          over.Skeleton = { tints: ColonySpawn._coat(s) }; // a rat's coat rides the same per-slot axis
+        },
         post(entities, id, ctx) {
           CombatAI.attach(entities, id); // mobile melee, acquires target by faction
         },
@@ -142,7 +171,7 @@ globalThis.ColonySpawn = {
           BBox: { x: -8, y: -8, width: 16, height: 16 }, // ×1.5 = 24 world px — the doll draws 1:1 (scale = the rig density, SpriteMeta)
           Collision: { solid: true, kinematic: true },
           Name: { name: "" },
-          Persona: { sex: "male", age: 30 }, // baseline — the adapter re-picks per spawn (_persona)
+          Persona: { sex: "male", age: 30 }, // baseline — adapt re-picks per spawn (_persona)
           NPC: { name: "", lines: [] }, // NPC presence = "is an NPC" (radar/query)
           // doll civilian: skin tint over the shared civilian outfit; static, so idle just loops
           Skeleton: {
@@ -150,6 +179,20 @@ globalThis.ColonySpawn = {
             anim: ColonyPlayer.rest(spineHuman),
           },
           Appearance: ColonySpawn._outfit(pixShirtWhite, pixShoeBrown),
+        },
+        adapt(s, over) {
+          over.NPC = { name: s.nameKey, questId: s.questId };
+          // the E action — a merchant trades, any other NPC talks — so the scene's one pick
+          // (Interactable) sees an NPC beside the stations
+          over.Interaction = { kind: s.merchant !== undefined ? "trade" : "talk" };
+          over.Skeleton = { tints: ColonySpawn.skinTints(ColonySpawn._skin(s)) };
+          over.Persona = ColonySpawn._persona(s, 18, 64); // colony civilians — the full working-age span
+          // TODO: the descriptor's `color` no longer reaches the outfit — route it through
+          // Skeleton.tints on the garment slots (free now that skin sits on the body slots alone).
+        },
+        post(entities, id, ctx) {
+          const mc = ctx.opts.descriptor.merchant;
+          if (mc !== undefined) ColonySpawn._merchant(entities, id, mc);
         },
       },
       {
@@ -162,17 +205,50 @@ globalThis.ColonySpawn = {
           Inventory: { slots: [], capacity: 12 },
           Mesh: { model: "militaryCrate" }, // vox mesh — no Visual, billboard/shadow passes skip it
         },
+        adapt(s, over) {
+          const inv = {};
+          if (s.items !== undefined) inv.slots = s.items;
+          if (s.capacity !== undefined) inv.capacity = s.capacity;
+          if (Object.keys(inv).length > 0) over.Inventory = inv;
+        },
       },
       {
-        // Solid kinematic prop. The adapter resolves the LOOK from the descriptor — the Mesh
-        // kind/furn names (VOLUME category; RenderMesh draws it, the billboard/shadow passes
-        // skip the Visual-less entity) — plus the Interaction for a kind. No Mesh in the def:
-        // the adapter always adds one.
+        // Solid kinematic prop. adapt resolves the LOOK from the descriptor — the Mesh by
+        // furn/kind (VOLUME category; RenderMesh draws it, the billboard/shadow passes skip the
+        // Visual-less entity) — plus the Interaction for a kind. No Mesh in the def: adapt always
+        // adds one.
         id: "prop",
         components: {
           BBox: { x: -14, y: -14, width: 28, height: 28 }, // 1-cell default; footprint() overrides per mesh model
           Collision: { solid: true, kinematic: true },
           Name: { name: "" },
+        },
+        adapt(s, over) {
+          const model =
+            ColonySpawn.FURN_MODELS[s.furn] ??
+            ColonySpawn.KIND_MODELS[s.kind] ??
+            "woodenCrate";
+          over.Mesh = { model };
+          // collider matched to the model's voxel footprint (big furniture is multi-cell); a door
+          // in a N-S wall run stands VERTICAL: swapped footprint + turned slab (the toggle keeps
+          // yaw relative to this base)
+          const fp = ColonySpawn.footprint(model);
+          const vertical = s.kind === "door" && s.vertical === true;
+          if (fp !== undefined)
+            over.BBox = vertical
+              ? { x: -fp.h / 2, y: -fp.w / 2, width: fp.h, height: fp.w }
+              : { x: -fp.w / 2, y: -fp.h / 2, width: fp.w, height: fp.h };
+          if (vertical) over.Mesh.yaw = 90;
+          if (s.kind !== undefined)
+            over.Interaction =
+              s.kind === "door"
+                ? { kind: "door", open: 0 } // toggle state rides the component (EntitySnapshot-safe)
+                : { kind: s.kind };
+          // a site beacon rises psPortal for as long as it stands. The emitter region is authored
+          // over a 128 px frame and the beacon is one 32 px cell, so the stream runs at a quarter —
+          // a constant, not a Visual read: the beacon is a mesh and carries no sprite scale.
+          if (s.kind === "travel")
+            over.ParticleEmitter = { asset: "psPortal", scale: 0.25 };
         },
       },
       {
@@ -222,6 +298,13 @@ globalThis.ColonySpawn = {
           Mesh: { model: "stand" },
           SoundEmitter: { sound: "sndGunFire", every: 1.2 },
         },
+        adapt(s, over) {
+          const se = {};
+          if (s.sound !== undefined) se.sound = s.sound;
+          if (s.every !== undefined) se.every = s.every;
+          if (s.gain !== undefined) se.gain = s.gain;
+          if (Object.keys(se).length > 0) over.SoundEmitter = se;
+        },
       },
       {
         // Auto-firing defense post: an immovable player-faction ACTOR — a stationary ranged
@@ -264,6 +347,8 @@ globalThis.ColonySpawn = {
           Name: { name: "Pine" },
           Visual: { sprite: pixPine, subimg: 3 },
         },
+        adapt: ColonySpawn._adaptFlora,
+        post: ColonySpawn._postFlora,
       },
       {
         // A crop or shrub (a contentFlora species with preset "plant"): walk-through — no
@@ -274,18 +359,40 @@ globalThis.ColonySpawn = {
           BBox: { x: -8, y: -8, width: 16, height: 16 },
           Name: { name: "" },
         },
+        adapt: ColonySpawn._adaptFlora,
+        post: ColonySpawn._postFlora,
       },
       {
         // Wilderness boulder (OverworldGen scatter): an immovable solid the rock sprite stands
-        // on. One entity per cluster — the adapter sizes the BBox to the w×h cell rect (the
-        // collider matches the old scatter wall rect exactly, NavGrid/pathing unchanged) and
-        // picks the frame drawn for that shape.
+        // on. One entity per cluster — adapt sizes the BBox to the w×h cell rect (the collider
+        // matches the old scatter wall rect exactly, NavGrid/pathing unchanged) and picks the
+        // frame drawn for that shape.
         id: "rock",
         components: {
-          BBox: { x: -16, y: -16, width: 32, height: 32 }, // always overridden per-cluster (adapter)
+          BBox: { x: -16, y: -16, width: 32, height: 32 }, // always overridden per-cluster (adapt)
           Collision: { solid: true, kinematic: true },
           Name: { name: "Rock" },
           Visual: { sprite: pixRock },
+        },
+        adapt(s, over, ctx) {
+          // cluster footprint (w×h cells, from the overworld scatter): center the entity on the
+          // rect and size the BBox to it; the sprite carries one frame per cluster shape (1×1,
+          // 2×1, 1×2, 2×2 — a deeper cluster reads as a taller boulder)
+          const cw = s.w ?? 1;
+          const ch = s.h ?? 1;
+          const grid = ctx.grid;
+          ctx.w.x += ((cw - 1) * grid.cellWidth) / 2;
+          ctx.w.y += ((ch - 1) * grid.cellHeight) / 2;
+          over.BBox = {
+            x: (-cw * grid.cellWidth) / 2,
+            y: (-ch * grid.cellHeight) / 2,
+            width: cw * grid.cellWidth,
+            height: ch * grid.cellHeight,
+          };
+          over.Visual = { sprite: pixRock, subimg: cw - 1 + (ch - 1) * 2 };
+        },
+        post(entities, id, ctx) {
+          ColonySpawn._mirror(entities, id, ctx.opts.descriptor);
         },
       },
       {
@@ -306,7 +413,7 @@ globalThis.ColonySpawn = {
           Stats: { maxHp: 6, maxStamina: 0, attack: 1, defense: 0, speed: 260 },
           Mortal: { kind: "down", recoverSecs: 6, reviveHp: 6 },
           Name: { name: "Companion" },
-          Persona: { sex: "male", age: 30 }, // baseline — spawnFollower re-picks per spawn (_persona)
+          Persona: { sex: "male", age: 30 }, // baseline — adapt re-picks per spawn (_persona)
           Skeleton: {
             sprite: spineHuman,
             anim: ColonyPlayer.rest(spineHuman),
@@ -316,13 +423,34 @@ globalThis.ColonySpawn = {
             state: "wait", // unhired residents hold still; hire() flips to follow
             speed: 260, // > player speed (220) so it can catch up when it lags
             range: 40,
-            // Carry bonus to the player's Inventory while following (0 = none). The `follower`
-            // preset doesn't pass these, so file-authored followers stay benefit-free; only the
-            // programmatic seed grants one.
+            // Carry bonus to the player's Inventory while following (0 = none). A file-authored
+            // follower names none, so it stays benefit-free; the scene's programmatic seed grants one.
             bonusCapacity: 0,
             bonusWeight: 0,
           },
           Interaction: { kind: "rehire" }, // talk (E) to hire; hire() swaps it for "companion"
+        },
+        adapt(s, over) {
+          // skin on the body slots alone — garments keep their authored colours
+          over.Skeleton = { tints: ColonySpawn.skinTints(ColonySpawn._skin(s)) };
+          over.Persona = ColonySpawn._persona(s, 20, 45); // able-bodied party members
+          if (s.hp !== undefined) {
+            over.Health = { hp: s.hp };
+            over.Mortal = { reviveHp: s.hp };
+          }
+          if (s.recoverSecs !== undefined)
+            over.Mortal = { ...(over.Mortal ?? {}), recoverSecs: s.recoverSecs };
+          const stats = {};
+          if (s.hp !== undefined) stats.maxHp = s.hp;
+          if (s.speed !== undefined) stats.speed = s.speed;
+          if (Object.keys(stats).length > 0) over.Stats = stats;
+          const fol = {};
+          if (s.state !== undefined) fol.state = s.state;
+          if (s.speed !== undefined) fol.speed = s.speed;
+          if (s.range !== undefined) fol.range = s.range;
+          if (s.bonusCapacity !== undefined) fol.bonusCapacity = s.bonusCapacity;
+          if (s.bonusWeight !== undefined) fol.bonusWeight = s.bonusWeight;
+          if (Object.keys(fol).length > 0) over.Follower = fol;
         },
       },
     ]);
@@ -338,185 +466,112 @@ globalThis.ColonySpawn = {
   },
 
   /**
-   * Construct ONE spawn descriptor's entity, returning its id (-1 for non-entity presets).
-   * The descriptor adapter over the EntityPreset defs: builds the per-spawn component overrides
-   * (field-merged onto the def) and passes `grid` through opts for the post hooks (CombatAI).
-   * `gx/gy` are grid coords (gridToWorld handles negatives, so an off-grid descriptor works too).
+   * Construct ONE spawn descriptor's entity, returning its id (-1 for a marker preset — reach,
+   * entry — which is no entity). `gx/gy` are grid coords (gridToWorld handles negatives, so an
+   * off-grid descriptor works too).
    */
   spawnEntity(entities, grid, s) {
-    const w = grid.gridToWorld(s.gx, s.gy);
-
-    if (s.preset === "follower")
-      return ColonySpawn.spawnFollower(entities, w.x, w.y, {
-        label: s.label,
-        color: s.color,
-        speed: s.speed,
-        range: s.range,
-        size: s.size, // per-spawn scalar; spawnFollower folds in the def base
-      });
     if (!EntityPreset.has(s.preset)) return -1;
+    return ColonySpawn._spawn(entities, grid, s, grid.gridToWorld(s.gx, s.gy));
+  },
 
+  /**
+   * Spawn a companion at WORLD coords through the `follower` preset — the scene's programmatic
+   * party seed, taking the follower descriptor's fields as `opt`. The skin/persona hash keys on
+   * gx/gy, so a world-placed companion hashes its world point.
+   */
+  spawnFollower(entities, wx, wy, opt = {}) {
+    const s = { ...opt, preset: "follower", gx: Math.round(wx), gy: Math.round(wy) };
+    return ColonySpawn._spawn(entities, undefined, s, { x: wx, y: wy });
+  },
+
+  /**
+   * The adapter proper, over a resolved world point `w` (a preset's adapt may move it — the rock
+   * centres on its cluster): the fields every descriptor takes, the preset's `adapt`, the spawn
+   * with the descriptor riding `opts` to `post`, then the membership every preset may state.
+   */
+  _spawn(entities, grid, s, w) {
+    const def = EntityPreset.get(s.preset);
     const over = {};
-    if (s.preset === "raider" || s.preset === "rat") {
-      if (s.hp !== undefined) {
-        over.Health = { hp: s.hp };
-        over.Stats = { maxHp: s.hp };
-      }
-      if (s.loot !== undefined) over.Inventory = { slots: s.loot };
-      // deterministic skin over the white doll template — body-slot tints, so garments keep
-      // their authored colours; a rat's coat rides the same per-slot axis
-      if (s.preset === "raider") {
-        over.Skeleton = { tints: ColonySpawn.skinTints(ColonySpawn._skin(s)) };
-        over.Persona = ColonySpawn._persona(s, 18, 45); // outlaw fighters — no children, no elders
-      } else over.Skeleton = { tints: ColonySpawn._coat(s) };
-    } else if (s.preset === "npc") {
-      over.Name = { name: s.label };
-      over.NPC = { name: s.nameKey, questId: s.questId };
-      // the E action — a merchant trades, any other NPC talks — so the scene's one pick
-      // (Interactable) sees an NPC beside the stations
-      over.Interaction = { kind: s.merchant !== undefined ? "trade" : "talk" };
-      over.Skeleton = { tints: ColonySpawn.skinTints(ColonySpawn._skin(s)) };
-      over.Persona = ColonySpawn._persona(s, 18, 64); // colony civilians — the full working-age span
-      // TODO: the descriptor's `color` no longer reaches the outfit — route it through
-      // Skeleton.tints on the garment slots (free now that skin sits on the body slots alone).
-    } else if (s.preset === "chest") {
-      const inv = {};
-      if (s.items !== undefined) inv.slots = s.items;
-      if (s.capacity !== undefined) inv.capacity = s.capacity;
-      if (Object.keys(inv).length > 0) over.Inventory = inv;
-    } else if (s.preset === "prop") {
-      // MESH per Interaction `kind` (workbench/bed/claim/the survival stations — furn
-      // "cot" picks the cot bunk, travel the site beacon) or furniture `furn` (FURN_MODELS,
-      // crate fallback) — vertex-colored, so color/material don't apply.
-      let model;
-      if (s.kind === "workbench") model = "woodenWorkbench";
-      else if (s.kind === "bed") model = s.furn === "cot" ? "prisonBed" : "woodenBed";
-      else if (s.kind === "claim") model = "woodenSign";
-      else if (s.kind === "door") model = "woodenDoor";
-      else if (s.kind === "hydrate") model = "woodenTub";
-      else if (s.kind === "feed") model = "woodenBin";
-      else if (s.kind === "buff") model = "woodenAltar";
-      else if (s.kind === "travel") model = "portal";
-      else model = ColonySpawn.FURN_MODELS[s.furn] ?? "woodenCrate";
-      over.Mesh = { model };
-      // collider matched to the model's voxel footprint (big furniture is multi-cell)
-      const fp = ColonySpawn.footprint(model);
-      if (fp !== undefined)
-        over.BBox = { x: -fp.w / 2, y: -fp.h / 2, width: fp.w, height: fp.h };
-      // a door in a N-S wall run stands VERTICAL: swapped footprint + turned slab
-      // (`vertical` from BuildMode's auto-orient; the toggle keeps yaw relative to this base)
-      if (s.kind === "door" && s.vertical === true) {
-        over.Mesh.yaw = 90;
-        if (fp !== undefined)
-          over.BBox = {
-            x: -fp.h / 2,
-            y: -fp.w / 2,
-            width: fp.h,
-            height: fp.w,
-          };
-      }
-      over.Name = { name: s.label };
-      if (s.kind !== undefined)
-        over.Interaction =
-          s.kind === "door"
-            ? { kind: "door", open: 0 } // toggle state rides the component (EntitySnapshot-safe)
-            : { kind: s.kind };
-      // a site beacon rises psPortal for as long as it stands. The emitter region is authored
-      // over a 128 px frame and the beacon is one 32 px cell, so the stream runs at a quarter —
-      // a constant, not a Visual read: the beacon is a mesh and carries no sprite scale.
-      if (s.kind === "travel")
-        over.ParticleEmitter = { asset: "psPortal", scale: 0.25 };
-    } else if (s.preset === "torch" || s.preset === "lantern") {
-      if (s.label !== undefined) over.Name = { name: s.label };
-    } else if (s.preset === "radio") {
-      if (s.label !== undefined) over.Name = { name: s.label };
-      const se = {};
-      if (s.sound !== undefined) se.sound = s.sound;
-      if (s.every !== undefined) se.every = s.every;
-      if (s.gain !== undefined) se.gain = s.gain;
-      if (Object.keys(se).length > 0) over.SoundEmitter = se;
-    } else if (s.preset === "rock") {
-      // cluster footprint (w×h cells, from the overworld scatter): center the entity on the
-      // rect and size the BBox to it — the collider equals the old scatter wall rect; the
-      // sprite carries one frame per cluster shape (1×1, 2×1, 1×2, 2×2 — a deeper cluster
-      // reads as a taller boulder)
-      const cw = s.w ?? 1;
-      const ch = s.h ?? 1;
-      w.x += ((cw - 1) * grid.cellWidth) / 2;
-      w.y += ((ch - 1) * grid.cellHeight) / 2;
-      over.BBox = {
-        x: (-cw * grid.cellWidth) / 2,
-        y: (-ch * grid.cellHeight) / 2,
-        width: cw * grid.cellWidth,
-        height: ch * grid.cellHeight,
-      };
-      over.Visual = { sprite: pixRock, subimg: cw - 1 + (ch - 1) * 2 };
-    } else if (s.preset === "turret") {
-      if (s.label !== undefined) over.Name = { name: s.label };
-    }
-
-    // a flora species (contentFlora) on a tree/plant spawn: its model, name and Growth record
-    if (s.species !== undefined) ColonySpawn._flora(s, over);
-
+    if (s.label !== undefined) over.Name = { name: s.label };
+    if (def.adapt !== undefined) def.adapt(s, over, { grid, w });
     // visual yaw for any mesh look (`yaw?`, degrees — vox meshes carry all four sides, so any
     // facing is solid). Gated to mesh-bearing spawns: on a sprite entity (fence) a bare
     // Mesh {yaw} would send RenderMesh's box path NaN dims. BBox stays axis-aligned —
     // author the swapped footprint for 90° turns of oblong furniture.
     if (s.yaw !== undefined) {
-      const def = EntityPreset.get(s.preset);
       if (
         over.Mesh !== undefined ||
         (def.components !== undefined && def.components[Mesh] !== undefined)
       )
         over.Mesh = { ...(over.Mesh ?? {}), yaw: s.yaw };
     }
-
     const id = EntityPreset.spawn(entities, s.preset, w.x, w.y, 0, {
       size: s.size,
       components: over,
       grid, // post hooks (CombatAI.attach) read ctx.opts.grid
+      descriptor: s, // post hooks read their preset's fields off it
     });
-
     // Settlement membership (any preset): `settlement: <map id>` makes the entity a Resident of that
     // level's settlement through the inhabitant seam. Explicit — no auto-by-location.
-    if (s.settlement !== undefined)
-      Residency.assign(entities, id, s.settlement);
-
-    // a plant's stage frame and (if ripe) Interaction, off the spawned components
-    if (s.species !== undefined) FloraSystem.attach(entities, id);
-
-    // a strewn prop's facing: a boulder or plant mirrors by cell hash so one sheet doesn't
-    // visibly repeat — the sign of Visual.xscale, the same facing knob a mover turns
-    if (s.preset === "rock" || s.species !== undefined) {
-      if (hash2(s.gx, s.gy, 11) < 0.5) {
-        const vis = entities.get(id, Visual);
-        vis.xscale = -vis.xscale;
-      }
-    }
-
-    // Merchant NPC: a `merchant` descriptor attaches the trade config + a stock
-    // Inventory (its OWN goods); its `trade` Interaction opens TradeUI on E. Stock built via Bag.add
-    // so instanced gear gets a uid/mods; weightless (no maxWeight) so a vendor isn't encumbered.
-    if (s.preset === "npc" && s.merchant !== undefined) {
-      const mc = s.merchant;
-      const mInv = { slots: [], capacity: mc.capacity ?? 32 };
-      const stock = mc.stock ?? [];
-      for (let i = 0; i < stock.length; i++)
-        Bag.add(mInv, stock[i].itemId, stock[i].qty);
-      entities.add(id, Inventory, mInv);
-      entities.add(id, Merchant, {
-        currencyId: mc.currencyId ?? "coin",
-        buyMargin: mc.buyMargin ?? 1.25,
-        sellMargin: mc.sellMargin ?? 0.5,
-        infinite: mc.infinite ?? false,
-        credits: mc.credits ?? 0,
-        restockSecs: mc.restockSecs ?? 0,
-        restockTimer: mc.restockSecs ?? 0,
-        template: mc.template,
-      });
-    }
-
+    if (s.settlement !== undefined) Residency.assign(entities, id, s.settlement);
     return id;
+  },
+
+  /** A mob's descriptor fields (raider/rat): `hp` seeds Health + maxHp, `loot` the Inventory. */
+  _adaptMob(s, over) {
+    if (s.hp !== undefined) {
+      over.Health = { hp: s.hp };
+      over.Stats = { maxHp: s.hp };
+    }
+    if (s.loot !== undefined) over.Inventory = { slots: s.loot };
+  },
+
+  /**
+   * A merchant NPC's `merchant` descriptor: the trade config + a stock Inventory (its OWN goods);
+   * its `trade` Interaction opens TradeUI on E. Stock built via Bag.add so instanced gear gets a
+   * uid/mods; weightless (no maxWeight) so a vendor isn't encumbered.
+   */
+  _merchant(entities, id, mc) {
+    const mInv = { slots: [], capacity: mc.capacity ?? 32 };
+    const stock = mc.stock ?? [];
+    for (let i = 0; i < stock.length; i++)
+      Bag.add(mInv, stock[i].itemId, stock[i].qty);
+    entities.add(id, Inventory, mInv);
+    entities.add(id, Merchant, {
+      currencyId: mc.currencyId ?? "coin",
+      buyMargin: mc.buyMargin ?? 1.25,
+      sellMargin: mc.sellMargin ?? 0.5,
+      infinite: mc.infinite ?? false,
+      credits: mc.credits ?? 0,
+      restockSecs: mc.restockSecs ?? 0,
+      restockTimer: mc.restockSecs ?? 0,
+      template: mc.template,
+    });
+  },
+
+  /**
+   * A strewn prop's facing: a boulder or plant mirrors by cell hash so one sheet doesn't visibly
+   * repeat — the sign of Visual.xscale, the same facing knob a mover turns.
+   */
+  _mirror(entities, id, s) {
+    if (hash2(s.gx, s.gy, 11) < 0.5) {
+      const vis = entities.require(id, Visual);
+      vis.xscale = -vis.xscale;
+    }
+  },
+
+  /** The flora presets' adapt: a `species` (contentFlora) brings its model, name and Growth. */
+  _adaptFlora(s, over) {
+    if (s.species !== undefined) ColonySpawn._flora(s, over);
+  },
+
+  /** The flora presets' post: a species' stage frame and (if ripe) Interaction, then the mirror. */
+  _postFlora(entities, id, ctx) {
+    const s = ctx.opts.descriptor;
+    if (s.species === undefined) return;
+    FloraSystem.attach(entities, id);
+    ColonySpawn._mirror(entities, id, s);
   },
 
   /**
@@ -536,40 +591,6 @@ globalThis.ColonySpawn = {
       stage: -1,
       wild: s.wild === true,
     };
-  },
-
-  // Spawn a companion at world coords, via the `follower` preset. Shared by the `follower`
-  // descriptor + the scene's programmatic party seed.
-  spawnFollower(entities, wx, wy, opt = {}) {
-    // per-spawn overrides (field-merged onto the def). Skin hashed from the spawn spot,
-    // tinting the body slots alone — garments keep their authored colours.
-    const spot = { gx: Math.round(wx), gy: Math.round(wy) };
-    const over = {
-      Skeleton: { tints: ColonySpawn.skinTints(ColonySpawn._skin(spot)) },
-      Persona: ColonySpawn._persona(spot, 20, 45), // able-bodied party members
-    };
-    if (opt.hp !== undefined) {
-      over.Health = { hp: opt.hp };
-      over.Mortal = { reviveHp: opt.hp };
-    }
-    if (opt.recoverSecs !== undefined)
-      over.Mortal = { ...(over.Mortal ?? {}), recoverSecs: opt.recoverSecs };
-    const stats = {};
-    if (opt.hp !== undefined) stats.maxHp = opt.hp;
-    if (opt.speed !== undefined) stats.speed = opt.speed;
-    if (Object.keys(stats).length > 0) over.Stats = stats;
-    if (opt.label !== undefined) over.Name = { name: opt.label };
-    const fol = {};
-    if (opt.state !== undefined) fol.state = opt.state;
-    if (opt.speed !== undefined) fol.speed = opt.speed;
-    if (opt.range !== undefined) fol.range = opt.range;
-    if (opt.bonusCapacity !== undefined) fol.bonusCapacity = opt.bonusCapacity;
-    if (opt.bonusWeight !== undefined) fol.bonusWeight = opt.bonusWeight;
-    if (Object.keys(fol).length > 0) over.Follower = fol;
-    return EntityPreset.spawn(entities, "follower", wx, wy, 0, {
-      size: opt.size,
-      components: over,
-    });
   },
 
   // Skin tones for doll humanoids (slot tints over the white spineHuman body art).
