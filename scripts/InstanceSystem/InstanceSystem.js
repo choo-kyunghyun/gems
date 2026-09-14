@@ -15,7 +15,7 @@
  * VALIDATED, never dereferenced, and a generational id makes a stale one detectable.
  */
 globalThis.InstanceSystem = {
-  /** @type {{entities: EntityStore, id: number, inst: Id.Instance}[]} */
+  /** @type {{entities: EntityStore, id: number, inst: Id<"Instance">}[]} */
   _roster: [],
 
   /**

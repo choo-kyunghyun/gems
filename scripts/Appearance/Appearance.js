@@ -11,8 +11,8 @@
  * it mints and the next AppearanceSystem pass re-dresses it.
  *
  * @typedef {Object} Appearance
- * @property {Object} slots authored base — spine slot name -> Asset.GMSprite, or -1 for bare
- * @property {Object} [gear] equipment overlay — spine slot name -> Asset.GMSprite, or -1 for
+ * @property {Object} slots authored base — spine slot name -> GMSprite, or -1 for bare
+ * @property {Object} [gear] equipment overlay — spine slot name -> GMSprite, or -1 for
  *                           occupied-bare; absent key = unclaimed (base shows). Owned by
  *                           AppearanceSystem.rebuild; never on a doll without Equipment.
  * @property {boolean} dirty pushed onto the puppet on the next pass, which clears it

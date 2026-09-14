@@ -1,4 +1,3 @@
-globalThis.CameraFocus = "CameraFocus";
 /**
  * Marker: THE entity the follow camera tracks (one per store at a time). `CameraFollow.targetId()`
  * resolves its target by LIVE query — an entity carrying this wins over the raw `target` id
@@ -8,3 +7,4 @@ globalThis.CameraFocus = "CameraFocus";
  * Flat empty data ({}) — presence is the signal, exactly like the Playable marker.
  * @typedef {Object} CameraFocus
  */
+globalThis.CameraFocus = "CameraFocus";

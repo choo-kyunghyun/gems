@@ -16,6 +16,6 @@
  * reap destroys it.
  *
  * @typedef {Object} Instance
- * @property {Id.Instance} inst  the live Puppet instance
+ * @property {Id<"Instance">} inst  the live Puppet instance
  */
 globalThis.Instance = "Instance";

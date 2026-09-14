@@ -1,7 +1,7 @@
 /**
  * @typedef {Object} Visual
  * @property {boolean} visible
- * @property {Asset.GMSprite} sprite
+ * @property {GMSprite} sprite
  * @property {number} subimg
  * @property {number} [scale] design size (preset SCALE x per-spawn override); xscale/yscale are
  *   the DERIVED draw scale (scale / SpriteMeta.density(sprite), sign = facing). Absent = legacy
