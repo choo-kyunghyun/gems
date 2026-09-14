@@ -239,6 +239,7 @@
     {"id":{"name":"Diplomacy","path":"scripts/Diplomacy/Diplomacy.yy",},},
     {"id":{"name":"Direction","path":"scripts/Direction/Direction.yy",},},
     {"id":{"name":"Display","path":"scripts/Display/Display.yy",},},
+    {"id":{"name":"Door","path":"scripts/Door/Door.yy",},},
     {"id":{"name":"Downed","path":"scripts/Downed/Downed.yy",},},
     {"id":{"name":"Drowsiness","path":"scripts/Drowsiness/Drowsiness.yy",},},
     {"id":{"name":"Encumbrance","path":"scripts/Encumbrance/Encumbrance.yy",},},

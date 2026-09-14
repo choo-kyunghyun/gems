@@ -90,6 +90,29 @@ globalThis.FollowerSystem = {
   },
 
   /**
+   * The state a command would move `fid` to — "wait" for a following member, "follow" for a
+   * waiting one — or "" when it is not commandable: no Follower, or Downed (it lies where it fell
+   * until it recovers).
+   */
+  next(entities, fid) {
+    if (entities.has(fid, Downed)) return "";
+    const f = entities.get(fid, Follower);
+    if (f === undefined) return "";
+    return f.state === "follow" ? "wait" : "follow";
+  },
+
+  /**
+   * Flip `fid` between following and waiting here (the E command); returns the state it moved to,
+   * or "" when it is not commandable (see next). Waiting is map-local — a trip forces every member
+   * back to follow (ColonyMap.go).
+   */
+  toggle(entities, playerId, fid) {
+    const state = FollowerSystem.next(entities, fid);
+    if (state !== "") FollowerSystem.setState(entities, playerId, fid, state);
+    return state;
+  },
+
+  /**
    * Join the player's squad: membership + follow (+bonus via setState) + the "companion"
    * Interaction over the "rehire" one (it's a squad member now — E commands it, not recruits it).
    */

@@ -83,49 +83,13 @@ globalThis.contentInteractions = {
         },
       },
       {
-        // built door (woodenDoor prop): toggles passability. Closed = a solid slab (blocks
-        // bodies AND pathing — NavGrid rasterizes the kinematic collider live); open = non-solid
-        // with the slab swung 80° on its center. State (`open`) + yaw are component data, so a
-        // door round-trips map parking/EntitySnapshot as-is.
+        // built door (woodenDoor prop): the leaf flip is Door's; its refusal (a body in the
+        // frame) is shown here
         id: "door",
         prompt: "BUILD_DOOR_PROMPT",
         run(ctx) {
-          const col = ctx.entities.get(ctx.id, Collision);
-          const mesh = ctx.entities.get(ctx.id, Mesh);
-          if (col === undefined) return;
-          if (ctx.comp.open === 1) {
-            // refuse to close over a standing body — it would trap it inside the collider
-            const box = AABB.of(ctx.entities, ctx.id);
-            const ids = Query.inRect(
-              ctx.entities,
-              box.x1 - 4,
-              box.y1 - 4,
-              box.x2 + 4,
-              box.y2 + 4,
-              { has: Collision },
-            );
-            for (let i = 0; i < ids.length; i++) {
-              if (ids[i] === ctx.id) continue;
-              const c = ctx.entities.get(ids[i], Collision);
-              if (
-                c !== undefined &&
-                c.solid === true &&
-                c.kinematic === false
-              ) {
-                Toast.push(I18n.text("BUILD_DOOR_BLOCKED"), { type: "info" });
-                return;
-              }
-            }
-            ctx.comp.open = 0;
-            col.solid = true;
-            if (mesh !== undefined) mesh.yaw = (mesh.yaw ?? 0) - 80;
-          } else {
-            ctx.comp.open = 1;
-            col.solid = false;
-            if (mesh !== undefined) mesh.yaw = (mesh.yaw ?? 0) + 80;
-          }
-          // solid flipped in place on a kinematic collider — the id-set fingerprint cannot see it
-          SolidSystem.invalidate(ctx.scene.level);
+          const why = Door.toggle(ctx.scene.level, ctx.id);
+          if (why !== "") Toast.push(I18n.text(why), { type: "info" });
         },
       },
       {
@@ -174,33 +138,21 @@ globalThis.contentInteractions = {
       },
       {
         // a squad member (FollowerSystem.hire swaps its "rehire" for this): E flips it between
-        // following and waiting here; the prompt names the flip. Waiting is map-local — a trip
-        // forces every member back to follow (ColonyMap.go). A Downed one is not commandable:
-        // no prompt, no-op (it lies where it fell until it recovers). Priority -1: a companion
-        // walks at your side, so by proximity it yields to any station you stopped at.
+        // following and waiting here (FollowerSystem.toggle); the prompt names the flip, and a
+        // member that is not commandable (Downed) shows none. Priority -1: a companion walks at
+        // your side, so by proximity it yields to any station you stopped at.
         id: "companion",
         priority: -1,
         prompt(ctx) {
-          if (ctx.entities.has(ctx.id, Downed)) return "";
-          const f = ctx.entities.get(ctx.id, Follower);
-          if (f === undefined) return "";
-          return f.state === "follow"
-            ? "FOLLOWER_WAIT_PROMPT"
-            : "FOLLOWER_FOLLOW_PROMPT";
+          const next = FollowerSystem.next(ctx.entities, ctx.id);
+          if (next === "") return "";
+          return next === "wait" ? "FOLLOWER_WAIT_PROMPT" : "FOLLOWER_FOLLOW_PROMPT";
         },
         run(ctx) {
-          if (ctx.entities.has(ctx.id, Downed)) return;
-          const f = ctx.entities.get(ctx.id, Follower);
-          if (f === undefined) return;
-          const toWait = f.state === "follow";
-          FollowerSystem.setState(
-            ctx.entities,
-            ctx.playerId,
-            ctx.id,
-            toWait ? "wait" : "follow",
-          );
-          Toast.push(I18n.text(toWait ? "FOLLOWER_WAIT" : "FOLLOWER_FOLLOW"), {
-            type: toWait ? "info" : "success",
+          const state = FollowerSystem.toggle(ctx.entities, ctx.playerId, ctx.id);
+          if (state === "") return;
+          Toast.push(I18n.text(state === "wait" ? "FOLLOWER_WAIT" : "FOLLOWER_FOLLOW"), {
+            type: state === "wait" ? "info" : "success",
           });
         },
       },
