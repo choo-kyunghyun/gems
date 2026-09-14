@@ -14,9 +14,10 @@
 // the work is observable. A figure is a same-run ratio: absolute times drift ~30% with machine
 // state, so a before/after is two Reruns in one session, never a figure from an earlier one. The
 // runtime is a VM at ~40-110x V8's per-op cost, which is why per-element constants, not complexity
-// class, decide the frame (docs/ARCHITECTURE.md → Hot-path idioms); on a runtime upgrade re-run
-// the family and walk docs/GMRT.md → On a Runtime Upgrade. A per-op claim in a comment is a
-// measure here.
+// class, decide the frame (docs/ARCHITECTURE.md → Hot-path idioms). On a runtime upgrade re-run
+// the family: a ratio that moved names the TODO at the site citing it (each family's comment
+// says which), and absolute ns/op collapsing toward V8 is a JIT, which makes every hot-path
+// idiom advisory. A per-op claim in a comment is a measure here.
 
 const N = 4000; // the Measured Costs / Member Access loop length
 const N_NATIVE = 20000; // the Native vs JS loop length — a ~40 ns boundary wants the resolution
@@ -1066,6 +1067,10 @@ globalThis.testCore = {
     // array_create fill, array_sort) wins outright, a scalar helper loses to a property read or
     // a comparison chain — and the JS standard library is itself slow here, so `Math.abs`/
     // `Math.sin` LOSE to their GML twins. That split is the one the code runs.
+    // TODO when `js.abs` reaches `native.abs`, drop the native detours over `Math.*` and
+    // `Array.sort` over `array_sort`; when the boundary (`native.clamp` vs `js.clamp`) falls
+    // below ~10 ns, re-test natives at scalar sites and `tilemap_*` against RenderTileMap's
+    // vertex buffers.
     {
       id: "perf.native",
       setup(ctx) {
@@ -1209,6 +1214,10 @@ globalThis.testCore = {
     // array element ~20x a plain one — the outlier, so a hot value stored in one is MIRRORED into
     // a plain array (EntityID.packed). A BUILT-IN instance variable (x/y, image_*) goes through
     // accessors at 3-4.5x a column read, which is why an instance holds scope, never data.
+    // TODO when `read.typed` reaches `read.array` (AOT does not close it: ~22x under `--runtime
+    // native`), the `EntityID.packed` mirror stops paying for itself and typed scratch is an
+    // option again (MotionPlanner); when a built-in reaches a user-defined property, `Instance`
+    // may hold data. The instance-scoped built-ins themselves are an API contract, not a gap.
     {
       id: "perf.access",
       setup(ctx) {
@@ -1252,7 +1261,8 @@ globalThis.testCore = {
     // four matches led by the rare token and by Position, the lead-order rule measured (both gross
     // per store entity — the loop they would net out IS the walk). forEach
     // hands the walk's data to the callback where query + get pays a hash lookup per entity;
-    // `store.churn` is the upkeep a detach + add pair costs over two column writes.
+    // `store.churn` is the upkeep a detach + add pair costs over two column writes. No ratio here
+    // retires an idiom on a runtime upgrade: the lead-order rule is a property of the layout.
     {
       id: "perf.layout",
       setup(ctx) {

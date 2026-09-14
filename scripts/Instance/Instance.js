@@ -6,9 +6,10 @@
  * rather than minting its own, so an entity never carries two puppets.
  *
  * The puppet holds no data: everything authoritative stays in columns (a built-in instance
- * variable costs 3-4.5x a column access — testCore perf.access), and `inst` is a live handle,
- * so it neither serializes nor transfers — a snapshot, load, or map transfer drops it and the
- * feature system re-attaches (SkeletonSystem._mint).
+ * variable costs 3-4.5x a column access — testCore perf.access; TODO the rule loosens when a
+ * built-in reaches a user-defined property there), and `inst` is a live handle, so it neither
+ * serializes nor transfers — a snapshot, load, or map transfer drops it and the feature system
+ * re-attaches (SkeletonSystem._mint).
  *
  * InstanceSystem alone mints and destroys; presence of this component IS "a live puppet exists",
  * so a consumer releases one by detaching the component (or removing the entity) and the next

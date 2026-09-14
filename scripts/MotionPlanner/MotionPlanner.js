@@ -55,8 +55,9 @@ globalThis.MotionPlanner = {
     MotionPlanner.grid = grid;
     const count = grid.size();
     // PLAIN arrays, not typed: a typed element read costs ~20x a plain one on this runtime
-    // (docs/GMRT.md → perf table, `read.typed` vs `read.array`), and the expansion loop is all
+    // (testCore perf.access, `read.typed` vs `read.array`), and the expansion loop is all
     // scratch reads. Typed would only pay for the memory, which a level-sized array does not need.
+    // TODO typed scratch is an option again when `read.typed` reaches `read.array`.
     MotionPlanner._g = new Array(count).fill(0);
     MotionPlanner._from = new Array(count).fill(0);
     MotionPlanner._closed = new Array(count).fill(0);

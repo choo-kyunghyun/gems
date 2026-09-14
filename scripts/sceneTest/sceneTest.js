@@ -1,4 +1,4 @@
-// Core test harness. Runs the testCore cases, then the testStress scenarios, one per Step so the
+// Test harness. Runs the testCore cases, then testGame's, then the testStress scenarios, one per Step so the
 // window stays live (a scenario spans `frames` Steps and draws its level), and reports
 // through game.log lines under a prefix — `[TEST]` the run's banner + summary, `[CHECK]` a case's
 // PASS/FAIL, `[BENCH]` a ns/op figure a case measured — so a run is read with a grep and never
@@ -76,6 +76,8 @@ class _SceneTestClass {
     this._cases = [];
     const core = testCore.CASES;
     for (let i = 0; i < core.length; i++) this._cases.push(core[i]);
+    const game = testGame.CASES; // the Game-side cases: what the pinned runtime does with an asset
+    for (let i = 0; i < game.length; i++) this._cases.push(game[i]);
     const stress = testStress.CASES; // the scenarios last: seconds each, and they draw
     for (let i = 0; i < stress.length; i++) this._cases.push(stress[i]);
     this._cursor = 0;

@@ -26,6 +26,7 @@ globalThis.EntityID = class EntityID {
      * typed-array read costs ~20x a plain one here (testCore perf.access), and this sits on every
      * matched entity of every query. A freed index holds the id its NEXT owner will get,
      * which no query can reach: flush() clears the component slots before freeing the id.
+     * TODO retire the mirror (query reads `generations`) when `read.typed` reaches `read.array`.
      */
     this.packed = new Array(maxEntities);
     this.freeIndices = [];

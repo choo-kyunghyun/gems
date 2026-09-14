@@ -410,6 +410,7 @@
     {"id":{"name":"Survival","path":"scripts/Survival/Survival.yy",},},
     {"id":{"name":"Temperature","path":"scripts/Temperature/Temperature.yy",},},
     {"id":{"name":"testCore","path":"scripts/testCore/testCore.yy",},},
+    {"id":{"name":"testGame","path":"scripts/testGame/testGame.yy",},},
     {"id":{"name":"testStress","path":"scripts/testStress/testStress.yy",},},
     {"id":{"name":"Thirst","path":"scripts/Thirst/Thirst.yy",},},
     {"id":{"name":"ThirstSystem","path":"scripts/ThirstSystem/ThirstSystem.yy",},},
