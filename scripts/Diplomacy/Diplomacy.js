@@ -22,18 +22,6 @@ globalThis.Diplomacy = {
     return Diplomacy;
   },
 
-  get(id) {
-    return Registry.get(Diplomacy, id);
-  },
-
-  has(id) {
-    return Registry.has(Diplomacy, id);
-  },
-
-  all() {
-    return Registry.all(Diplomacy);
-  },
-
   // ── Relations (faction-id level)
   // order-independent pair key so relations are symmetric; "|" is safe since ids are simple tokens
   _key(a, b) {

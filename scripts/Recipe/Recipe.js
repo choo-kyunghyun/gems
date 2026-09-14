@@ -22,10 +22,6 @@ globalThis.Recipe = class Recipe {
     return Registry.get(Recipe, id);
   }
 
-  static has(id) {
-    return Registry.has(Recipe, id);
-  }
-
   static all() {
     return Registry.all(Recipe);
   }

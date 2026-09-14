@@ -20,15 +20,4 @@ globalThis.SettlementComponent = {
     return SettlementComponent;
   },
 
-  get(id) {
-    return Registry.get(SettlementComponent, id);
-  },
-
-  has(id) {
-    return Registry.has(SettlementComponent, id);
-  },
-
-  all() {
-    return Registry.all(SettlementComponent);
-  },
 };

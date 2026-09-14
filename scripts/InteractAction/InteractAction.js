@@ -30,7 +30,4 @@ globalThis.InteractAction = {
     return Registry.get(InteractAction, id);
   },
 
-  has(id) {
-    return Registry.has(InteractAction, id);
-  },
 };

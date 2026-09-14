@@ -32,14 +32,6 @@ globalThis.Manufacturer = class Manufacturer {
     return Registry.get(Manufacturer, id);
   }
 
-  static has(id) {
-    return Registry.has(Manufacturer, id);
-  }
-
-  static all() {
-    return Registry.all(Manufacturer);
-  }
-
   /**
    * registration index, -1 when unknown — the inventory sort key.
    */

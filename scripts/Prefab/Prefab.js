@@ -87,10 +87,6 @@ globalThis.Prefab = class Prefab {
     return Registry.get(Prefab, id);
   }
 
-  static has(id) {
-    return Registry.has(Prefab, id);
-  }
-
   static all() {
     return Registry.all(Prefab);
   }

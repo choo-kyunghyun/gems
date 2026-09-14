@@ -28,14 +28,6 @@ globalThis.Rarity = class Rarity {
     return Registry.get(Rarity, id);
   }
 
-  static has(id) {
-    return Registry.has(Rarity, id);
-  }
-
-  static all() {
-    return Registry.all(Rarity);
-  }
-
   /**
    * tier index (registration order), -1 when unknown — the inventory sort key.
    */

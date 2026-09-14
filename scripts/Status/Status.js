@@ -36,11 +36,4 @@ globalThis.Status = {
     return Registry.get(Status, id);
   },
 
-  has(id) {
-    return Registry.has(Status, id);
-  },
-
-  all() {
-    return Registry.all(Status);
-  },
 };

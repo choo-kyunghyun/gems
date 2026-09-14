@@ -58,10 +58,6 @@ globalThis.Item = class Item {
     return Registry.get(Item, id);
   }
 
-  static has(id) {
-    return Registry.has(Item, id);
-  }
-
   static all() {
     return Registry.all(Item);
   }
