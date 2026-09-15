@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"VertexBatch",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"VertexBatch",
+  "parent":{
+    "name":"Util",
+    "path":"folders/Core/Util.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"VertexBatch.js",
+}

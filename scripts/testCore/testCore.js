@@ -888,6 +888,53 @@ globalThis.testCore = {
       },
     },
     {
+      // A batch pins its texture page on the first frame read and refuses a frame off another
+      // page. Two runtime sprites, each on a page of its own, stand in for a group that overflowed.
+      id: "render.batch",
+      setup(ctx) {
+        const surf = surface_create(8, 8);
+        surface_set_target(surf);
+        draw_clear_alpha(c_white, 1);
+        surface_reset_target();
+        ctx.a = sprite_create_from_surface(surf, 0, 0, 8, 8, false, false, 0, 0);
+        ctx.b = sprite_create_from_surface(surf, 0, 0, 8, 8, false, false, 0, 0);
+        surface_free(surf);
+        ctx.batch = new VertexBatch();
+        ctx.other = new VertexBatch();
+      },
+      verify(ctx, t) {
+        const b = ctx.batch.begin();
+        t.eq(b.page, -1, "a fresh batch is unpinned");
+        const uv = b.uvs(ctx.a, 0);
+        t.eq(array_length(uv), 8, "uvs is sprite_get_uvs' 8-array");
+        t.ok(b.page >= 0, "the first read pins the page");
+        const page = b.page;
+        b.addFrame(ctx.a, 0, 0, 0, 8, 8);
+        t.eq(b.page, page, "a same-page frame keeps the pin");
+        t.eq(b.count, 1, "addFrame counts one quad");
+        const other = ctx.other.begin();
+        other.uvs(ctx.b, 0);
+        t.ok(other.page !== page, "two runtime sprites sit on pages of their own");
+        let threw = false;
+        try {
+          b.uvs(ctx.b, 0);
+        } catch (e) {
+          threw = true;
+        }
+        t.ok(threw, "a frame off another page throws");
+        t.eq(b.page, page, "the refused read leaves the pin");
+        t.eq(b.count, 1, "the refused read adds no quad");
+        b.end();
+        other.end();
+      },
+      teardown(ctx) {
+        ctx.batch.destroy();
+        ctx.other.destroy();
+        sprite_delete(ctx.a);
+        sprite_delete(ctx.b);
+      },
+    },
+    {
       id: "id.pack",
       setup() {},
       verify(ctx, t) {

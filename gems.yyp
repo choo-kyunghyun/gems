@@ -456,6 +456,7 @@
     {"id":{"name":"UITrigger","path":"scripts/UITrigger/UITrigger.yy",},},
     {"id":{"name":"Utils","path":"scripts/Utils/Utils.yy",},},
     {"id":{"name":"Velocity","path":"scripts/Velocity/Velocity.yy",},},
+    {"id":{"name":"VertexBatch","path":"scripts/VertexBatch/VertexBatch.yy",},},
     {"id":{"name":"VertexBuffer","path":"scripts/VertexBuffer/VertexBuffer.yy",},},
     {"id":{"name":"VirtualKeyboard","path":"scripts/VirtualKeyboard/VirtualKeyboard.yy",},},
     {"id":{"name":"Visual","path":"scripts/Visual/Visual.yy",},},

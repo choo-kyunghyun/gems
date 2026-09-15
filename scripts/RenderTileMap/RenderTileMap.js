@@ -50,8 +50,7 @@ globalThis.RenderTileMap = class RenderTileMap {
     this.alpha = opt.alpha ?? 1;
     this.color = opt.color ?? c_white;
     this.dirty = true;
-    this._vbuf = new VertexBuffer();
-    this._tex = undefined;
+    this._batch = new VertexBatch();
     this.lights = opt.lights; // host RenderMesh pass → lit ground (see draw); unset = unlit
     // a flowing material: { r, g, b, time } — crest tone (0..1 floats) + the clock the crests
     // drift on (a SIM clock, so they freeze on pause); lit maps only, unset = still ground
@@ -88,27 +87,6 @@ globalThis.RenderTileMap = class RenderTileMap {
     return !!this.layer.get(x, y);
   }
 
-  /**
-   * honour sprite_get_uvs trim data [4..7] so texture-packer-cropped frames don't stretch to fill
-   * the cell. untrimmed frames have offsets=0 ratios=1, reducing to a full-cell quad.
-   * returns [x, y, w, h, u0, v0, u1, v1].
-   */
-  _quad(frame, wx, wy, cw, ch) {
-    const uvs = sprite_get_uvs(this.sprite, frame);
-    const sw = sprite_get_width(this.sprite);
-    const sh = sprite_get_height(this.sprite);
-    return [
-      wx + uvs[4] * (cw / sw),
-      wy + uvs[5] * (ch / sh),
-      cw * uvs[6],
-      ch * uvs[7],
-      uvs[0],
-      uvs[1],
-      uvs[2],
-      uvs[3],
-    ];
-  }
-
   _blob4(x, y) {
     let mask = 0;
     if (this._isSolid(x, y - 1)) mask |= 1;
@@ -141,37 +119,25 @@ globalThis.RenderTileMap = class RenderTileMap {
     const { layer, grid, sprite } = this;
     const { cols, rows, cellWidth, cellHeight } = grid;
 
-    this._vbuf.destroy();
-    this._vbuf = new VertexBuffer();
-    this._tex = sprite_get_texture(sprite, 0);
-
-    this._vbuf.begin();
+    this._batch.destroy();
+    const batch = new VertexBatch().begin();
+    this._batch = batch;
     for (let y = 0; y < rows; y++) {
       for (let x = 0; x < cols; x++) {
         if (!layer.get(x, y)) continue;
-        const frame = this._frameOf(x, y);
-        const q = this._quad(
-          frame,
+        batch.addFrame(
+          sprite,
+          this._frameOf(x, y),
           x * cellWidth,
           y * cellHeight,
           cellWidth,
           cellHeight,
-        );
-        this._vbuf.addQuad(
-          q[0],
-          q[1],
-          q[2],
-          q[3],
-          q[4],
-          q[5],
-          q[6],
-          q[7],
           this.color,
           this.alpha,
         );
       }
     }
-    this._vbuf.end();
+    batch.end();
     this.dirty = false;
   }
 
@@ -185,11 +151,9 @@ globalThis.RenderTileMap = class RenderTileMap {
     const hw = cellWidth * 0.5;
     const hh = cellHeight * 0.5;
 
-    this._vbuf.destroy();
-    this._vbuf = new VertexBuffer();
-    this._tex = sprite_get_texture(sprite, 0);
-
-    this._vbuf.begin();
+    this._batch.destroy();
+    const batch = new VertexBatch().begin();
+    this._batch = batch;
     // one extra row/col of corner points (0..cols and 0..rows inclusive)
     for (let j = 0; j <= rows; j++) {
       for (let i = 0; i <= cols; i++) {
@@ -198,28 +162,19 @@ globalThis.RenderTileMap = class RenderTileMap {
         // fully hidden by the material stacked above → no quad at all
         if (this.skipAbove !== undefined && this._dualMask(i, j, this.skipAbove) === 15)
           continue;
-        const q = this._quad(
+        batch.addFrame(
+          sprite,
           mask,
           i * cellWidth - hw,
           j * cellHeight - hh,
           cellWidth,
           cellHeight,
-        );
-        this._vbuf.addQuad(
-          q[0],
-          q[1],
-          q[2],
-          q[3],
-          q[4],
-          q[5],
-          q[6],
-          q[7],
           this.color,
           this.alpha,
         );
       }
     }
-    this._vbuf.end();
+    batch.end();
     this.dirty = false;
   }
 
@@ -261,11 +216,11 @@ globalThis.RenderTileMap = class RenderTileMap {
         shader_set_uniform_f(this.lights.uTime, wave.time());
       }
     }
-    this._vbuf.submit(this._tex);
+    this._batch.submit();
     if (lit) shader_reset();
   }
 
   destroy() {
-    this._vbuf.destroy();
+    this._batch.destroy();
   }
 };

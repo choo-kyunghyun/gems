@@ -8,7 +8,7 @@
  * feather of the scatter, not a dual-grid outline. Placement is DETERMINISTIC: a position
  * hash decides each cell's clump count, anchors, frames and mirror, so a regenerated or
  * reloaded layer strews the same field with no entity and no save state — the terrain it
- * stands on regenerates from its seed the same way. One VBO per def, whole-layer, rebuilt
+ * stands on regenerates from its seed the same way. One VertexBatch per def, whole-layer, rebuilt
  * on markDirty(); clumps are depth-written alpha-cut uprights under the billboards' bent
  * normal and pitch compensation (RenderBillboard's rules); a `flat` def LIES on the ground
  * plane instead — a decal the pitch foreshortens like the terrain under it (a lotus pad on
@@ -47,7 +47,7 @@ globalThis.RenderGrass = class RenderGrass {
     this.alphaRef = opt.alphaRef ?? 0.5;
     this.wind = opt.wind ?? 0;
     this.time = opt.time;
-    this._vbs = []; // parallel to defs: { vb, tex } or undefined when a def placed nothing
+    this._batches = []; // parallel to defs: a VertexBatch, or undefined when a def placed nothing
     this._dirty = true;
     this._lit = shMeshlit;
     this._litOk = shaders_are_supported() && shader_is_compiled(this._lit);
@@ -70,9 +70,9 @@ globalThis.RenderGrass = class RenderGrass {
   }
 
   _free() {
-    for (let i = 0; i < this._vbs.length; i++)
-      if (this._vbs[i] !== undefined) this._vbs[i].vb.destroy();
-    this._vbs = [];
+    for (let i = 0; i < this._batches.length; i++)
+      if (this._batches[i] !== undefined) this._batches[i].destroy();
+    this._batches = [];
   }
 
   /** the TileType id at a cell, or -1 off the layer / on an empty cell */
@@ -92,7 +92,7 @@ globalThis.RenderGrass = class RenderGrass {
     return this._idAt(gx, gy + 1) === id;
   }
 
-  /** one VBO per def: every interior cell rolls its clumps off the position hash */
+  /** one batch per def: every interior cell rolls its clumps off the position hash */
   _rebuild() {
     this._dirty = false;
     this._free();
@@ -117,8 +117,7 @@ globalThis.RenderGrass = class RenderGrass {
       const tint = def.tint !== undefined ? def.tint : c_white;
       const flat = def.flat === true;
       const salt = this.seed + k * 131;
-      const vb = new VertexBuffer().begin();
-      let n = 0;
+      const batch = new VertexBatch().begin();
       for (let gy = 0; gy < rows; gy++) {
         for (let gx = 0; gx < cols; gx++) {
           const on =
@@ -144,7 +143,7 @@ globalThis.RenderGrass = class RenderGrass {
             // the packer-trimmed rect over the sheet density, foot on the anchor; a
             // mirrored clump swaps u and anchors from its right edge
             const sc = sMin + hash2(gx, gy, s2 + 4) * (sMax - sMin);
-            const uv = sprite_get_uvs(spr, frame);
+            const uv = batch.uvs(spr, frame);
             const w = (sw * uv[6] * sc) / dens;
             const h = (sh * uv[7] * sc) / dens;
             const a = ((xoff - uv[4]) * sc) / dens;
@@ -154,17 +153,16 @@ globalThis.RenderGrass = class RenderGrass {
             const u0 = mirror ? uv[2] : uv[0];
             const u1 = mirror ? uv[0] : uv[2];
             // a flat variant lies on the ground: its up (-z) becomes map north (-y)
-            if (flat) vb.addQuad(x0, py + z0, w, h, u0, uv[1], u1, uv[3], tint);
-            else vb.addUpright(x0, py, z0, w, h, u0, uv[1], u1, uv[3], tint);
-            n++;
+            if (flat) batch.addQuad(x0, py + z0, w, h, u0, uv[1], u1, uv[3], tint);
+            else batch.addUpright(x0, py, z0, w, h, u0, uv[1], u1, uv[3], tint);
           }
         }
       }
-      vb.end();
-      if (n === 0) {
-        vb.destroy();
-        this._vbs.push(undefined);
-      } else this._vbs.push({ vb: vb, tex: sprite_get_texture(spr, 0) });
+      batch.end();
+      if (batch.count === 0) {
+        batch.destroy();
+        this._batches.push(undefined);
+      } else this._batches.push(batch);
     }
   }
 
@@ -180,8 +178,8 @@ globalThis.RenderGrass = class RenderGrass {
     gpu_set_zwriteenable(true);
     matrix_set(matrix_world, matrix_build(0, 0, 0, 0, 0, 0, 1, 1, tall));
     for (let k = 0; k < this.defs.length; k++) {
-      const e = this._vbs[k];
-      if (e === undefined) continue;
+      const batch = this._batches[k];
+      if (batch === undefined) continue;
       if (lit) {
         this.lights.setupLights(entities);
         shader_set_uniform_f(this.lights.uUseTex, 1);
@@ -196,7 +194,7 @@ globalThis.RenderGrass = class RenderGrass {
           this.time !== undefined ? this.time() : 0,
         );
       }
-      e.vb.submit(e.tex);
+      batch.submit();
       if (lit) shader_reset();
     }
     matrix_set(matrix_world, ident);
