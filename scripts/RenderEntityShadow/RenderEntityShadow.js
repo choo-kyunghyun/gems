@@ -16,7 +16,6 @@ globalThis.RenderEntityShadow = class RenderEntityShadow {
     this.flatten = opt.flatten ?? 0.32; // height/width ratio (low ellipse)
     this.defaultRx = opt.defaultRx ?? 16; // fallback half-width when no BBox
     this.filter = opt.filter; // (entities, id) => cast? — undefined shadows every visible body
-    this._rp = { x: 0, y: 0 }; // reused lerp scratch
   }
 
   destroy() {}
@@ -24,22 +23,21 @@ globalThis.RenderEntityShadow = class RenderEntityShadow {
   draw(entities) {
     const prevA = draw_get_alpha();
     draw_set_alpha(this.alpha);
-    entities.forEach([Visual, Position], (entity, visual) => {
+    entities.forEach([Visual, Position], (entity, visual, pos) => {
       if (!visual.visible) return;
       if (this.filter !== undefined && !this.filter(entities, entity)) return;
-      this._ellipse(entities, entity);
+      this._ellipse(entities, entity, pos);
     });
-    entities.forEach([Skeleton, Position], (entity, sk) => {
+    entities.forEach([Skeleton, Position], (entity, sk, pos) => {
       if (sk.alpha <= 0) return;
       if (this.filter !== undefined && !this.filter(entities, entity)) return;
-      this._ellipse(entities, entity);
+      this._ellipse(entities, entity, pos);
     });
     draw_set_alpha(prevA);
   }
 
-  /** one foot ellipse at the entity's render-lerped position, sized from its BBox */
-  _ellipse(entities, entity) {
-    const rp = Interpolation.lerp(entities, entity, this._rp);
+  /** one foot ellipse at the entity's Position, sized from its BBox */
+  _ellipse(entities, entity, rp) {
     let rx = this.defaultRx;
     const box = entities.get(entity, BBox);
     if (box !== undefined) rx = box.width * this.scaleX;

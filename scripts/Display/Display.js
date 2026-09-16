@@ -6,7 +6,7 @@ globalThis.Display = {
   // on GMRT 0.20 (a same-frame resize takes effect); kept for manual compliance across platforms.
   RESIZE_DELAY: 10,
 
-  // game speed for "Unlimited" fpsLimit (0) — effectively uncapped (sim is fixed-rate, unaffected).
+  // game speed for "Unlimited" fpsLimit (0) — effectively uncapped (the sim integrates Time.step, so any rate is fine).
   // NOT the manual's uncap TIP, display_set_timing_method(tm_systemtiming): inert on GMRT (GMRT.md).
   UNCAPPED_FPS: 1000,
 

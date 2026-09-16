@@ -173,7 +173,7 @@ globalThis.BuildMode = {
 
   /**
    * per-frame: toggle on B, then (while active) place on buildPlace / deconstruct on buildRemove
-   * at the hovered cell. call from step() after Interactable.update, outside the tick loop.
+   * at the hovered cell. call from step() after Interactable.update, after the sim.
    */
   update(scene, panel) {
     // DEV: F6 toggles free build (no settlement gate, no wood)

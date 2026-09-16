@@ -2,7 +2,7 @@ const START_CREDITS = 1000; // coins the player starts with (carried across maps
 const SLEEP_SCALE_MAX = 50; // Time.scale ceiling while sleeping
 const SLEEP_ACCEL = 0.5; // ramp growth per wall-second (multiplicative, on Time.raw)
 const SLEEP_RECOVER = 40; // Drowsiness drained per sim-second while sleeping, over its clock rise
-const TEMPO_BPM = 60; // the BPM a timed BGM runs the sim at 1x — the tick rate then reads as the BPM (120 BPM = 2x)
+const TEMPO_BPM = 60; // the BPM a timed BGM runs the sim at 1x (120 BPM = 2x)
 
 /**
  * the scene's factory — the one ref the Game object boots, the catalogue labels and openScene takes (see Scene)
@@ -334,13 +334,13 @@ class _SceneColonyClass {
 
   /**
    * THE reference orchestration for a genre scene — the shape, not just this game's order:
-   *   once per frame   window edge-toggles, input context, sleep check (all before the loop)
-   *   per tick         snapshot -> the physics sequence (headed by the player brain) -> damage,
-   *                    death, drops, quest/achievement checks -> flush
-   *   once per frame   animation, dialogue/interaction, build mode, camera, dirty UI rebuilds
+   *   before the sim   window edge-toggles, input context, sleep check, the nav + room mirrors
+   *   the sim          the physics sequence (headed by the player brain) -> damage, death,
+   *                    drops, quest/achievement checks -> flush, one Time.step a frame
+   *   after the sim    animation, dialogue/interaction, build mode, camera, dirty UI rebuilds
    * Nothing here is a rule: a gameplay reaction is a named member (`_on*`, passed in as a rule set
    * minted at create) and the panels' own timing is Hud.update's, so this body states ORDER alone.
-   * Tick-rate work goes in the loop, edge/input/UI work outside it (SimClock owns that rule). A
+   * Sim work integrates Time.step, edge/input/UI work reads the frame (Time owns that split). A
    * map swap (a world-map trip) never runs in here — it fires at SceneTransition's cover, between
    * frames, so nothing in this frame touches a swapped-out map.
    */
@@ -351,7 +351,7 @@ class _SceneColonyClass {
     // boot/arrival also set it, so this is the per-frame self-heal, never the only source)
     this.playerId = PlayerSystem.id(this.level.entities);
 
-    // sleeping (bed): checked BEFORE the tick loop so the waking press wakes instead of moving
+    // sleeping (bed): checked BEFORE the sim so the waking press wakes instead of moving
     // this frame
     this._updateSleep();
 
@@ -372,65 +372,61 @@ class _SceneColonyClass {
     pl.cursorX = aim.x;
     pl.cursorY = aim.y;
 
-    // edge toggle — once per frame, outside the tick loop: the bag closes on its own key, and
+    // edge toggle — once per frame, before the sim: the bag closes on its own key, and
     // opens over (replacing) whatever page shows
     if (Input.get("inventory").pressed()) {
       if (this.window.is("bag")) this.window.close();
       else this.window.open("bag");
     }
 
-    // resolve input context BEFORE the tick loop so the tick's movement/fire reads see it.
+    // resolve input context BEFORE the sim so its movement/fire reads see it.
     // window > build > play (see InputContext + PlayerSystem tags).
     this._resolveContext();
 
     // hotbar number keys — after the context is set ("play"-only, so inert with a window/building)
     this._useHotbar();
 
-    // mirror any tile-cost edits into the nav grid BEFORE the tick loop (PathfindingSystem plans
+    // mirror any tile-cost edits into the nav grid BEFORE the sim (PathfindingSystem plans
     // over it); a no-op while the layers' edit count is unchanged. Colliders reach it through
     // SolidSystem.onStatics instead (create).
     PathfindingSystem.nav(this.level).sync();
     RoomSystem.sync(this.level); // the doors + any wall edit into the room mirror (shelter for the needs below)
 
-    const ticks = SimClock.advance();
-    for (let t = 0; t < ticks; t++) {
-      Interpolation.snapshot(this.level.entities); // pre-move positions for render lerp
-      StatusSystem.update(this.level); // tick buffs/debuffs (dot/hot + duration), then ↓
-      EncumbranceSystem.update(this.level); // refresh the "encumbered" status from carried weight
-      // every need moves (the clock ones rise; exposure/cold by where the body stands), then
-      // sleep drains the player's drowsiness over that rise
-      NeedSystem.update(this.level);
-      if (this.sleeping)
-        NeedSystem.restore(
-          this.level.entities,
-          this.playerId,
-          Drowsiness,
-          SLEEP_RECOVER * SimClock.tickDuration,
-        );
-      FollowerSystem.update(this.level); // seek, by live Follower query (before physics)
-      // physics: brains decide velocity (player input, then AI) → resolve paths → collide → push
-      // crowders apart → projectiles → fuses → expire.
-      PlayerSystem.update(this.level); // the player brain: input → Velocity/fire
-      StateSystem.update(this.level); // CombatAI Idle/Chase/Attack schemas (enemies AND turrets)
-      PathfindingSystem.update(this.level); // enemy PathRequest → PathResponse over the level's nav grid
-      SolidSystem.update(this.level);
-      SeparationSystem.update(this.level); // unstack dynamic bodies (crowding), after SolidSystem
-      ProjectileSystem.update(this.level);
-      FuseSystem.update(this.level); // fused charges count down and detonate where they lie
-      LifetimeSystem.update(this.level);
-
-      ColonyCombat.trackDamage(this, 14); // floating numbers for any hp change this tick
-      // hp-0 reactions by each entity's Mortal kind: corpse / respawn / down (recovers below)
-      ColonyCombat.resolveHealth(this, this._mortalRules);
-      ColonyCombat.updateDowned(this, this._downedRules); // a downed companion's revive timer
-      ColonyCombat.reapCorpses(this); // looted-empty corpses vanish (lootless kills reap at once)
-      ColonyCombat.collectDrops(this, (itemId, got) =>
-        this.onCollect(itemId, got),
+    StatusSystem.update(this.level); // tick buffs/debuffs (dot/hot + duration), then ↓
+    EncumbranceSystem.update(this.level); // refresh the "encumbered" status from carried weight
+    // every need moves (the clock ones rise; exposure/cold by where the body stands), then
+    // sleep drains the player's drowsiness over that rise
+    NeedSystem.update(this.level);
+    if (this.sleeping)
+      NeedSystem.restore(
+        this.level.entities,
+        this.playerId,
+        Drowsiness,
+        SLEEP_RECOVER * Time.step,
       );
-      this._checkReach(); // reach-quest zone
+    FollowerSystem.update(this.level); // seek, by live Follower query (before physics)
+    // physics: brains decide velocity (player input, then AI) → resolve paths → collide → push
+    // crowders apart → projectiles → fuses → expire.
+    PlayerSystem.update(this.level); // the player brain: input → Velocity/fire
+    StateSystem.update(this.level); // CombatAI Idle/Chase/Attack schemas (enemies AND turrets)
+    PathfindingSystem.update(this.level); // enemy PathRequest → PathResponse over the level's nav grid
+    SolidSystem.update(this.level);
+    SeparationSystem.update(this.level); // unstack dynamic bodies (crowding), after SolidSystem
+    ProjectileSystem.update(this.level);
+    FuseSystem.update(this.level); // fused charges count down and detonate where they lie
+    LifetimeSystem.update(this.level);
 
-      this.level.entities.flush();
-    }
+    ColonyCombat.trackDamage(this, 14); // floating numbers for any hp change this tick
+    // hp-0 reactions by each entity's Mortal kind: corpse / respawn / down (recovers below)
+    ColonyCombat.resolveHealth(this, this._mortalRules);
+    ColonyCombat.updateDowned(this, this._downedRules); // a downed companion's revive timer
+    ColonyCombat.reapCorpses(this); // looted-empty corpses vanish (lootless kills reap at once)
+    ColonyCombat.collectDrops(this, (itemId, got) =>
+      this.onCollect(itemId, got),
+    );
+    this._checkReach(); // reach-quest zone
+
+    this.level.entities.flush();
 
     ColonyPlayer.pace(this.level.entities); // stride-match locomotion playback to actual speed
     SkeletonSystem.update(this.level); // mint the puppets new skeletal bodies lack; retime them on a clock change
@@ -439,7 +435,7 @@ class _SceneColonyClass {
     Interactable.update(this, this.interact); // THE pick (stations + NPCs) + window range-close/refresh (no E here)
     this._updateNpc(); // the dialogue panel's text when the pick is an NPC (no input here)
     this._dispatchInteract(); // single E press → close an open window, else activate the pick
-    BuildMode.update(this, this.build); // build-mode toggle + place/deconstruct (outside tick loop)
+    BuildMode.update(this, this.build); // build-mode toggle + place/deconstruct (after the sim)
     BuildMode.reapDestroyed(this); // remove built entities enemies destroyed (e.g. turrets at 0 HP)
     Hud.update(this, this.hud); // the panels' own timing — after the pick + build mode they report
     WorldClock.update(Time.delta); // advance in-game time (sim time → pauses with the game)
@@ -543,8 +539,8 @@ class _SceneColonyClass {
   /**
    * The bed's fast-forward: ramp Time.scale while Drowsiness drains, until any input wakes.
    * WHY THIS SKIPS TIME CHEAPLY: the world-sim clocks (WorldClock/Weather, updated once per frame
-   * off Time.delta) consume the whole scaled delta, while the fixed-step sim behind them is capped
-   * at SimClock.maxTicks per frame. Hours pass; the tick loop does not run 50x.
+   * off Time.delta) consume the whole scaled delta, while the entity sim integrates Time.step,
+   * that delta capped at Time.maxStep. Hours pass; a body moves one bounded step a frame.
    */
   _updateSleep() {
     if (!this.sleeping) return;

@@ -2,29 +2,29 @@ const MOVE_SPEED = 220; // world px/s (32px-cell scale)
 const PLAYER_SCALE = 1.5; // baked size factor over the 32px design cell (bbox + Skeleton)
 const SPRINT_MULT = 1.6; // speed multiplier while sprinting (drains Stamina)
 const BULLET_SPEED = 600; // world px/s — gun muzzle velocity (feeds kinetic power + hitscan reach)
-const SHOT_RANGE_SECS = 1.5; // hitscan reach = velocity × this (s) ≈ the old bullet's 90-tick range
-const FIRE_CD = 8; // ticks between shots while held
-const ATTACK_ANIM = 18; // ticks the punch pose stays up after a shot/swing (3 frames @ 10fps)
-const KICK_ANIM = 23; // ticks the kick plays (5 frames @ 13fps — fits the fist's 22-tick cadence)
+const SHOT_RANGE_SECS = 1.5; // hitscan reach = velocity × this (s) ≈ 1.5 s of bullet flight
+const FIRE_CD = 0.13; // s between shots while held
+const ATTACK_ANIM = 0.3; // s the punch pose stays up after a shot/swing (3 frames @ 10fps)
+const KICK_ANIM = 0.38; // s the kick plays (5 frames @ 13fps — fits the fist's 0.37 s cadence)
 const MELEE_REACH = 34; // fallback reach (px) for a melee weapon without `reach`
 const STICK_DEADZONE = 0.25; // analog stick magnitude below this reads as centered (drift guard)
 
 // grenade (G / LT): a fused charge lobbed at the cursor (FuseSystem.lob)
 // TODO: a grenade item (a Throwable capability) gates the throw on the bag; until then it is unlimited
 const GRENADE_SPEED = 320; // world px/s — flight speed of the lobbed charge
-const GRENADE_FUSE = 90; // ticks from the throw to the blast (1.5 s at 60 Hz)
+const GRENADE_FUSE = 1.5; // s from the throw to the blast
 const GRENADE_RADIUS = 96; // blast radius (px) — three 32px cells
 const GRENADE_DAMAGE = 6; // blast damage at the centre (halves toward the edge)
 const THROW_RANGE = 320; // max throw distance (px); the pad's fixed reach along the aim
-const THROW_CD = 30; // ticks before the next shot/throw after a throw
+const THROW_CD = 0.5; // s before the next shot/throw after a throw
 
 // unarmed fallback: a weak melee "fist" so unarmed never means "fire a free bullet". A
 // pre-composed melee profile (composeWeapon shape) for a fully unarmed wielder; read-only, shared.
-const PLAYER_FIST = { kind: "melee", damage: 1, fireCd: 22, reach: 22 };
+const PLAYER_FIST = { kind: "melee", damage: 1, fireCd: 0.37, reach: 22 };
 
 // The player brain as an ECS system (the input counterpart of CombatAI): update(entities) drives
-// every Playable entity once per tick — it runs at the HEAD of the scene's physics sequence, before
-// SolidSystem integrates the Velocity it writes. Per-tick state (fireCd/attackCd + the scene-
+// every Playable entity once per frame — it runs at the HEAD of the scene's physics sequence, before
+// SolidSystem integrates the Velocity it writes. Per-frame state (fireCd/attackCd + the scene-
 // latched world cursor) lives in the Playable component, so it rides the map transfer with the
 // player. bindKeys() is input LIFECYCLE, not simulation — the app registers the keymap once at
 // boot (Game Create_0) and it stays for the run: the settings key-binding list (keymap()) rebinds
@@ -203,14 +203,14 @@ globalThis.PlayerSystem = {
       dir.y = aimY / al;
     }
 
-    if (pl.fireCd > 0) pl.fireCd--;
-    if (pl.attackCd > 0) pl.attackCd--;
+    if (pl.fireCd > 0) pl.fireCd -= Time.step;
+    if (pl.attackCd > 0) pl.attackCd -= Time.step;
 
     // manual reload (R), "play"-only; no-op on a melee weapon
     if (Input.get("reload").pressed()) Loadout.reload(entities, id);
 
     // fire is "play"-only, so it already returns false while building / window open — no guard needed
-    if (Input.get("fire").down() && pl.fireCd === 0) {
+    if (Input.get("fire").down() && pl.fireCd <= 0) {
       // item-driven attack: the equipped weapon's composed profile (or the fist fallback) drives it.
       // Read the live slot (a gun mutates `rounds`) then compose; `wpn.kind` picks melee/gun.
       const slot = Loadout.weaponSlot(entities, id);
@@ -244,8 +244,7 @@ globalThis.PlayerSystem = {
         // round composed damage (a `mul` attachment can make it fractional) so HP stays integer
         const damage = Math.round(wpn.damage) + attack;
         Melee.swing(entities, id, dir.x, dir.y, reach, damage);
-        pl.fireCd =
-          wpn.fireCd !== undefined ? Math.round(wpn.fireCd) : FIRE_CD;
+        pl.fireCd = wpn.fireCd !== undefined ? wpn.fireCd : FIRE_CD;
         // the unarmed fist fallback alternates punch/kick; an armed swing stays the punch
         // thrust (the held-weapon overlay rides the hand through it)
         pl.attackAnim =
@@ -256,7 +255,7 @@ globalThis.PlayerSystem = {
     }
 
     // grenade is "play"-only like fire; shares fireCd so a throw never overlaps a shot
-    if (Input.get("grenade").pressed() && pl.fireCd === 0)
+    if (Input.get("grenade").pressed() && pl.fireCd <= 0)
       PlayerSystem._throwGrenade(entities, id, pl, dir);
 
     // animation tree: attack > walk > idle. attackCd read live off the component (no cached boolean — GMRT clobber)
@@ -357,7 +356,7 @@ globalThis.PlayerSystem = {
     }
     FuseSystem.lob(entities, id, tx, ty, {
       speed: GRENADE_SPEED,
-      ticks: GRENADE_FUSE,
+      secs: GRENADE_FUSE,
       radius: GRENADE_RADIUS,
       damage: GRENADE_DAMAGE,
     });

@@ -7,7 +7,7 @@ const LAND_GAP = 1; // px a lob rests off the surface it struck, along the surfa
 globalThis.ProjectileSystem = {
   update(level) {
     const entities = level.entities;
-    const dt = SimClock.tickDuration;
+    const dt = Time.step;
     entities.forEach([Projectile, Position, Velocity], (id, proj, pos, vel) => {
       if (vel.x === 0 && vel.y === 0) return; // a landed lob
       let sx = vel.x * dt;

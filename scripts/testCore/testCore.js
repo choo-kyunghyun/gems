@@ -356,13 +356,13 @@ globalThis.testCore = {
         ctx.dst = new EntityStore(8);
         ctx.a = s.create();
         s.add(ctx.a, Position, { x: 1, y: 2, z: 3 });
-        s.mint(ctx.a, PrevPosition, { x: 0, y: 0, z: 0 });
-        s.add(ctx.a, PrevPosition, { x: 1, y: 1, z: 1 }); // a later add keeps the token minted
+        s.mint(ctx.a, PathResponse, { path: [], index: 0 });
+        s.add(ctx.a, PathResponse, { path: [], index: 1 }); // a later add keeps the token minted
       },
       verify(ctx, t) {
         const s = ctx.src;
         t.ok(
-          s.get(ctx.a, PrevPosition) !== undefined,
+          s.get(ctx.a, PathResponse) !== undefined,
           "a minted component reads like any other",
         );
         const exp = s.export();
@@ -371,20 +371,20 @@ globalThis.testCore = {
           "export carries the added token",
         );
         t.eq(
-          exp.components[PrevPosition],
+          exp.components[PathResponse],
           undefined,
           "export skips the minted token",
         );
         const whole = s.persistentOf(ctx.a);
         t.ok(whole[Position] !== undefined, "persistentOf carries the added token");
-        t.eq(whole[PrevPosition], undefined, "persistentOf skips the minted token");
+        t.eq(whole[PathResponse], undefined, "persistentOf skips the minted token");
         t.ok(
-          s.componentsOf(ctx.a)[PrevPosition] !== undefined,
+          s.componentsOf(ctx.a)[PathResponse] !== undefined,
           "componentsOf still lists the minted token",
         );
         ctx.dst.import(exp);
         t.eq(
-          ctx.dst.get(ctx.a, PrevPosition),
+          ctx.dst.get(ctx.a, PathResponse),
           undefined,
           "a round trip drops the minted token",
         );
@@ -411,10 +411,10 @@ globalThis.testCore = {
       verify(ctx, t) {
         for (let k = 0; k < 10; k++) MovementSystem.update(ctx.level);
         const pos = ctx.entities.get(ctx.id, Position);
-        const d = SimClock.tickDuration * 10;
-        t.near(pos.x, 60 * d, 1e-6, "x integrates velocity per tick");
-        t.near(pos.y, -30 * d, 1e-6, "y integrates velocity per tick");
-        t.near(pos.z, 6 * d, 1e-6, "z integrates velocity per tick");
+        const d = Time.step * 10;
+        t.near(pos.x, 60 * d, 1e-6, "x integrates velocity per step");
+        t.near(pos.y, -30 * d, 1e-6, "y integrates velocity per step");
+        t.near(pos.z, 6 * d, 1e-6, "z integrates velocity per step");
       },
       teardown(ctx) {
         ctx.level.destroy();
@@ -427,7 +427,7 @@ globalThis.testCore = {
         const s = ctx.level.entities;
         ctx.entities = s;
         ctx.id = s.create();
-        s.add(ctx.id, Lifetime, { ticks: 3 });
+        s.add(ctx.id, Lifetime, { secs: Time.step * 2.5 });
       },
       verify(ctx, t) {
         const s = ctx.entities;
@@ -435,7 +435,7 @@ globalThis.testCore = {
         s.flush();
         LifetimeSystem.update(ctx.level);
         s.flush();
-        t.ok(s.isValid(ctx.id), "alive before the last tick");
+        t.ok(s.isValid(ctx.id), "alive before the last step");
         LifetimeSystem.update(ctx.level);
         t.ok(s.isValid(ctx.id), "expiry is deferred to flush");
         s.flush();
@@ -990,7 +990,7 @@ globalThis.testCore = {
         t.ok(missing.indexOf("Velocity") !== -1, "an absent component throws, naming the token");
         let unregistered = "";
         try {
-          s.require(ctx.a, PrevPosition);
+          s.require(ctx.a, "Unregistered");
         } catch (e) {
           unregistered = e.message;
         }

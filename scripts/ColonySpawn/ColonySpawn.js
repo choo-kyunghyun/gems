@@ -329,7 +329,7 @@ globalThis.ColonySpawn = {
             aggro: 220,
             deAggro: 220,
             attackRange: 220,
-            cdMax: 30,
+            cdMax: 0.5,
             bulletSpeed: 380,
             speed: 0,
           });

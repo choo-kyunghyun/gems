@@ -7,9 +7,7 @@
  * The consumers are logic over their record (`WorldClock.state()` seeds and returns the clock),
  * reached by their own global, never mirrored into a member here (a member would be a second
  * name for one object plus a boot-wiring dependency): the active scene's update() drives them
- * (sceneColony: `WorldClock.update`, then `WorldEvents.update` on its timeline). SimClock — the
- * fixed-step engine TICK RATE, distinct from WorldClock — is frame state, likewise the active
- * scene's to drive. World holds no screen state and never draws — the Game object owns the
+ * (sceneColony: `WorldClock.update`, then `WorldEvents.update` on its timeline). World holds no screen state and never draws — the Game object owns the
  * active Scene.
  *
  * A pooled level stays ALIVE for the session: a map is built from file exactly ONCE, then only

@@ -32,15 +32,15 @@ globalThis.PathFollow = {
   },
 
   /**
-   * The mover's proper MOVEMENT POINT this tick while heading for (tx, ty): the current A*
+   * The mover's proper MOVEMENT POINT this frame while heading for (tx, ty): the current A*
    * waypoint's cell center — replanning on `state`'s pathCd/pathRate throttle and advancing the
    * cursor on arrival — or (tx, ty) itself while no path exists (PathfindingSystem serves the
-   * request later this tick, or a tick or two on when its per-tick budget is full, so the first
-   * path is followable from the next tick at the earliest). `state` is any bag carrying
+   * request later this frame, or a frame or two on when its budget is full, so the first
+   * path is followable from the next frame at the earliest). `state` is any bag carrying
    * pathCd/pathRate (CombatAI's Brain); `sp` the mover's Position.
    */
   target(entities, grid, id, state, sp, tx, ty) {
-    if (state.pathCd > 0) state.pathCd--;
+    if (state.pathCd > 0) state.pathCd -= Time.step;
     if (state.pathCd <= 0) {
       const s = grid.worldToGrid(sp.x, sp.y);
       const g = grid.worldToGrid(tx, ty);

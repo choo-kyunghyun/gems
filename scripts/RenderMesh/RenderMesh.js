@@ -40,7 +40,6 @@ globalThis.RenderMesh = class RenderMesh {
   constructor(opt) {
     opt = opt ?? {};
     this.enabled = true;
-    this._rp = { x: 0, y: 0 }; // reused lerp scratch
     this.alphaRef = opt.alphaRef ?? 0.5; // texel cutout threshold (shape only, tint-safe)
     // vox models: position_3d + colour + texcoord, 24 bytes/vertex — this declaration and
     // Vox's emitted layout are a lockstep pair (the texcoord carries the PACKED FACE
@@ -265,11 +264,10 @@ globalThis.RenderMesh = class RenderMesh {
     // PASS 1 — baked models, lit by shMeshlit (albedo × sun + point lights over the packed
     // normals). The analytic quads draw OUTSIDE the shader: their texcoords are real UVs.
     if (this.litOk) this.setupLights(entities);
-    entities.forEach([Mesh, Position], (entity, mesh) => {
+    entities.forEach([Mesh, Position], (entity, mesh, rp) => {
       if (mesh.model === undefined || mesh.model === "") return;
       const m = this._model(mesh.model);
       if (m.vb === -1) return;
-      const rp = Interpolation.lerp(entities, entity, this._rp);
       // scale + rotation are visual-only (BBox stays authored); scale is per-axis in WORLD
       // axes — zscale is height; a negative xscale mirrors the model. `yaw` turns about the
       // footprint center (vox meshes carry all four side faces, so any facing is solid); the shader
@@ -293,9 +291,8 @@ globalThis.RenderMesh = class RenderMesh {
     });
     if (this.litOk) shader_reset();
     // PASS 2 — analytic axis-aligned boxes (sprite/color faces, unlit)
-    entities.forEach([Mesh, Position], (entity, mesh) => {
+    entities.forEach([Mesh, Position], (entity, mesh, rp) => {
       if (mesh.model !== undefined && mesh.model !== "") return;
-      const rp = Interpolation.lerp(entities, entity, this._rp);
       const alpha = mesh.alpha ?? 1;
       // Face matrices are CENTER-relative and composed with an entity world matrix, so the
       // optional rotation pivots on the footprint center (matrix_multiply applies the left

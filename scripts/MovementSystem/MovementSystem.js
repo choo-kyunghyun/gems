@@ -2,7 +2,7 @@
 globalThis.MovementSystem = {
   update(level) {
     const entities = level.entities;
-    const dt = SimClock.tickDuration;
+    const dt = Time.step;
     entities.forEach([Velocity, Position], (id, vel, pos) => {
       pos.x += vel.x * dt;
       pos.y += vel.y * dt;

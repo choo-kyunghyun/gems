@@ -89,7 +89,7 @@ and are cited from here, never restated):
       `build`) and dies with it.
     - APP data is the run's own — the device, the session, the settings — held by the app
       singletons the `Game` object drives from its events (`Input`'s keymap, claims and rebinds,
-      `InputContext`'s stack, `UI.roots`, `Music`'s handle, `Time`/`SimClock`, `Settings`,
+      `InputContext`'s stack, `UI.roots`, `Music`'s handle, `Time`, `Settings`,
       `SaveGame`'s index and the load bundle a scene hands the next) plus the GUI overlays that draw
       over every scene (`GameOverlay`, `Toast`, `Tooltip`, `Dialogue`, `VirtualKeyboard`,
       `SlotDrag`); a scene may push into it but never owns it, so the switch (`Game._apply`,
@@ -128,7 +128,7 @@ and are cited from here, never restated):
       trap, GMRT.md): write no new ones. A class with one live instance that owns a lifecycle is
       NOT a singleton — `LevelGen` is an instance class, shaped and named as such.
     - A family of singletons stays FLAT, grouped by a name prefix and composed by its head at
-      boot/reset (`Audio`/`AudioListener`/`Music`, `World`/`SimClock`/`WorldClock`/`WorldEvents`,
+      boot/reset (`Audio`/`AudioListener`/`Music`, `World`/`WorldClock`/`WorldEvents`,
       `Render*`), and callers reach the leaf directly; a member mirroring a singleton
       (`X.sub = Sub`) is a second name for one object plus a boot-wiring dependency, so a member
       only ever holds data (`World.levels`, the level pool).
@@ -139,6 +139,11 @@ and are cited from here, never restated):
   easing — `UIButton`/`UIInput`/`UICheckbox`; likewise the GUI singletons
   `Toast`/`SceneTransition`/`Dialogue`), else menus freeze while the game is paused. World-space
   effects deliberately stay on `Time.delta` so slow-mo slows them too (`FloatingText`, `Weather`).
+  The entity sim integrates `Time.step` — `delta` capped at `Time.maxStep` — once per frame: a
+  system takes one step whatever the refresh rate, a cooldown or fuse is seconds it decrements
+  by `step`, and nothing runs more than once a frame, so a slow frame takes a bigger step, never
+  more steps. The world clocks (`WorldClock`, `Weather`) consume the whole `delta`, which is what
+  lets the bed fast-forward skip hours while bodies still move one bounded step a frame.
 - Hot-path idioms: the runtime is a VM, so per-element constants decide the frame, not complexity
   class — a call, an allocation or a hash lookup per element is what costs, and the fix is the
   cheap form, never a better complexity class. The costs are measured, not remembered: `testCore`'s
@@ -168,8 +173,6 @@ and are cited from here, never restated):
     - A render pass mirroring a grid never sweeps it per frame — it bakes (a `VertexBuffer`, a
       centroid list) and re-sweeps only when the source's `edits` moves (`NavGrid.sync`'s signal
       shape).
-    - A per-tick cost is read with ticks/frame beside it, since the frame budget is a cliff
-      (`SimClock`).
 - Live queries over stored handles: an entity id is a generational handle (`EntityID`), not an
   identity. A consumer re-derives the entity it wants by component-presence query at use
   (`scene.playerId` from `Playable`, the camera target and the audio listener's body from

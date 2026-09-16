@@ -227,7 +227,7 @@ globalThis.contentItems = {
           // melee base stats; mod_sharp fits "edge", mod_heavy fits "pommel"
           new Weapon({
             damage: 3,
-            fireCd: 18,
+            fireCd: 0.3,
             reach: 68,
             slots: [
               { id: "edge", accepts: "edge" },
@@ -251,7 +251,7 @@ globalThis.contentItems = {
           }),
           // Gun component → ammo-driven; ops are neutral (attachments do the shaping)
           new Weapon({
-            fireCd: 8,
+            fireCd: 0.13,
             slots: [
               { id: "scope", accepts: "scope" },
               { id: "barrel", accepts: "barrel" },
@@ -512,7 +512,7 @@ globalThis.contentItems = {
         components: [
           new WeaponMod({
             slot: "pommel",
-            ops: { damage: { mul: 1.3 }, fireCd: { add: 4 } },
+            ops: { damage: { mul: 1.3 }, fireCd: { add: 0.07 } },
           }),
         ],
       },
@@ -574,7 +574,7 @@ globalThis.contentItems = {
         components: [
           new Equippable({ slot: "weapon", mods: { attack: 2 } }),
           new Weapon({
-            fireCd: 8,
+            fireCd: 0.13,
             slots: [
               { id: "scope", accepts: "scope" },
               { id: "barrel", accepts: "barrel" },
@@ -598,7 +598,7 @@ globalThis.contentItems = {
         components: [
           new Equippable({ slot: "weapon", mods: { attack: 3 } }),
           new Weapon({
-            fireCd: 9,
+            fireCd: 0.15,
             slots: [
               { id: "scope", accepts: "scope" },
               { id: "barrel", accepts: "barrel" },
@@ -623,7 +623,7 @@ globalThis.contentItems = {
           new Equippable({ slot: "weapon", mods: { attack: 1 } }),
           new Weapon({
             damage: 3,
-            fireCd: 12,
+            fireCd: 0.2,
             reach: 60,
             slots: [
               { id: "edge", accepts: "edge" },
@@ -645,7 +645,7 @@ globalThis.contentItems = {
           new Equippable({ slot: "weapon", mods: { attack: 2 } }),
           new Weapon({
             damage: 5,
-            fireCd: 24,
+            fireCd: 0.4,
             reach: 72,
             slots: [
               { id: "edge", accepts: "edge" },

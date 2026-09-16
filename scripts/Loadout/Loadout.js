@@ -280,7 +280,7 @@ globalThis.Loadout = {
 
     const magazine = Math.max(1, Math.round(c.magazine));
     const fireCd =
-      c.fireCd !== undefined ? Math.max(1, Math.round(c.fireCd)) : undefined;
+      c.fireCd !== undefined ? Math.max(0, c.fireCd) : undefined;
     const penetration = Math.max(0, Math.round(c.penetration));
     // Kinetic power: flat ammo power + k·mass·(velocity/REF)². 0 with no ammo loaded.
     let power = 0;

@@ -1,7 +1,7 @@
 // The player's BGM dial over Music: a tuned station plays through every map arrival until the
 // dial goes off, when the map's own bed returns. A TIMED station is the player's knob on the sim
 // tempo — the scene runs the whole world at the playing track's beat (sceneColony.tempo →
-// Time.tempo), so tuning Raid (120 BPM) is choosing 120 ticks a second.
+// Time.tempo), so tuning Raid (120 BPM) is choosing double time.
 /**
  * Singleton (Game/System). The dial is every SoundMeta def carrying a `name` — declared in
  * contentSounds, so a new station is one data line there. Logic over ONE world record (World.meta

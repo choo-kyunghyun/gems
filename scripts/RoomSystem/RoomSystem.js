@@ -24,7 +24,7 @@ globalThis.RoomSystem = {
   _leak: [], // scratch: per-room leak rate for the step
 
   /**
-   * Mirror maintenance, once per frame outside the tick loop (beside NavGrid.sync): the doors
+   * Mirror maintenance, once per frame before the sim (beside NavGrid.sync): the doors
    * standing in the store are the stamped footprints, then the walls are resampled if edited.
    */
   sync(level) {

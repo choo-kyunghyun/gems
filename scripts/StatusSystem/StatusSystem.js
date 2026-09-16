@@ -116,7 +116,7 @@ globalThis.StatusSystem = {
   update(level) {
     const entities = level.entities;
     entities.forEach([StatusEffects], (id, eff) => {
-      const dt = SimClock.tickDuration;
+      const dt = Time.step;
       let modsExpired = false;
       for (let j = eff.list.length - 1; j >= 0; j--) {
         const inst = eff.list[j];

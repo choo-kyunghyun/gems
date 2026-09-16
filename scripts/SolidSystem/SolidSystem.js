@@ -220,11 +220,9 @@ globalThis.SolidSystem = {
    * Visit the dynamic solid bodies — every non-kinematic collider — as `fn(id, col, pos, box)`,
    * the component objects themselves so `solid` reads live (a corpse drops out of the hits the
    * frame it dies). As of the last refresh, like `statics`: a body removed since may linger
-   * (validate the id), one spawned since is not listed until the next update(). A per-tick
-   * consumer (SeparationSystem) therefore runs after update() in the same tick — the walk that
+   * (validate the id), one spawned since is not listed until the next update(). A per-frame
+   * consumer (SeparationSystem) therefore runs after update() in the same frame — the walk that
    * lists the bodies is the one update() takes, never a second one here.
-   * TODO a scene running such a consumer without update() would want eachBody to refresh on a
-   * SimClock tick stamp instead; none does today.
    */
   eachBody(level, fn) {
     const c = SolidSystem.cache(level);
@@ -270,7 +268,7 @@ globalThis.SolidSystem = {
   },
 
   update(level) {
-    const dt = SimClock.tickDuration;
+    const dt = Time.step;
     const c = SolidSystem.cache(level);
 
     SolidSystem._refresh(level, c);

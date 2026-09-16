@@ -23,7 +23,7 @@
  *                              the caller frees only what was never taken
  */
 globalThis.Snapshot = class Snapshot {
-  static VERSION = 10; // bump when the manifest/blob layout changes incompatibly (10: Stamina carries its rates)
+  static VERSION = 11; // bump when the manifest/blob layout changes incompatibly (11: cooldowns and fuses in seconds)
 
   constructor() {
     this.passes = [];

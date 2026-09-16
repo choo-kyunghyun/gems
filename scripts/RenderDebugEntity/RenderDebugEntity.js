@@ -11,7 +11,6 @@ globalThis.RenderDebugEntity = class RenderDebugEntity {
     // overlay scenes insert this disabled and flip it to inspect; RTS keeps it
     // enabled as its only entity renderer.
     this.enabled = true;
-    this._rp = { x: 0, y: 0 }; // reused lerp scratch
   }
 
   destroy() {}
@@ -37,7 +36,7 @@ globalThis.RenderDebugEntity = class RenderDebugEntity {
         verts = 0;
       }
       const e = AABB.edges(
-        Interpolation.lerp(entities, id, this._rp),
+        entities.get(id, Position),
         bbox,
       );
       draw_vertex(e.x1, e.y1);

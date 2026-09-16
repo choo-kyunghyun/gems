@@ -1,6 +1,6 @@
 // The Radio tab of the inventory window: a now-playing readout over the dial — Off, then one
 // button per station, the tuned one lit. The player's knob on the sim tempo: a timed station's
-// BPM is the tick rate the world runs at while it plays (sceneColony.tempo).
+// BPM is the rate the world runs at while it plays (sceneColony.tempo).
 /**
  * Built ONCE by InventoryUI.build; every label and `selected` reads Radio/Music/Time live, so a
  * tune shows the frame it lands and the tab needs no rebuild hook.
@@ -73,7 +73,7 @@ globalThis.RadioUI = {
         const bpm = SoundMeta.bpm(def.sound);
         let s = I18n.text(def.name);
         if (bpm > 0) s += "   ·   " + I18n.text("RADIO_BPM", bpm);
-        return s + "   ·   " + I18n.text("RADIO_TPS", RadioUI._tps(scene, def.sound));
+        return s;
       },
       () => Radio.tune(def.sound),
       {
@@ -103,16 +103,8 @@ globalThis.RadioUI = {
     return (
       (bpm > 0 ? I18n.text("RADIO_BPM", bpm) : I18n.text("RADIO_UNTIMED")) +
       "   ·   x" +
-      t +
-      "   ·   " +
-      I18n.text("RADIO_TPS", RadioUI._tps(scene, sound))
+      t
     );
   },
 
-  /**
-   * ticks per second the sim runs at while `sound` plays: the scene's tempo over the fixed tick
-   */
-  _tps(scene, sound) {
-    return Math.round(scene.tempo(sound) / SimClock.tickDuration);
-  },
 };

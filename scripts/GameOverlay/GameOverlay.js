@@ -49,6 +49,7 @@ globalThis.GameOverlay = {
       UINav.suspended = false; // overlay must stay nav-reachable over any scene
       Time.scale = 0; // freeze Time.delta consumers behind the overlay
       Time.delta = 0;
+      Time.step = 0;
       return;
     }
 
@@ -108,6 +109,7 @@ globalThis.GameOverlay = {
     GameOverlay._scale = Time.scale; // remember live speed to restore on resume
     Time.scale = 0;
     Time.delta = 0;
+    Time.step = 0;
 
     // percentages throughout (not a snapshot of display_get_gui_*()) so the sheet reflows on a
     // live uiScale resize. The root is the dim backdrop; the sheet is its right-aligned child.

@@ -887,7 +887,7 @@ globalThis.InventoryUI = {
         host.insertChild(statLine("MOD_VELOCITY", Math.round(prof.velocity)));
         host.insertChild(statLine("MOD_PEN", prof.penetration));
         if (prof.fireCd !== undefined)
-          host.insertChild(statLine("MOD_FIRECD", prof.fireCd));
+          host.insertChild(statLine("MOD_FIRECD", Math.round(prof.fireCd * 100) / 100));
         const am = Item.get(prof.ammo);
         host.insertChild(
           statLine(
@@ -906,7 +906,7 @@ globalThis.InventoryUI = {
           statLine("MOD_DMG", Math.round(prof.damage * 10) / 10),
         );
         host.insertChild(statLine("MOD_REACH", prof.reach));
-        host.insertChild(statLine("MOD_FIRECD", Math.round(prof.fireCd)));
+        host.insertChild(statLine("MOD_FIRECD", Math.round(prof.fireCd * 100) / 100));
       }
     }
 

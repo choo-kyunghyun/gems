@@ -160,7 +160,7 @@ globalThis.ColonyCombat = {
     h = h ?? {};
     const entities = scene.level.entities;
     entities.forEach([Downed], (id, d) => {
-      d.timer -= SimClock.tickDuration;
+      d.timer -= Time.step;
       if (d.timer > 0) return;
       const m = entities.get(id, Mortal);
       const reviveHp = m !== undefined ? (m.reviveHp ?? 1) : 1;
@@ -202,7 +202,6 @@ globalThis.ColonyCombat = {
     entities.detach(id, Brain); // CombatAI off
     entities.detach(id, State);
     entities.detach(id, Velocity); // no integrator touches it again
-    entities.detach(id, PrevPosition); // renderers lerp Prev→Pos when present — a stale one offsets the draw
     entities.detach(id, Faction);
     const col = entities.get(id, Collision);
     if (col !== undefined) col.solid = false; // walk-over; BBox stays for cursor pick/highlight

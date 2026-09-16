@@ -9,7 +9,7 @@ globalThis.NeedSystem = {
    */
   update(level) {
     const entities = level.entities;
-    const dt = SimClock.tickDuration;
+    const dt = Time.step;
     const needs = Need.all();
     for (let i = 0; i < needs.length; i++) {
       const need = needs[i];
@@ -44,7 +44,7 @@ globalThis.NeedSystem = {
    * a hostile place, recovering in a safe one — clamped 0..max, then refresh the debuff.
    */
   step(entities, id, comp, rate) {
-    comp.value += rate * SimClock.tickDuration;
+    comp.value += rate * Time.step;
     if (comp.value > comp.max) comp.value = comp.max;
     else if (comp.value < 0) comp.value = 0;
     NeedSystem.refresh(entities, id, comp);

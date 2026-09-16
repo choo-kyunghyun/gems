@@ -10,7 +10,7 @@ globalThis.Endurance = {
     if (sta === undefined) return false;
     const stats = entities.get(id, Stats);
     const max = stats !== undefined ? stats.maxStamina : 100;
-    const dt = SimClock.tickDuration;
+    const dt = Time.step;
 
     if (wantSprint && !sta.exhausted && sta.value > 0) {
       sta.value -= sta.drain * dt;

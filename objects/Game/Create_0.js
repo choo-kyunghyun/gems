@@ -156,10 +156,9 @@ this._apply = (factory) => {
   Dialogue.clear();
   Toast.clear();
   Tooltip.clear();
-  // clocks: a scene starts at full speed and on a fresh tick phase
+  // clocks: a scene starts at full speed
   Time.scale = 1;
   Time.tempo = 1;
-  SimClock.reset();
   // world-space transients (their coords are map-local) + the planner's grid (its level is gone)
   FloatingText.clear();
   ParticleFx.clear();

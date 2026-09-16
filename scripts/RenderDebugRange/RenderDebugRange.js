@@ -11,7 +11,6 @@ globalThis.RenderDebugRange = class RenderDebugRange {
     this.enabled = opt.enabled ?? false;
     this.ranges = opt.ranges ?? [];
     this.alpha = opt.alpha ?? 0.5;
-    this._rp = { x: 0, y: 0 }; // reused lerp scratch
   }
 
   destroy() {}
@@ -29,7 +28,7 @@ globalThis.RenderDebugRange = class RenderDebugRange {
         const id = ids[i];
         const radius = entities.get(id, spec.component)[spec.field];
         if (!(radius > 0)) continue; // skip 0/NaN radii
-        const rp = Interpolation.lerp(entities, id, this._rp);
+        const rp = entities.get(id, Position);
         const x = rp.x;
         const y = rp.y;
         draw_set_alpha(a);

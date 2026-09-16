@@ -15,7 +15,7 @@
   "MOD_NOMODS": "No attachments owned",
   "MOD_SLOTS": "Attachment Slots",
   "MOD_DMG": "Damage",
-  "MOD_FIRECD": "Fire CD",
+  "MOD_FIRECD": "Fire CD (s)",
   "MOD_REACH": "Reach",
   "MOD_POWER": "Power",
   "MOD_VELOCITY": "Velocity",

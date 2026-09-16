@@ -45,7 +45,6 @@ globalThis.RenderBillboard = class RenderBillboard {
     opt = opt ?? {};
     this.enabled = true;
     this.tiltDeg = opt.tiltDeg ?? -90; // -90 = upright off the flat-on-ground default
-    this._rp = { x: 0, y: 0 }; // reused lerp scratch
     // THE world shader (shMeshlit) in textured + cutout mode: the texel-alpha discard keeps
     // transparent pixels from writing depth (GMRT's fixed-function alpha test is inert —
     // this replaced the retired sh_alphatest), and the mesh lighting model shades each
@@ -125,8 +124,7 @@ globalThis.RenderBillboard = class RenderBillboard {
       shader_set_uniform_f(this._uNormal, 0, BB_NORMAL_Y, BB_NORMAL_Z);
       shader_set_uniform_f(this._uAlphaRef, this.alphaRef);
     }
-    entities.forEach([Visual, Position], (entity, visual) => {
-      const rp = Interpolation.lerp(entities, entity, this._rp);
+    entities.forEach([Visual, Position], (entity, visual, rp) => {
       // an invalid sprite — or an SVG one, which exists but reports 0 frames on GMRT — draws as
       // the pixMissing placeholder; re-wrap subimg into the placeholder's frame range.
       let sprite = visual.sprite;
@@ -166,8 +164,7 @@ globalThis.RenderBillboard = class RenderBillboard {
     // scene, never against itself), then depth only, so what draws later still sorts against
     // the silhouette. Depth first would keep the lower of the two coplanar depths, and the
     // colour pass would lose the same lottery against it.
-    entities.forEach([Skeleton, Instance, Position], (entity, sk, held) => {
-      const rp = Interpolation.lerp(entities, entity, this._rp);
+    entities.forEach([Skeleton, Instance, Position], (entity, sk, held, rp) => {
       matrix_set(
         matrix_world,
         matrix_build(rp.x, rp.y, 0, tiltDeg, 0, 0, 1, 1, tall),

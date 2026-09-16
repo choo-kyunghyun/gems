@@ -1,7 +1,7 @@
 // Stress scenarios, handed to sceneTest's runner after testCore — the same case contract, plus
-// the optional `draw(ctx, t)`: a scenario stands a level up in setup, runs its own tick loop in
-// `frame` for `frames` REAL frames (the tick count comes from real frame time, so SimClock's
-// cliff shows), draws it through the Core debug passes (no sprite — Core only), samples what a
+// the optional `draw(ctx, t)`: a scenario stands a level up in setup, runs its own sim step in
+// `frame` for `frames` REAL frames (Time.step comes from real frame time, so a slow frame takes
+// its bigger step), draws it through the Core debug passes (no sprite — Core only), samples what a
 // frame costs (`t.sample`, reported as a distribution) and asserts what must HOLD under load —
 // never a time: a time is a sample, an assertion is a fact (no starvation, no overlap, no NaN).
 // The one screenshot per scenario is for eyes; the log line is the record.
@@ -14,7 +14,7 @@ const WALLS = 60; // random rects of 1-6 cells
 const HALF = 6; // agent half-size (12 px bodies, under the broadphase's 64 px cell)
 const SPEED = 96; // px/s
 const ARRIVE = 8; // px from the goal that counts as arrived
-const REPLAN = 240; // ticks between an agent's replans — ~2 requests/tick over 500 agents, under the budget
+const REPLAN = 4; // s between an agent's replans — ~2 requests a frame over 500 agents, under the budget
 const FRAMES = 300; // ~5 s at 60 fps, longer past the cliff
 const SHOT_FRAME = 150;
 const OVERLAP_EVERY = 60; // frames between the body-vs-wall sweeps (500 × ~80 rect tests each)
@@ -149,7 +149,6 @@ globalThis.testStress = {
         ctx.renderer.insert(ctx.paths);
         ctx.renderer.insert(new RenderDebugEntity());
         ctx.overlaps = 0;
-        SimClock.reset();
       },
       frame(ctx, i, t) {
         const t0 = get_timer();
@@ -161,61 +160,55 @@ globalThis.testStress = {
         let solidUs = 0;
         let sepUs = 0;
         ctx.nav.sync(); // a no-op here, kept so the loop has a real scene's shape
-        const ticks = SimClock.advance();
-        for (let k = 0; k < ticks; k++) {
-          Interpolation.snapshot(s);
-          let t1 = get_timer();
-          // the walkers: arrive → new goal; else steer at PathFollow's movement point
-          s.forEach(["StressAgent", Position, Velocity], (id, ag, pos, vel) => {
-            const gx = ag.tx - pos.x;
-            const gy = ag.ty - pos.y;
-            if (gx * gx + gy * gy < ARRIVE * ARRIVE) {
-              ag.trips += 1;
-              PathFollow.clear(s, id);
-              ag.pathCd = 0;
-              const goal = pick();
-              ag.tx = goal.x;
-              ag.ty = goal.y;
-              vel.x = 0;
-              vel.y = 0;
-              return;
-            }
-            const mp = PathFollow.target(s, grid, id, ag, pos, ag.tx, ag.ty);
-            if (!ag.served) if (s.has(id, PathResponse)) ag.served = true;
-            const mx = mp.x - pos.x;
-            const my = mp.y - pos.y;
-            const d = Math.sqrt(mx * mx + my * my);
-            const sp = SPEED * PathFollow.speedScale(grid, pos.x, pos.y); // every cell costs 1
-            if (d > 1e-6) {
-              vel.x = (mx / d) * sp;
-              vel.y = (my / d) * sp;
-            } else {
-              vel.x = 0;
-              vel.y = 0;
-            }
-          });
-          let t2 = get_timer();
-          steerUs += t2 - t1;
-          PathfindingSystem.update(ctx.level);
-          t1 = get_timer();
-          pathUs += t1 - t2;
-          SolidSystem.update(ctx.level);
-          t2 = get_timer();
-          solidUs += t2 - t1;
-          // THE invariant under load, read where it must hold: after the solid pass and before
-          // the separation push (which the next solid pass undoes), no body is inside a wall
-          if (k === 0)
-            if (i % OVERLAP_EVERY === 0) ctx.overlaps += _stressOverlaps(ctx.level);
-          SeparationSystem.update(ctx.level);
-          sepUs += get_timer() - t2;
-          s.flush();
-        }
+        let t1 = get_timer();
+        // the walkers: arrive → new goal; else steer at PathFollow's movement point
+        s.forEach(["StressAgent", Position, Velocity], (id, ag, pos, vel) => {
+          const gx = ag.tx - pos.x;
+          const gy = ag.ty - pos.y;
+          if (gx * gx + gy * gy < ARRIVE * ARRIVE) {
+            ag.trips += 1;
+            PathFollow.clear(s, id);
+            ag.pathCd = 0;
+            const goal = pick();
+            ag.tx = goal.x;
+            ag.ty = goal.y;
+            vel.x = 0;
+            vel.y = 0;
+            return;
+          }
+          const mp = PathFollow.target(s, grid, id, ag, pos, ag.tx, ag.ty);
+          if (!ag.served) if (s.has(id, PathResponse)) ag.served = true;
+          const mx = mp.x - pos.x;
+          const my = mp.y - pos.y;
+          const d = Math.sqrt(mx * mx + my * my);
+          const sp = SPEED * PathFollow.speedScale(grid, pos.x, pos.y); // every cell costs 1
+          if (d > 1e-6) {
+            vel.x = (mx / d) * sp;
+            vel.y = (my / d) * sp;
+          } else {
+            vel.x = 0;
+            vel.y = 0;
+          }
+        });
+        let t2 = get_timer();
+        steerUs += t2 - t1;
+        PathfindingSystem.update(ctx.level);
+        t1 = get_timer();
+        pathUs += t1 - t2;
+        SolidSystem.update(ctx.level);
+        t2 = get_timer();
+        solidUs += t2 - t1;
+        // THE invariant under load, read where it must hold: after the solid pass and before
+        // the separation push (which the next solid pass undoes), no body is inside a wall
+        if (i % OVERLAP_EVERY === 0) ctx.overlaps += _stressOverlaps(ctx.level);
+        SeparationSystem.update(ctx.level);
+        sepUs += get_timer() - t2;
+        s.flush();
         t.sample("stress.pathfind.update", get_timer() - t0); // us per frame, the phases below inside it
         t.sample("stress.pathfind.steer", steerUs);
         t.sample("stress.pathfind.path", pathUs);
         t.sample("stress.pathfind.solid", solidUs);
         t.sample("stress.pathfind.separation", sepUs);
-        t.sample("stress.pathfind.ticks", ticks);
         t.sample("stress.pathfind.pending", s.query(PathRequest).length); // the planner's backlog
         ctx.paths.enabled = i === SHOT_FRAME;
         if (i === SHOT_FRAME) Screenshot.take("stress-pathfind.png");

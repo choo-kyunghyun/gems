@@ -1,7 +1,7 @@
 // Combat AI for all non-player combatants (enemies + turrets) — defines the Brain component and
 // registers the "combat.*" StateSystem states. System contract on the CombatAI declaration below.
 
-// turret reach = bulletSpeed × this ≈ old projectile bullet's 90-tick range
+// turret reach = bulletSpeed × this ≈ 1.5 s of bullet flight
 const SHOT_RANGE_SECS = 1.5;
 
 /**
@@ -22,15 +22,15 @@ globalThis.Brain = "Brain";
  * @property {number} deAggro     distance at which a chasing (mobile) actor gives up
  * @property {number} attackRange distance at which it stops to attack (= fire range when ranged)
  * @property {number} speed       chase/return move speed (px/s); 0 for a stationary actor
- * @property {number} cdMax       ticks between attacks
- * @property {number} cd          attack cooldown countdown
+ * @property {number} cdMax       seconds between attacks
+ * @property {number} cd          attack cooldown countdown (s)
  * @property {number} bulletSpeed muzzle velocity (px/s) scaling the hitscan reach; 0 for melee
- * @property {number} pathCd      A* replan throttle countdown (ticks) while a chase is wall-blocked
- * @property {number} pathRate    ticks between A* replans during a blocked chase
- * @property {number} aggroRate   ticks between idle target-acquisition scans (nearestHostile is O(n))
- * @property {number} aggroCd     acquisition throttle countdown (ticks)
- * @property {number} losRate     ticks between chase LOS raycasts (a cast walks cells + scans bodies)
- * @property {number} losCd       LOS throttle countdown (ticks)
+ * @property {number} pathCd      A* replan throttle countdown (s) while a chase is wall-blocked
+ * @property {number} pathRate    seconds between A* replans during a blocked chase
+ * @property {number} aggroRate   seconds between idle target-acquisition scans (nearestHostile is O(n))
+ * @property {number} aggroCd     acquisition throttle countdown (s)
+ * @property {number} losRate     seconds between chase LOS raycasts (a cast walks cells + scans bodies)
+ * @property {number} losCd       LOS throttle countdown (s)
  * @property {boolean} losBlocked cached "a wall blocks the shot" decision between LOS raycasts
  */
 
@@ -71,11 +71,11 @@ globalThis.CombatAI = {
           }
 
           // acquire nearest hostile in aggro range (by faction). THROTTLED: nearestHostile scans
-          // every combatant (O(n)), so an idle actor rescans only every aggroRate ticks — a ~0.25s
+          // every combatant (O(n)), so an idle actor rescans only every aggroRate seconds — a 0.25 s
           // acquisition delay is imperceptible, and this is the dominant idle-crowd cost at a wide
-          // SIM window (a swarm of idle enemies each scanning every tick).
+          // SIM window (a swarm of idle enemies each scanning every frame).
           if (brain.aggroCd > 0) {
-            brain.aggroCd--;
+            brain.aggroCd -= Time.step;
           } else {
             brain.aggroCd = brain.aggroRate;
             const t = Diplomacy.nearestHostile(
@@ -130,10 +130,10 @@ globalThis.CombatAI = {
           // LOS: only a wall (kinematic solid) forces an A* detour; a clear shot is a straight
           // seek. Dynamic bodies (target/other actors, hit at t≈1) don't count as blockers.
           // THROTTLED: a cast still walks the cells to the target and scans the bodies; re-cast
-          // every losRate ticks and cache the decision (a moving target's occlusion shifts slowly —
-          // ~0.13s staleness is imperceptible).
+          // every losRate seconds and cache the decision (a moving target's occlusion shifts slowly —
+          // 0.13 s of staleness is imperceptible).
           if (brain.losCd > 0) {
-            brain.losCd--;
+            brain.losCd -= Time.step;
           } else {
             brain.losCd = brain.losRate;
             const hit = Raycast.cast(level, sp.x, sp.y, tp.x, tp.y, {
@@ -185,7 +185,7 @@ globalThis.CombatAI = {
           CombatAI._stop(entities, id);
 
           // cooldown read/written live off the component (no cached primitive — GMRT bool-local clobber)
-          if (brain.cd > 0) brain.cd--;
+          if (brain.cd > 0) brain.cd -= Time.step;
           if (brain.cd <= 0) {
             if (brain.ranged) CombatAI._fireAt(level, id, brain);
             else CombatAI._hitTarget(entities, id);
@@ -226,17 +226,17 @@ globalThis.CombatAI = {
       deAggro: opt.deAggro ?? 240,
       attackRange: opt.attackRange ?? 30,
       speed: opt.speed ?? 90,
-      cdMax: opt.cdMax ?? 45,
+      cdMax: opt.cdMax ?? 0.75,
       cd: 0,
       bulletSpeed: opt.bulletSpeed ?? 0,
-      pathCd: 0, // replan throttle (ticks) — counts down while a chase is wall-blocked
-      pathRate: opt.pathRate ?? 12,
+      pathCd: 0, // replan throttle (s) — counts down while a chase is wall-blocked
+      pathRate: opt.pathRate ?? 0.2,
       // acquisition + LOS throttles: both scans are O(entities/colliders), so idle actors re-scan
-      // for targets every aggroRate ticks and chasers re-raycast LOS every losRate ticks. aggroCd is
-      // staggered by id so a freshly-streamed crowd doesn't scan all on the same tick (a load spike).
-      aggroRate: opt.aggroRate ?? 15,
-      aggroCd: id % (opt.aggroRate ?? 15),
-      losRate: opt.losRate ?? 8,
+      // for targets every aggroRate seconds and chasers re-raycast LOS every losRate seconds. aggroCd is
+      // staggered by id so a freshly-streamed crowd doesn't scan all on the same frame (a load spike).
+      aggroRate: opt.aggroRate ?? 0.25,
+      aggroCd: ((id % 16) / 16) * (opt.aggroRate ?? 0.25),
+      losRate: opt.losRate ?? 0.13,
       losCd: 0,
       losBlocked: false,
     });

@@ -66,13 +66,9 @@ globalThis.RenderLighting = class RenderLighting {
     surface_set_target(this._surf);
     draw_clear_alpha(ambient, 1);
     gpu_set_blendmode(bm_add);
-    const alpha = SimClock.alpha; // render interpolation, like RenderEntity
     const zx = w / this.camera.width; // world→screen scale for the blob radius
     entities.forEach([Light, Position], (id, lt, pos) => {
-      const prev = entities.get(id, PrevPosition);
-      const wx = prev ? prev.x + (pos.x - prev.x) * alpha : pos.x;
-      const wy = prev ? prev.y + (pos.y - prev.y) * alpha : pos.y;
-      const s = this.camera.project(wx, wy, 0);
+      const s = this.camera.project(pos.x, pos.y, 0);
       let intensity = lt.intensity ?? 1;
       // flicker: sim-time sine per light (see _flickerT), id-offset so torches don't sync.
       if (lt.flicker)

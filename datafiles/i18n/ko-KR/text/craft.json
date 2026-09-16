@@ -15,7 +15,7 @@
   "MOD_NOMODS": "보유한 부착물 없음",
   "MOD_SLOTS": "부착 슬롯",
   "MOD_DMG": "피해",
-  "MOD_FIRECD": "공격 간격",
+  "MOD_FIRECD": "공격 간격 (초)",
   "MOD_REACH": "사거리",
   "MOD_POWER": "위력",
   "MOD_VELOCITY": "탄속",

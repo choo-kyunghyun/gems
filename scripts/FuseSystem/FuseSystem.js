@@ -1,12 +1,12 @@
 // Counts every Fuse down and detonates it in place: a radial Combat.explode from the charge's
 // Position, the blast cues (psExplosion, sndExplosionLarge), then the entity is removed. Runs after
-// ProjectileSystem in the tick loop, so a charge landing this tick detonates where it stopped.
+// ProjectileSystem, so a charge landing this frame detonates where it stopped.
 globalThis.FuseSystem = {
   update(level) {
     const entities = level.entities;
     entities.forEach([Fuse, Position], (id, fuse, pos) => {
-      fuse.ticks -= 1;
-      if (fuse.ticks > 0) return;
+      fuse.secs -= Time.step;
+      if (fuse.secs > 0) return;
       Combat.explode(level, pos.x, pos.y, fuse.radius, {
         owner: fuse.owner,
         damage: fuse.damage,
@@ -25,7 +25,7 @@ globalThis.FuseSystem = {
    * Lob a fused charge from `ownerId`'s Position toward (tx, ty): a lobbed Projectile whose range
    * is the distance, so it lands ON the target point (or against the first collider on the way),
    * carrying the Fuse. Returns the charge's id.
-   *   spec: { speed (px/s), ticks, radius, damage, penetration? }
+   *   spec: { speed (px/s), secs, radius, damage, penetration? }
    */
   lob(entities, ownerId, tx, ty, spec) {
     const pos = entities.get(ownerId, Position);
@@ -49,7 +49,7 @@ globalThis.FuseSystem = {
       range: dist,
     });
     entities.add(id, Fuse, {
-      ticks: spec.ticks,
+      secs: spec.secs,
       radius: spec.radius,
       damage: spec.damage,
       owner: ownerId,

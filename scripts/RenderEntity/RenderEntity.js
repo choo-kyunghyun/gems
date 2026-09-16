@@ -2,14 +2,12 @@
 globalThis.RenderEntity = class RenderEntity {
   constructor() {
     this.enabled = true;
-    this._rp = { x: 0, y: 0 }; // reused lerp scratch
   }
 
   destroy() {}
 
   draw(entities) {
-    entities.forEach([Visual, Position], (entity, visual) => {
-      const rp = Interpolation.lerp(entities, entity, this._rp);
+    entities.forEach([Visual, Position], (entity, visual, rp) => {
       const rx = rp.x;
       const ry = rp.y;
       // an invalid sprite — or an SVG one, which exists but reports 0 frames on GMRT — draws

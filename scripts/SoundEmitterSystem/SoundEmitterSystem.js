@@ -1,4 +1,4 @@
-// Re-fires each SoundEmitter's cue at its Position — dispatch once per frame, outside the tick loop.
+// Re-fires each SoundEmitter's cue at its Position — dispatch once per frame, after the sim.
 globalThis.SoundEmitterSystem = {
   /**
    * Counts down on Time.delta (world-space effect: pause/dilation silence it, per the clock
