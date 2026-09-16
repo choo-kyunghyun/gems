@@ -73,5 +73,37 @@ globalThis.testGame = {
         instance_destroy(ctx.inst);
       },
     },
+    // ── spine.speed: a set plays in its authored seconds ──────────────────────────
+    // SkeletonSystem._speed rests on `image_number` being the bound set's length in image
+    // frames at the sheet's speed: one pass at rate 1 must take `skeleton_animation_get_duration`
+    // seconds, whatever frame rate the rig was exported at.
+    {
+      id: "spine.speed",
+      frames: 1,
+      setup(ctx) {
+        ctx.inst = instance_create_depth(DOLL_X, DOLL_Y, 0, Puppet);
+        ctx.inst.sprite_index = spineHuman;
+        ctx.inst.skeleton_animation_set("walk0", true);
+      },
+      frame(ctx, i) {},
+      draw(ctx) {
+        ctx.inst.draw_self();
+      },
+      verify(ctx, t) {
+        const inst = ctx.inst;
+        const sk = { sprite: spineHuman, anim: "walk0", loop: true, speed: 1 };
+        const speed = SkeletonSystem._speed(inst, sk);
+        const pass = inst.image_number / (speed * sprite_get_speed(spineHuman));
+        const authored = inst.skeleton_animation_get_duration("walk0");
+        t.ok(authored > 0, "walk0 reads no duration");
+        t.ok(
+          Math.abs(pass - authored) < 0.01,
+          "walk0 plays in " + pass + " s where Spine authored " + authored,
+        );
+      },
+      teardown(ctx) {
+        instance_destroy(ctx.inst);
+      },
+    },
   ],
 };

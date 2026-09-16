@@ -71,7 +71,7 @@ globalThis.AppearanceSystem = {
       let spr = gear[slot.name];
       if (spr === undefined) spr = ap.slots[slot.name]; // unclaimed — the base layer shows
       if (spr === undefined || !sprite_exists(spr)) {
-        inst.skeleton_attachment_set(slot.name, -1); // the manual's clear; "" is not one (docs/SPINE.md)
+        inst.skeleton_attachment_set(slot.name, -1); // the manual's clear; "" is not one
         continue;
       }
       AppearanceSystem._attach(inst, slot, spr);
@@ -83,7 +83,8 @@ globalThis.AppearanceSystem = {
    * The dress slots of a rig, derived once per sprite off its sheet (SkeletonSystem.info): every
    * slot the setup pose leaves EMPTY (the body parts are authored and stay), with `rot` — minus
    * the setup world rotation of the bone it rides — which every attachment on that bone carries
-   * to draw upright (docs/SPINE.md).
+   * to draw upright — the manual's `_create` origin args are bone-local, the sprite's own origin
+   * ignored.
    *
    * @returns {{name: string, rot: number}[]}
    */
@@ -143,7 +144,7 @@ globalThis.AppearanceSystem = {
     const c = Math.cos((slot.rot * Math.PI) / 180);
     const s = Math.sin((slot.rot * Math.PI) / 180);
     // a standing definition is identical (the name carries the sprite), so it is only pointed at;
-    // re-creating it would throw (docs/SPINE.md)
+    // re-creating it would throw (a name stays taken until `_destroy`, per the manual)
     if (!inst.skeleton_attachment_exists(name))
       inst.skeleton_attachment_create(
         name,

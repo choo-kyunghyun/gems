@@ -9,16 +9,10 @@
  * Skeleton with no puppet yet (a spawn, a load, a map transfer), a change of the sim clock
  * (Time.scale, Time.tempo) that every puppet's `image_speed` carries so animation pauses and
  * dilates with the world, and a one-shot about to wrap — the runtime replays it from its first
- * key whatever the set's loop flag (docs/SPINE.md), so the scan parks it on its last pose a
+ * key whatever the set's loop flag (on either runtime), so the scan parks it on its last pose a
  * step ahead, here rather than in a Puppet event, whose order against the systems is unknown.
  */
 globalThis.SkeletonSystem = {
-  /**
-   * A skeletal frame is 1/120 s on the runtime whatever rate the rig was exported at — a 0.4 s
-   * set reports 48 frames — so a set's authored length is `frames / FPS` seconds.
-   */
-  FPS: 120,
-
   /** the sim rate (`Time.scale * Time.tempo`) the puppets' `image_speed` was last written under */
   _clock: 1,
 
@@ -74,7 +68,7 @@ globalThis.SkeletonSystem = {
 
   /**
    * Tint one slot of the rig, written to the component and onto the live puppet if there is one —
-   * slot colour is per-instance (docs/SPINE.md), so a later mint replays the map. `color` is the
+   * slot colour is per-instance, so a later mint replays the map. `color` is the
    * other axis: the two multiply. No-op for an entity carrying no Skeleton.
    */
   tint(entities, id, slot, color) {
@@ -117,7 +111,7 @@ globalThis.SkeletonSystem = {
    * A sheet's `sprite_get_info` struct, read once per sprite (fixed for the build): the sound,
    * puppet-free read of a rig — `animation_names` (the one missing-name check: get_frames and
    * get_duration read 0 for a missing name AND for a single-key set), `bones` with the setup
-   * pose, `slots` with their bone and setup attachment (docs/SPINE.md). Keyed by sprite name — a
+   * pose, `slots` with their bone and setup attachment (the manual's sprite_get_info). Keyed by sprite name — a
    * Map keyed by an asset ref crashes (docs/GMRT.md).
    */
   _info: {},
@@ -133,10 +127,10 @@ globalThis.SkeletonSystem = {
   },
 
   /**
-   * Bind the puppet to `sk.anim` from its first frame, refusing a set the sheet lacks — the
-   * runtime binds a missing name silently (docs/SPINE.md), so the doll would pass as standing
-   * still. A single-key set (the rigs' `down`) is a pose: it reads 0 frames, so it plays at rate
-   * 0 and holds its only frame.
+   * Bind the puppet to `sk.anim` from its first frame (the set resets `image_index` itself),
+   * refusing a set the sheet lacks — the runtime binds a missing name silently (a stderr line
+   * only), so the doll would pass as standing still. A single-key set (the rigs' `down`) is a
+   * pose: it has no duration, so it plays at rate 0 and holds its only frame.
    */
   _play(inst, sk) {
     if (SkeletonSystem.info(sk.sprite).animation_names.indexOf(sk.anim) < 0)
@@ -144,28 +138,25 @@ globalThis.SkeletonSystem = {
         `SkeletonSystem: ${sprite_get_name(sk.sprite)} has no animation "${sk.anim}"`,
       );
     inst.skeleton_animation_set(sk.anim, sk.loop);
-    inst.image_index = 0;
     inst.image_speed = SkeletonSystem._speed(inst, sk);
   },
 
   /**
    * The `image_speed` that plays the bound set at `sk.speed` x authored time under the sim
-   * clock: `image_number` is the set's length in image frames and the sheet's speed the rate
-   * `image_speed` 1 runs them at (docs/SPINE.md), so one pass takes `image_number / speed`
-   * seconds where the rig authored `frames / FPS`.
+   * clock: `image_number` is the set's length in image frames, the sheet's speed the rate
+   * `image_speed` 1 runs them at (the manual's image_speed), and the set's authored length is
+   * `skeleton_animation_get_duration` seconds.
    */
   _speed(inst, sk) {
-    const frames = inst.skeleton_animation_get_frames(sk.anim);
-    if (frames === 0) return 0;
+    const duration = inst.skeleton_animation_get_duration(sk.anim);
+    if (duration === 0) return 0;
     // nested, not `&&`: the short-circuit corrupts its left operand (docs/GMRT.md #15549)
     if (!sk.loop) {
       if (inst.image_index >= inst.image_number - 2 * SkeletonSystem.HOLD) return 0; // parked
     }
     return (
-      sk.speed *
-      SkeletonSystem._clock *
-      ((inst.image_number / sprite_get_speed(sk.sprite)) *
-        (SkeletonSystem.FPS / frames))
+      (sk.speed * SkeletonSystem._clock * inst.image_number) /
+      (duration * sprite_get_speed(sk.sprite))
     );
   },
 
@@ -182,11 +173,11 @@ globalThis.SkeletonSystem = {
     held.inst.sprite_index = sk.sprite;
     SkeletonSystem._play(held.inst, sk);
     SkeletonSystem._transform(held.inst, sk);
-    // slot colours are per-instance like attachments (docs/SPINE.md): replayed on every mint
+    // slot colours are per-instance like attachments: replayed on every mint
     const slots = Object.keys(sk.tints);
     for (let i = 0; i < slots.length; i++)
       held.inst.skeleton_slot_colour_set(slots[i], sk.tints[slots[i]], 1);
-    // a fresh puppet wears nothing: attachments are per-instance (docs/SPINE.md), so a doll that
+    // a fresh puppet wears nothing: attachments are per-instance, so a doll that
     // just crossed a map or came back from a save has to be re-dressed by its Appearance owner
     const ap = entities.get(id, Appearance);
     if (ap !== undefined) ap.dirty = true;

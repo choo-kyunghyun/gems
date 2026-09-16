@@ -11,7 +11,7 @@ globalThis.ColonyPlayer = {
   // default skin tint for the white spineHuman body art — "#e8b890" as a GM BGR color int
   // (a literal, not Color.parse: top-level code runs in script load order on GMRT). One blend
   // the player's skin tone, worn as body-slot tints (ColonySpawn.skinTints) — whole-rig `color`
-  // would wash the garments with it (docs/SPINE.md).
+  // would wash the garments with it (the manual's composite of instance and slot blends).
   SKIN: 0x90b8e8,
 
   /**
@@ -130,16 +130,16 @@ globalThis.ColonyPlayer = {
   RIGS: {
     spineHuman: {
       idle: { anim: "idle0", loop: true },
-      walk: { anim: "walk0", loop: true, pace: 220 },
-      run: { anim: "run0", loop: true, pace: 90 },
+      walk: { anim: "walk0", loop: true, pace: 110 },
+      run: { anim: "run0", loop: true, pace: 45 },
       attack: { anim: "attack0", loop: false },
       kick: { anim: "attack1", loop: false },
       down: { anim: "down0", loop: false },
     },
     spineRat: {
       idle: { anim: "idle", loop: true },
-      walk: { anim: "walk", loop: true, pace: 120 },
-      run: { anim: "walk", loop: true, pace: 120 },
+      walk: { anim: "walk", loop: true, pace: 60 },
+      run: { anim: "walk", loop: true, pace: 60 },
       attack: { anim: "attack", loop: false },
       down: { anim: "down", loop: false },
     },
@@ -172,8 +172,8 @@ globalThis.ColonyPlayer = {
   },
 
   // pace clamp: a blocked walker still shuffles, a hasted one never blurs
-  PACE_MIN: 0.3,
-  PACE_MAX: 2.5,
+  PACE_MIN: 0.6,
+  PACE_MAX: 5,
 
   /**
    * Stride-match every doll's locomotion set to its ACTUAL motion, once per frame: rate =

@@ -36,8 +36,8 @@ globalThis.Silhouette = {
 
   /**
    * The STANDING box of a drawn body into `out`, or undefined when the entity draws no sprite.
-   * The sprite's own frame and origin are the silhouette (a Spine sheet reports both soundly —
-   * only its FRAME metadata is garbage, docs/SPINE.md), scaled by the draw scale, whose x sign
+   * The sprite's own frame and origin are the silhouette (a Spine sheet reports both soundly;
+   * it has no frame count), scaled by the draw scale, whose x sign
    * is facing — so the extents come out of a min/max, not an abs, and a rig drawn off-centre
    * (spineRat) keeps its longer side ahead.
    */

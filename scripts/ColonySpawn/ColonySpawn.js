@@ -597,7 +597,7 @@ globalThis.ColonySpawn = {
   SKINS: ["#e8b890", "#d19a6b", "#a2714c"],
 
   // the slots skin shows through: spineHuman's authored body parts. A garment or gear slot is
-  // NOT here, so it keeps its authored colours — whole-rig `color` would wash it (docs/SPINE.md).
+  // NOT here, so it keeps its authored colours — whole-rig `color` would wash it (image_blend composes over every slot).
   SKIN_SLOTS: ["head", "eyes", "mouth", "neck", "torso", "armL", "armR", "handL", "handR", "legL", "legR", "footLB", "footLF", "footRB", "footRF"],
 
   /** one skin tone over every SKIN_SLOT — the slot -> colour map for Skeleton.tints */

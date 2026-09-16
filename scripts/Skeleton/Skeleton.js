@@ -2,7 +2,7 @@
  * SKELETAL category of the art projection contract (RenderBillboard): a Spine sprite bound to
  * the entity's Puppet, played by the runtime off the puppet's own `image_index` clock, and drawn
  * through `draw_self` — the one path that poses, advances and honours matrix_world
- * (docs/SPINE.md), ~4x cheaper than `draw_skeleton` on the pinned runtime. The counterpart of
+ * (the manual's draw_sprite note), ~4x cheaper than `draw_skeleton` on the pinned runtime. The counterpart of
  * Visual: an entity carries one or the other, never both, since RenderBillboard scans the two
  * separately and would draw the body twice.
  *
@@ -21,10 +21,10 @@
  * @property {number} xscale          draw scale, sign = facing (image_xscale)
  * @property {number} yscale
  * @property {number} color           tint (image_blend) over the WHOLE rig, worn gear included
- *                                   (docs/SPINE.md) — whole-body effects only; a skin or coat goes on `tints`
+ *                                   (the manual's composite) — whole-body effects only; a skin or coat goes on `tints`
  * @property {Object} tints           slot name -> colour on that slot alone (a humanoid's skin, a rat's
  *                                   coat), multiplied under `color`; a slot absent here draws its art as
- *                                   authored. Per-puppet state like an attachment (docs/SPINE.md), so it is
+ *                                   authored. Per-puppet state like an attachment, so it is
  *                                   replayed at each mint
  * @property {number} alpha
  */
