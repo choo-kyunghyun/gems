@@ -9,7 +9,7 @@
  * holds exactly these three.
  *
  * `cache` is the one place for what a consumer DERIVES from that data and keeps between frames —
- * a nav grid, a collider snapshot, a room mirror, a render pass stack, a camera — keyed the same
+ * a nav grid, a collider snapshot, a room mirror, a render pass stack, a camera's native view — keyed the same
  * way (`SolidSystem.KEY`, `ColonyMap.KEY`). Never serialized, never a source of truth: a
  * consumer that finds no entry under its key rebuilds one from the data (a miss is never an
  * error), and an entry with a `destroy()` is freed with the level. A per-tick scratch buffer that

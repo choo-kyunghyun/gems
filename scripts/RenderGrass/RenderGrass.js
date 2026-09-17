@@ -31,7 +31,7 @@ globalThis.RenderGrass = class RenderGrass {
    * one-tone art), `tint` the vertex color the white sheet is multiplied by (default
    * c_white), `edge` true to include transition cells (tileset-free fields), `flat` true to
    * lay the variants on the ground plane instead of standing them (the origin still at the
-   * anchor, sprite-up = map north). opt: `lights` the host RenderMesh pass, `camera` the Camera whose pitch the
+   * anchor, sprite-up = map north). opt: `lights` the host RenderMesh pass, `camera` the level's view record (CameraSystem.view) whose pitch the
    * clumps compensate, `seed` the placement hash seed, `alphaRef` the cutout (default 0.5),
    * `wind` the level's sway strength (0 = rigid — shMeshlit.vsh's u_sway) and `time` the sim
    * clock closure its phase runs on (the wave crests' clock, frozen on pause).

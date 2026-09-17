@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"CameraFly",
   "parent":{
-    "name":"Camera",
-    "path":"folders/Core/Camera.yy",
+    "name":"Component",
+    "path":"folders/Core/Component.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

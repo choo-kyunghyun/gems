@@ -2,7 +2,7 @@
  * @typedef {Object} RenderGridOptions
  * @property {number} [color] - grid line color (default c_gray)
  * @property {number} [alpha] - line alpha (default 1)
- * @property {object} [camera] - Camera; when set, view-culls lines for large grids (LevelGrid.viewRange). Settable via `pass.camera`.
+ * @property {object} [camera] - the level's view record (CameraSystem.view); when set, view-culls lines for large grids (LevelGrid.viewRange). Settable via `pass.camera`.
  */
 
 /** @implements {RenderPass} */

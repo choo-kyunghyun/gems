@@ -6,7 +6,7 @@
  * @property {boolean} [names] - show TileType.name instead of id when labelling tiles (default false)
  * @property {number} [alpha] - fill alpha for cost shading (default 0.25)
  * @property {number} [font] - font for cell labels (default: leaves the current font)
- * @property {object} [camera] - Camera; when set, view-culls cells for large grids (LevelGrid.viewRange). Settable via `pass.camera`.
+ * @property {object} [camera] - the level's view record (CameraSystem.view); when set, view-culls cells for large grids (LevelGrid.viewRange). Settable via `pass.camera`.
  */
 
 /**

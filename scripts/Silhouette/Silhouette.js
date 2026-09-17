@@ -16,7 +16,7 @@
  *
  * `of`/`ofInto` answer the standing box alone (undefined where there is none — a caller that
  * DRAWS must know which plane it got); `hit` tests the shape the player sees, either source.
- * Cursors here are GROUND-plane points (Camera.cursorWorld with no argument), never the aim
+ * Cursors here are GROUND-plane points (CameraSystem.cursorWorld with no argument), never the aim
  * plane: the height IS the answer this reads.
  */
 globalThis.Silhouette = {

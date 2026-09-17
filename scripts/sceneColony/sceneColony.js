@@ -360,14 +360,14 @@ class _SceneColonyClass {
     Time.tempo = this.tempo(Music.track());
 
     // world cursor: latch ONCE per frame (GMRT samples mouse live) via the pitch-aware ground-plane
-    // unprojection (see Camera.unproject). Read by BuildMode and Interactable — both name a CELL
+    // unprojection (see CameraSystem.unproject). Read by BuildMode and Interactable — both name a CELL
     // or a footprint, which is what the ground plane holds.
-    const cam = ColonyMap.runtime(this.level).camera;
-    this.mouseWorld = cam.cursorWorld();
+    const view = CameraSystem.view(this.level);
+    this.mouseWorld = CameraSystem.cursorWorld(view);
     // the AIM point: the same cursor resolved against what it visibly covers, so a shot at a
     // body reaches the footprint the sim tests (ColonyPlayer.aim). Read by PlayerSystem through
     // Playable.
-    const aim = ColonyPlayer.aim(this.level.entities, this.playerId, cam);
+    const aim = ColonyPlayer.aim(this.level.entities, this.playerId, view);
     const pl = this.level.entities.get(this.playerId, Playable);
     pl.cursorX = aim.x;
     pl.cursorY = aim.y;
@@ -446,19 +446,19 @@ class _SceneColonyClass {
     RoomSystem.update(this.level); // step every room's temperature over the same span
     TradeSystem.update(this.level); // finite merchants restock toward their template (sim time)
     ParticleFx.update(); // advance the live bursts (once per frame; freezes when paused)
-    // a sim-clock camera control updates here; a Time.raw one (the debug free-fly) updates in
-    // draw() instead, so it keeps moving while the sim is paused (Camera's `raw` contract)
-    if (!cam.control.raw) cam.update();
+    // the sim-clock camera policies (follow) run here; the Time.raw one (the debug free-fly)
+    // runs from draw() instead, so it keeps moving while the sim is paused (CameraSystem)
+    CameraSystem.update(this.level);
     // ears on the body of the entity the camera TRACKS (the CameraFocus marker, live-queried),
-    // not the view: CameraFollow clamps its look-at at map edges (and debug free-cam flies away
-    // entirely), parking the view center off the tracked body — spatial SFX pan/attenuate from
-    // where it stands; camera center is the no-marker fallback
+    // not the view: the follow policy clamps its look-at at map edges (and debug free-cam flies
+    // away entirely), parking the view center off the tracked body — spatial SFX pan/attenuate
+    // from where it stands; the view's look-at is the no-marker fallback
     const ep = this.level.entities.get(
       this.level.entities.first(CameraFocus),
       Position,
     );
     if (ep !== undefined) AudioListener.position(ep.x, ep.y);
-    else AudioListener.position(cam.toX, cam.toY);
+    else AudioListener.position(view.toX, view.toY);
     SoundEmitterSystem.update(this.level); // timed world cues (the radio prop) re-fire their spatial SFX
     ParticleEmitterSystem.update(this.level); // mint/step/reap the attached particle streams (drops, beacons)
 
@@ -767,11 +767,12 @@ class _SceneColonyClass {
   }
 
   draw() {
-    // a Time.raw camera control updates here so it keeps panning while the sim is paused (step()
-    // is skipped then); apply before the renderer reads it
+    // the camera's frame: its Time.raw policy (so a debug free-fly keeps moving while the sim is
+    // paused and update() is skipped), then this frame's matrices — before the renderer reads
+    // the view
     const rt = ColonyMap.runtime(this.level);
-    const camera = rt.camera;
-    if (camera.control.raw) camera.update();
+    CameraSystem.apply(this.level);
+    const camera = CameraSystem.view(this.level);
     // dev BBox outlines (Settings toggle, default off) — read each frame like hudRadar below
     rt.bboxPass.enabled = Settings.get("debugBBox");
     rt.renderer.draw(this.level.entities); // tilemap + player / enemies / elder: boxes + labels

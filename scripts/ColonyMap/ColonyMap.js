@@ -23,14 +23,14 @@
  * @typedef {Object} ColonyMapRuntime
  * @property {Array|undefined} terrainMats  the material table as live rows ({ type, sprite, material } — ColonyLevel._terrainTypes)
  * @property {Renderer|undefined} renderer  the pass stack; undefined until the first activation
- * @property {Camera} camera
- * @property {CameraFollow} cameraFollow  the camera's normal control, kept so a debug control (CameraFly) can hand back to it
  * @property {Object<string,RenderPass>} tilePasses  the tile pass per layer key — a BuildMode edit marks its layer's dirty
  * @property {RenderTileMap[]} terrainPasses  a generated map's ground stack, lowest material first — GrassSystem marks them
  * @property {RenderGrass|undefined} grassPass  the grass volume layer — likewise
  * @property {RenderDebugEntity} bboxPass  the lime BBox outlines — the `debugBBox` setting drives its `enabled`
  * The spatial mirrors sit in the same cache under their readers' keys: the NavGrid under
- * PathfindingSystem.KEY, the Rooms under RoomSystem.KEY, the Broadphase under SeparationSystem.KEY.
+ * PathfindingSystem.KEY, the Rooms under RoomSystem.KEY, the Broadphase under SeparationSystem.KEY;
+ * the camera is an ENTITY of the store (_buildCamera) and its native view sits under
+ * CameraSystem.KEY.
  */
 /**
  * Visited maps stay ALIVE in the World level pool — data and runtime both on the Level — so a
@@ -88,14 +88,11 @@ globalThis.ColonyMap = {
     return {
       terrainMats: undefined,
       renderer: undefined,
-      camera: undefined,
-      cameraFollow: undefined,
       tilePasses: {},
       terrainPasses: [],
       grassPass: undefined,
       bboxPass: undefined,
       destroy() {
-        if (this.camera !== undefined) this.camera.destroy();
         if (this.renderer !== undefined) this.renderer.destroy(); // frees the tile/terrain VBOs
       },
     };
@@ -160,12 +157,11 @@ globalThis.ColonyMap = {
 
   /**
    * Park the live map: its Level stays in the pool untouched, runtime and all. Unassign (not
-   * destroy) the camera — the parked map keeps it for resume; without the unassign its later
-   * destroy() would tear down the live view.
+   * destroy) the camera's view — the parked map keeps it for resume; without the unassign its
+   * later teardown would tear down the live view.
    */
   suspend(scene) {
-    const rt = ColonyMap.runtime(scene.level);
-    if (rt.camera !== undefined) rt.camera.unassign();
+    CameraSystem.unassign(scene.level);
   },
 
   /**
@@ -190,12 +186,14 @@ globalThis.ColonyMap = {
 
     if (rt.renderer === undefined) ColonyMap._activate(scene);
     else {
-      rt.camera.assign(0);
-      // snap the follow camera to the entry so it doesn't pan from the parked position (the
+      CameraSystem.assign(level, 0);
+      // snap the camera's look-at to the entry so it doesn't pan from the parked position (the
       // TARGET needs no re-aim: the arrived player carries CameraFocus — take/put re-mints its
-      // id, but CameraFollow resolves the marker by live query each update)
-      rt.camera.toX = sp.x;
-      rt.camera.toY = sp.y;
+      // id, but the follow policy resolves the marker by live query each update)
+      const entities = level.entities;
+      const cp = entities.require(entities.first(Camera), Position);
+      cp.x = sp.x;
+      cp.y = sp.y;
     }
     ColonyMap._arrive(scene);
   },
@@ -531,7 +529,7 @@ globalThis.ColonyMap = {
     const pitch = ColonyMap.BB_PITCH;
     const level = scene.level;
     const rt = ColonyMap.runtime(level);
-    const camera = rt.camera; // built first (_activate): every view-dependent pass takes it here
+    const camera = CameraSystem.view(level); // the camera entity is built first (_activate): every view-dependent pass takes its view here
     GrassSystem.clearBuilt(level); // prefab-built ground sheds its grass before the VBOs bake
     const renderer = new Renderer();
     rt.renderer = renderer;
@@ -768,7 +766,10 @@ globalThis.ColonyMap = {
   },
 
   /**
-   * Follow camera on the new player; the passes take it at construction (_buildRenderer).
+   * The level's camera entity under the follow policy; the passes take its view at construction
+   * (_buildRenderer). A restored save already holds the entity (the view it was left at), a
+   * fresh build gets one at the spawn; the policy is minted either way — its tuning is this
+   * engine's, not the save's — seeded so the zoom resumes where it was.
    * 32px-cell world: base zoom 2 for the pitched 2.5D framing (flat fallback 1) and the wheel
    * snaps through integer stops — a whole number of screen px per world px keeps every texel
    * the same size across the screen (a fractional zoom draws them 1 px and 2 px wide by turns).
@@ -778,37 +779,52 @@ globalThis.ColonyMap = {
     const pitch = ColonyMap.BB_PITCH;
     const baseZoom = pitch > 0 ? 2 : 1;
     const level = scene.level;
-    // Cap zoom-OUT to the world: viewCap = max view WIDTH (world px); the control derives its live
+    const entities = level.entities;
+    // Cap zoom-OUT to the world: viewCap = max view WIDTH (world px); the policy derives its live
     // zoom floor from it + the current surface each frame. Horizontal is the binding axis on a
     // landscape surface.
     const viewCap = level.grid.cols * level.grid.cellWidth;
-    const rt = ColonyMap.runtime(level);
-    // no width/height seed — CameraFollow re-derives the extent from the surface every update
-    rt.cameraFollow = new CameraFollow({
-      entities: level.entities,
-      target: scene.playerId, // fallback seed — the live CameraFocus query wins (ColonyPlayer)
-      lerp: 0.15,
-      pitch: pitch, // frame-0 seed; the pitchCurve below overwrites it every update
-      // pitch-by-zoom (upright-sprite camera) — see ColonyMap._pitchCurve
-      pitchCurve: ColonyMap._pitchCurve,
-      // ortho eye distance: the 100 default near-clips close ground at steep pitch
-      // (a black band along the screen bottom); image-identical otherwise under ortho
-      eyeDist: 2000,
-      zoom: baseZoom,
-      viewCap: viewCap, // live zoom-out cap: view width ≤ this (no dark void past the map)
-      zoomMax: 3, // one integer stop of zoom-in headroom
-      zoomSteps: [0.5, 1, 2, 3],
-      // Edge-clamp the look-at to the finite world so the pitched view never shows past a map
-      // edge. gridToWorld anchors cell 0 at world (0,0).
-      bounds: {
-        x1: 0,
-        y1: 0,
-        x2: level.grid.cols * level.grid.cellWidth,
-        y2: level.grid.rows * level.grid.cellHeight,
-      },
-    });
-    rt.camera = new Camera().setControl(rt.cameraFollow);
-    rt.camera.assign(0);
+    let id = entities.first(Camera);
+    if (id === -1) {
+      const sp = ColonyMap.of(level).spawn;
+      id = CameraSystem.create(entities, {
+        x: sp.x,
+        y: sp.y,
+        pitch: (pitch * Math.PI) / 180, // frame-0 seed; the curve overwrites it every update
+        // ortho eye distance: the 100 default near-clips close ground at steep pitch
+        // (a black band along the screen bottom); image-identical otherwise under ortho
+        dist: 2000,
+        zoom: baseZoom,
+      });
+    }
+    const curve = ColonyMap.PITCH_CURVE;
+    entities.mint(
+      id,
+      CameraFollow,
+      CameraSystem.follow({
+        lerp: 0.15,
+        pitch: pitch,
+        // pitch-by-zoom (upright-sprite camera) — see ColonyMap.PITCH_CURVE
+        pitchLo: curve.pitchLo,
+        pitchHi: curve.pitchHi,
+        zoomLo: curve.zoomLo,
+        zoomHi: curve.zoomHi,
+        zoom: entities.require(id, Camera).zoom, // the target resumes at the persisted zoom
+        zoomHome: baseZoom,
+        viewCap: viewCap, // live zoom-out cap: view width ≤ this (no dark void past the map)
+        zoomMax: 3, // one integer stop of zoom-in headroom
+        zoomSteps: [0.5, 1, 2, 3],
+        // Edge-clamp the look-at to the finite world so the pitched view never shows past a map
+        // edge. gridToWorld anchors cell 0 at world (0,0).
+        bounds: {
+          x1: 0,
+          y1: 0,
+          x2: level.grid.cols * level.grid.cellWidth,
+          y2: level.grid.rows * level.grid.cellHeight,
+        },
+      }),
+    );
+    CameraSystem.assign(level, 0);
   },
 
   /**
@@ -860,13 +876,13 @@ globalThis.ColonyMap = {
 // wrong flat). Assigned after the object literal — GMRT static-field-init quirk. Read by
 // _buildRenderer (billboard vs flat entity pass) + _buildCamera (pitch + framing zoom).
 // With the upright-sprite camera this is the frame-0 seed + the pitched-map GATE only —
-// the LIVE pitch is _pitchCurve below (42° zoomed out → 58° zoomed in).
+// the LIVE pitch is PITCH_CURVE below (42° zoomed out → 58° zoomed in).
 ColonyMap.BB_PITCH = 42;
-// Pitch-by-zoom curve (upright-sprite camera): shallow 42° at the zoom-out floor (~1.25 on
-// a 1920 surface) easing to 58° at max zoom-in (2.625) — "look further = flatter".
-// Thresholds are the spike values HALVED for the 32px-cell world (zoom seeds halved, same
-// screen framing); the 42–58° outputs are angles, unchanged.
-ColonyMap._pitchCurve = (z) => 42 + 16 * clamp((z - 1.25) / 1.375, 0, 1);
+// Pitch-by-zoom curve (upright-sprite camera), the CameraFollow curve fields: shallow 42° at
+// the zoom-out floor (~1.25 on a 1920 surface) easing linearly to 58° at max zoom-in (2.625) —
+// "look further = flatter". Thresholds are the spike values HALVED for the 32px-cell world
+// (zoom seeds halved, same screen framing); the 42–58° outputs are angles, unchanged.
+ColonyMap.PITCH_CURVE = { pitchLo: 42, pitchHi: 58, zoomLo: 1.25, zoomHi: 2.625 };
 // Hours a trip across one whole world-map chart unit takes — the travelHours scale (corner to
 // corner is ~1.4 units). Assigned after the literal like BB_PITCH.
 ColonyMap.HOURS_PER_CHART = 20;

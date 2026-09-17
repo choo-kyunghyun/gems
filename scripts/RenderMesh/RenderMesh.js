@@ -96,7 +96,7 @@ globalThis.RenderMesh = class RenderMesh {
     // world's saturation as an atmosphere dial; the demo injects ColonyMap.chroma). Unset = 1,
     // the authored colours.
     this.chroma = opt.chroma;
-    this.camera = opt.camera; // optional; when set, the nearest lights to the view center win
+    this.camera = opt.camera; // optional, the level's view record (CameraSystem.view); when set, the nearest lights to the view centre win
     // point-light provider, injected like `sun` (this pass takes records, never the query): (entities) => [{ x, y, radius, color, intensity?,
     // flicker?, seed? }] — color a GM color int, seed the flicker phase offset (the demo passes
     // the entity id so the mesh term stays in phase with RenderLighting's glow pools).
@@ -170,10 +170,10 @@ globalThis.RenderMesh = class RenderMesh {
     // CPU cull first: only a light whose RADIUS reaches the view can affect a visible mesh
     // pixel, so off-screen lights must not eat a MAX_LIGHTS slot (a build zone can hold far
     // more torches than the budget; the overflow's glow pool still draws — RenderLighting has
-    // no cap — only the per-face mesh term is budgeted). The view rect is Camera.groundRect,
+    // no cap — only the per-face mesh term is budgeted). The view rect is CameraSystem.groundRect,
     // which owns the pitch stretch.
     if (this.camera !== undefined) {
-      const view = this.camera.groundRect();
+      const view = CameraSystem.groundRect(this.camera);
       const vis = [];
       for (let i = 0; i < recs.length; i++) {
         const rec = recs[i];

@@ -221,13 +221,13 @@ globalThis.ColonyPlayer = {
    * footprint on the ground, so the two disagree about what was clicked; here the silhouette
    * decides WHICH body and the footprint decides WHERE, which puts the hitscan through the
    * collider the player saw. Over no body it answers the aim plane (AIM_H).
-   * Both halves read the cursor off `camera` rather than taking one, so the pick and the plane
-   * cannot be handed cursors that disagree; the two reads are pure math over the frame's latched
-   * pointer (Input.poll), so they are one answer.
+   * Both halves read the cursor off `view` (the level's CameraSystem.view record) rather than
+   * taking one, so the pick and the plane cannot be handed cursors that disagree; the two reads
+   * are pure math over the frame's latched pointer (Input.poll), so they are one answer.
    */
-  aim(entities, shooterId, camera) {
-    const pitch = camera.pitch;
-    const cursor = camera.cursorWorld(); // the GROUND cursor — silhouette height is measured off it
+  aim(entities, shooterId, view) {
+    const pitch = view.pitch;
+    const cursor = CameraSystem.cursorWorld(view); // the GROUND cursor — silhouette height is measured off it
     // Health is the shootable set: a corpse has none (ColonyCombat._toCorpse detaches it), so a
     // body on the ground never swallows the aim off the live one standing over it
     const target = Silhouette.pick(entities, cursor, pitch, {
@@ -238,7 +238,7 @@ globalThis.ColonyPlayer = {
       const e = AABB.of(entities, target);
       return { x: e.cx, y: e.cy };
     }
-    return camera.cursorWorld(-AIM_H * RenderBillboard.tall(pitch));
+    return CameraSystem.cursorWorld(view, -AIM_H * RenderBillboard.tall(pitch));
   },
 
   /**
@@ -260,7 +260,7 @@ globalThis.ColonyPlayer = {
     } else {
       // flat-camera fallback ONLY — mouse_x/mouse_y are wrong under the pitched matrix camera,
       // so callers there must resolve the aim themselves (PlayerSystem passes nx/ny from the
-      // level-latched world cursor; see Camera.unproject)
+      // level-latched world cursor; see CameraSystem.unproject)
       const dx = Input.pointer.roomX - pos.x;
       const dy = Input.pointer.roomY - muzzleY;
       const dist = Math.sqrt(dx * dx + dy * dy) || 1;

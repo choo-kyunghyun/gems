@@ -97,8 +97,8 @@ and are cited from here, never restated):
       only what that scene itself wired (its UI root, its injected hooks, the colony's `World`), and
       a new app member a scene can dirty gets its line in the sweep, not in a scene.
     - Anything DERIVED from a level's data and kept between frames — a collider snapshot, a nav
-      grid, a room mirror, a broadphase, a pass stack, a camera — is a CACHE in `Level.cache` under
-      its reader's `KEY` (`SolidSystem.KEY`, `PathfindingSystem.KEY`, `RoomSystem.KEY`,
+      grid, a room mirror, a broadphase, a pass stack, a camera's native view — is a CACHE in `Level.cache` under
+      its reader's `KEY` (`SolidSystem.KEY`, `PathfindingSystem.KEY`, `RoomSystem.KEY`, `CameraSystem.KEY`,
       `SeparationSystem.KEY`, `ColonyMap.KEY`): never serialized, rebuilt from the data on a miss
       (a miss is never an error), freed with the level through its `destroy`.
     - A singleton keeps only what is none of these — content registries, config, injected hooks,

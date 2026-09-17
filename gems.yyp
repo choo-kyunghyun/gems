@@ -12,7 +12,6 @@
   "Folders":[
     {"$GMFolder":"","%Name":"Core","folderPath":"folders/Core.yy","name":"Core","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Audio","folderPath":"folders/Core/Audio.yy","name":"Audio","resourceType":"GMFolder","resourceVersion":"2.0",},
-    {"$GMFolder":"","%Name":"Camera","folderPath":"folders/Core/Camera.yy","name":"Camera","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Collision","folderPath":"folders/Core/Collision.yy","name":"Collision","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Component","folderPath":"folders/Core/Component.yy","name":"Component","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Entity","folderPath":"folders/Core/Entity.yy","name":"Entity","resourceType":"GMFolder","resourceVersion":"2.0",},
@@ -201,6 +200,7 @@
     {"id":{"name":"CameraFocus","path":"scripts/CameraFocus/CameraFocus.yy",},},
     {"id":{"name":"CameraFollow","path":"scripts/CameraFollow/CameraFollow.yy",},},
     {"id":{"name":"CameraPan","path":"scripts/CameraPan/CameraPan.yy",},},
+    {"id":{"name":"CameraSystem","path":"scripts/CameraSystem/CameraSystem.yy",},},
     {"id":{"name":"Cold","path":"scripts/Cold/Cold.yy",},},
     {"id":{"name":"ColdSystem","path":"scripts/ColdSystem/ColdSystem.yy",},},
     {"id":{"name":"Collision","path":"scripts/Collision/Collision.yy",},},

@@ -39,7 +39,7 @@ globalThis.WorldOverlay = {
 
     // Drops: the icon flat at its declared density, the rarity color standing in where the item
     // has none. The sparkle that makes one visible is the drop's own ParticleEmitter.
-    const pitch = ColonyMap.runtime(scene.level).camera.pitch;
+    const pitch = CameraSystem.view(scene.level).pitch;
     entities.forEach([ItemDrop, Position], (_id, d, p) => {
       const it = Item.get(d.itemId);
       const spr = it !== undefined ? it.sprite : -1;

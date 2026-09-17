@@ -27,7 +27,7 @@ const BB_NORMAL_Z = -0.866;
  * zoom 2 — the "dirty" doll). The quad is drawn 1/sin(pitch) TALL instead, so the screen
  * height is exactly source × zoom and the texel grid stays whole; the foot stays put, and the
  * quad stands ~1.3× taller in world space (it occludes a little more of what's behind it).
- * `opt.camera` supplies the live pitch (ColonyMap._buildCamera assigns it).
+ * `opt.camera` (the level's view record — CameraSystem.view) supplies the live pitch.
  * Only geometry that writes depth — z-write on for this loop only so overlapping bodies
  * sort per-pixel; ground passes stay painter-order (z-write off) to avoid z-fighting.
  * A Spine puppet is the one body that can z-fight ITSELF — its attachments are coplanar —
@@ -83,7 +83,7 @@ globalThis.RenderBillboard = class RenderBillboard {
     // diverge). Unset (flat maps, the default) → neutral uniforms: full-bright albedo with
     // the cutout only.
     this.lights = opt.lights;
-    this.camera = opt.camera; // a Camera instance: its pitch drives the height compensation
+    this.camera = opt.camera; // the level's view record (CameraSystem.view): its pitch drives the height compensation
   }
 
   destroy() {}
@@ -91,7 +91,7 @@ globalThis.RenderBillboard = class RenderBillboard {
   /**
    * THE pitch compensation of the standing pass (header) — also the silhouette→world-z rate a
    * non-render caller needs: a body point `a` silhouette px up a standing sprite stands at
-   * world z = −a·tall(pitch), up being −z (Camera.cursorWorld's aim plane).
+   * world z = −a·tall(pitch), up being −z (CameraSystem.cursorWorld's aim plane).
    */
   static tall(pitch) {
     return pitch > 0 ? 1 / Math.sin(pitch) : 1;

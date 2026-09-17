@@ -14,16 +14,16 @@
  * black quad at alpha, tints with a coloured one — and the erase is (bm_zero, bm_inv_src_alpha):
  * an opaque draw zeroes colour and alpha. The composite is premultiplied (bm_one,
  * bm_inv_src_alpha) under the screen-space overlay orientation contract (RenderLighting). A layer
- * draws in surface pixels with no matrix or blend changes of its own (Camera.project for anything
+ * draws in surface pixels with no matrix or blend changes of its own (CameraSystem.project for anything
  * world-anchored); the depth test is off for the whole bracket.
  *
- * The scene assigns pass.camera after building the camera.
+ * The level passes its view record (CameraSystem.view) as `camera` at construction.
  * @implements {RenderPass}
  */
 globalThis.RenderOverlay = class RenderOverlay {
   constructor(opt = {}) {
     this.enabled = true;
-    this.camera = opt.camera; // a Camera instance
+    this.camera = opt.camera; // the level's view record (CameraSystem.view)
     this.layers = opt.layers ?? []; // RenderPass[], drawn in order into the surface; destroyed with this
     this.cutout = opt.cutout; // () => world rects to erase, or undefined for none
     this.height = opt.height ?? 0; // how tall a cutout stands (world px, up = -z)
@@ -102,10 +102,10 @@ globalThis.RenderOverlay = class RenderOverlay {
     draw_set_alpha(1);
     for (let i = 0; i < rects.length; i++) {
       const r = rects[i];
-      const f0 = cam.project(r.x1, r.y1, 0);
-      const f1 = cam.project(r.x2, r.y2, 0);
-      const c0 = cam.project(r.x1, r.y1, z);
-      const c1 = cam.project(r.x2, r.y2, z);
+      const f0 = CameraSystem.project(cam, r.x1, r.y1, 0);
+      const f1 = CameraSystem.project(cam, r.x2, r.y2, 0);
+      const c0 = CameraSystem.project(cam, r.x1, r.y1, z);
+      const c1 = CameraSystem.project(cam, r.x2, r.y2, z);
       const x0 = Math.min(f0.x, c0.x);
       const x1 = Math.max(f1.x, c1.x);
       const y0 = Math.min(f0.y, f1.y, c0.y, c1.y);

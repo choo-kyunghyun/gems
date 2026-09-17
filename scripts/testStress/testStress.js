@@ -127,17 +127,17 @@ globalThis.testStress = {
           });
         }
 
-        // a top-down ortho camera framing the whole level, and the debug passes over it
-        const sw = surface_get_width(application_surface);
+        // a top-down ortho camera entity framing the whole level (its height = the level's, so
+        // the zoom is the surface height over it), and the debug passes over its view
         const sh = surface_get_height(application_surface);
-        const cx = (COLS * CELL) / 2;
-        const cy = (ROWS * CELL) / 2;
-        ctx.camera = new Camera({ projection: CAMERA_PROJECTION.ORTHO })
-          .setFrom(cx, cy, -2000)
-          .setTo(cx, cy, 0)
-          .setUp(0, 1, 0)
-          .setSize((ROWS * CELL * sw) / sh, ROWS * CELL);
-        ctx.camera.assign(0);
+        CameraSystem.create(s, {
+          x: (COLS * CELL) / 2,
+          y: (ROWS * CELL) / 2,
+          dist: 2000,
+          zoom: sh / (ROWS * CELL),
+        });
+        CameraSystem.assign(level, 0);
+        ctx.camera = CameraSystem.view(level);
         ctx.renderer = new Renderer();
         ctx.renderer.insert(
           new RenderGrid(grid, { camera: ctx.camera, color: c_dkgray }),
@@ -215,7 +215,7 @@ globalThis.testStress = {
       },
       draw(ctx, t) {
         const t0 = get_timer();
-        ctx.camera.update();
+        CameraSystem.apply(ctx.level);
         ctx.renderer.draw(ctx.entities);
         t.sample("stress.pathfind.draw", get_timer() - t0);
       },
@@ -241,14 +241,15 @@ globalThis.testStress = {
         t.eq(ctx.overlaps, 0, "no body inside a wall after any solid pass");
         t.eq(
           s.count(),
-          AGENTS + ctx.colliders.length,
+          AGENTS + ctx.colliders.length + 1, // + the camera entity
           "no entity leaked or vanished",
         );
       },
       teardown(ctx) {
         ctx.renderer.destroy();
-        ctx.camera.destroy(); // unassigns the view, restoring default room rendering
-        ctx.level.destroy(); // frees the nav grid with the rest of its cache
+        // frees the nav grid and the camera's view (unassigning it restores default room
+        // rendering) with the rest of its cache
+        ctx.level.destroy();
       },
     },
   ],

@@ -5,7 +5,7 @@
  * by Weather.blend()) scaled by daylight (WorldClock.tint alpha — no sun, no shadows). A seamless
  * value-noise texture (baked ONCE into a surface from hash2 on a PERIODIC lattice, so it tiles)
  * is drawn as ONE quad over the visible ground: the ground AABB the camera sees, projected to
- * surface pixels (Camera.project — the pitched ortho is affine, so a world rect is a screen rect
+ * surface pixels (CameraSystem.project — the pitched ortho is affine, so a world rect is a screen rect
  * and the field still foreshortens with the 2.5D camera). UVs come from world position + wind*time
  * drift, wrapped (gpu_set_tex_repeat); drift runs on Weather.time() (cumulative SIM seconds), so
  * clouds freeze on pause and race under Time.scale.
@@ -19,7 +19,7 @@
 globalThis.RenderCloudShadow = class RenderCloudShadow {
   constructor(opt = {}) {
     this.enabled = true;
-    this.camera = opt.camera; // a Camera instance; assigned by ColonyMap.build
+    this.camera = opt.camera; // the level's view record (CameraSystem.view); ColonyMap._buildRenderer passes it
     this.darkness = opt.darkness ?? 0.38; // core darkening at full coverage + full sun
     this.windX = opt.windX ?? -22; // drift, world px/s — leftward like the rain's slant
     this.windY = opt.windY ?? 8;
@@ -59,10 +59,10 @@ globalThis.RenderCloudShadow = class RenderCloudShadow {
     // Visible ground AABB: unproject the four screen corners (pitched ORTHO is affine, so the
     // ground plane has no horizon singularity). Pad by a fraction of a tile so drift never
     // uncovers an edge.
-    const c0 = this.camera.unproject(0, 0);
-    const c1 = this.camera.unproject(sw, 0);
-    const c2 = this.camera.unproject(0, sh);
-    const c3 = this.camera.unproject(sw, sh);
+    const c0 = CameraSystem.unproject(this.camera, 0, 0);
+    const c1 = CameraSystem.unproject(this.camera, sw, 0);
+    const c2 = CameraSystem.unproject(this.camera, 0, sh);
+    const c3 = CameraSystem.unproject(this.camera, sw, sh);
     const pad = this.texWorld * 0.1;
     const x0 = Math.min(c0.x, c1.x, c2.x, c3.x) - pad;
     const x1 = Math.max(c0.x, c1.x, c2.x, c3.x) + pad;
@@ -78,8 +78,8 @@ globalThis.RenderCloudShadow = class RenderCloudShadow {
     const v1 = (y1 + this.windY * t) / s;
 
     // the ground rect on the overlay surface (two corners suffice under the pitch-only ortho)
-    const p0 = this.camera.project(x0, y0, 0);
-    const p1 = this.camera.project(x1, y1, 0);
+    const p0 = CameraSystem.project(this.camera, x0, y0, 0);
+    const p1 = CameraSystem.project(this.camera, x1, y1, 0);
 
     gpu_set_tex_repeat(true);
     gpu_set_tex_filter(true); // bilinear: the field is soft, so magnified texels must interpolate

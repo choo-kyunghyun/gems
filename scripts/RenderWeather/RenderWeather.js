@@ -7,13 +7,13 @@
  * (which pins every particle near a constant offset). Snow sways via Math.sin; streaks use draw_line,
  * snow uses draw_rectangle.
  *
- * The level assigns pass.camera after building the camera.
+ * The level passes its view record (CameraSystem.view) as `camera` at construction.
  * @implements {RenderPass}
  */
 globalThis.RenderWeather = class RenderWeather {
   constructor(opt = {}) {
     this.enabled = true;
-    this.camera = opt.camera; // a Camera instance; assigned by ColonyMap.build
+    this.camera = opt.camera; // the level's view record (CameraSystem.view); ColonyMap._buildRenderer passes it
     this._maxN = opt.maxParticles ?? 320; // particle budget at density 1
 
     this._rainColor = Color.parse("#aebfd4");
