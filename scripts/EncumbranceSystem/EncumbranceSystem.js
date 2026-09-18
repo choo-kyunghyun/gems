@@ -1,5 +1,5 @@
 // Maps carried weight → speed multiplier, delivered via a maintained "encumbered" status (not by the
-// mover directly), so it composes with other speed statuses; the mover reads StatusSystem.scale(speed).
+// mover directly), so it composes with other speed statuses; the mover reads Effects.scale(speed).
 globalThis.EncumbranceSystem = {
   /**
    * Per-tick: refresh the "encumbered" status from each carrier's load. Overloaded → maintain with
@@ -10,7 +10,7 @@ globalThis.EncumbranceSystem = {
     const entities = level.entities;
     entities.forEach([Encumbrance, Inventory], (id) => {
       const s = EncumbranceSystem.scale(entities, id);
-      StatusSystem.maintain(
+      Effects.maintain(
         entities,
         id,
         "encumbered",

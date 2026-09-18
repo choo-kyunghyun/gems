@@ -93,22 +93,4 @@ globalThis.PathfindingSystem = {
       entities.mint(id, PathResponse, { path, index: 0 });
     }
   },
-
-  current(entities, id) {
-    const response = entities.get(id, PathResponse);
-    if (response === undefined) return undefined;
-    return response.path[response.index];
-  },
-
-  advance(entities, id) {
-    const response = entities.get(id, PathResponse);
-    if (response === undefined) return false;
-    const next = response.index + 1;
-    if (next >= response.path.length) {
-      entities.detach(id, PathResponse);
-      return false;
-    }
-    response.index = next;
-    return true;
-  },
 };

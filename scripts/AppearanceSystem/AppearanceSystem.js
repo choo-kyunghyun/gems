@@ -12,7 +12,7 @@
  *
  * Everything about WHERE gear goes is read, never declared: the rig says which slots are
  * dressable (the ones its setup pose leaves empty) and which bone each rides, the bone's setup
- * rotation comes off the sheet (SkeletonSystem.info), and a garment sits with its own SPRITE
+ * rotation comes off the sheet (Rig.info), and a garment sits with its own SPRITE
  * ORIGIN on that bone — so placing a piece is an origin edit in the sprite editor, and a new rig
  * or slot is nothing here.
  *
@@ -80,7 +80,7 @@ globalThis.AppearanceSystem = {
   },
 
   /**
-   * The dress slots of a rig, derived once per sprite off its sheet (SkeletonSystem.info): every
+   * The dress slots of a rig, derived once per sprite off its sheet (Rig.info): every
    * slot the setup pose leaves EMPTY (the body parts are authored and stay), with `rot` — minus
    * the setup world rotation of the bone it rides — which every attachment on that bone carries
    * to draw upright — the manual's `_create` origin args are bone-local, the sprite's own origin
@@ -93,7 +93,7 @@ globalThis.AppearanceSystem = {
     let rig = AppearanceSystem._rigs[key];
     if (rig !== undefined) return rig;
     rig = [];
-    const info = SkeletonSystem.info(sprite);
+    const info = Rig.info(sprite);
     for (let i = 0; i < info.slots.length; i++) {
       const slot = info.slots[i];
       if (slot.attachment !== "") continue;

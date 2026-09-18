@@ -1,6 +1,6 @@
 /**
  * Survival need: cold. A rising meter while the temperature where the body stands
- * (RoomSystem.tempAt) is under `comfort` — `value` climbs by up to `rate`/sec, in proportion to the
+ * (Shelter.tempAt) is under `comfort` — `value` climbs by up to `rate`/sec, in proportion to the
  * shortfall over `span` Kelvin — and a FALLING one in warmth (by `recover`/sec). ColdSystem applies
  * the `status` debuff at/above `critical`. OPT-IN; flat scalars → entities.export-safe.
  *

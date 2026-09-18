@@ -52,18 +52,38 @@ globalThis.PathFollow = {
       });
       state.pathCd = state.pathRate;
     }
-    let wp = PathfindingSystem.current(entities, id);
+    let wp = PathFollow._current(entities, id);
     if (wp === undefined) return { x: tx, y: ty }; // no path yet — head straight for now
     // skip a waypoint we've essentially reached (path's first cell is our own)
     let ww = grid.gridToWorld(wp.x, wp.y);
     const near = grid.cellWidth * 0.4;
     if ((sp.x - ww.x) ** 2 + (sp.y - ww.y) ** 2 < near * near) {
-      PathfindingSystem.advance(entities, id);
-      wp = PathfindingSystem.current(entities, id);
+      PathFollow._advance(entities, id);
+      wp = PathFollow._current(entities, id);
       if (wp === undefined) return { x: tx, y: ty }; // path exhausted — close the last stretch
       ww = grid.gridToWorld(wp.x, wp.y);
     }
     return ww;
+  },
+
+  /** The current waypoint of `id`'s PathResponse (grid coords), or undefined without one. */
+  _current(entities, id) {
+    const response = entities.get(id, PathResponse);
+    if (response === undefined) return undefined;
+    return response.path[response.index];
+  },
+
+  /** Step the cursor to the next waypoint; a path walked out is detached. Returns whether one is left. */
+  _advance(entities, id) {
+    const response = entities.get(id, PathResponse);
+    if (response === undefined) return false;
+    const next = response.index + 1;
+    if (next >= response.path.length) {
+      entities.detach(id, PathResponse);
+      return false;
+    }
+    response.index = next;
+    return true;
   },
 
   /** Drop any in-flight path components (LOS cleared mid-chase, or leaving the follow behavior). */

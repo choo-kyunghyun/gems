@@ -327,8 +327,8 @@ globalThis.TradeUI = {
       if (side === "sell" && r.itemId === m.currencyId) continue; // money isn't sellable
       r.price =
         side === "buy"
-          ? TradeSystem.buyPrice(m, r.itemId)
-          : TradeSystem.sellPrice(m, r.itemId);
+          ? Trade.buyPrice(m, r.itemId)
+          : Trade.sellPrice(m, r.itemId);
       // infinite merchant BUY qty shows "-" (SDF fonts are Latin-1, no ∞ glyph).
       r.qtyText = side === "buy" && m.infinite ? "-" : string(r.qty);
       r.worn = false;
@@ -420,7 +420,7 @@ globalThis.TradeUI = {
     if (page.side === "sell") return row.qty;
     const m = scene.level.entities.get(scene.window.target, Merchant);
     if (m === undefined) return 1;
-    const price = TradeSystem.buyPrice(m, row.itemId);
+    const price = Trade.buyPrice(m, row.itemId);
     const byCoins =
       price > 0 ? Math.floor(TradeUI._coins(scene) / price) : row.qty;
     const max = m.infinite ? byCoins : Math.min(row.qty, byCoins);
@@ -451,7 +451,7 @@ globalThis.TradeUI = {
   },
 
   _doBuy(scene, row, amount) {
-    const res = TradeSystem.buy(
+    const res = Trade.buy(
       scene.level.entities,
       scene.playerId,
       scene.window.target,
@@ -462,7 +462,7 @@ globalThis.TradeUI = {
   },
 
   _doSell(scene, row, amount) {
-    const res = TradeSystem.sell(
+    const res = Trade.sell(
       scene.level.entities,
       scene.playerId,
       scene.window.target,

@@ -13,6 +13,24 @@
 globalThis.contentInteractions = {
   registered: false,
 
+  /**
+   * The harvest/chop view step: Flora.harvest's yield to the quest/achievement credit, the bag
+   * page's refresh and a toast — or the refusal it names (a full bag), shown here.
+   */
+  _harvest(ctx) {
+    const r = Flora.harvest(ctx.entities, ctx.id, ctx.playerId);
+    if (r.qty === 0) {
+      if (r.reason !== "") Toast.push(I18n.text(r.reason), { type: "info" });
+      return;
+    }
+    ctx.scene.onCollect(r.itemId, r.qty); // quest/achievement credit + the pickup blip
+    ctx.scene.window.dirty = true;
+    Toast.push(
+      I18n.text("FLORA_HARVESTED", r.qty, I18n.text(Item.get(r.itemId).name)),
+      { type: "success" },
+    );
+  },
+
   register() {
     if (contentInteractions.registered) return;
     contentInteractions.registered = true;
@@ -109,47 +127,47 @@ globalThis.contentInteractions = {
         },
       },
       {
-        // a ripe plant (FloraSystem adds the Interaction at ripeness): the yield to the bag,
+        // a ripe plant (Flora.ripen adds the Interaction at ripeness): the yield to the bag,
         // then the plant regrows or goes — one action under two prompts (a crop is picked, a
         // tree felled)
         id: "harvest",
         prompt: "FLORA_HARVEST_PROMPT",
         run(ctx) {
-          FloraSystem.harvest(ctx.scene, ctx.id);
+          contentInteractions._harvest(ctx);
         },
       },
       {
         id: "chop",
         prompt: "FLORA_CHOP_PROMPT",
         run(ctx) {
-          FloraSystem.harvest(ctx.scene, ctx.id);
+          contentInteractions._harvest(ctx);
         },
       },
       {
         // unhired/kicked companion — talking recruits it into the player's squad
-        // (FollowerSystem.hire adds Squad + follow + carry bonus and drops this Interaction)
+        // (Companions.hire adds Squad + follow + carry bonus and drops this Interaction)
         id: "rehire",
         prompt: "SQUAD_RECRUIT_PROMPT",
         run(ctx) {
-          FollowerSystem.hire(ctx.entities, ctx.playerId, ctx.id);
+          Companions.hire(ctx.entities, ctx.playerId, ctx.id);
           ctx.scene.window.dirty = true; // squad roster changed
           Toast.push(I18n.text("SQUAD_HIRED"), { type: "success" });
         },
       },
       {
-        // a squad member (FollowerSystem.hire swaps its "rehire" for this): E flips it between
-        // following and waiting here (FollowerSystem.toggle); the prompt names the flip, and a
+        // a squad member (Companions.hire swaps its "rehire" for this): E flips it between
+        // following and waiting here (Companions.toggle); the prompt names the flip, and a
         // member that is not commandable (Downed) shows none. Priority -1: a companion walks at
         // your side, so by proximity it yields to any station you stopped at.
         id: "companion",
         priority: -1,
         prompt(ctx) {
-          const next = FollowerSystem.next(ctx.entities, ctx.id);
+          const next = Companions.next(ctx.entities, ctx.id);
           if (next === "") return "";
           return next === "wait" ? "FOLLOWER_WAIT_PROMPT" : "FOLLOWER_FOLLOW_PROMPT";
         },
         run(ctx) {
-          const state = FollowerSystem.toggle(ctx.entities, ctx.playerId, ctx.id);
+          const state = Companions.toggle(ctx.entities, ctx.playerId, ctx.id);
           if (state === "") return;
           Toast.push(I18n.text(state === "wait" ? "FOLLOWER_WAIT" : "FOLLOWER_FOLLOW"), {
             type: state === "wait" ? "info" : "success",
@@ -163,7 +181,7 @@ globalThis.contentInteractions = {
         id: "hydrate",
         prompt: "SURVIVAL_DRINK_PROMPT",
         run(ctx) {
-          const ok = NeedSystem.restore(
+          const ok = Needs.restore(
             ctx.entities,
             ctx.playerId,
             Thirst,
@@ -178,7 +196,7 @@ globalThis.contentInteractions = {
         id: "feed",
         prompt: "SURVIVAL_EAT_PROMPT",
         run(ctx) {
-          const ok = NeedSystem.restore(
+          const ok = Needs.restore(
             ctx.entities,
             ctx.playerId,
             Hunger,
@@ -193,7 +211,7 @@ globalThis.contentInteractions = {
         id: "buff",
         prompt: "SURVIVAL_PRAY_PROMPT",
         run(ctx) {
-          StatusSystem.apply(
+          Effects.apply(
             ctx.entities,
             ctx.playerId,
             ctx.comp.status ?? "regen",

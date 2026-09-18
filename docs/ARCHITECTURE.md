@@ -65,7 +65,7 @@ and are cited from here, never restated):
     - Systems are plain objects `{ update(level) }` — the level in hand is the whole context (its
       store, its grid, its records, its caches), and a system never takes the scene — some also
       exposing named query/resolve methods a consumer calls on demand
-      (`PathfindingSystem.current`/`advance`).
+      (`SolidSystem.colliders`, `PathfindingSystem.nav`).
     - Each `Level` owns its `EntityStore`, one sparse set per token, whose walks run down the LEAD
       token's carriers in an order that is never by index (contract at `ComponentStore`). A
       component the caller's contract requires is read with `entities.require`, which throws on a
@@ -186,14 +186,14 @@ and are cited from here, never restated):
 - Injection idiom: a module stays model-agnostic by exposing a hook its consumer wires at scene
   setup — Core to Game (`RenderLighting`'s `ambient`, `UIQuestTracker`'s `source`) and, inside
   Game, a system to the scene that owns the stat model (`Combat.mitigate`,
-  `StatusSystem.onStatsChanged`, `Consumption.grantAttr`, all wired in `sceneColony.create`).
+  `Effects.onStatsChanged`, `Consumption.grantAttr`, all wired in `sceneColony.create`).
   Extend through the seam; never make Core reach down into Game.
 - The view rule (a UI module holds no rule, as a system holds no state): a `*UI` page, a HUD
   module or a panel-handle module (`Hud`, `Interactable`, `BuildMode`) takes the scene for its
   seams — the level in hand, the player id, the shell it lives in (`window`, `ui`) — and states no
   gameplay rule of its own.
     - Every mutation it makes is ONE call into the owning system (`Bag.transfer`,
-      `TradeSystem.buy`, `Crafting.craft`, `Loadout.reconcile`), so a refusal is the system's to
+      `Trade.buy`, `Crafting.craft`, `Loadout.reconcile`), so a refusal is the system's to
       state and the view's to show, and what the view keeps is the gesture, the rows and the guard
       it composes from queries.
     - A shape two screens share is a Facet factory (`facetColumn`, `facetListDetail`,

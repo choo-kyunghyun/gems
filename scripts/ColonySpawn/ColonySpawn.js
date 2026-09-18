@@ -397,7 +397,7 @@ globalThis.ColonySpawn = {
       },
       {
         // Companion (a dynamic solid body). Spawns UNHIRED — a map resident with a "rehire"
-        // Interaction (talk to hire into the squad; FollowerSystem.hire adds Squad + swaps it for
+        // Interaction (talk to hire into the squad; Companions.hire adds Squad + swaps it for
         // "companion"). Mortal-but-recoverable: at 0 hp it goes Down, then revives at the
         // recovery spot (see ColonyCombat.resolveHealth/updateDowned). No AI attach — FollowerSystem
         // drives every Follower entity by query.
@@ -570,14 +570,14 @@ globalThis.ColonySpawn = {
   _postFlora(entities, id, ctx) {
     const s = ctx.opts.descriptor;
     if (s.species === undefined) return;
-    FloraSystem.attach(entities, id);
+    Flora.attach(entities, id);
     ColonySpawn._mirror(entities, id, s);
   },
 
   /**
    * A flora species' per-spawn overrides: the species' sprite sheet and name, and its Growth
    * record (progress as authored, default a seedling; `wild` marks the generator's and the
-   * spread's). The stage frame and the ripe Interaction are FloraSystem.attach's, after the spawn.
+   * spread's). The stage frame and the ripe Interaction are Flora.attach's, after the spawn.
    */
   _flora(s, over) {
     const def = contentFlora.get(s.species);

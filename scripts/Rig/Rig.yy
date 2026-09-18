@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Rig",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Rig",
+  "parent":{
+    "name":"System",
+    "path":"folders/Core/System.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Rig.js",
+}

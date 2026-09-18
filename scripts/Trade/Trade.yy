@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Trade",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Trade",
+  "parent":{
+    "name":"System",
+    "path":"folders/Game/System.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Trade.js",
+}

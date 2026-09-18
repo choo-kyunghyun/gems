@@ -223,8 +223,8 @@ globalThis.ColonyCombat = {
       } else {
         sk.alpha = 0.4;
         sk.yscale = Math.abs(sk.yscale) * 0.45;
-        SkeletonSystem.apply(entities, id);
-        SkeletonSystem.rate(entities, id, 0);
+        Rig.apply(entities, id);
+        Rig.rate(entities, id, 0);
       }
     }
     entities.add(id, Interaction, { kind: "corpse" });

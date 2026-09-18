@@ -379,7 +379,7 @@ globalThis.InventoryUI = {
    */
   _buildFollowerRows(scene, host) {
     const squad = scene.level.entities.require(scene.playerId, Squad);
-    const ids = FollowerSystem.members(
+    const ids = Companions.members(
       scene.level.entities,
       squad.id,
       scene.playerId,

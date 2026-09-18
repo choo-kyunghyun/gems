@@ -1,5 +1,3 @@
-const MOVE_SPEED = 220; // world px/s (32px-cell scale)
-const PLAYER_SCALE = 1.5; // baked size factor over the 32px design cell (bbox + Skeleton)
 const SPRINT_MULT = 1.6; // speed multiplier while sprinting (drains Stamina)
 const BULLET_SPEED = 600; // world px/s — gun muzzle velocity (feeds kinetic power + hitscan reach)
 const SHOT_RANGE_SECS = 1.5; // hitscan reach = velocity × this (s) ≈ 1.5 s of bullet flight
@@ -9,7 +7,7 @@ const KICK_ANIM = 0.38; // s the kick plays (5 frames @ 13fps — fits the fist'
 const MELEE_REACH = 34; // fallback reach (px) for a melee weapon without `reach`
 const STICK_DEADZONE = 0.25; // analog stick magnitude below this reads as centered (drift guard)
 
-// grenade (G / LT): a fused charge lobbed at the cursor (FuseSystem.lob)
+// grenade (G / LT): a fused charge lobbed at the cursor (Combat.lob)
 // TODO: a grenade item (a Throwable capability) gates the throw on the bag; until then it is unlimited
 const GRENADE_SPEED = 320; // world px/s — flight speed of the lobbed charge
 const GRENADE_FUSE = 1.5; // s from the throw to the blast
@@ -22,116 +20,14 @@ const THROW_CD = 0.5; // s before the next shot/throw after a throw
 // pre-composed melee profile (composeWeapon shape) for a fully unarmed wielder; read-only, shared.
 const PLAYER_FIST = { kind: "melee", damage: 1, fireCd: 0.37, reach: 22 };
 
-// The player brain as an ECS system (the input counterpart of CombatAI): update(entities) drives
+// The player brain as an ECS system (the input counterpart of CombatAI): update(level) drives
 // every Playable entity once per frame — it runs at the HEAD of the scene's physics sequence, before
 // SolidSystem integrates the Velocity it writes. Per-frame state (fireCd/attackCd + the scene-
 // latched world cursor) lives in the Playable component, so it rides the map transfer with the
-// player. bindKeys() is input LIFECYCLE, not simulation — the app registers the keymap once at
-// boot (Game Create_0) and it stays for the run: the settings key-binding list (keymap()) rebinds
-// it live, and InputPreset persists the rebinds over it.
+// player. The keymap it reads is ColonyKeymap's (bound at boot); the player entity and its tuning
+// are ColonyPlayer's.
 
 globalThis.PlayerSystem = {
-  /**
-   * register the colony keymap + InputContext tags (boot; idempotent).
-   *
-   * tags (set by sceneColony each frame): movement live everywhere; fire "play"-only so it self-mutes
-   * while building/window (no per-frame BuildMode check); the build brush "build"-only, on the same
-   * mouse buttons (the context splits them — and Input mutes both while the build bar holds the
-   * pointer); interact opens in play / closes a window; build inert with a window open. See
-   * InputContext / inContext.
-   */
-  bindKeys() {
-    const ANYWHERE = ["play", "build", "window"];
-    Input.bindAll({
-      moveLeft: [INPUT_SOURCE.KEYBOARD, ord("A"), ANYWHERE],
-      moveRight: [INPUT_SOURCE.KEYBOARD, ord("D"), ANYWHERE],
-      moveUp: [INPUT_SOURCE.KEYBOARD, ord("W"), ANYWHERE],
-      moveDown: [INPUT_SOURCE.KEYBOARD, ord("S"), ANYWHERE],
-      sprint: [INPUT_SOURCE.KEYBOARD, vk_shift, ANYWHERE], // hold to sprint (drains Stamina)
-      fire: [INPUT_SOURCE.MOUSE, mb_left, ["play"]],
-      buildPlace: [INPUT_SOURCE.MOUSE, mb_left, ["build"]], // place the brush (BuildMode)
-      buildRemove: [INPUT_SOURCE.MOUSE, mb_right, ["build"]], // deconstruct under the brush (BuildMode)
-      inventory: [INPUT_SOURCE.KEYBOARD, ord("I"), ANYWHERE],
-      interact: [INPUT_SOURCE.KEYBOARD, ord("E"), ["play", "window"]],
-      build: [INPUT_SOURCE.KEYBOARD, ord("B"), ["play", "build"]],
-      reload: [INPUT_SOURCE.KEYBOARD, ord("R"), ["play"]], // top up the equipped gun's magazine
-      grenade: [INPUT_SOURCE.KEYBOARD, ord("G"), ["play"]], // lob a grenade at the cursor
-    });
-
-    // gamepad (device 0) added alongside the keyboard bindings (InputAction OR-combines). Twin-stick:
-    // left=move, right=aim. Self-mutes while a menu owns nav, so the sticks drive UINav with a window open.
-    const GP = INPUT_SOURCE.GAMEPAD;
-    Input.get("moveLeft").bindButton(GP, gp_padl);
-    Input.get("moveRight").bindButton(GP, gp_padr);
-    Input.get("moveUp").bindButton(GP, gp_padu);
-    Input.get("moveDown").bindButton(GP, gp_padd);
-    Input.get("sprint").bindButton(GP, gp_shoulderl); // LB (hold)
-    Input.get("fire").bindButton(GP, gp_shoulderrb); // RT
-    Input.get("inventory").bindButton(GP, gp_face4); // Y
-    Input.get("interact").bindButton(GP, gp_face1); // A
-    Input.get("build").bindButton(GP, gp_face3); // X
-    Input.get("grenade").bindButton(GP, gp_shoulderlb); // LT
-    // analog axes: left stick = movement (everywhere), right stick = aim ("play" only)
-    Input.register(
-      "moveX",
-      new InputAction()
-        .bindAxis(INPUT_AXIS_MODE.STICK, gp_axislh)
-        .inContext(ANYWHERE),
-    );
-    Input.register(
-      "moveY",
-      new InputAction()
-        .bindAxis(INPUT_AXIS_MODE.STICK, gp_axislv)
-        .inContext(ANYWHERE),
-    );
-    Input.register(
-      "aimX",
-      new InputAction()
-        .bindAxis(INPUT_AXIS_MODE.STICK, gp_axisrh)
-        .inContext(["play"]),
-    );
-    Input.register(
-      "aimY",
-      new InputAction()
-        .bindAxis(INPUT_AXIS_MODE.STICK, gp_axisrv)
-        .inContext(["play"]),
-    );
-
-    // hotbar number keys 1..N, "play"-only so they self-mute with a window open or building (keyboard
-    // only — the gamepad dpad is movement)
-    for (let i = 0; i < HOTBAR_SIZE; i++) {
-      Input.register(
-        "hotbar" + (i + 1),
-        new InputAction()
-          .bindButton(INPUT_SOURCE.KEYBOARD, ord(String(i + 1)))
-          .inContext(["play"]),
-      );
-    }
-  },
-
-  // build the colony player entity (ColonyPlayer.spawn adds Playable + Skeleton with the rest of the
-  // sheet) at this genre's tuning. Boot only — a trip arrival transfers the existing player.
-  /** Returns the player entity id. */
-  spawn(entities, spawn) {
-    return ColonyPlayer.spawn(entities, spawn, {
-      // 16 design × 1.5 scale = 24 world px — nearer the doll's visual body (a smaller box
-      // let the sprite hug walls/mobs deep enough to bury); stays under the 32px cell so
-      // 1-cell doorways remain passable
-      bbox: { x: -8, y: -8, width: 16, height: 16 },
-      dir: { x: 0, y: 1, z: 0 },
-      speed: MOVE_SPEED,
-      scale: PLAYER_SCALE,
-    });
-  },
-
-  /**
-   * resolve THE player entity live by query (never a stored id — a map transfer can't dangle
-   * it); -1 when no Playable entity exists. sceneColony latches it per frame as scene.playerId.
-   */
-  id(entities) {
-    return entities.first(Playable);
-  },
-
   /** once per tick, from the scene's physics sequence: drive every Playable entity */
   update(level) {
     const entities = level.entities;
@@ -166,8 +62,8 @@ globalThis.PlayerSystem = {
     // status speed multiplier (encumbrance/slow/haste) × terrain movement cost (wading/mud slow —
     // PathFollow.speedScale); applied here, not on Stats.speed, so it never disturbs the derived sheet
     const speed =
-      (stats !== undefined ? stats.speed : MOVE_SPEED) *
-      StatusSystem.scale(entities, id, "speed") *
+      (stats !== undefined ? stats.speed : ColonyPlayer.TUNING.speed) *
+      Effects.scale(entities, id, "speed") *
       PathFollow.speedScale(level.grid, pp.x, pp.y);
     const len = Math.sqrt(dx * dx + dy * dy);
     // sprint (Shift while moving, drains Stamina); Endurance returns whether the boost applies.
@@ -354,7 +250,7 @@ globalThis.PlayerSystem = {
         dir.y = dy / d;
       }
     }
-    FuseSystem.lob(entities, id, tx, ty, {
+    Combat.lob(entities, id, tx, ty, {
       speed: GRENADE_SPEED,
       secs: GRENADE_FUSE,
       radius: GRENADE_RADIUS,
@@ -363,31 +259,5 @@ globalThis.PlayerSystem = {
     pl.fireCd = THROW_CD;
     pl.attackAnim = "attack"; // the punch thrust reads as the throw
     pl.attackCd = ATTACK_ANIM;
-  },
-
-  /**
-   * The rebindable keymap in display order — `{ action, label }` rows (label a live textRef) for
-   * a settings key-binding list (GameOverlay.keymap). The stick axes are gamepad-only and stay out.
-   */
-  keymap() {
-    const rows = [
-      ["moveUp", "INPUT_MOVE_UP"],
-      ["moveLeft", "INPUT_MOVE_LEFT"],
-      ["moveDown", "INPUT_MOVE_DOWN"],
-      ["moveRight", "INPUT_MOVE_RIGHT"],
-      ["sprint", "INPUT_SPRINT"],
-      ["fire", "INPUT_FIRE"],
-      ["reload", "INPUT_RELOAD"],
-      ["grenade", "INPUT_GRENADE"],
-      ["interact", "INPUT_INTERACT"],
-      ["inventory", "INPUT_INVENTORY"],
-      ["build", "INPUT_BUILD"],
-    ].map((r) => ({ action: r[0], label: I18n.textRef(r[1]) }));
-    for (let i = 0; i < HOTBAR_SIZE; i++)
-      rows.push({
-        action: "hotbar" + (i + 1),
-        label: I18n.textRef("INPUT_HOTBAR", i + 1),
-      });
-    return rows;
   },
 };

@@ -123,7 +123,7 @@ globalThis.Hud = {
       facetProgress(
         () =>
           1 -
-          NeedSystem.fraction(scene.level.entities.get(scene.playerId, need.id)),
+          Needs.fraction(scene.level.entities.get(scene.playerId, need.id)),
         {
           label: I18n.textRef(need.name),
           fillColor: status !== undefined ? status.color : FacetTheme.text,
@@ -253,7 +253,7 @@ globalThis.Hud = {
       facetLabel(
         () => {
           const pos = scene.level.entities.require(scene.playerId, Position);
-          const k = RoomSystem.tempAt(scene.level, pos.x, pos.y);
+          const k = Shelter.tempAt(scene.level, pos.x, pos.y);
           return I18n.text(
             "HUD_CONDITION",
             I18n.text(Weather.current().name),
@@ -270,7 +270,7 @@ globalThis.Hud = {
     statusRow.insertChild(
       facetRichText(
         () => {
-          const list = StatusSystem.list(scene.level.entities, scene.playerId);
+          const list = Effects.list(scene.level.entities, scene.playerId);
           let s = "";
           for (let i = 0; i < list.length; i++) {
             const def = Status.get(list[i].id);

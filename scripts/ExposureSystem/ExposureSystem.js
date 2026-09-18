@@ -1,14 +1,14 @@
 // Exposure need driver — the thin-air rule over the shared NeedSystem core: under the open sky the meter
-// rises, cut by the seal of the gear worn; sheltered (RoomSystem.sheltered) it recovers. update() runs in the
+// rises, cut by the seal of the gear worn; sheltered (Shelter.sheltered) it recovers. update() runs in the
 // sim, after the room mirror is synced (RoomSystem.update) — NeedSystem.update runs it there. Takes the level (its room mirror).
 globalThis.ExposureSystem = {
   update(level) {
     const entities = level.entities;
     entities.forEach([Exposure, Position], (id, c, pos) => {
       let rate;
-      if (RoomSystem.sheltered(level, pos.x, pos.y)) rate = -c.recover;
+      if (Shelter.sheltered(level, pos.x, pos.y)) rate = -c.recover;
       else rate = c.rate * (1 - ExposureSystem.seal(entities, id));
-      NeedSystem.step(entities, id, c, rate);
+      Needs.step(entities, id, c, rate);
     });
   },
 

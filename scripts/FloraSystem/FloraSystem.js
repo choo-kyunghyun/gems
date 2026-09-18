@@ -1,30 +1,27 @@
 /**
- * The flora of a level — growth, spread and harvest of every plant, over the Growth component and
- * the contentFlora species table. Runs on the ACTIVE map only, like every system, but in IN-GAME
- * HOURS off one whole-map record: the level's flora clock (Records KEY → { lastHour }, the hour
- * the level was last grown to). A parked map's clock simply stops, so its first tick after a
- * resume or a load spans the whole absence and the forest grows while the squad is away — no
- * off-focus simulation, no scheduling. A span is cut at DAY boundaries, so a long absence still
- * grows each day under its own season.
+ * The growth and spread of a level's flora, over the Growth component and the contentFlora
+ * species table. Runs on the ACTIVE map only, like every system, but in IN-GAME HOURS off one
+ * whole-map record: the level's flora clock (Records KEY → { lastHour }, the hour the level was
+ * last grown to). A parked map's clock simply stops, so its first tick after a resume or a load
+ * spans the whole absence and the forest grows while the squad is away — no off-focus
+ * simulation, no scheduling. A span is cut at DAY boundaries, so a long absence still grows each
+ * day under its own season. The verbs over a plant (species, attach, canRoot, plant, harvest,
+ * stage, ripen) are Flora's.
  *
  * Growth: progress advances by dh / growHours × the species' season weight (0 halts it, and on a
- * non-hardy crop is the frost that kills it); the stage is floor(progress × (stages−1)), drawn as
- * the sprite FRAME (one sheet per species, a frame per stage — Visual.subimg; the specimen's size
- * variety is the spawn's `size`, baked once); a tree turns solid from `solidFrom`; a ripe plant (progress ≥ 1) carries its species' Interaction
- * (harvest/chop — contentInteractions), which harvest() serves: the yield to the bag, then
- * progress falls back to `regrow` or the plant goes.
+ * non-hardy crop is the frost that kills it); the stage is floor(progress × (stages−1)), drawn
+ * through Flora.stage; a ripe plant (progress ≥ 1) carries its species' Interaction (Flora.ripen).
  *
  * Spread: only WILD plants (the generator's and their seedlings) count and seed. Under the biome's
  * flora cap (its generation density × CAP) each hour rolls SPREAD_RATE seedings — a mature wild
  * plant seeding a cell within SPREAD_REACH, on its species' season weight — plus POOL_RATE rolls
  * of the biome pool at a random cell, so a species absent from a map can still arrive. A cell
- * takes root when its terrain material is in the species' ground list, no build layer covers it
- * and nothing stands on it (canRoot — the test a built crop passes too). A level without a biome
- * record (a pre-flora save) grows but never spreads.
+ * takes root when Flora.canRoot says so. A level without a biome record (a pre-flora save) grows
+ * but never spreads.
  *
  * Takes the level (its runtime — ColonyMap: terrainMats and the layer handles — its records and
- * its store); harvest() alone takes the scene, whose bag and report seam it feeds.
- * GMRT-safe: index loops, structural changes buffered past the scan (ComponentStore.forEach).
+ * its store). GMRT-safe: index loops, structural changes buffered past the scan
+ * (ComponentStore.forEach).
  */
 globalThis.FloraSystem = {
   KEY: "flora", // its Records key — a data key (a save holds it)
@@ -35,14 +32,6 @@ globalThis.FloraSystem = {
   _mature: [], // scratch: the tick's mature wild ids
   _ripe: [], // scratch: the ids that ripened this tick (their Interaction lands past the scan)
   _dead: [], // scratch: the ids the frost took
-
-  /** Species def by id; an unknown id throws (content is code — a retired id is a migration). */
-  species(id) {
-    const def = contentFlora.get(id);
-    if (def === undefined)
-      throw new Error(`FloraSystem: unknown species "${id}"`);
-    return def;
-  },
 
   /**
    * Grow the level up to now (WorldClock.absHours). Cheap when under an hour has passed;
@@ -78,7 +67,7 @@ globalThis.FloraSystem = {
     let d = 0;
     let wild = 0;
     entities.forEach([Growth, Visual], (id, g, vis) => {
-      const def = FloraSystem.species(g.species);
+      const def = Flora.species(g.species);
       const mul = def.season[season] ?? 1;
       if (mul === 0) {
         if (def.hardy === false) {
@@ -95,9 +84,9 @@ globalThis.FloraSystem = {
         if (was < 1) ripe[r++] = id;
         if (g.wild) mature[m++] = id;
       }
-      FloraSystem._stage(entities, id, g, vis, def);
+      Flora.stage(entities, id, g, vis, def);
     });
-    for (let i = 0; i < r; i++) FloraSystem._ripen(entities, ripe[i]);
+    for (let i = 0; i < r; i++) Flora.ripen(entities, ripe[i]);
     ripe.length = 0;
     if (d > 0) {
       for (let i = 0; i < d; i++) entities.remove(dead[i]);
@@ -106,37 +95,6 @@ globalThis.FloraSystem = {
     }
     FloraSystem._spread(level, season, dh, wild, m);
     mature.length = 0;
-  },
-
-  /** Apply the stage progress implies: the sheet's frame, and a trunk turning solid from `solidFrom`. */
-  _stage(entities, id, g, vis, def) {
-    const last = def.stages - 1;
-    let stage = Math.floor(g.progress * last);
-    if (stage > last) stage = last;
-    if (stage === g.stage) return;
-    g.stage = stage;
-    vis.subimg = stage;
-    if (def.solidFrom === undefined) return;
-    const col = entities.get(id, Collision);
-    if (col === undefined) return;
-    col.solid = stage >= def.solidFrom;
-  },
-
-  _ripen(entities, id) {
-    if (entities.has(id, Interaction)) return;
-    const def = FloraSystem.species(entities.get(id, Growth).species);
-    entities.add(id, Interaction, { kind: def.action });
-  },
-
-  /**
-   * A freshly spawned plant (ColonySpawn, for any `species` descriptor): its stage frame and, if
-   * already ripe, its Interaction.
-   */
-  attach(entities, id) {
-    const g = entities.get(id, Growth);
-    const def = FloraSystem.species(g.species);
-    FloraSystem._stage(entities, id, g, entities.get(id, Visual), def);
-    if (g.progress >= 1) FloraSystem._ripen(entities, id);
   },
 
   /** The biome's flora pool for a level, or undefined (no biome record, or a biome without one). */
@@ -163,14 +121,13 @@ globalThis.FloraSystem = {
       n--;
       const parent = mature[Math.floor(Math.random() * m)];
       const species = entities.get(parent, Growth).species;
-      const def = FloraSystem.species(species);
+      const def = Flora.species(species);
       if (Math.random() >= (def.season[season] ?? 1)) continue;
       const pos = entities.get(parent, Position);
       const c = grid.worldToGrid(pos.x, pos.y);
       const gx = c.x + FloraSystem._offset(reach);
       const gy = c.y + FloraSystem._offset(reach);
-      if (FloraSystem.canRoot(level, def, gx, gy))
-        FloraSystem.plant(level, species, gx, gy);
+      if (Flora.canRoot(level, def, gx, gy)) Flora.plant(level, species, gx, gy);
     }
     // the biome pool at a random cell — how a species reaches a map it is absent from
     n = FloraSystem._draws(FloraSystem.POOL_RATE * dh);
@@ -180,8 +137,8 @@ globalThis.FloraSystem = {
       if (species === undefined) continue;
       const gx = 1 + Math.floor(Math.random() * (grid.cols - 2));
       const gy = 1 + Math.floor(Math.random() * (grid.rows - 2));
-      if (FloraSystem.canRoot(level, FloraSystem.species(species), gx, gy))
-        FloraSystem.plant(level, species, gx, gy);
+      if (Flora.canRoot(level, Flora.species(species), gx, gy))
+        Flora.plant(level, species, gx, gy);
     }
   },
 
@@ -203,113 +160,13 @@ globalThis.FloraSystem = {
   _roll(pool, season) {
     let total = 0;
     for (let i = 0; i < pool.length; i++)
-      total +=
-        pool[i][1] * (FloraSystem.species(pool[i][0]).season[season] ?? 1);
+      total += pool[i][1] * (Flora.species(pool[i][0]).season[season] ?? 1);
     if (total <= 0) return undefined;
     let roll = Math.random() * total;
     for (let i = 0; i < pool.length; i++) {
-      roll -=
-        pool[i][1] * (FloraSystem.species(pool[i][0]).season[season] ?? 1);
+      roll -= pool[i][1] * (Flora.species(pool[i][0]).season[season] ?? 1);
       if (roll < 0) return pool[i][0];
     }
     return pool[pool.length - 1][0];
-  },
-
-  /**
-   * The terrain material id under a cell (contentBiomes.MATERIALS), read off the map's material
-   * table (the runtime's terrainMats — ColonyLevel._terrainTypes); undefined off-grid, or on a
-   * map whose saved rows predate the material column.
-   */
-  materialAt(level, gx, gy) {
-    const rt = ColonyMap.runtime(level);
-    const mats = rt.terrainMats;
-    if (mats === undefined) return undefined;
-    const t = rt.terrainLayer.get(gx, gy);
-    for (let i = 0; i < mats.length; i++)
-      if (mats[i].type === t) return mats[i].material;
-    return undefined;
-  },
-
-  /**
-   * Can `def` take root at a cell: inside the border margin, on its ground, under no build layer
-   * or built entity, and with nothing standing on the cell — a body, a prop, another plant.
-   */
-  canRoot(level, def, gx, gy) {
-    const grid = level.grid;
-    if (gx < 1) return false;
-    if (gy < 1) return false;
-    if (gx >= grid.cols - 1) return false;
-    if (gy >= grid.rows - 1) return false;
-    const mat = FloraSystem.materialAt(level, gx, gy);
-    if (mat === undefined) return false;
-    if (def.ground.indexOf(mat) < 0) return false;
-    const rt = ColonyMap.runtime(level);
-    const lkeys = contentBuild.tileLayers();
-    for (let i = 0; i < lkeys.length; i++)
-      if (TileEdit.occupied(rt[lkeys[i] + "Layer"], gx, gy)) return false;
-    if (BuildMode.of(level).builtEnts[gx + "," + gy] !== undefined)
-      return false;
-    const w = grid.gridToWorld(gx, gy);
-    const hw = grid.cellWidth / 2;
-    const hh = grid.cellHeight / 2;
-    const stand = Query.inRect(
-      level.entities,
-      w.x - hw,
-      w.y - hh,
-      w.x + hw,
-      w.y + hh,
-    );
-    return stand.length === 0;
-  },
-
-  /** Put a wild seedling of `species` down at a cell (no root test — that is the caller's). */
-  plant(level, species, gx, gy) {
-    const def = FloraSystem.species(species);
-    return ColonySpawn.spawnEntity(level.entities, level.grid, {
-      preset: def.preset,
-      species: species,
-      gx: gx,
-      gy: gy,
-      wild: true,
-      progress: 0,
-      yaw: Math.floor(Math.random() * 4) * 90,
-      size: 0.8 + Math.floor(Math.random() * 5) * 0.15, // the generator's specimen range
-    });
-  },
-
-  /**
-   * The harvest/chop action: a ripe plant's yield to the player's bag — all or nothing, so a full
-   * bag refuses rather than losing the rest — then the plant regrows or goes. Returns whether
-   * anything was taken.
-   */
-  harvest(scene, id) {
-    const entities = scene.level.entities;
-    const g = entities.require(id, Growth);
-    if (g.progress < 1) return false;
-    const def = FloraSystem.species(g.species);
-    const inv = entities.require(scene.playerId, Inventory);
-    const qty = def.yield.qty;
-    const left = Bag.add(inv, def.yield.itemId, qty);
-    if (left > 0) {
-      if (left < qty) Bag.remove(inv, def.yield.itemId, qty - left);
-      Toast.push(I18n.text("INV_FULL"), { type: "info" });
-      return false;
-    }
-    scene.onCollect(def.yield.itemId, qty); // quest/achievement credit + the pickup blip
-    scene.window.dirty = true;
-    Toast.push(
-      I18n.text(
-        "FLORA_HARVESTED",
-        qty,
-        I18n.text(Item.get(def.yield.itemId).name),
-      ),
-      { type: "success" },
-    );
-    if (def.regrow !== undefined) {
-      g.progress = def.regrow;
-      entities.detach(id, Interaction);
-      FloraSystem._stage(entities, id, g, entities.get(id, Visual), def);
-    } else entities.remove(id);
-    return true;
   },
 };

@@ -14,11 +14,30 @@ globalThis.ColonyPlayer = {
   // would wash the garments with it (the manual's composite of instance and slot blends).
   SKIN: 0x90b8e8,
 
+  // the colony player's tuning — spawn's default opts: 16 design × 1.5 scale = 24 world px
+  // bbox, nearer the doll's visual body (a smaller box let the sprite hug walls/mobs deep enough
+  // to bury) and under the 32px cell so 1-cell doorways remain passable; speed in world px/s
+  TUNING: {
+    bbox: { x: -8, y: -8, width: 16, height: 16 },
+    dir: { x: 0, y: 1, z: 0 },
+    speed: 220,
+    scale: 1.5,
+  },
+
   /**
-   * create the player entity, return its id. `opts`: bbox, dir, speed, scale? (baked size
-   * factor over art-native 1.0 — multiplies the bbox AND the Visual, like a preset's design scale).
+   * resolve THE player entity live by query (never a stored id — a map transfer can't dangle
+   * it); -1 when no Playable entity exists. sceneColony latches it per frame as scene.playerId.
    */
-  spawn(entities, spawn, opts) {
+  id(entities) {
+    return entities.first(Playable);
+  },
+
+  /**
+   * create the player entity, return its id. `opts` (default TUNING): bbox, dir, speed, scale?
+   * (baked size factor over art-native 1.0 — multiplies the bbox AND the Visual, like a preset's
+   * design scale). Boot only — a trip arrival transfers the existing player.
+   */
+  spawn(entities, spawn, opts = ColonyPlayer.TUNING) {
     const k = opts.scale ?? 1;
     const id = entities.create();
     entities.add(id, Position, { x: spawn.x, y: spawn.y, z: 0 });
@@ -168,7 +187,7 @@ globalThis.ColonyPlayer = {
     if (rig === undefined) return;
     const st = rig[state];
     if (st === undefined) return;
-    SkeletonSystem.set(entities, id, st.anim, st.loop);
+    Rig.set(entities, id, st.anim, st.loop);
   },
 
   // pace clamp: a blocked walker still shuffles, a hasted one never blurs
@@ -178,7 +197,7 @@ globalThis.ColonyPlayer = {
   /**
    * Stride-match every doll's locomotion set to its ACTUAL motion, once per frame: rate =
    * |velocity| / the set's RIGS `pace`, written to the puppet only when it changes
-   * (SkeletonSystem.rate). Any other set plays authored time. A corpse sheds Velocity
+   * (Rig.rate). Any other set plays authored time. A corpse sheds Velocity
    * (ColonyCombat._toCorpse), so its held `down` pose is never touched.
    */
   pace(entities) {
@@ -197,7 +216,7 @@ globalThis.ColonyPlayer = {
         const v = Math.sqrt(vel.x * vel.x + vel.y * vel.y) / pace;
         r = Math.min(Math.max(v, ColonyPlayer.PACE_MIN), ColonyPlayer.PACE_MAX);
       }
-      SkeletonSystem.rate(entities, id, r);
+      Rig.rate(entities, id, r);
     });
   },
 
@@ -212,7 +231,7 @@ globalThis.ColonyPlayer = {
     const xscale = sk.xscale;
     if (vx < -d) sk.xscale = -Math.abs(sk.xscale);
     else if (vx > d) sk.xscale = Math.abs(sk.xscale);
-    if (sk.xscale !== xscale) SkeletonSystem.apply(entities, id);
+    if (sk.xscale !== xscale) Rig.apply(entities, id);
   },
 
   /**

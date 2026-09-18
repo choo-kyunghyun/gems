@@ -11,7 +11,7 @@
  *   (recruit an unhired companion) | "claim" | "bed" | "hydrate" | "feed" | "buff" | "harvest" |
  *   "chop" (a ripe plant — FloraSystem) | "talk" (a quest NPC: offer / turn-in) | "trade" (a
  *   merchant NPC: its shop) — the NPC pair is ColonySpawn's, so an NPC is picked beside a station |
- *   "companion" (a squad member: the wait/follow flip — FollowerSystem.hire sets it over "rehire")
+ *   "companion" (a squad member: the wait/follow flip — Companions.hire sets it over "rehire")
  * @property {string} [module]  workbench only: slotted WorkbenchModule itemId ("" / absent = empty)
  * @property {boolean} [open]   door only: current leaf state
  * @property {number} [yaw] door facing

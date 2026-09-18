@@ -42,9 +42,9 @@ class _SceneColonyClass {
       StatModel.recompute(entities, id);
       return true;
     };
-    // inject re-derive into StatusSystem so mods-bearing status buffs fold in/out on apply/expire;
+    // inject re-derive into Effects so mods-bearing status buffs fold in/out on apply/expire;
     // dot/hot + live `mult` (encumbrance/speed) need no recompute — read directly / live
-    StatusSystem.onStatsChanged = function (entities, id) {
+    Effects.onStatsChanged = function (entities, id) {
       StatModel.recompute(entities, id);
     };
     // the world — its level pool is the map pool (every visited map stays alive there for the
@@ -157,7 +157,7 @@ class _SceneColonyClass {
           bonusWeight: 15,
         },
       );
-      FollowerSystem.hire(this.level.entities, this.playerId, companion);
+      Companions.hire(this.level.entities, this.playerId, companion);
     }
 
     // a wandering trader (Trader/WorldEvents/Universe): crosses hub <-> cave off-focus on the
@@ -341,7 +341,7 @@ class _SceneColonyClass {
 
     // re-latch the player id from the live Playable query (derived, not stored — ColonyMap.go's
     // boot/arrival also set it, so this is the per-frame self-heal, never the only source)
-    this.playerId = PlayerSystem.id(this.level.entities);
+    this.playerId = ColonyPlayer.id(this.level.entities);
 
     // sleeping (bed): checked BEFORE the sim so the waking press wakes instead of moving
     // this frame
@@ -388,7 +388,7 @@ class _SceneColonyClass {
     // sleep drains the player's drowsiness over that rise
     NeedSystem.update(this.level);
     if (this.sleeping)
-      NeedSystem.restore(
+      Needs.restore(
         this.level.entities,
         this.playerId,
         Drowsiness,
@@ -511,7 +511,7 @@ class _SceneColonyClass {
   kickFollower(fid) {
     if (!this.level.entities.has(fid, Squad)) return; // not a member
     if (this.level.entities.has(fid, Downed)) return; // recovering — can't kick mid-revive
-    FollowerSystem.kick(this.level.entities, this.playerId, fid);
+    Companions.kick(this.level.entities, this.playerId, fid);
     this.window.dirty = true; // squad roster changed
     Toast.push(I18n.text("SQUAD_KICKED"), { type: "info" });
   }
@@ -601,8 +601,7 @@ class _SceneColonyClass {
     for (let i = 0; i < needs.length; i++) {
       const need = this.level.entities.get(id, needs[i].id);
       if (need === undefined) continue; // a save from before the need
-      need.value = need.max * 0.5;
-      NeedSystem.refresh(this.level.entities, id, need); // so the debuff lifts with the refill
+      Needs.set(this.level.entities, id, needs[i].id, need.max * 0.5); // the debuff lifts with the refill
     }
     Log.info("player died — respawned at spawn");
   }

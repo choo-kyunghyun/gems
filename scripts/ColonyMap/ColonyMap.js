@@ -110,7 +110,7 @@ globalThis.ColonyMap = {
     // ── PHASE A: pull the squad out, then park the current map (its level stays pooled) ──
     if (scene.playerId !== undefined) {
       const sid = scene.level.entities.get(scene.playerId, Squad).id;
-      const members = FollowerSystem.members(
+      const members = Companions.members(
         scene.level.entities,
         sid,
         scene.playerId,
@@ -120,7 +120,7 @@ globalThis.ColonyMap = {
         // no member opts out of travel: a "wait" companion snaps back to follow (+carry bonus);
         // the player leads the list and is no Follower
         if (members[i] !== scene.playerId)
-          FollowerSystem.setState(
+          Companions.setState(
             scene.level.entities,
             scene.playerId,
             members[i],
@@ -375,7 +375,7 @@ globalThis.ColonyMap = {
     // boot only: spawn the player (mints the Squad id). A trip arrival
     // instead lands the transferred player in _arriveSquad right after this.
     if (squad === null) {
-      scene.playerId = PlayerSystem.spawn(level.entities, built.spawn);
+      scene.playerId = ColonyPlayer.spawn(level.entities, built.spawn);
     }
 
     // The level's whole-map records (Records), off the data's meta: the indoor flag (no sky
@@ -500,7 +500,7 @@ globalThis.ColonyMap = {
     const level = scene.level;
     const rt = ColonyMap.runtime(level);
     const camera = CameraSystem.view(level); // the camera entity is built first (_activate): every view-dependent pass takes its view here
-    GrassSystem.clearBuilt(level); // prefab-built ground sheds its grass before the VBOs bake
+    Grassland.clearBuilt(level); // prefab-built ground sheds its grass before the VBOs bake
     const renderer = new Renderer();
     rt.renderer = renderer;
     // Generated ground UNDER everything (the LAYERS loop below skips `terrain` when this ran).

@@ -55,7 +55,7 @@ globalThis.Consumption = {
     // Status grant via StatusSystem. A status-only consumable still counts as "did
     // something". statusDuration 0 → the def's own duration.
     if (con.status !== "") {
-      StatusSystem.apply(
+      Effects.apply(
         entities,
         id,
         con.status,
@@ -68,7 +68,7 @@ globalThis.Consumption = {
     for (const token in con.needs)
       if (
         con.needs[token] > 0 &&
-        NeedSystem.restore(entities, id, token, con.needs[token])
+        Needs.restore(entities, id, token, con.needs[token])
       )
         did = true;
     return did;

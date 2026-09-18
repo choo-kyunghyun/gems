@@ -6,7 +6,7 @@
  * contentBuild's catalog: an item is a TILE (TileLayer via TileEdit) or an ENTITY (its `spawn`
  * fields through descriptor() to ColonySpawn.spawnEntity); the `buildPlace`
  * (LMB) action places, `buildRemove` (RMB) deconstructs — "build"-context actions from the app
- * keymap (PlayerSystem.bindKeys), read through Input, which mutes them while the bar (or any
+ * keymap (ColonyKeymap.bind), read through Input, which mutes them while the bar (or any
  * widget) holds the pointer: a click on the palette never reaches the grid behind it, with no
  * rect guard of its own. The SHAPE row above the bar sets the brush's footprint: `cell` acts on
  * the hovered cell at once, `rect`/`frame`/`line` drag from a press to a release and act on every
@@ -418,7 +418,7 @@ globalThis.BuildMode = {
     // a crop roots only on its species' ground, and never over a standing body or prop
     if (item.species !== undefined) {
       if (
-        !FloraSystem.canRoot(
+        !Flora.canRoot(
           scene.level,
           contentFlora.get(item.species),
           gx,
@@ -501,7 +501,7 @@ globalThis.BuildMode = {
           ? rt[item.layer + "Types"][item.mat]
           : rt[item.layer + "Type"];
       TileEdit.set(layer, gx, gy, type);
-      GrassSystem.cut(level, gx, gy); // built ground kills the grass under it
+      Grassland.cut(level, gx, gy); // built ground kills the grass under it
       const solid = contentTiles.get(item.layer).solid === true;
       // nested, not `solid && …`: the short-circuit corrupts its left operand (docs/GMRT.md
       // #15549) and the return below would read false for a deferred solid tile
@@ -534,7 +534,7 @@ globalThis.BuildMode = {
       );
     }
     rec.builtEnts[key] = { ent: id, itemId: item.id };
-    GrassSystem.cut(level, gx, gy); // a built prop's pad kills the grass under it too
+    Grassland.cut(level, gx, gy); // a built prop's pad kills the grass under it too
     return id;
   },
 

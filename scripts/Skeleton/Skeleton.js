@@ -7,17 +7,17 @@
  * separately and would draw the body twice.
  *
  * The puppet is SkeletonSystem's: it mints one, binds `sprite`, and mirrors every field here
- * onto it WHEN THE FIELD CHANGES — through SkeletonSystem.set (`anim`, `loop`), .rate (`speed`),
+ * onto it WHEN THE FIELD CHANGES — through Rig.set (`anim`, `loop`), .rate (`speed`),
  * .tint (`tints`) and .apply (the transform). Writing a field here directly leaves the puppet
  * on the old value.
  *
  * @typedef {Object} Skeleton
  * @property {GMSprite} sprite  skeletal (Spine) sheet, bound to the puppet when it is minted
- * @property {string} anim            animation set playing now (SkeletonSystem.set to change);
+ * @property {string} anim            animation set playing now (Rig.set to change);
  *                                   authored at spawn with a set the sheet carries — no default
  * @property {boolean} loop           wrap past the last frame, else hold it
  * @property {number} speed           playback rate over authored time (1 = as authored in Spine,
- *                                   0 = hold the pose); SkeletonSystem.rate to change
+ *                                   0 = hold the pose); Rig.rate to change
  * @property {number} xscale          draw scale, sign = facing (image_xscale)
  * @property {number} yscale
  * @property {number} color           tint (image_blend) over the WHOLE rig, worn gear included

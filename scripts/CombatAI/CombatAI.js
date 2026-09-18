@@ -204,7 +204,7 @@ globalThis.CombatAI = {
           CombatAI._animate(
             entities,
             id,
-            brain.cd === brain.cdMax || !SkeletonSystem.finished(entities, id),
+            brain.cd === brain.cdMax || !Rig.finished(entities, id),
             false,
           );
         },

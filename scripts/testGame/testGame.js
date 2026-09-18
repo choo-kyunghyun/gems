@@ -74,7 +74,7 @@ globalThis.testGame = {
       },
     },
     // ── spine.speed: a set plays in its authored seconds ──────────────────────────
-    // SkeletonSystem._speed rests on `image_number` being the bound set's length in image
+    // Rig.speed rests on `image_number` being the bound set's length in image
     // frames at the sheet's speed: one pass at rate 1 must take `skeleton_animation_get_duration`
     // seconds, whatever frame rate the rig was exported at.
     {
@@ -92,7 +92,7 @@ globalThis.testGame = {
       verify(ctx, t) {
         const inst = ctx.inst;
         const sk = { sprite: spineHuman, anim: "walk0", loop: true, speed: 1 };
-        const speed = SkeletonSystem._speed(inst, sk);
+        const speed = Rig.speed(inst, sk);
         const pass = inst.image_number / (speed * sprite_get_speed(spineHuman));
         const authored = inst.skeleton_animation_get_duration("walk0");
         t.ok(authored > 0, "walk0 reads no duration");

@@ -105,8 +105,8 @@ globalThis.StatModel = {
 
   /**
    * fold active status mods (e.g. fortify +attack/+defense) into d, same as _foldEquipment.
-   * recompute-from-source: re-runs on apply/expire via StatusSystem.onStatsChanged hook.
-   * live mult statuses (speed) are NOT folded — read at point of use via StatusSystem.scale.
+   * recompute-from-source: re-runs on apply/expire via Effects.onStatsChanged hook.
+   * live mult statuses (speed) are NOT folded — read at point of use via Effects.scale.
    */
   _foldStatuses(entities, id, d) {
     const eff = entities.get(id, StatusEffects);

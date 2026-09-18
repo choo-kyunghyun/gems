@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Shelter",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Shelter",
+  "parent":{
+    "name":"System",
+    "path":"folders/Game/System.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Shelter.js",
+}

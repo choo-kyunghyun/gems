@@ -3,7 +3,7 @@
 /**
  * A status carries up to three effect kinds:
  *   dot/hot — Health change per `interval` (StatusSystem.update)
- *   mult    — live multiplicative factors read at use via StatusSystem.scale; never folded into Stats
+ *   mult    — live multiplicative factors read at use via Effects.scale; never folded into Stats
  *   mods    — flat Stats deltas folded by the GAME (StatModel._foldStatuses), re-derived via onStatsChanged
  * Status stays stat-model-agnostic: it owns list/timing/dot-hot/scale; the game owns how `mods` fold.
  */

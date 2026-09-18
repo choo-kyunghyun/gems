@@ -23,7 +23,7 @@ globalThis.GameOverlay = {
   // so the kit names no app file.
   settingsFile: null,
   // Boot-wired rebindable keymap the Settings tab lists — `{ action, label }` rows in display
-  // order (PlayerSystem.keymap) — null hides the section, so the kit names no action.
+  // order (ColonyKeymap.rows) — null hides the section, so the kit names no action.
   keymap: null,
 
   /**

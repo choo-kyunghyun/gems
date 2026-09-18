@@ -16,7 +16,8 @@
  * seeded on the first read), the temperatures its record (`level.meta`, under the same KEY).
  * `update` runs once per frame BEFORE the sim: the mirror first (the doors standing in the store
  * are the stamped footprints, then the walls are resampled if edited — the environmental needs
- * read it this frame), then the temperatures.
+ * read it this frame), then the temperatures. What a world point reads off them (under a roof?
+ * how warm?) is Shelter's.
  */
 globalThis.RoomSystem = {
   KEY: "rooms", // its key in both bags — the Rooms mirror in Level.cache, the temperature record in Level.meta
@@ -113,20 +114,4 @@ globalThis.RoomSystem = {
     rec.temps = temps; // rebuilt each step: a vanished room's key goes with it
   },
 
-  /** Whether a world point is under a roof: inside a room, or anywhere on an indoor map. */
-  sheltered(level, wx, wy) {
-    if (level.meta.get(ColonyMap.INDOOR) === true) return true;
-    return RoomSystem.rooms(level).atWorld(wx, wy) > 0;
-  },
-
-  /** The temperature at a world point in Kelvin: its room's, or the outside's. */
-  tempAt(level, wx, wy) {
-    const rooms = RoomSystem.rooms(level);
-    const r = rooms.atWorld(wx, wy);
-    if (r <= 0) return Temperature.now();
-    const rec = level.meta.get(RoomSystem.KEY);
-    if (rec === undefined) return Temperature.now();
-    const t = rec.temps[String(rooms.rooms[r].first)];
-    return t !== undefined ? t : Temperature.now();
-  },
 };

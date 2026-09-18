@@ -77,7 +77,7 @@ Audio.init();
 
 // the colony keymap is the app's control scheme, registered once for the run (no scene binds or
 // drops it); the saved input profile (rebinds + deadzone) then lands over its defaults
-PlayerSystem.bindKeys();
+ColonyKeymap.bind();
 InputPreset.load();
 
 // seed the gamepad slots with the configured stick deadzone; no pad is connected this early, so
@@ -181,7 +181,7 @@ this._destroyScene = () => {
 
 GameOverlay.quitTo = sceneLobby;
 GameOverlay.settingsFile = SETTINGS_FILE;
-GameOverlay.keymap = PlayerSystem.keymap(); // the Settings tab's key-binding list
+GameOverlay.keymap = ColonyKeymap.rows(); // the Settings tab's key-binding list
 // lobby is the boot scene + dev launcher; F2 (Step_0) also returns here. Applied immediately —
 // nothing to fade out from, so the boot fades IN from black instead.
 this._apply(TEST_AUTORUN ? sceneTest : sceneLobby);

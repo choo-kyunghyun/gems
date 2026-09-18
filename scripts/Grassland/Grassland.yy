@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Grassland",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Grassland",
+  "parent":{
+    "name":"System",
+    "path":"folders/Game/System.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Grassland.js",
+}

@@ -104,4 +104,41 @@ globalThis.Combat = {
     }
     return false;
   },
+
+  /**
+   * Lob a fused charge from `ownerId`'s Position toward (tx, ty): a lobbed Projectile whose range
+   * is the distance, so it lands ON the target point (or against the first collider on the way),
+   * carrying the Fuse FuseSystem counts down. Returns the charge's id.
+   *   spec: { speed (px/s), secs, radius, damage, penetration? }
+   */
+  lob(entities, ownerId, tx, ty, spec) {
+    const pos = entities.get(ownerId, Position);
+    const dx = tx - pos.x;
+    const dy = ty - pos.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    // a throw at the thrower's own feet has no direction: the charge just sits there
+    const nx = dist > 0 ? dx / dist : 0;
+    const ny = dist > 0 ? dy / dist : 0;
+    const id = entities.create();
+    entities.add(id, Position, { x: pos.x, y: pos.y, z: 0 });
+    entities.add(id, Velocity, {
+      x: nx * spec.speed,
+      y: ny * spec.speed,
+      z: 0,
+    });
+    entities.add(id, Projectile, {
+      damage: 0,
+      owner: ownerId,
+      lob: true,
+      range: dist,
+    });
+    entities.add(id, Fuse, {
+      secs: spec.secs,
+      radius: spec.radius,
+      damage: spec.damage,
+      owner: ownerId,
+      penetration: spec.penetration ?? 0,
+    });
+    return id;
+  },
 };
