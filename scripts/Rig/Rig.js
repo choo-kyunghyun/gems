@@ -86,7 +86,7 @@ globalThis.Rig = {
 
   /** The entity's first puppet — or the one a map transfer or a load left it without. */
   mint(entities, id, sk) {
-    const held = InstanceSystem.attach(entities, id);
+    const held = Puppets.attach(entities, id);
     held.inst.sprite_index = sk.sprite;
     Rig._play(held.inst, sk);
     Rig._transform(held.inst, sk);

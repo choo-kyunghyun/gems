@@ -518,6 +518,39 @@ globalThis.testCore = {
       },
     },
     {
+      id: "entity.transient",
+      // a minted token's release hook frees a datum wherever it leaves its slot, so a native
+      // handle needs no roster and no reap pass
+      setup(ctx) {
+        ctx.s = new EntityStore(8);
+        ctx.freed = [];
+      },
+      verify(ctx, t) {
+        const s = ctx.s;
+        const hook = (d) => ctx.freed.push(d.tag);
+        const a = s.create();
+        const b = s.create();
+        const c = s.create();
+        s.mint(a, "TestHandle", { tag: "a" }, hook);
+        s.mint(b, "TestHandle", { tag: "b" }, hook);
+        s.mint(c, "TestHandle", { tag: "c" }, hook);
+        t.eq(s.export().components["TestHandle"], undefined, "a hooked token is transient");
+        s.detach(a, "TestHandle");
+        t.eq(ctx.freed.join(""), "a", "detach releases the handle");
+        s.remove(b);
+        t.eq(ctx.freed.length, 1, "a queued removal releases nothing yet");
+        s.flush();
+        t.eq(ctx.freed.join(""), "ab", "flush releases the removed entity's handle");
+        s.add(c, "TestHandle", { tag: "c2" });
+        t.eq(ctx.freed.join(""), "abc", "a replacing add releases the old handle");
+        s.forEach(["TestHandle"], (id) => s.detach(id, "TestHandle"));
+        t.eq(ctx.freed.join(""), "abcc2", "a detach mid-walk releases at once");
+        s.mint(c, "TestHandle", { tag: "d" }, hook);
+        s.destroy();
+        t.eq(ctx.freed.join(""), "abcc2d", "the store's destroy releases what is left");
+      },
+    },
+    {
       id: "system.movement",
       setup(ctx) {
         ctx.level = new Level({ id: "test", capacity: 8 });

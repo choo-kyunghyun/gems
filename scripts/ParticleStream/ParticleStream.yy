@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"ParticleStream",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"ParticleStream",
+  "parent":{
+    "name":"Component",
+    "path":"folders/Core/Component.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"ParticleStream.js",
+}

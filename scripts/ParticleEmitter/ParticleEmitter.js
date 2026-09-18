@@ -6,8 +6,8 @@
  *
  * `asset` is the system's NAME, resolved at mint time, never a ref: the data snapshot-round-trips
  * as-is that way (an asset ref reflects as `{}` through a save — docs/GMRT.md), and a prop
- * descriptor can author one. The live handle is NOT here — a component is pure data, so the
- * roster holds it.
+ * descriptor can author one. The live handle is NOT here — it is the ParticleStream the system
+ * mints beside this, transient with its release hook.
  *
  * usage: entities.add(id, ParticleEmitter, { asset: "psDrop", color: c_orange })
  *

@@ -241,7 +241,6 @@ globalThis.ColonyMap = {
     ColonyMap._applyClimate(scene);
     FloatingText.clear();
     ParticleFx.clear();
-    ParticleEmitterSystem.clear();
     WorldOverlay.clearTracers();
   },
 

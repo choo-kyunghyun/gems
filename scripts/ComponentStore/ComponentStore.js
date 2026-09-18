@@ -19,7 +19,11 @@
  *
  * Persistence: a set is TRANSIENT once its token is minted (`mint`) — runtime-rebuilt by the
  * minting system, so `export` and `persistentOf` skip it, and a later `add` keeps it so. The mint
- * site owns that fact; no consumer names a transient token by hand.
+ * site owns that fact; no consumer names a transient token by hand. A mint may also hand the set
+ * its RELEASE hook — `destroy(data)`, called as the data leaves its slot (a detach, the entity's
+ * clear at flush, a replacing add, an import over the store, the store's destroy) — so a
+ * component holding a native handle (a Puppet instance, a particle system) frees it with no
+ * roster and no reap pass.
  */
 globalThis.ComponentStore = class ComponentStore {
   constructor(maxEntities, ids) {
@@ -33,9 +37,22 @@ globalThis.ComponentStore = class ComponentStore {
   }
 
   destroy() {
+    const sets = this._sets;
+    for (let c = 0; c < sets.length; c++) this._release(sets[c]);
     this._byToken.clear();
     this._tokens = [];
     this._sets = [];
+  }
+
+  /** Run a set's release hook over every carried datum — the store or the set is going whole. */
+  _release(set) {
+    if (set.destroy === undefined) return;
+    const dense = set.dense;
+    const column = set.column;
+    for (let p = 0; p < dense.length; p++) {
+      const data = column[dense[p]];
+      if (data !== undefined) set.destroy(data);
+    }
   }
 
   register(token) {
@@ -47,6 +64,7 @@ globalThis.ComponentStore = class ComponentStore {
         walking: 0, // forEach nesting depth with this token as the lead
         pending: [], // indices whose swap-remove waits for the walk to end
         transient: false, // minted — skipped by export/persistentOf
+        destroy: undefined, // a transient token's release hook (mint), called as data leaves a slot
       };
       this._byToken.set(token, set);
       this._tokens.push(token);
@@ -62,6 +80,10 @@ globalThis.ComponentStore = class ComponentStore {
       set = this._byToken.get(token);
     }
     const i = EntityID.index(id);
+    if (set.destroy !== undefined) {
+      const prev = set.column[i];
+      if (prev !== undefined) if (prev !== data) set.destroy(prev); // replaced: the old handle goes
+    }
     set.column[i] = data;
     if (set.sparse[i] === -1) {
       set.sparse[i] = set.dense.length;
@@ -70,10 +92,13 @@ globalThis.ComponentStore = class ComponentStore {
   }
 
   /** `add`, and mark the token transient: the caller rebuilds it at runtime, so no export
-   *  carries it. */
-  mint(id, token, data) {
+   *  carries it. `destroy(data)`, when given, is the set's release hook (header) — one per token,
+   *  the first mint's. */
+  mint(id, token, data, destroy) {
     this.add(id, token, data);
-    this._byToken.get(token).transient = true;
+    const set = this._byToken.get(token);
+    set.transient = true;
+    if (destroy !== undefined) if (set.destroy === undefined) set.destroy = destroy;
   }
 
   get(id, token) {
@@ -112,10 +137,13 @@ globalThis.ComponentStore = class ComponentStore {
     }
   }
 
-  /** Empty index i's slot now; its dense entry goes now, or when the walk on this token ends. */
+  /** Empty index i's slot now (releasing its data through the set's hook); its dense entry goes
+   *  now, or when the walk on this token ends. */
   _drop(set, i) {
     if (set.sparse[i] === -1) return;
+    const data = set.column[i];
     set.column[i] = undefined;
+    if (set.destroy !== undefined) if (data !== undefined) set.destroy(data);
     if (set.walking > 0) set.pending.push(i);
     else this._compact(set, i);
   }
@@ -341,6 +369,7 @@ globalThis.ComponentStore = class ComponentStore {
     for (let t = 0; t < toks.length; t++) this.register(toks[t]);
     for (let k = 0; k < this._tokens.length; k++) {
       const set = this._sets[k];
+      this._release(set); // the store's data is replaced whole — its handles go first
       set.column.fill(undefined);
       set.sparse.fill(-1);
       set.dense.length = 0;

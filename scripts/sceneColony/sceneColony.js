@@ -421,7 +421,6 @@ class _SceneColonyClass {
     ColonyPlayer.pace(this.level.entities); // stride-match locomotion playback to actual speed
     SkeletonSystem.update(this.level); // mint the puppets new skeletal bodies lack; retime them on a clock change
     AppearanceSystem.update(this.level); // dress the puppets SkeletonSystem just minted
-    InstanceSystem.update(); // reap the puppets of entities that died this frame
     Interactable.update(this, this.interact); // THE pick (stations + NPCs) + window range-close/refresh (no E here)
     this._updateNpc(); // the dialogue panel's text when the pick is an NPC (no input here)
     this._dispatchInteract(); // single E press → close an open window, else activate the pick
@@ -449,7 +448,7 @@ class _SceneColonyClass {
     if (ep !== undefined) AudioListener.position(ep.x, ep.y);
     else AudioListener.position(view.toX, view.toY);
     SoundEmitterSystem.update(this.level); // timed world cues (the radio prop) re-fire their spatial SFX
-    ParticleEmitterSystem.update(this.level); // mint/step/reap the attached particle streams (drops, beacons)
+    ParticleEmitterSystem.update(this.level); // mint/step the attached particle streams (drops, beacons)
 
     // refresh the open window page when dirty — last, so every write above lands this frame
     // (UI.update already ran, so a rebuild never lands inside the click that requested it)

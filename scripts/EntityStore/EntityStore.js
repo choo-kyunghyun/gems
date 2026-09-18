@@ -60,9 +60,11 @@ globalThis.EntityStore = class EntityStore {
   }
 
   /** `add` for a runtime-rebuilt component: no export or whole-entity snapshot carries a minted
-   *  token, so the system that rebuilds one declares it here and nowhere else. */
-  mint(id, token, data) {
-    this.components.mint(id, token, data);
+   *  token, so the system that rebuilds one declares it here and nowhere else. `destroy(data)`,
+   *  when given, releases a datum as it leaves its slot — a component holding a native handle
+   *  frees it there, with no roster (ComponentStore's header). */
+  mint(id, token, data, destroy) {
+    this.components.mint(id, token, data, destroy);
   }
 
   get(id, token) {

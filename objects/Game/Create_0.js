@@ -162,7 +162,6 @@ this._apply = (factory) => {
   // world-space transients (their coords are map-local)
   FloatingText.clear();
   ParticleFx.clear();
-  ParticleEmitterSystem.clear();
   WorldOverlay.clearTracers();
   Audio.restart(); // one scene's BGM/SFX must not bleed into the next
   // A class scene's `label` field never sets (GMRT skips subclass field inits — #15067), so the
@@ -174,7 +173,6 @@ this._apply = (factory) => {
 
 this._destroyScene = () => {
   if (this.scene !== null) this.scene.destroy();
-  InstanceSystem.update(); // the outgoing scene's stores are gone — its puppets reap here
   this.scene = null;
   this._label = null;
 };

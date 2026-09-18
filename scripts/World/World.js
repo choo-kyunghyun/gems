@@ -55,9 +55,9 @@ globalThis.World = {
    * remove it. Returns the snapshot (the caller now owns it). EntitySnapshot references the
    * component data objects, so they survive the remove/flush (see EntitySnapshot).
    *
-   * A minted component (EntityStore.mint) does not travel: the puppet belongs to the source
-   * store's roster, which reaps it once the entity leaves (InstanceSystem), and the destination
-   * re-mints its own on its first pass; a path or a diff baseline is likewise the destination's.
+   * A minted component (EntityStore.mint) does not travel: the puppet goes with the source
+   * store's slot (its release hook — Puppets), and the destination re-mints its own on its first
+   * pass; a path or a diff baseline is likewise the destination's.
    */
   take(mapId, id) {
     const lv = World.get(mapId);
