@@ -302,14 +302,18 @@ globalThis.SaveGame = {
       ColonyMap.go(scene, activeMap, "default");
       if (scene.playerId === undefined)
         Log.error("SaveGame: no player in the restored map");
-      // aim the camera at the player straight away (the follow control eases in from wherever
-      // the view sits — see CameraFollow.enter)
+      // aim the camera entity's look-at at the player straight away (the follow policy eases
+      // in from wherever the look-at sits — CameraSystem)
       if (scene.playerId !== undefined) {
-        const pos = scene.level.entities.get(scene.playerId, Position);
-        const camera = ColonyMap.runtime(scene.level).camera;
+        const entities = scene.level.entities;
+        const pos = entities.get(scene.playerId, Position);
+        const cid = entities.first(Camera);
         if (pos !== undefined) {
-          camera.toX = pos.x;
-          camera.toY = pos.y;
+          if (cid !== -1) {
+            const cp = entities.require(cid, Position);
+            cp.x = pos.x;
+            cp.y = pos.y;
+          }
         }
       }
     },
