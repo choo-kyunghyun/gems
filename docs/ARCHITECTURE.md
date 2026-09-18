@@ -62,10 +62,16 @@ and are cited from here, never restated):
     - Components are string tokens (`globalThis.Position = "Position"`), each script carrying the
       `@typedef` that is the only definition of its data shape (they ARE the type system — the
       checker consumes them).
-    - Systems are plain objects `{ update(level) }` — the level in hand is the whole context (its
-      store, its grid, its records, its caches), and a system never takes the scene — some also
-      exposing named query/resolve methods a consumer calls on demand
-      (`SolidSystem.colliders`, `PathfindingSystem.nav`).
+        - Systems are TICKERS: plain objects `{ update(level) }` — plus a draw-phase `apply`/`draw`
+      where the frame's other clock needs one (`CameraSystem.apply`, `ParticleEmitterSystem.draw`)
+      — the level in hand is the whole context (its store, its grid, its records, its caches), a
+      system never takes the scene, and its only other member is the accessor of its own cache
+      entry (`SolidSystem.colliders`, `PathfindingSystem.nav`, `CameraSystem.view`). What a caller
+      invokes on demand — a verb over a component (`Effects.apply`, `Trade.buy`, `Companions.hire`,
+      `Needs.restore`, `Rig.set`, `Flora.harvest`), a pure read (`Shelter.tempAt`), an entity
+      factory (`Cameras.create`, `Colliders.box`), input lifecycle (`ColonyKeymap.bind`) — lives in
+      an affix-less namespace beside the ticker (NAMING.md), never on it: the two share a
+      component, not a module, so a component write never needs a system call to be seen.
     - Each `Level` owns its `EntityStore`, one sparse set per token, whose walks run down the LEAD
       token's carriers in an order that is never by index (contract at `ComponentStore`). A
       component the caller's contract requires is read with `entities.require`, which throws on a
@@ -96,15 +102,23 @@ and are cited from here, never restated):
       Create_0) sweeps every app member a scene can touch in ONE list — a scene's `destroy` drops
       only what that scene itself wired (its UI root, its injected hooks, the colony's `World`), and
       a new app member a scene can dirty gets its line in the sweep, not in a scene.
-    - Anything DERIVED from a level's data and kept between frames — a collider snapshot, a nav
-      grid, a room mirror, a broadphase, a pass stack, a camera's native view — is a CACHE in `Level.cache` under
-      its reader's `KEY` (`SolidSystem.KEY`, `PathfindingSystem.KEY`, `RoomSystem.KEY`, `CameraSystem.KEY`,
-      `SeparationSystem.KEY`, `ColonyMap.KEY`): never serialized, rebuilt from the data on a miss
-      (a miss is never an error), freed with the level through its `destroy`.
+        - Anything DERIVED from a level's data and kept between frames — a collider bake, a nav
+      grid, a room mirror, a broadphase, a pass stack, a camera's view record — is a CACHE entry
+      in `Level.cache` (a `Cache`; `World.cache` is the same bag one layer up), reached by its
+      owner alone through `cache.of(Owner, make)` under `Owner.KEY` — a second module on the key
+      throws — seeded by the owner on a miss (a miss is never an error: a level whose whole cache
+      is freed mid-run ends where its untouched twin does, testCore `level.cache.rebuild`), never
+      serialized, freed with the level through the entry's `destroy`. An entry is a class of its
+      own that owns the queries over it (`Colliders`, `View`, `NavGrid`, `Rooms`, `Broadphase`); a
+      mirror of another entry refreshes off a GENERATION it polls by number (`NavGrid.stamp` off
+      `Colliders.gen`), never a hook the scene wires; and a writer of the data an entry derives
+      from calls nothing — the entry's fingerprint sees the change (`Colliders` fingerprints each
+      collider's `solid`).
     - A singleton keeps only what is none of these — content registries, config, injected hooks,
-      and per-tick SCRATCH that holds nothing between ticks (a reused rect, a collector buffer, a
-      fairness cursor) — so a map switch is a pointer swap and nothing of one level or one world
-      survives in a module. Asset-derived tables (`Vox`, `Poly`, `SkeletonSystem._info`) are
+            and per-tick SCRATCH that holds nothing between ticks (a reused rect, a collector buffer) —
+      so a map switch is a pointer swap and nothing of one level or one world survives in a
+      module; a level-sized scratch or a fairness cursor is the level's and rides its cache entry
+      (`NavGrid.scratch`, `NavGrid.cursor`). Asset-derived tables (`Vox`, `Poly`, `Rig._info`) are
       run-lifetime and immutable, not state.
 - Level / Scene / World: a `Level` is one map — its DATA (grid, store, `meta`) and the CACHE derived
   from it — and nothing behavioural (it never updates or draws). A `Scene` is the behaviour: it
@@ -163,8 +177,8 @@ and are cited from here, never restated):
       fresh array per tick.
     - Anything loop-invariant (a `Map` lookup, a `this.` chain, a class static) is hoisted out of
       the element loop.
-    - A level-sized scratch is never reset per use — a generation stamp marks what is live
-      (`MotionPlanner._stamp`).
+        - A level-sized scratch is never reset per use — a generation stamp marks what is live
+      (`MotionPlanner.scratch`'s `stamp`).
     - A GML built-in costs the boundary crossing whatever it does, so it is reached for only where
       it replaces more JS than the crossing — bulk work inside one call, never a scalar helper.
     - A hot value in a typed array is mirrored into a plain array (`EntityID.packed`) and an
@@ -219,6 +233,9 @@ and are cited from here, never restated):
   sprite refs or can cycle, the `Json` codec, never JS `JSON.stringify` (#15565, GMRT.md). A
   serialized field holds plain arrays/objects only — no `Set`/`Map` (both cross the boundary empty
   — GMRT.md) and no asset ref outside the codec's tagging. Dense/large arrays still go to binary
-  blobs, not JSON (see `File` / the Snapshot hybrid). A runtime-rebuilt component (a diff baseline,
-  a path, a live handle) is minted — `entities.mint` at the system that rebuilds it — so no export
-  or whole-entity snapshot carries it, and a save pass or a transfer names no component.
+  blobs, not JSON (see `File` / the Snapshot hybrid). A runtime-rebuilt component (a diff baseline, a
+  path, a live handle) is minted — `entities.mint` at the system that rebuilds it — so no export
+  or whole-entity snapshot carries it, and a save pass or a transfer names no component. One
+  that holds a native handle (`Instance`, `ParticleStream`) mints with its RELEASE hook, which
+  the store runs as the datum leaves its slot (a detach, the entity's flush, a level's teardown),
+  so no module keeps a roster of ids to reap.
