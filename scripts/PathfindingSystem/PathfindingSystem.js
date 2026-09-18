@@ -1,5 +1,5 @@
 /**
- * Plans over the level's NavGrid — `level.cache[KEY]`, mounted by the level's builder (ColonyMap)
+ * Plans over the level's NavGrid — `level.cache` under KEY, mounted by the level's builder (ColonyMap)
  * — pointing MotionPlanner at its grid whenever the level in hand differs from the one it planned
  * last (the planner's level-sized scratch follows the grid). A request on a level with no nav grid
  * is a wiring error and throws.
@@ -22,7 +22,7 @@ globalThis.PathfindingSystem = {
 
   /** The level's NavGrid, or undefined when its builder mounted none. */
   nav(level) {
-    return level.cache[PathfindingSystem.KEY];
+    return level.cache.get(PathfindingSystem);
   },
 
   /** Drop all responses so stale paths re-plan after a grid change. */
@@ -68,7 +68,7 @@ globalThis.PathfindingSystem = {
   },
 
   _serve(level, id, req) {
-    const nav = level.cache[PathfindingSystem.KEY];
+    const nav = level.cache.get(PathfindingSystem);
     if (nav === undefined)
       throw new Error(`PathfindingSystem: level "${level.id}" mounts no NavGrid`);
     if (MotionPlanner.grid !== nav.grid) MotionPlanner.setGrid(nav.grid);

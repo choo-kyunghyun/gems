@@ -1,7 +1,7 @@
 // equal-mass MTV push-apart for unit crowding. Pure resolution, run after SolidSystem.update in
 // the SAME tick: the bodies come from SolidSystem.eachBody (that update's collider walk, so no
 // second walk here), and a scene that drops this system costs SolidSystem nothing.
-// O(n) via the level's Broadphase (`level.cache[KEY]`, cellSize > max entity diameter — the
+// O(n) via the level's Broadphase (`level.cache` under KEY, cellSize > max entity diameter — the
 // level's builder mounts one), else O(n²).
 globalThis.SeparationSystem = {
   KEY: "separation", // its Level.cache key — the Broadphase, when the level mounts one
@@ -23,7 +23,7 @@ globalThis.SeparationSystem = {
     });
     bodies.length = w;
 
-    const bp = level.cache[SeparationSystem.KEY];
+    const bp = level.cache.get(SeparationSystem);
     const sep = (a, b) => SeparationSystem._separate(entities, a, b);
     for (let it = 0; it < SeparationSystem.iterations; it++) {
       if (bp !== undefined) {

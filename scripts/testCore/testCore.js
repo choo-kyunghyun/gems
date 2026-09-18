@@ -399,6 +399,53 @@ globalThis.testCore = {
       },
     },
     {
+      id: "level.cache",
+      setup(ctx) {
+        ctx.level = new Level({ id: "test", capacity: 8 });
+        ctx.ownerA = { KEY: "test_a" };
+        ctx.ownerB = { KEY: "test_b" };
+        ctx.other = { KEY: "test_a" }; // a second module claiming A's key
+        ctx.freed = 0;
+        ctx.makes = 0;
+      },
+      verify(ctx, t) {
+        const cache = ctx.level.cache;
+        const make = () => {
+          ctx.makes++;
+          return {
+            destroy() {
+              ctx.freed++;
+            },
+          };
+        };
+        const a = cache.of(ctx.ownerA, make);
+        t.ok(cache.of(ctx.ownerA, make) === a, "of returns the seeded entry");
+        t.eq(ctx.makes, 1, "make runs once");
+        t.ok(cache.get(ctx.ownerA) === a, "get reads the entry");
+        t.eq(cache.get(ctx.ownerB), undefined, "get reads undefined on a miss");
+        let msg = "";
+        try {
+          cache.of(ctx.other, make);
+        } catch (e) {
+          msg = e.message;
+        }
+        t.ok(msg.indexOf("test_a") !== -1, "a second owner on the same key throws, naming it");
+        t.ok(
+          cache.of(ctx.ownerB, () => ({ plain: true })).plain,
+          "an entry without destroy is fine",
+        );
+        t.ok(cache.drop(ctx.ownerA), "drop frees the entry");
+        t.eq(ctx.freed, 1, "drop called the entry's destroy");
+        t.ok(!cache.drop(ctx.ownerA), "a second drop is a miss");
+        t.ok(cache.of(ctx.ownerA, make) !== a, "of reseeds after a drop");
+        ctx.level.destroy();
+        t.eq(ctx.freed, 2, "the level's destroy frees every entry");
+        t.eq(cache.get(ctx.ownerA), undefined, "the bag is empty after destroy");
+        const rec = ctx.level.meta.of("test_rec", () => ({ n: 1 }));
+        t.ok(ctx.level.meta.of("test_rec", () => ({ n: 2 })) === rec, "Records.of seeds once");
+      },
+    },
+    {
       id: "system.movement",
       setup(ctx) {
         ctx.level = new Level({ id: "test", capacity: 8 });

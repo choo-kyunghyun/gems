@@ -2,8 +2,8 @@
  * Bodies it moves must NOT also be in MovementSystem. Statics are bucketed into a spatial
  * grid (_gridRebuild) so each body tests only its local cells, not every static — see _resolve.
  *
- * The snapshot + grid are the level's CACHE (`level.cache[KEY]`, seeded on first use and freed with
- * the level), kept across ticks — which is what makes a whole map's worth of statics affordable:
+ * The snapshot + grid are the level's CACHE (`level.cache` under KEY, seeded on first use and freed
+ * with the level), kept across ticks — which is what makes a whole map's worth of statics affordable:
  * re-deriving them each tick costs with the LEVEL's size (every wall, water rect and boulder, plus
  * a bucket per cell they span), while the body loop that actually resolves collisions costs with
  * the number of movers. The cache holds a STATIC IS STATIC premise: a kinematic solid never moves
@@ -48,31 +48,30 @@ globalThis.SolidSystem = {
    * cast, never moved).
    */
   cache(level) {
-    let c = level.cache[SolidSystem.KEY];
-    if (c === undefined) {
-      c = {
-        ids: null,
-        statics: [],
-        cols: 0,
-        rows: 0,
-        buckets: [],
-        minX: 0,
-        minY: 0,
-        bodyIds: [],
-        bodyCols: [],
-        bodyPos: [],
-        bodyBoxes: [],
-        bodyVels: [],
-        bodyCount: 0,
-      };
-      level.cache[SolidSystem.KEY] = c;
-    }
-    return c;
+    return level.cache.of(SolidSystem, SolidSystem._seed);
+  },
+
+  _seed() {
+    return {
+      ids: null,
+      statics: [],
+      cols: 0,
+      rows: 0,
+      buckets: [],
+      minX: 0,
+      minY: 0,
+      bodyIds: [],
+      bodyCols: [],
+      bodyPos: [],
+      bodyBoxes: [],
+      bodyVels: [],
+      bodyCount: 0,
+    };
   },
 
   /** Force the level's next update to re-derive the static snapshot (see the class doc's premise). */
   invalidate(level) {
-    const c = level.cache[SolidSystem.KEY];
+    const c = level.cache.get(SolidSystem);
     if (c !== undefined) c.ids = null;
   },
 

@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Cache",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Cache",
+  "parent":{
+    "name":"Level",
+    "path":"folders/Core/Level.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Cache.js",
+}

@@ -8,7 +8,7 @@
  * sweep can't miss the pair.
  *
  * Opt a symmetric-pair system in by mounting an instance in the level's cache
- * under the sweeper's key (`level.cache[SeparationSystem.KEY]`) — it rebuilds +
+ * under the sweeper's key (`level.cache.of(SeparationSystem, …)`) — it rebuilds +
  * sweeps it per tick, else falls back to O(n²) (`ColonyMap._buildSpatial` mounts
  * one). Body-vs-static queries are asymmetric and keep their own grid in
  * `SolidSystem`'s cache.

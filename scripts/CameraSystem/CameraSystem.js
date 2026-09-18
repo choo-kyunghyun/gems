@@ -36,35 +36,34 @@ globalThis.CameraSystem = {
    * (LevelGrid.viewRange).
    */
   view(level) {
-    let v = level.cache[CameraSystem.KEY];
-    if (v === undefined) {
-      v = {
-        id: camera_create(),
-        viewport: -1,
-        fromX: 0,
-        fromY: 0,
-        fromZ: 0,
-        toX: 0,
-        toY: 0,
-        toZ: 0,
-        upX: 0,
-        upY: 1,
-        upZ: 0,
-        width: 0,
-        height: 0,
-        pitch: 0,
-        projection: CAMERA_PROJECTION.ORTHO,
-        destroy() {
-          CameraSystem._unassign(this);
-          if (this.id !== -1) {
-            camera_destroy(this.id);
-            this.id = -1;
-          }
-        },
-      };
-      level.cache[CameraSystem.KEY] = v;
-    }
-    return v;
+    return level.cache.of(CameraSystem, CameraSystem._seed);
+  },
+
+  _seed() {
+    return {
+      id: camera_create(),
+      viewport: -1,
+      fromX: 0,
+      fromY: 0,
+      fromZ: 0,
+      toX: 0,
+      toY: 0,
+      toZ: 0,
+      upX: 0,
+      upY: 1,
+      upZ: 0,
+      width: 0,
+      height: 0,
+      pitch: 0,
+      projection: CAMERA_PROJECTION.ORTHO,
+      destroy() {
+        CameraSystem._unassign(this);
+        if (this.id !== -1) {
+          camera_destroy(this.id);
+          this.id = -1;
+        }
+      },
+    };
   },
 
   /**

@@ -8,14 +8,14 @@
  * (Records — what is the map's as a whole, keyed by the consumer that owns each) — and a save
  * holds exactly these three.
  *
- * `cache` is the one place for what a consumer DERIVES from that data and keeps between frames —
- * a nav grid, a collider snapshot, a room mirror, a render pass stack, a camera's native view — keyed the same
- * way (`SolidSystem.KEY`, `ColonyMap.KEY`). Never serialized, never a source of truth: a
- * consumer that finds no entry under its key rebuilds one from the data (a miss is never an
- * error), and an entry with a `destroy()` is freed with the level. A per-tick scratch buffer that
- * holds no data between ticks stays module-scope (ARCHITECTURE → Hot-path idioms); anything a
- * level's frame reads back the next frame lives here, so a map switch is a pointer swap and
- * nothing of one level survives in a singleton.
+ * `cache` (Cache) is the one place for what a consumer DERIVES from that data and keeps between
+ * frames — a nav grid, a collider snapshot, a room mirror, a render pass stack, a camera's native
+ * view — each entry reached by its owner through `cache.of(Owner, make)`. Never serialized, never
+ * a source of truth: the owner seeds its entry on a miss (a miss is never an error), and an
+ * entry with a `destroy()` is freed with the level. A per-tick scratch buffer that holds no data
+ * between ticks stays module-scope (ARCHITECTURE → Hot-path idioms); anything a level's frame
+ * reads back the next frame lives here, so a map switch is a pointer swap and nothing of one
+ * level survives in a singleton.
  *
  * The grid and the store are optional in practice: a side-scroller has entities and no grid,
  * the level editor a grid it edits and no entities. `grid` is assigned after construction when
@@ -34,17 +34,12 @@ globalThis.Level = class Level {
     this.grid = opt.grid ?? null;
     this.entities = new EntityStore(opt.capacity ?? 256);
     this.meta = new Records();
-    this.cache = {}; // key -> derived runtime. plain object — for...in is GMRT-safe
+    this.cache = new Cache(); // owner KEY -> derived runtime
   }
 
   /** Frees the cache (each entry's `destroy`, when it has one), the store and the grid. */
   destroy() {
-    for (const k in this.cache) {
-      const c = this.cache[k];
-      if (c !== null && typeof c === "object" && typeof c.destroy === "function")
-        c.destroy();
-    }
-    this.cache = {};
+    this.cache.destroy();
     this.entities.destroy();
     if (this.grid !== null) this.grid.destroy();
     this.grid = null;

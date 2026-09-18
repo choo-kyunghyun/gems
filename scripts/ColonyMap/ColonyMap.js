@@ -67,7 +67,7 @@ globalThis.ColonyMap = {
 
   /** The level's runtime (the typedef above), or undefined before the level is mounted. */
   runtime(level) {
-    return level.cache[ColonyMap.KEY];
+    return level.cache.get(ColonyMap);
   },
 
   /** A data record with every field declared and nothing built. */
@@ -316,8 +316,7 @@ globalThis.ColonyMap = {
    * one Layer/Type pair per LAYERS entry, plus <key>Types for a materials-bearing layer (wall).
    */
   _mount(level, h) {
-    const rt = ColonyMap._runtime();
-    level.cache[ColonyMap.KEY] = rt;
+    const rt = level.cache.of(ColonyMap, ColonyMap._runtime);
     rt.terrainMats = h.terrainMats;
     for (let i = 0; i < contentTiles.LAYERS.length; i++) {
       const key = contentTiles.LAYERS[i].key;
@@ -439,17 +438,18 @@ globalThis.ColonyMap = {
     // NOTE: this shared grid serves the DYNAMIC symmetric pair problem (mob↔mob).
     // SolidSystem's asymmetric body-vs-static query uses its OWN static grid (SolidSystem._gridRebuild)
     // — a different query shape (range query, multi-cell statics), so it can't reuse this instance.
-    level.cache[SeparationSystem.KEY] = new Broadphase(
-      grid.cols * grid.cellWidth,
-      grid.rows * grid.cellHeight,
-      96,
+    level.cache.of(
+      SeparationSystem,
+      () =>
+        new Broadphase(grid.cols * grid.cellWidth, grid.rows * grid.cellHeight, 96),
     );
-    level.cache[PathfindingSystem.KEY] = new NavGrid(grid);
+    level.cache.of(PathfindingSystem, () => new NavGrid(grid));
     // the enclosure mirror: the wall layer bounds a room (a fence has no roof). RoomSystem feeds it
     // the doors and reads it for the environmental needs.
-    level.cache[RoomSystem.KEY] = new Rooms(grid, [
-      ColonyMap.runtime(level).wallLayer,
-    ]);
+    level.cache.of(
+      RoomSystem,
+      () => new Rooms(grid, [ColonyMap.runtime(level).wallLayer]),
+    );
   },
 
   /**
@@ -746,7 +746,7 @@ globalThis.ColonyMap = {
       const wall = tilePasses.wall; // RenderWalls on a pitched map (its height); flat: absent
       const roofH =
         wall !== undefined && wall.height !== undefined ? wall.height : 0;
-      const rooms = level.cache[RoomSystem.KEY];
+      const rooms = level.cache.get(RoomSystem);
       renderer.insert(
         new RenderOverlay({
           layers: [clouds, weather],

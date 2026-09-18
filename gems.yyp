@@ -195,6 +195,7 @@
     {"id":{"name":"Blueprint","path":"scripts/Blueprint/Blueprint.yy",},},
     {"id":{"name":"Broadphase","path":"scripts/Broadphase/Broadphase.yy",},},
     {"id":{"name":"BuildMode","path":"scripts/BuildMode/BuildMode.yy",},},
+    {"id":{"name":"Cache","path":"scripts/Cache/Cache.yy",},},
     {"id":{"name":"Camera","path":"scripts/Camera/Camera.yy",},},
     {"id":{"name":"CameraFly","path":"scripts/CameraFly/CameraFly.yy",},},
     {"id":{"name":"CameraFocus","path":"scripts/CameraFocus/CameraFocus.yy",},},

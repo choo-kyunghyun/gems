@@ -87,10 +87,13 @@ globalThis.testStress = {
         TileEdit.remesh(s, grid, layer, ctx.colliders);
         // the level's caches, mounted where the systems read them (the scene's shape)
         ctx.nav = new NavGrid(grid);
-        level.cache[PathfindingSystem.KEY] = ctx.nav;
+        level.cache.of(PathfindingSystem, () => ctx.nav);
         ctx.nav.sync();
         ctx.nav.stamp(SolidSystem.statics(level)); // once: the walls never change
-        level.cache[SeparationSystem.KEY] = new Broadphase(COLS * CELL, ROWS * CELL, 64);
+        level.cache.of(
+          SeparationSystem,
+          () => new Broadphase(COLS * CELL, ROWS * CELL, 64),
+        );
 
         // the agents, each on a free cell with a free-cell goal
         const free = [];

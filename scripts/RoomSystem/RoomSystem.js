@@ -12,7 +12,7 @@
  * `first` cell (Rooms), so a wall edit that keeps a room's top-left cell keeps its warmth; a room
  * that vanishes drops off the record on the next step.
  *
- * Takes the level: the mirror is its cache (`level.cache[KEY]`, a Rooms the level's builder mounts
+ * Takes the level: the mirror is its cache (`level.cache` under KEY, a Rooms the level's builder mounts
  * — ColonyMap), the temperatures its record (`level.meta`, under the same KEY).
  */
 globalThis.RoomSystem = {
@@ -29,7 +29,7 @@ globalThis.RoomSystem = {
    */
   sync(level) {
     const entities = level.entities;
-    const rooms = level.cache[RoomSystem.KEY];
+    const rooms = level.cache.get(RoomSystem);
     const rects = RoomSystem._rects;
     let n = 0;
     entities.forEach([Interaction, Position, BBox], (id, it) => {
@@ -59,7 +59,7 @@ globalThis.RoomSystem = {
     if (dh <= 0) return;
     rec.lastHour = now;
 
-    const rooms = level.cache[RoomSystem.KEY];
+    const rooms = level.cache.get(RoomSystem);
     const list = rooms.rooms;
     const n = list.length;
     const power = RoomSystem._power;
@@ -108,12 +108,12 @@ globalThis.RoomSystem = {
   /** Whether a world point is under a roof: inside a room, or anywhere on an indoor map. */
   sheltered(level, wx, wy) {
     if (level.meta.get(ColonyMap.INDOOR) === true) return true;
-    return level.cache[RoomSystem.KEY].atWorld(wx, wy) > 0;
+    return level.cache.get(RoomSystem).atWorld(wx, wy) > 0;
   },
 
   /** The temperature at a world point in Kelvin: its room's, or the outside's. */
   tempAt(level, wx, wy) {
-    const rooms = level.cache[RoomSystem.KEY];
+    const rooms = level.cache.get(RoomSystem);
     const r = rooms.atWorld(wx, wy);
     if (r <= 0) return Temperature.now();
     const rec = level.meta.get(RoomSystem.KEY);

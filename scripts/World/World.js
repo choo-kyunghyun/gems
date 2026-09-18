@@ -21,6 +21,7 @@ globalThis.World = {
   levels: {}, // mapId -> Level. plain object — for...in is GMRT-safe, Map iteration is not
   activeId: null, // the mapId the active scene is currently stepping + drawing
   meta: new Records(), // the world's records — replaced whole by reset()
+  cache: new Cache(), // the world's derived runtime (Cache) — freed by reset()
 
   /** Index a level under its map id. Overwrites — a rebuilt map replaces its entry. */
   add(mapId, level) {
@@ -46,12 +47,7 @@ globalThis.World = {
    * consumer reads its state through, so a fresh world starts every record blank.
    */
   record(key, make) {
-    let rec = World.meta.get(key);
-    if (rec === undefined) {
-      rec = make();
-      World.meta.set(key, rec);
-    }
-    return rec;
+    return World.meta.of(key, make);
   },
 
   /**
@@ -90,6 +86,7 @@ globalThis.World = {
     World.levels = {};
     World.activeId = null;
     World.meta = new Records();
+    World.cache.destroy();
     WorldEvents.reset();
   },
 };

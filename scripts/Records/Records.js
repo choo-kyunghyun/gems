@@ -24,6 +24,16 @@ globalThis.Records = class Records {
     return this.records[key] !== undefined;
   }
 
+  /** The record under `key`, seeded by `make()` when absent — how a consumer reads its own record. */
+  of(key, make) {
+    let rec = this.records[key];
+    if (rec === undefined) {
+      rec = make();
+      this.records[key] = rec;
+    }
+    return rec;
+  }
+
   /** Overwrites a record under the same key. */
   set(key, record) {
     this.records[key] = record;
