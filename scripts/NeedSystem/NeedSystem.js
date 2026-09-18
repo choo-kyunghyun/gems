@@ -1,6 +1,6 @@
 // The survival-need ticker and the "rising meter + critical debuff" core the environmental
 // systems (ExposureSystem/ColdSystem, through step) share. update() walks the Need registry in
-// order, after the room mirror is synced (RoomSystem.sync — the environmental needs read it).
+// order, after the room mirror is synced (RoomSystem.update — the environmental needs read it).
 // Stat-model-agnostic: a critical need's consequence is a Status (dot/mult, no recompute).
 globalThis.NeedSystem = {
   /**

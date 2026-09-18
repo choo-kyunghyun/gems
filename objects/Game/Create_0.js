@@ -159,12 +159,11 @@ this._apply = (factory) => {
   // clocks: a scene starts at full speed
   Time.scale = 1;
   Time.tempo = 1;
-  // world-space transients (their coords are map-local) + the planner's grid (its level is gone)
+  // world-space transients (their coords are map-local)
   FloatingText.clear();
   ParticleFx.clear();
   ParticleEmitterSystem.clear();
   WorldOverlay.clearTracers();
-  MotionPlanner.reset();
   Audio.restart(); // one scene's BGM/SFX must not bleed into the next
   // A class scene's `label` field never sets (GMRT skips subclass field inits — #15067), so the
   // registered label (localized) is the reliable source; built-ins fall back to their instance one.

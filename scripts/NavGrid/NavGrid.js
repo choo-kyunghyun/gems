@@ -1,18 +1,20 @@
 /**
- * The level-sized cost grid every planner query shares, one cell per LevelGrid cell: ≥ 1 =
- * walkable (terrain-weighted — MotionPlanner multiplies step distance by cell cost, so a wade is
- * chosen only when shorter than walking around), Infinity = blocked. `grid` is the plain Grid
- * PathfindingSystem points MotionPlanner at (level.cache under its KEY); its size is the level's.
+ * The level's pathfinding state, PathfindingSystem's entry in the level's cache: the level-sized
+ * cost grid every planner query shares, one cell per LevelGrid cell — ≥ 1 = walkable
+ * (terrain-weighted — MotionPlanner multiplies step distance by cell cost, so a wade is chosen
+ * only when shorter than walking around), Infinity = blocked — as the plain Grid `grid`, with
+ * the planner's level-sized working record `scratch` (MotionPlanner.scratch) beside it, and
+ * `cursor`, the request-walk position the serving system resumes its fairness sweep from.
  *
  * Two sources, each with its own refresh signal, composed base-then-stamp so neither re-reads the
  * other's input:
  *   - the tile layers' cost (LevelGrid.costAt) is the BASE, cached and resampled by `sync` only
  *     when the level's edit counter moves (a tile paint);
  *   - the kinematic-solid colliders (walls, water, the level border, a closed door) are STAMPED
- *     over a copy of the base by `stamp`, fed the static snapshot SolidSystem already keeps —
- *     it fires `onStatics` only when that set actually changes, so this is the ONE live blocking
- *     source and there is no polling. Dynamic bodies never enter (agents don't block each
- *     other's planning; SeparationSystem keeps them apart).
+ *     over a copy of the base by `stamp`, fed the static snapshot SolidSystem already keeps with
+ *     its generation — a stamp under the generation already stamped is a no-op, so the one live
+ *     blocking source is polled by number, never re-derived. Dynamic bodies never enter (agents
+ *     don't block each other's planning; SeparationSystem keeps them apart).
  */
 globalThis.NavGrid = class NavGrid {
   /** @param {LevelGrid} tiles the level this grid mirrors (dims, cell size, and the cost source) */
@@ -23,15 +25,19 @@ globalThis.NavGrid = class NavGrid {
     this.cellW = tiles.cellWidth;
     this.cellH = tiles.cellHeight;
     this.grid = new Grid(this.cols, this.rows); // the composed costs the planner reads
+    this.scratch = MotionPlanner.scratch(this.grid.size()); // the planner's working record
+    this.cursor = 0; // PathfindingSystem's request-walk position
     this._base = new Grid(this.cols, this.rows); // terrain costs alone
     this._edits = -1; // tiles.edits() the base was sampled at; -1 = never
     this._statics = []; // the last stamped snapshot, re-applied when the base resamples
+    this._stampGen = -1; // the collider generation the snapshot was stamped at; -1 = never
   }
 
   destroy() {
     this.grid.destroy();
     this._base.destroy();
     this.grid = undefined;
+    this.scratch = undefined;
     this._base = undefined;
     this.tiles = undefined;
   }
@@ -76,12 +82,18 @@ globalThis.NavGrid = class NavGrid {
 
   /**
    * Take the kinematic-solid snapshot (`{x1,y1,x2,y2}` world px each, x2/y2 exclusive) as the
-   * blocking set and recompose. The array is kept by reference — SolidSystem replaces it, never
-   * mutates it in place.
+   * blocking set and recompose; with `gen`, the snapshot's generation, a repeat of the one
+   * already stamped is a no-op. Returns whether it recomposed. The array is kept by reference —
+   * SolidSystem replaces it, never mutates it in place.
    */
-  stamp(statics) {
+  stamp(statics, gen = -1) {
+    if (gen !== -1) {
+      if (gen === this._stampGen) return false;
+    }
+    this._stampGen = gen;
     this._statics = statics;
     this._compose();
+    return true;
   }
 
   /** base copy, then every static's footprint (clipped to the level) → Infinity */

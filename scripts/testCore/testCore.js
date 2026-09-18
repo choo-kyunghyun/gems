@@ -446,6 +446,78 @@ globalThis.testCore = {
       },
     },
     {
+      id: "level.cache.rebuild",
+      // the cache rule itself: every entry is derived from the level's data, so a level whose
+      // whole cache is freed mid-run ends where its untouched twin does
+      setup(ctx) {
+        const mk = () => {
+          const c = _testLevel(8, 8);
+          const s = c.entities;
+          SolidSystem.box(s, 96, 0, 32, 224); // a wall down column 3, rows 0..6
+          c.a = s.create();
+          s.add(c.a, Position, { x: 40, y: 100, z: 0 });
+          s.add(c.a, BBox, { x: -8, y: -8, width: 16, height: 16 });
+          s.add(c.a, Collision, { solid: true });
+          s.add(c.a, Velocity, { x: 600, y: 0, z: 0 });
+          c.b = s.create();
+          s.add(c.b, Position, { x: 48, y: 104, z: 0 });
+          s.add(c.b, BBox, { x: -8, y: -8, width: 16, height: 16 });
+          s.add(c.b, Collision, { solid: true });
+          s.add(c.b, Velocity, { x: 0, y: 0, z: 0 });
+          c.w = s.create();
+          s.add(c.w, Position, { x: 16, y: 16, z: 0 });
+          CameraSystem.create(s, { x: 100, y: 100 });
+          return c;
+        };
+        ctx.p = mk();
+        ctx.q = mk();
+      },
+      verify(ctx, t) {
+        const step = (c) => {
+          const s = c.entities;
+          s.mint(c.w, PathRequest, { startX: 0, startY: 0, goalX: 7, goalY: 0 });
+          PathfindingSystem.update(c.level);
+          SolidSystem.update(c.level);
+          SeparationSystem.update(c.level);
+          CameraSystem.apply(c.level);
+        };
+        for (let k = 0; k < 10; k++) {
+          step(ctx.p);
+          step(ctx.q);
+          if (k === 4) ctx.q.level.cache.destroy(); // solid, nav, separation and camera go
+        }
+        const p = ctx.p;
+        const q = ctx.q;
+        const pa = p.entities.get(p.a, Position);
+        const qa = q.entities.get(q.a, Position);
+        const pb = p.entities.get(p.b, Position);
+        const qb = q.entities.get(q.b, Position);
+        t.near(qa.x, pa.x, 1e-6, "the mover lands where the twin's does");
+        t.near(qa.y, pa.y, 1e-6, "the mover's y matches the twin's");
+        t.near(qb.x, pb.x, 1e-6, "the pushed body lands where the twin's does");
+        t.near(qb.y, pb.y, 1e-6, "the pushed body's y matches the twin's");
+        t.eq(
+          q.entities.get(q.w, PathResponse).path.length,
+          p.entities.get(p.w, PathResponse).path.length,
+          "the path re-plans to the twin's length",
+        );
+        t.eq(
+          SolidSystem.statics(q.level).length,
+          SolidSystem.statics(p.level).length,
+          "the collider snapshot rebuilds whole",
+        );
+        t.eq(
+          CameraSystem.view(q.level).width,
+          CameraSystem.view(p.level).width,
+          "the view record rebuilds to the twin's extent",
+        );
+      },
+      teardown(ctx) {
+        ctx.p.level.destroy();
+        ctx.q.level.destroy();
+      },
+    },
+    {
       id: "system.movement",
       setup(ctx) {
         ctx.level = new Level({ id: "test", capacity: 8 });
@@ -739,6 +811,56 @@ globalThis.testCore = {
       },
       teardown(ctx) {
         ctx.nav.destroy();
+        ctx.level.destroy();
+      },
+    },
+    {
+      id: "nav.restamp",
+      setup(ctx) {
+        Object.assign(ctx, _testLevel(8, 8));
+        const s = ctx.entities;
+        ctx.wall = SolidSystem.box(s, 96, 0, 32, 224); // column 3, rows 0..6: a detour through row 7
+        ctx.walker = s.create();
+        s.add(ctx.walker, Position, { x: 16, y: 16, z: 0 });
+        s.mint(ctx.walker, PathRequest, { startX: 0, startY: 0, goalX: 7, goalY: 0 });
+        ctx.other = s.create();
+        s.mint(ctx.other, PathResponse, { path: [{ x: 0, y: 0 }], index: 0 }); // a held path a restamp drops
+      },
+      verify(ctx, t) {
+        const s = ctx.entities;
+        const level = ctx.level;
+        const hold = () =>
+          s.mint(ctx.other, PathResponse, { path: [{ x: 0, y: 0 }], index: 0 });
+        const ask = () =>
+          s.mint(ctx.walker, PathRequest, { startX: 0, startY: 0, goalX: 7, goalY: 0 });
+        SolidSystem.update(level); // the tick's collider walk snapshots the wall
+        PathfindingSystem.update(level); // seeds the nav grid, stamps the wall, serves the request
+        const r1 = s.get(ctx.walker, PathResponse);
+        t.ok(r1 !== undefined, "the request is served");
+        t.ok(r1.path.length > 8, "the path detours around the stamped wall: " + r1.path.length);
+        t.eq(s.get(ctx.other, PathResponse), undefined, "the first stamp drops every held path");
+        // the wall goes: the next collider walk moves the generation, and the update after it
+        // restamps with no hook and no call from the writer
+        hold();
+        s.remove(ctx.wall);
+        s.flush();
+        ask();
+        SolidSystem.update(level);
+        PathfindingSystem.update(level);
+        t.eq(s.get(ctx.walker, PathResponse).path.length, 8, "with the wall gone the path runs straight");
+        t.eq(s.get(ctx.other, PathResponse), undefined, "a restamp drops every held path");
+        // a body spawn refreshes the fingerprint but moves no static: no restamp, paths stay
+        hold();
+        const body = s.create();
+        s.add(body, Position, { x: 200, y: 200, z: 0 });
+        s.add(body, BBox, { x: -8, y: -8, width: 16, height: 16 });
+        s.add(body, Collision, { solid: true });
+        SolidSystem.update(level);
+        PathfindingSystem.update(level);
+        t.ok(s.get(ctx.other, PathResponse) !== undefined, "a body spawn keeps every held path");
+        t.eq(SolidSystem.generation(level), 2, "the generation counts the static set's changes");
+      },
+      teardown(ctx) {
         ctx.level.destroy();
       },
     },
@@ -1208,7 +1330,7 @@ globalThis.testCore = {
     // lookup a dozen: the rule for every hot loop is the cheap form in the paired row — the
     // inline mask over EntityID.index, a cached column over store.get, edgesInto over edges, a
     // reused buffer over push, and never a per-element reset of a level-sized scratch (the
-    // generation stamp, MotionPlanner._stamp).
+    // generation stamp, MotionPlanner.scratch's `stamp`).
     {
       id: "perf.measured",
       setup(ctx) {
@@ -1369,7 +1491,7 @@ globalThis.testCore = {
     // ── perf.plan: what one A* expansion costs ──────────────────────────────
     // THE record for what an expansion costs, measured on the shape a far plan has: a weighted
     // 128² field, corner to corner, where the unit heuristic is weak enough that most of the level
-    // expands. `n` is MotionPlanner.iters, so the row is ns per expansion and not per plan —
+    // expands. `n` is the nav scratch's `iters`, so the row is ns per expansion and not per plan —
     // multiply by the iters in the log line for what one plan costs a frame.
     {
       id: "perf.plan",
@@ -1383,14 +1505,14 @@ globalThis.testCore = {
             if (((x >> 3) + (y >> 3)) % 2 === 0) ctx.layer.set(x, y, ctx.mud);
         ctx.nav = new NavGrid(ctx.grid);
         ctx.nav.sync();
-        MotionPlanner.setGrid(ctx.nav.grid);
       },
       verify(ctx, t) {
+        const nav = ctx.nav;
         const a = { x: 0, y: 0 };
         const b = { x: PLAN_COLS - 1, y: PLAN_COLS - 1 };
         const opt = { allowDiag: true };
-        const path = MotionPlanner.plan(a, b, opt);
-        const iters = MotionPlanner.iters;
+        const path = MotionPlanner.plan(nav, a, b, opt);
+        const iters = nav.scratch.iters;
         t.ok(path.length > 0, "the corner-to-corner plan resolves");
         t.ok(
           iters > PLAN_COLS,
@@ -1416,7 +1538,7 @@ globalThis.testCore = {
           return { cost, broken };
         };
         const diag = walk(path);
-        const straight = walk(MotionPlanner.plan(a, b, { allowDiag: false }));
+        const straight = walk(MotionPlanner.plan(nav, a, b, { allowDiag: false }));
         t.eq(diag.broken, 0, "every octile step lands on a neighbour cell");
         t.ok(
           path[0].x === 0 && path[path.length - 1].x === PLAN_COLS - 1,
@@ -1433,17 +1555,17 @@ globalThis.testCore = {
           "plan.expansion",
           iters,
           () => 0,
-          () => MotionPlanner.plan(a, b, opt).length,
+          () => MotionPlanner.plan(nav, a, b, opt).length,
         );
         // the same plan with the heap and the grid reads left in but the neighbour scan cut to
         // cardinals: the row pairs with the one above to say how much of an expansion is the scan
         const cardinal = { allowDiag: false };
-        MotionPlanner.plan(a, b, cardinal);
+        MotionPlanner.plan(nav, a, b, cardinal);
         t.measure(
           "plan.expansion.cardinal",
-          MotionPlanner.iters,
+          nav.scratch.iters,
           () => 0,
-          () => MotionPlanner.plan(a, b, cardinal).length,
+          () => MotionPlanner.plan(nav, a, b, cardinal).length,
         );
       },
       teardown(ctx) {

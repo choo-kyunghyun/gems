@@ -328,7 +328,6 @@ globalThis.ColonyMap = {
 
   /** The presentation over a mounted level — once per level, on its first activation. */
   _activate(scene) {
-    ColonyMap._buildSpatial(scene); // broadphase + nav grid + room mirror
     ColonyMap._buildCamera(scene); // follow camera — before the passes, which take it at construction
     ColonyMap._buildRenderer(scene); // render pass stack
   },
@@ -419,37 +418,6 @@ globalThis.ColonyMap = {
     const rec = ColonyMap.of(scene.level);
     rec.reachZone = ColonyMap._reach(grid, built.spawns);
     rec.reachDone = rec.reachZone === undefined; // nothing to reach on this map
-  },
-
-  /**
-   * The map's spatial mirrors, each in the level's cache under its reader's key: the broadphase
-   * (SeparationSystem), the level-sized pathfinding grid (PathfindingSystem — its size is the
-   * level's, so it is built once here per map; its contents refresh on their own signals:
-   * sceneColony.update syncs tile costs, SolidSystem.onStatics re-stamps colliders) and the
-   * enclosure mirror (RoomSystem).
-   */
-  _buildSpatial(scene) {
-    const level = scene.level;
-    const grid = level.grid;
-    // O(n) broadphase for SeparationSystem, the one symmetric-pair sweep left (it rebuilds the grid
-    // per tick). cellSize (96px) exceeds max dynamic-body diameter (~27px at 16px cells), which is
-    // the center-bucket contract; huge SOLID colliders (level border, water rects) never enter it —
-    // SeparationSystem buckets dynamic bodies only.
-    // NOTE: this shared grid serves the DYNAMIC symmetric pair problem (mob↔mob).
-    // SolidSystem's asymmetric body-vs-static query uses its OWN static grid (SolidSystem._gridRebuild)
-    // — a different query shape (range query, multi-cell statics), so it can't reuse this instance.
-    level.cache.of(
-      SeparationSystem,
-      () =>
-        new Broadphase(grid.cols * grid.cellWidth, grid.rows * grid.cellHeight, 96),
-    );
-    level.cache.of(PathfindingSystem, () => new NavGrid(grid));
-    // the enclosure mirror: the wall layer bounds a room (a fence has no roof). RoomSystem feeds it
-    // the doors and reads it for the environmental needs.
-    level.cache.of(
-      RoomSystem,
-      () => new Rooms(grid, [ColonyMap.runtime(level).wallLayer]),
-    );
   },
 
   /**
@@ -746,7 +714,7 @@ globalThis.ColonyMap = {
       const wall = tilePasses.wall; // RenderWalls on a pitched map (its height); flat: absent
       const roofH =
         wall !== undefined && wall.height !== undefined ? wall.height : 0;
-      const rooms = level.cache.get(RoomSystem);
+      const rooms = RoomSystem.rooms(level);
       renderer.insert(
         new RenderOverlay({
           layers: [clouds, weather],

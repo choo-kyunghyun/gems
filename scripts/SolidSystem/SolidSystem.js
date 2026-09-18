@@ -24,12 +24,6 @@ globalThis.SolidSystem = {
   // occupy many cells — a pure perf knob
   cell: 64,
 
-  // Injected: `(level, statics)` fired when the static set CHANGES (not on every snapshot — a
-  // body spawn refreshes the fingerprint without touching a wall). The one place the kinematic
-  // solids are known to have moved, so anything mirroring them (NavGrid) refreshes here, not by
-  // polling. Wired by the scene that owns the nav grid; null = nobody listening.
-  onStatics: null,
-
   // Scratch reused every tick: the candidate list the cache fingerprints against, and the
   // mover's rect (_resolve runs twice per sub-step per body — docs/ARCHITECTURE.md → Hot-path idioms).
   _candidates: [],
@@ -38,7 +32,9 @@ globalThis.SolidSystem = {
   /**
    * The level's cache record, seeded empty: `ids` the id set the snapshot was taken from (the
    * fingerprint; null = never, or invalidated), `statics` the baked `{ id, x1, y1, x2, y2 }`
-   * records _resolve reads, the bucket grid over them (`cols`/`rows`/`buckets`, parallel-array
+   * records _resolve reads with `gen`, the count of times that set has CHANGED (a body spawn
+   * refreshes the fingerprint without moving it) — the signal a mirror of the kinematic solids
+   * (NavGrid) polls by number instead of re-deriving, the bucket grid over them (`cols`/`rows`/`buckets`, parallel-array
    * buckets — GMRT: no object-keyed Map/Set — and `minX`/`minY`, how far the statics overhang
    * below the grid's origin: the border boxes sit at -cell..0, a static there is clamped into
    * the edge cell, and walk's clip reaches down to it), and the dynamic solid bodies as of the
@@ -55,6 +51,7 @@ globalThis.SolidSystem = {
     return {
       ids: null,
       statics: [],
+      gen: 0,
       cols: 0,
       rows: 0,
       buckets: [],
@@ -67,6 +64,11 @@ globalThis.SolidSystem = {
       bodyVels: [],
       bodyCount: 0,
     };
+  },
+
+  /** The static set's generation — moves only when the kinematic solids changed (see `cache`). */
+  generation(level) {
+    return SolidSystem.cache(level).gen;
   },
 
   /** Force the level's next update to re-derive the static snapshot (see the class doc's premise). */
@@ -391,13 +393,13 @@ globalThis.SolidSystem = {
     }
     // A refresh on a changed candidate set is usually a dynamic body coming or going, with the
     // statics themselves identical — then the buckets (indexes into an equal-by-index list)
-    // still hold and no listener needs telling. A first (or invalidated) snapshot always counts.
+    // still hold and the generation stays. A first (or invalidated) snapshot always counts.
     const changed = c.ids === null || !SolidSystem._same(c, statics);
     c.ids = ids.slice(); // the scratch list is reused next tick, but the fingerprint must outlive it
     c.statics = statics;
     if (!changed) return;
+    c.gen++;
     SolidSystem._gridRebuild(c, statics);
-    if (SolidSystem.onStatics !== null) SolidSystem.onStatics(level, statics);
   },
 
   /** Same rects at the same indexes as the current snapshot (the walk order is stable). */

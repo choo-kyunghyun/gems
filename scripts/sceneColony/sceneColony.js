@@ -47,14 +47,6 @@ class _SceneColonyClass {
     StatusSystem.onStatsChanged = function (entities, id) {
       StatModel.recompute(entities, id);
     };
-    // the static-collider change signal → re-stamp that level's nav grid and drop every planned
-    // path (a new wall may cut one; the walkers re-request on their own throttle). The level in
-    // hand is the one whose statics moved, so the one hook serves every map the scene activates.
-    SolidSystem.onStatics = (level, statics) => {
-      PathfindingSystem.nav(level).stamp(statics);
-      PathfindingSystem.invalidate(level.entities);
-    };
-
     // the world — its level pool is the map pool (every visited map stays alive there for the
     // whole session, see ColonyMap.go) and its records the world's data (the clock, the sky, the
     // progression, the events, the traders, the radio dial) — starts blank per scene create, so a
@@ -386,11 +378,9 @@ class _SceneColonyClass {
     // hotbar number keys — after the context is set ("play"-only, so inert with a window/building)
     this._useHotbar();
 
-    // mirror any tile-cost edits into the nav grid BEFORE the sim (PathfindingSystem plans
-    // over it); a no-op while the layers' edit count is unchanged. Colliders reach it through
-    // SolidSystem.onStatics instead (create).
-    PathfindingSystem.nav(this.level).sync();
-    RoomSystem.sync(this.level); // the doors + any wall edit into the room mirror (shelter for the needs below)
+    // the room mirror (the doors + any wall edit) BEFORE the needs read it for shelter, then
+    // every room's temperature over the in-game hours since its last step
+    RoomSystem.update(this.level);
 
     StatusSystem.update(this.level); // tick buffs/debuffs (dot/hot + duration), then ↓
     EncumbranceSystem.update(this.level); // refresh the "encumbered" status from carried weight
@@ -443,7 +433,6 @@ class _SceneColonyClass {
     Weather.update(Time.delta); // advance weather transition (sim time, like the clock)
     FloraSystem.update(this.level); // grow + spread the map's plants over the in-game hours since its last tick
     GrassSystem.update(this.level); // creep of the grass ground itself (tile-state, no entities)
-    RoomSystem.update(this.level); // step every room's temperature over the same span
     TradeSystem.update(this.level); // finite merchants restock toward their template (sim time)
     ParticleFx.update(); // advance the live bursts (once per frame; freezes when paused)
     // the sim-clock camera policies (follow) run here; the Time.raw one (the debug free-fly)
@@ -799,7 +788,6 @@ class _SceneColonyClass {
   /** Only what this scene wired: its hooks, its world, its UI root (the Game object's switch sweeps the rest). */
   destroy() {
     Radio.reset(); // drop the bed hook — the next colony session starts on its map's bed
-    SolidSystem.onStatics = null; // the nav grids go with the maps below
     ColonyMap.suspend(this); // release the view before its camera is freed with the level
     World.reset(); // free every pooled level (its runtime with it), the world's records and the event wiring
     if (this.ui) {

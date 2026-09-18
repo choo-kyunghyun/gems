@@ -1,11 +1,16 @@
 // equal-mass MTV push-apart for unit crowding. Pure resolution, run after SolidSystem.update in
 // the SAME tick: the bodies come from SolidSystem.eachBody (that update's collider walk, so no
 // second walk here), and a scene that drops this system costs SolidSystem nothing.
-// O(n) via the level's Broadphase (`level.cache` under KEY, cellSize > max entity diameter — the
-// level's builder mounts one), else O(n²).
+// O(n) via the level's Broadphase — its entry in the level's cache, seeded over the grid's extent
+// on the first update (a grid-less level has no extent to bucket and sweeps O(n²)).
 globalThis.SeparationSystem = {
-  KEY: "separation", // its Level.cache key — the Broadphase, when the level mounts one
+  KEY: "separation", // its Level.cache key — the Broadphase
   iterations: 1, // raise for dense clusters; broadphase re-buckets each pass
+  // the broadphase cell (px): the center-bucket contract wants it above the largest dynamic
+  // body's diameter (~27px at 16px cells); huge SOLID colliders (the border, water) never enter
+  // it — only dynamic bodies are bucketed. SolidSystem's asymmetric body-vs-static query keeps
+  // its OWN span-bucketed grid, a different query shape.
+  cellSize: 96,
 
   // Scratch reused every tick — the body list and the two pair rects (docs/ARCHITECTURE.md → Hot-path idioms).
   _bodies: [],
@@ -23,7 +28,19 @@ globalThis.SeparationSystem = {
     });
     bodies.length = w;
 
-    const bp = level.cache.get(SeparationSystem);
+    const grid = level.grid;
+    const bp =
+      grid !== null
+        ? level.cache.of(
+            SeparationSystem,
+            () =>
+              new Broadphase(
+                grid.cols * grid.cellWidth,
+                grid.rows * grid.cellHeight,
+                SeparationSystem.cellSize,
+              ),
+          )
+        : undefined;
     const sep = (a, b) => SeparationSystem._separate(entities, a, b);
     for (let it = 0; it < SeparationSystem.iterations; it++) {
       if (bp !== undefined) {

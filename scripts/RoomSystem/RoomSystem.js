@@ -12,8 +12,11 @@
  * `first` cell (Rooms), so a wall edit that keeps a room's top-left cell keeps its warmth; a room
  * that vanishes drops off the record on the next step.
  *
- * Takes the level: the mirror is its cache (`level.cache` under KEY, a Rooms the level's builder mounts
- * — ColonyMap), the temperatures its record (`level.meta`, under the same KEY).
+ * Takes the level: the mirror is its cache entry (`rooms` — a Rooms over the map's wall layer,
+ * seeded on the first read), the temperatures its record (`level.meta`, under the same KEY).
+ * `update` runs once per frame BEFORE the sim: the mirror first (the doors standing in the store
+ * are the stamped footprints, then the walls are resampled if edited — the environmental needs
+ * read it this frame), then the temperatures.
  */
 globalThis.RoomSystem = {
   KEY: "rooms", // its key in both bags — the Rooms mirror in Level.cache, the temperature record in Level.meta
@@ -23,13 +26,17 @@ globalThis.RoomSystem = {
   _power: [], // scratch: per-room Heat sum for the step
   _leak: [], // scratch: per-room leak rate for the step
 
-  /**
-   * Mirror maintenance, once per frame before the sim (beside NavGrid.sync): the doors
-   * standing in the store are the stamped footprints, then the walls are resampled if edited.
-   */
-  sync(level) {
+  /** The level's room mirror — the wall layer bounds a room (a fence has no roof). */
+  rooms(level) {
+    return level.cache.of(
+      RoomSystem,
+      () => new Rooms(level.grid, [ColonyMap.runtime(level).wallLayer]),
+    );
+  },
+
+  /** The doors standing in the store are the stamped footprints, then the walls resample if edited. */
+  _sync(level, rooms) {
     const entities = level.entities;
-    const rooms = level.cache.get(RoomSystem);
     const rects = RoomSystem._rects;
     let n = 0;
     entities.forEach([Interaction, Position, BBox], (id, it) => {
@@ -44,10 +51,12 @@ globalThis.RoomSystem = {
   },
 
   /**
-   * Step every room's temperature up to now (WorldClock.absHours); a first call on a map without
-   * the record starts its clock, every room at the outside temperature.
+   * The mirror, then every room's temperature stepped up to now (WorldClock.absHours); a first
+   * call on a map without the record starts its clock, every room at the outside temperature.
    */
   update(level) {
+    const rooms = RoomSystem.rooms(level);
+    RoomSystem._sync(level, rooms);
     const now = WorldClock.absHours();
     let rec = level.meta.get(RoomSystem.KEY);
     if (rec === undefined) {
@@ -59,7 +68,6 @@ globalThis.RoomSystem = {
     if (dh <= 0) return;
     rec.lastHour = now;
 
-    const rooms = level.cache.get(RoomSystem);
     const list = rooms.rooms;
     const n = list.length;
     const power = RoomSystem._power;
@@ -108,12 +116,12 @@ globalThis.RoomSystem = {
   /** Whether a world point is under a roof: inside a room, or anywhere on an indoor map. */
   sheltered(level, wx, wy) {
     if (level.meta.get(ColonyMap.INDOOR) === true) return true;
-    return level.cache.get(RoomSystem).atWorld(wx, wy) > 0;
+    return RoomSystem.rooms(level).atWorld(wx, wy) > 0;
   },
 
   /** The temperature at a world point in Kelvin: its room's, or the outside's. */
   tempAt(level, wx, wy) {
-    const rooms = level.cache.get(RoomSystem);
+    const rooms = RoomSystem.rooms(level);
     const r = rooms.atWorld(wx, wy);
     if (r <= 0) return Temperature.now();
     const rec = level.meta.get(RoomSystem.KEY);

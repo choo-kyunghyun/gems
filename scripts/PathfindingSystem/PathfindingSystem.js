@@ -1,32 +1,40 @@
 /**
- * Plans over the level's NavGrid — `level.cache` under KEY, mounted by the level's builder (ColonyMap)
- * — pointing MotionPlanner at its grid whenever the level in hand differs from the one it planned
- * last (the planner's level-sized scratch follows the grid). A request on a level with no nav grid
- * is a wiring error and throws.
+ * Plans over the level's NavGrid — its entry in the level's cache (`nav`), seeded on the first
+ * read from the level's grid (a level with no grid has nowhere to plan and throws — a wiring
+ * error). Every tick `update` keeps the grid current first: the tile costs through `sync`
+ * (a no-op while the layers' edit count holds) and the kinematic solids through `stamp`, off
+ * the snapshot SolidSystem keeps — restamped only when its generation moved (a wall built or
+ * torn down; a body spawn moves nothing), and then every held `PathResponse` is dropped, since
+ * a new wall may cut one (the walkers re-request on their own throttle). The snapshot is the
+ * last collider walk's, so a wall raised after this tick's SolidSystem.update lands one tick on.
  *
  * Serves `PathRequest`s into `PathResponse`s over `MotionPlanner`, at most `budget` per tick — the
  * rest stay pending for later ticks, taken round-robin by POSITION in the request walk from where
- * the last tick stopped, so a sustained overload starves no requester: a served request's slot is
- * refilled from the walk's tail (ComponentStore's order contract), so a pending request only ever
- * moves toward the front and the forward sweep reaches it within two passes. A pending request its
- * walker refreshes first (`PathFollow.target`'s throttle) is replaced in place. A count bound is
- * not a time bound: a map-crossing plan runs tens of milliseconds on its own, so serving one is
- * over a frame whatever the budget — testCore `perf.plan` is what that costs.
+ * the last tick stopped (`nav.cursor`), so a sustained overload starves no requester: a served
+ * request's slot is refilled from the walk's tail (ComponentStore's order contract), so a pending
+ * request only ever moves toward the front and the forward sweep reaches it within two passes. A
+ * pending request its walker refreshes first (`PathFollow.target`'s throttle) is replaced in
+ * place. A count bound is not a time bound: a map-crossing plan runs tens of milliseconds on its
+ * own, so serving one is over a frame whatever the budget — testCore `perf.plan` is what that
+ * costs.
  */
 globalThis.PathfindingSystem = {
   KEY: "nav", // its Level.cache key — the level's NavGrid
   budget: 4, // requests served per tick; the overflow carries over
-  // walk position the next tick's sweep resumes from — a fairness cursor over whichever level
-  // update() is stepping, meaningless across a level switch and harmless there (the sweep wraps)
-  _cursor: 0,
 
-  /** The level's NavGrid, or undefined when its builder mounted none. */
+  /** The level's NavGrid, seeded from its grid on the first read. */
   nav(level) {
-    return level.cache.get(PathfindingSystem);
+    return level.cache.of(PathfindingSystem, () => {
+      if (level.grid === null)
+        throw new Error(
+          `PathfindingSystem: level "${level.id}" has no grid to plan over`,
+        );
+      return new NavGrid(level.grid);
+    });
   },
 
-  /** Drop all responses so stale paths re-plan after a grid change. */
-  invalidate(entities) {
+  /** Drop every response so the walkers re-plan over the changed grid. */
+  _invalidate(entities) {
     entities.forEach([PathResponse], (id) => {
       entities.detach(id, PathResponse);
     });
@@ -34,8 +42,12 @@ globalThis.PathfindingSystem = {
 
   update(level) {
     const entities = level.entities;
+    const nav = PathfindingSystem.nav(level);
+    nav.sync();
+    if (nav.stamp(SolidSystem.statics(level), SolidSystem.generation(level)))
+      PathfindingSystem._invalidate(entities);
     const budget = PathfindingSystem.budget;
-    const cursor = PathfindingSystem._cursor;
+    const cursor = nav.cursor;
     let served = 0;
     let skipped = 0; // pending below the cursor, left to the wrap pass
     let pos = 0; // the walk's position
@@ -64,16 +76,14 @@ globalThis.PathfindingSystem = {
           next = at + 1;
         });
       }
-    PathfindingSystem._cursor = next;
+    nav.cursor = next;
   },
 
   _serve(level, id, req) {
     const nav = level.cache.get(PathfindingSystem);
-    if (nav === undefined)
-      throw new Error(`PathfindingSystem: level "${level.id}" mounts no NavGrid`);
-    if (MotionPlanner.grid !== nav.grid) MotionPlanner.setGrid(nav.grid);
     const entities = level.entities;
     const path = MotionPlanner.plan(
+      nav,
       { x: req.startX, y: req.startY },
       { x: req.goalX, y: req.goalY },
     );

@@ -1,6 +1,8 @@
 /**
  * Static A* planner over a `Grid` of cell costs (≥ 1 = walkable, weighted; Infinity = blocked).
- * `setGrid` allocates reusable scratch arrays once per grid; `plan` reuses them. Consumer:
+ * Stateless: `plan` takes a `nav` — anything carrying the `grid` and a `scratch` record built by
+ * `scratch(count)` for that grid's size (NavGrid holds both, in the level's cache) — so the
+ * level-sized working arrays live with the level and a map switch binds nothing here. Consumer:
  * `PathfindingSystem`.
  */
 globalThis.MotionPlanner = {
@@ -33,48 +35,33 @@ globalThis.MotionPlanner = {
     Math.sqrt(2),
   ],
 
-  grid: undefined,
-  _g: undefined,
-  _from: undefined,
-  _closed: undefined,
-  _scratch: undefined,
-  // per-plan reset by generation: a cell's g/from/closed are live only while `_stamp[i]` equals
-  // this plan's `_gen`, so nothing is cleared between plans — a fill over the level is a VM loop
-  // even on a typed array, ~10 ms per plan on a 128² level (testCore perf.measured, array.fill).
-  _stamp: undefined,
-  _gen: 0,
-  iters: 0, // expansions the last plan spent — what a time budget and `perf.plan` divide by
-  // the open set: a binary min-heap as parallel node/f arrays, its live length a local in `plan`
-  // (these only carry it between plans). In JS rather than ds_priority so a plan holds no GML
-  // resource and pays no boundary crossing per op, and sifted INLINE in the loop — a push per
-  // neighbour is too hot for a call (testCore perf.measured).
-  _hn: [],
-  _hf: [],
-
-  setGrid(grid) {
-    MotionPlanner.grid = grid;
-    const count = grid.size();
-    // PLAIN arrays, not typed: a typed element read costs ~20x a plain one on this runtime
-    // (testCore perf.access, `read.typed` vs `read.array`), and the expansion loop is all
-    // scratch reads. Typed would only pay for the memory, which a level-sized array does not need.
-    // TODO typed scratch is an option again when `read.typed` reaches `read.array`.
-    MotionPlanner._g = new Array(count).fill(0);
-    MotionPlanner._from = new Array(count).fill(0);
-    MotionPlanner._closed = new Array(count).fill(0);
-    MotionPlanner._scratch = new Array(count).fill(0);
-    MotionPlanner._stamp = new Array(count).fill(0); // `_gen` starts above 0 so nothing reads live
-  },
-
-  /** Unbind the grid and free its scratch (the Game object's scene switch — the grid's level is gone). */
-  reset() {
-    MotionPlanner.grid = undefined;
-    MotionPlanner._g = undefined;
-    MotionPlanner._from = undefined;
-    MotionPlanner._closed = undefined;
-    MotionPlanner._scratch = undefined;
-    MotionPlanner._stamp = undefined;
-    MotionPlanner._hn.length = 0;
-    MotionPlanner._hf.length = 0;
+  /**
+   * The working record a plan over a `count`-cell grid reuses — g/from/closed per cell and the
+   * path scratch; `stamp`/`gen`, the per-plan generation (a cell's g/from/closed are live only
+   * while `stamp[i]` equals the plan's `gen`, so nothing is cleared between plans — a fill over
+   * the level is a VM loop even on a typed array, ~10 ms per plan on a 128² level (testCore
+   * perf.measured, array.fill)); the open set `hn`/`hf`, a binary min-heap as parallel node/f
+   * arrays whose live length is a local in `plan` (in JS rather than ds_priority so a plan holds
+   * no GML resource and pays no boundary crossing per op, sifted INLINE in the loop — a push per
+   * neighbour is too hot for a call, testCore perf.measured); and `iters`, the expansions the
+   * last plan spent (what a time budget and `perf.plan` divide by).
+   * PLAIN arrays, not typed: a typed element read costs ~20x a plain one on this runtime
+   * (testCore perf.access, `read.typed` vs `read.array`), and the expansion loop is all
+   * scratch reads. Typed would only pay for the memory, which a level-sized array does not need.
+   * TODO typed scratch is an option again when `read.typed` reaches `read.array`.
+   */
+  scratch(count) {
+    return {
+      g: new Array(count).fill(0),
+      from: new Array(count).fill(0),
+      closed: new Array(count).fill(0),
+      path: new Array(count).fill(0),
+      stamp: new Array(count).fill(0), // `gen` starts above 0 so nothing reads live
+      gen: 0,
+      hn: [],
+      hf: [],
+      iters: 0,
+    };
   },
 
   /**
@@ -82,7 +69,7 @@ globalThis.MotionPlanner = {
    * bounds or blocked, or the goal is unreachable within `opt.maxIter` expansions. `opt`:
    * `allowDiag` (octile moves; with `cornerCutting` a diagonal may pass between two blocked
    * cells), `heuristicWeight` (> 1 trades optimality for fewer expansions on a far plan),
-   * `maxIter`. Planning before `setGrid` is a wiring error.
+   * `maxIter`.
    *
    * The expansion loop is written FLAT on purpose — the grid accessors, the heuristic and the
    * heap are inlined and the neighbour scan indexes `grid.data` directly. A static-method call
@@ -90,12 +77,9 @@ globalThis.MotionPlanner = {
    * the call-per-neighbour form this replaced spent most of an expansion on the boundary rather
    * than on the search. Keep it flat; `perf.plan` is the row that says what it costs.
    */
-  plan(start, goal, opt = {}) {
-    const grid = MotionPlanner.grid;
-    if (grid === undefined) {
-      Log.error("MotionPlanner.plan: no grid bound");
-      return [];
-    }
+  plan(nav, start, goal, opt = {}) {
+    const grid = nav.grid;
+    const sc = nav.scratch;
     const allowDiag = opt.allowDiag ?? false;
     const cornerCutting = opt.cornerCutting ?? false;
     const heuristicWeight = opt.heuristicWeight ?? 1;
@@ -125,13 +109,13 @@ globalThis.MotionPlanner = {
     if (data[goalIdx] === Infinity) return [];
     if (startIdx === goalIdx) return [{ x: sx, y: sy }];
 
-    const g = MotionPlanner._g;
-    const from = MotionPlanner._from;
-    const closed = MotionPlanner._closed;
-    const stamp = MotionPlanner._stamp;
-    const gen = ++MotionPlanner._gen;
-    const hn = MotionPlanner._hn;
-    const hf = MotionPlanner._hf;
+    const g = sc.g;
+    const from = sc.from;
+    const closed = sc.closed;
+    const stamp = sc.stamp;
+    const gen = ++sc.gen;
+    const hn = sc.hn;
+    const hf = sc.hf;
     let hlen = 0; // the heap's live length, owned here so a push is not an array-length call
 
     // octile's diagonal discount folds to 0 for cardinal, so one heuristic serves both with no
@@ -186,8 +170,8 @@ globalThis.MotionPlanner = {
       closed[node] = 1;
 
       if (node === goalIdx) {
-        MotionPlanner.iters = iter;
-        return MotionPlanner._reconstructPath(startIdx, goalIdx);
+        sc.iters = iter;
+        return MotionPlanner._reconstructPath(sc, cols, startIdx, goalIdx);
       }
 
       const node_x = node % cols;
@@ -250,23 +234,23 @@ globalThis.MotionPlanner = {
       }
     }
 
-    MotionPlanner.iters = iter;
+    sc.iters = iter;
     return [];
   },
 
-  _reconstructPath(startIdx, goalIdx) {
+  _reconstructPath(sc, cols, startIdx, goalIdx) {
+    const scratch = sc.path;
+    const from = sc.from;
     let len = 0;
     let node = goalIdx;
     while (node !== -1) {
-      MotionPlanner._scratch[len++] = node;
+      scratch[len++] = node;
       if (node === startIdx) break;
-      node = MotionPlanner._from[node];
+      node = from[node];
     }
 
-    if (len === 0 || MotionPlanner._scratch[len - 1] !== startIdx) return [];
+    if (len === 0 || scratch[len - 1] !== startIdx) return [];
 
-    const cols = MotionPlanner.grid.cols;
-    const scratch = MotionPlanner._scratch;
     const path = [];
     for (let i = len - 1; i >= 0; i--) {
       const idx = scratch[i];

@@ -85,15 +85,9 @@ globalThis.testStress = {
         }
         ctx.colliders = [];
         TileEdit.remesh(s, grid, layer, ctx.colliders);
-        // the level's caches, mounted where the systems read them (the scene's shape)
-        ctx.nav = new NavGrid(grid);
-        level.cache.of(PathfindingSystem, () => ctx.nav);
-        ctx.nav.sync();
-        ctx.nav.stamp(SolidSystem.statics(level)); // once: the walls never change
-        level.cache.of(
-          SeparationSystem,
-          () => new Broadphase(COLS * CELL, ROWS * CELL, 64),
-        );
+        // the level's nav grid, seeded by its owner; update() syncs and stamps it (the walls
+        // never change, so the stamp lands once)
+        ctx.nav = PathfindingSystem.nav(level);
 
         // the agents, each on a free cell with a free-cell goal
         const free = [];
@@ -162,7 +156,6 @@ globalThis.testStress = {
         let pathUs = 0;
         let solidUs = 0;
         let sepUs = 0;
-        ctx.nav.sync(); // a no-op here, kept so the loop has a real scene's shape
         let t1 = get_timer();
         // the walkers: arrive → new goal; else steer at PathFollow's movement point
         s.forEach(["StressAgent", Position, Velocity], (id, ag, pos, vel) => {

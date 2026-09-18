@@ -24,7 +24,7 @@
 - Click cue on non-button widgets — only `UIButton`/`UINav` activation cues today, so a click on a slider/checkbox/list is silent
 - Blueprint UI — stamp a captured or registered plan (`Blueprint.stamp`) for its wood
 - Markers in the DEV capture — `entry`/`reach` placed in-game instead of hand-added to the exported literal
-- More `testStress` scenarios over the same shape as `stress.pathfind`: a raycast storm (hitscan volleys over the static buckets), a spawn/despawn churn (the free list, the flush cost), a tile-edit storm (remesh + `NavGrid.sync` + `onStatics` per frame)
+- More `testStress` scenarios over the same shape as `stress.pathfind`: a raycast storm (hitscan volleys over the static buckets), a spawn/despawn churn (the free list, the flush cost), a tile-edit storm (remesh + `NavGrid.sync` + a collider-generation restamp per frame)
 - A `DEV_MODE` section timer around `sceneColony.update`'s phases, logging the colony frame profile (sim, renderer, GUI) as a `[BENCH]` line in place of the hand probe
 - ECS: `ComponentStore.get`/`has`/`require`/`add`/`detach` reach the index through `EntityID.index` — inline `id & INDEX_MASK` (perf.measured: `id.index` 48 vs `id.index.inline` 13 ns/op, on every random access)
 - ECS: a walk's callback pays a `Map.get` plus the static call per `has`/`get` (`store.get` 226 vs `store.get.cached` 23 ns/op) — a column handle (`entities.column(token)`) or a NOT token in `forEach` for the exclusion filter the standard view has; the sites are `FollowerSystem` (`Downed`), `ColonyCombat` (`Mesh`), `WorldOverlay` (`Fuse`), `ParticleEmitterSystem` (`ParticleEmitter`)
