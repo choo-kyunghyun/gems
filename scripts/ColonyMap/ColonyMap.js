@@ -117,13 +117,15 @@ globalThis.ColonyMap = {
       );
       squad = [];
       for (let i = 0; i < members.length; i++) {
-        // no member opts out of travel: a "wait" companion snaps back to follow (+carry bonus)
-        FollowerSystem.setState(
-          scene.level.entities,
-          scene.playerId,
-          members[i],
-          "follow",
-        );
+        // no member opts out of travel: a "wait" companion snaps back to follow (+carry bonus);
+        // the player leads the list and is no Follower
+        if (members[i] !== scene.playerId)
+          FollowerSystem.setState(
+            scene.level.entities,
+            scene.playerId,
+            members[i],
+            "follow",
+          );
         squad.push(World.take(scene.level.id, members[i]));
       }
       Trader.onSuspend(scene.level); // dehydrate any embodied wandering trader → its record (before park)
