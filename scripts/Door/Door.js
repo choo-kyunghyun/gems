@@ -28,8 +28,6 @@ globalThis.Door = {
       col.solid = false;
       if (mesh !== undefined) mesh.yaw = (mesh.yaw ?? 0) + Door.SWING;
     }
-    // solid flipped in place on a kinematic collider — the id-set fingerprint cannot see it
-    SolidSystem.invalidate(level);
     return "";
   },
 

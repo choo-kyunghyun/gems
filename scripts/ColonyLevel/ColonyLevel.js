@@ -197,7 +197,7 @@ globalThis.ColonyLevel = {
     h.terrainTypes = {};
     for (let i = 0; i < terrain.mats.length; i++)
       h.terrainTypes[terrain.mats[i].material] = terrain.mats[i].type;
-    SolidSystem.boxes(
+    Colliders.boxes(
       entities,
       out.solid,
       grid.cellWidth,
@@ -354,10 +354,10 @@ globalThis.ColonyLevel = {
     const ch = grid.cellHeight;
     const W = grid.cols * cw;
     const H = grid.rows * ch;
-    out.push(SolidSystem.box(entities, 0, -ch, W, ch)); // top
-    out.push(SolidSystem.box(entities, 0, H, W, ch)); // bottom
-    out.push(SolidSystem.box(entities, -cw, -ch, cw, H + 2 * ch)); // left
-    out.push(SolidSystem.box(entities, W, -ch, cw, H + 2 * ch)); // right
+    out.push(Colliders.box(entities, 0, -ch, W, ch)); // top
+    out.push(Colliders.box(entities, 0, H, W, ch)); // bottom
+    out.push(Colliders.box(entities, -cw, -ch, cw, H + 2 * ch)); // left
+    out.push(Colliders.box(entities, W, -ch, cw, H + 2 * ch)); // right
   },
 
   /** Resolve the player spawn (world coords): the named entry, falling back to `default`. */

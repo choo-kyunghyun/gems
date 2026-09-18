@@ -1,7 +1,7 @@
 /**
- * Segment casts against the SOLID colliders, both halves off SolidSystem's per-tick collider pass
- * (the store holds ~80% statics, so no cast scans it): the kinematic solids through the static
- * snapshot's bucket grid (a DDA walk — a cast costs the cells it crosses), the dynamic bodies through
+ * Segment casts against the SOLID colliders, both halves off the level's Colliders (SolidSystem's
+ * per-tick bake — the store holds ~80% statics, so no cast scans it): the kinematic solids through
+ * the bake's bucket grid (a DDA walk — a cast costs the cells it crosses), the dynamic bodies through
  * its body list, with `solid` read live (a corpse or an open door is not a hit). A hit is
  * { id, x, y, nx, ny, t }, nx/ny the surface normal pointing back along the ray, t the segment
  * parameter (0 = start, clamped to 0 when the start is inside). Both lists can lag a removal by a
@@ -45,13 +45,14 @@ globalThis.Raycast = {
     const rect = Raycast._rect;
     let bestT = Infinity;
 
-    SolidSystem.eachBody(level, (id, col, pos, box) => {
+    const colliders = SolidSystem.colliders(level);
+    colliders.eachBody((id, col, pos, box) => {
       if (id === ignore) return;
       if (!col.solid) return;
       const e = AABB.edgesInto(pos, box, rect);
       const r = Raycast._segmentAABB(x0, y0, dx, dy, e.x1, e.y1, e.x2, e.y2);
       if (r === null) return;
-      if (!entities.isValid(id)) return; // removed since the list (SolidSystem.eachBody)
+      if (!entities.isValid(id)) return; // removed since the list (Colliders.eachBody)
       if (nearest) {
         if (r.t >= bestT) return;
         bestT = r.t;
@@ -59,11 +60,11 @@ globalThis.Raycast = {
       Raycast._add(hits, nearest, id, r, x0, y0, dx, dy);
     });
 
-    const statics = SolidSystem.statics(level);
+    const statics = colliders.statics;
     const seen = Raycast._seen;
     while (seen.length < statics.length) seen.push(0);
     const gen = ++Raycast._gen;
-    SolidSystem.walk(level, x0, y0, x1, y1, (bucket, tEntry) => {
+    colliders.walk(x0, y0, x1, y1, (bucket, tEntry) => {
       if (nearest) {
         if (tEntry > bestT) return false;
       }
@@ -75,7 +76,7 @@ globalThis.Raycast = {
         if (s.id === ignore) continue;
         const r = Raycast._segmentAABB(x0, y0, dx, dy, s.x1, s.y1, s.x2, s.y2);
         if (r === null) continue;
-        if (!entities.isValid(s.id)) continue; // removed since the snapshot (SolidSystem.statics)
+        if (!entities.isValid(s.id)) continue; // removed since the bake (Colliders.statics)
         if (nearest) {
           if (r.t >= bestT) continue;
           bestT = r.t;

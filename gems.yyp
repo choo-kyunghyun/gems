@@ -204,6 +204,7 @@
     {"id":{"name":"CameraSystem","path":"scripts/CameraSystem/CameraSystem.yy",},},
     {"id":{"name":"Cold","path":"scripts/Cold/Cold.yy",},},
     {"id":{"name":"ColdSystem","path":"scripts/ColdSystem/ColdSystem.yy",},},
+    {"id":{"name":"Colliders","path":"scripts/Colliders/Colliders.yy",},},
     {"id":{"name":"Collision","path":"scripts/Collision/Collision.yy",},},
     {"id":{"name":"ColonyCombat","path":"scripts/ColonyCombat/ColonyCombat.yy",},},
     {"id":{"name":"ColonyLevel","path":"scripts/ColonyLevel/ColonyLevel.yy",},},

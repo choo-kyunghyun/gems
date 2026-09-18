@@ -453,7 +453,7 @@ globalThis.testCore = {
         const mk = () => {
           const c = _testLevel(8, 8);
           const s = c.entities;
-          SolidSystem.box(s, 96, 0, 32, 224); // a wall down column 3, rows 0..6
+          Colliders.box(s, 96, 0, 32, 224); // a wall down column 3, rows 0..6
           c.a = s.create();
           s.add(c.a, Position, { x: 40, y: 100, z: 0 });
           s.add(c.a, BBox, { x: -8, y: -8, width: 16, height: 16 });
@@ -502,8 +502,8 @@ globalThis.testCore = {
           "the path re-plans to the twin's length",
         );
         t.eq(
-          SolidSystem.statics(q.level).length,
-          SolidSystem.statics(p.level).length,
+          SolidSystem.colliders(q.level).statics.length,
+          SolidSystem.colliders(p.level).statics.length,
           "the collider snapshot rebuilds whole",
         );
         t.eq(
@@ -570,7 +570,7 @@ globalThis.testCore = {
         ctx.level = new Level({ id: "test", capacity: 8 });
         const s = ctx.level.entities;
         ctx.entities = s;
-        ctx.wall = SolidSystem.box(s, 100, 0, 32, 64);
+        ctx.wall = Colliders.box(s, 100, 0, 32, 64);
         ctx.body = s.create();
         s.add(ctx.body, Position, { x: 50, y: 16, z: 0 });
         s.add(ctx.body, BBox, { x: 0, y: 0, width: 16, height: 16 });
@@ -588,10 +588,49 @@ globalThis.testCore = {
         const wallPos = s.get(ctx.wall, Position);
         t.eq(wallPos.x, 100, "kinematic solid never moves");
         t.eq(
-          SolidSystem.statics(ctx.level).length,
+          SolidSystem.colliders(ctx.level).statics.length,
           1,
           "static snapshot holds the wall",
         );
+      },
+      teardown(ctx) {
+        ctx.level.destroy();
+      },
+    },
+    {
+      id: "solid.fingerprint",
+      // a kinematic collider's `solid` flipped IN PLACE (a door's leaf, a trunk growing solid)
+      // re-bakes like a wall built or torn down — no call from the writer
+      setup(ctx) {
+        ctx.level = new Level({ id: "test", capacity: 8 });
+        const s = ctx.level.entities;
+        ctx.entities = s;
+        ctx.wall = Colliders.box(s, 100, 0, 32, 64);
+        ctx.body = s.create();
+        s.add(ctx.body, Position, { x: 50, y: 16, z: 0 });
+        s.add(ctx.body, BBox, { x: 0, y: 0, width: 16, height: 16 });
+        s.add(ctx.body, Collision, { solid: true });
+        s.add(ctx.body, Velocity, { x: 600, y: 0, z: 0 });
+      },
+      verify(ctx, t) {
+        const s = ctx.entities;
+        const level = ctx.level;
+        const col = s.get(ctx.wall, Collision);
+        SolidSystem.update(level);
+        const c = SolidSystem.colliders(level);
+        t.eq(c.statics.length, 1, "the wall bakes");
+        t.eq(c.gen, 1, "the first bake counts");
+        col.solid = false; // the leaf opens
+        for (let k = 0; k < 20; k++) SolidSystem.update(level);
+        t.eq(c.statics.length, 0, "an open leaf leaves the bake");
+        t.eq(c.gen, 2, "the flip moved the generation");
+        t.ok(s.get(ctx.body, Position).x > 100, "the body walks through the open leaf");
+        col.solid = true; // the leaf closes behind it
+        SolidSystem.update(level);
+        t.eq(c.statics.length, 1, "a closed leaf re-enters the bake");
+        t.eq(c.gen, 3, "the flip back moved the generation again");
+        SolidSystem.update(level);
+        t.eq(c.gen, 3, "an unchanged set holds the generation");
       },
       teardown(ctx) {
         ctx.level.destroy();
@@ -606,7 +645,7 @@ globalThis.testCore = {
         ctx.level = new Level({ id: "test", capacity: 8 });
         const s = ctx.level.entities;
         ctx.entities = s;
-        ctx.wall = SolidSystem.box(s, 100, 0, 32, 64);
+        ctx.wall = Colliders.box(s, 100, 0, 32, 64);
         ctx.still = s.create(); // no Velocity: a cast target, not a mover
         s.add(ctx.still, Position, { x: 10, y: 100, z: 0 });
         s.add(ctx.still, BBox, { x: 0, y: 0, width: 16, height: 16 });
@@ -632,7 +671,7 @@ globalThis.testCore = {
         SolidSystem.update(ctx.level);
         let listed = 0;
         let sawStill = false;
-        SolidSystem.eachBody(ctx.level, (id) => {
+        SolidSystem.colliders(ctx.level).eachBody((id) => {
           listed++;
           if (id === ctx.still) sawStill = true;
         });
@@ -724,7 +763,7 @@ globalThis.testCore = {
         ctx.level = new Level({ id: "test", capacity: 8 });
         const s = ctx.level.entities;
         ctx.entities = s;
-        ctx.wall = SolidSystem.box(s, 100, 0, 32, 64);
+        ctx.wall = Colliders.box(s, 100, 0, 32, 64);
         SolidSystem.update(ctx.level); // takes the static snapshot the cast walks
       },
       verify(ctx, t) {
@@ -819,7 +858,7 @@ globalThis.testCore = {
       setup(ctx) {
         Object.assign(ctx, _testLevel(8, 8));
         const s = ctx.entities;
-        ctx.wall = SolidSystem.box(s, 96, 0, 32, 224); // column 3, rows 0..6: a detour through row 7
+        ctx.wall = Colliders.box(s, 96, 0, 32, 224); // column 3, rows 0..6: a detour through row 7
         ctx.walker = s.create();
         s.add(ctx.walker, Position, { x: 16, y: 16, z: 0 });
         s.mint(ctx.walker, PathRequest, { startX: 0, startY: 0, goalX: 7, goalY: 0 });
@@ -858,7 +897,7 @@ globalThis.testCore = {
         SolidSystem.update(level);
         PathfindingSystem.update(level);
         t.ok(s.get(ctx.other, PathResponse) !== undefined, "a body spawn keeps every held path");
-        t.eq(SolidSystem.generation(level), 2, "the generation counts the static set's changes");
+        t.eq(SolidSystem.colliders(level).gen, 2, "the generation counts the static set's changes");
       },
       teardown(ctx) {
         ctx.level.destroy();

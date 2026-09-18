@@ -77,7 +77,6 @@ globalThis.FloraSystem = {
     let r = 0;
     let d = 0;
     let wild = 0;
-    let flipped = false; // a trunk turned solid in place this pass
     entities.forEach([Growth, Visual], (id, g, vis) => {
       const def = FloraSystem.species(g.species);
       const mul = def.season[season] ?? 1;
@@ -96,7 +95,7 @@ globalThis.FloraSystem = {
         if (was < 1) ripe[r++] = id;
         if (g.wild) mature[m++] = id;
       }
-      if (FloraSystem._stage(entities, id, g, vis, def)) flipped = true;
+      FloraSystem._stage(entities, id, g, vis, def);
     });
     for (let i = 0; i < r; i++) FloraSystem._ripen(entities, ripe[i]);
     ripe.length = 0;
@@ -105,31 +104,22 @@ globalThis.FloraSystem = {
       dead.length = 0;
       entities.flush(); // committed now, or the next day's span would queue them again
     }
-    if (flipped) SolidSystem.invalidate(level);
     FloraSystem._spread(level, season, dh, wild, m);
     mature.length = 0;
   },
 
-  /**
-   * Apply the stage progress implies: the sheet's frame, and a trunk turning solid. Returns
-   * whether a collider's `solid` flipped IN PLACE — the id-set fingerprint can't see that (the
-   * door's case), so the caller invalidates the level's collider cache (a spawn needs no such
-   * call: it is a new collider).
-   */
+  /** Apply the stage progress implies: the sheet's frame, and a trunk turning solid from `solidFrom`. */
   _stage(entities, id, g, vis, def) {
     const last = def.stages - 1;
     let stage = Math.floor(g.progress * last);
     if (stage > last) stage = last;
-    if (stage === g.stage) return false;
+    if (stage === g.stage) return;
     g.stage = stage;
     vis.subimg = stage;
-    if (def.solidFrom === undefined) return false;
+    if (def.solidFrom === undefined) return;
     const col = entities.get(id, Collision);
-    if (col === undefined) return false;
-    const solid = stage >= def.solidFrom;
-    if (col.solid === solid) return false;
-    col.solid = solid;
-    return true;
+    if (col === undefined) return;
+    col.solid = stage >= def.solidFrom;
   },
 
   _ripen(entities, id) {
@@ -140,8 +130,7 @@ globalThis.FloraSystem = {
 
   /**
    * A freshly spawned plant (ColonySpawn, for any `species` descriptor): its stage frame and, if
-   * already ripe, its Interaction. A trunk set solid here needs no invalidate — the spawn is a
-   * new collider.
+   * already ripe, its Interaction.
    */
   attach(entities, id) {
     const g = entities.get(id, Growth);
@@ -319,8 +308,7 @@ globalThis.FloraSystem = {
     if (def.regrow !== undefined) {
       g.progress = def.regrow;
       entities.detach(id, Interaction);
-      if (FloraSystem._stage(entities, id, g, entities.get(id, Visual), def))
-        SolidSystem.invalidate(scene.level);
+      FloraSystem._stage(entities, id, g, entities.get(id, Visual), def);
     } else entities.remove(id);
     return true;
   },

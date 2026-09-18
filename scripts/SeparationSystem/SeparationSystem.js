@@ -1,5 +1,5 @@
 // equal-mass MTV push-apart for unit crowding. Pure resolution, run after SolidSystem.update in
-// the SAME tick: the bodies come from SolidSystem.eachBody (that update's collider walk, so no
+// the SAME tick: the bodies come from the level's Colliders (that update's collider walk, so no
 // second walk here), and a scene that drops this system costs SolidSystem nothing.
 // O(n) via the level's Broadphase — its entry in the level's cache, seeded over the grid's extent
 // on the first update (a grid-less level has no extent to bucket and sweeps O(n²)).
@@ -23,7 +23,7 @@ globalThis.SeparationSystem = {
     // non-kinematic colliders, `col` live — a corpse (solid flipped off) drops out this tick.
     const bodies = SeparationSystem._bodies;
     let w = 0;
-    SolidSystem.eachBody(level, (id, col) => {
+    SolidSystem.colliders(level).eachBody((id, col) => {
       if (col.solid) bodies[w++] = id;
     });
     bodies.length = w;

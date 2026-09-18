@@ -26,7 +26,7 @@ globalThis.TileEdit = {
 
   /** One kinematic-solid collider per meshRects rectangle; ids pushed onto `out`. */
   meshSolid(entities, grid, layer, out) {
-    SolidSystem.boxes(
+    Colliders.boxes(
       entities,
       TileEdit.meshRects(grid, layer),
       grid.cellWidth,
