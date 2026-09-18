@@ -170,10 +170,10 @@ globalThis.RenderMesh = class RenderMesh {
     // CPU cull first: only a light whose RADIUS reaches the view can affect a visible mesh
     // pixel, so off-screen lights must not eat a MAX_LIGHTS slot (a build zone can hold far
     // more torches than the budget; the overflow's glow pool still draws — RenderLighting has
-    // no cap — only the per-face mesh term is budgeted). The view rect is CameraSystem.groundRect,
+    // no cap — only the per-face mesh term is budgeted). The view rect is View.groundRect,
     // which owns the pitch stretch.
     if (this.camera !== undefined) {
-      const view = CameraSystem.groundRect(this.camera);
+      const view = this.camera.groundRect();
       const vis = [];
       for (let i = 0; i < recs.length; i++) {
         const rec = recs[i];

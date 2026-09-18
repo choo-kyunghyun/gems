@@ -466,7 +466,7 @@ globalThis.testCore = {
           s.add(c.b, Velocity, { x: 0, y: 0, z: 0 });
           c.w = s.create();
           s.add(c.w, Position, { x: 16, y: 16, z: 0 });
-          CameraSystem.create(s, { x: 100, y: 100 });
+          Cameras.create(s, { x: 100, y: 100 });
           return c;
         };
         ctx.p = mk();
@@ -955,13 +955,13 @@ globalThis.testCore = {
       // project/unproject invert each other on any world-z plane, and reading one screen point
       // on a raised plane instead of the ground shifts the answer h·tan(pitch) toward the eye —
       // the correction that puts a cursor covering a standing body back onto that body's
-      // footprint (CameraSystem.cursorWorld, sceneColony AIM_H).
+      // footprint (View.cursorWorld, sceneColony AIM_H).
       id: "camera.unproject",
       setup(ctx) {
         const p = (42 * Math.PI) / 180; // the colony's shallow end (ColonyMap.PITCH_CURVE)
         ctx.pitch = p;
         ctx.level = new Level({ id: "test", capacity: 4 });
-        CameraSystem.create(ctx.level.entities, {
+        Cameras.create(ctx.level.entities, {
           x: 100,
           y: 200,
           pitch: p,
@@ -970,7 +970,7 @@ globalThis.testCore = {
         CameraSystem.apply(ctx.level); // unassigned: derives the view, applies nothing
         ctx.camera = CameraSystem.view(ctx.level);
         ctx.flatLevel = new Level({ id: "flat", capacity: 4 });
-        CameraSystem.create(ctx.flatLevel.entities); // pitch 0 — top-down
+        Cameras.create(ctx.flatLevel.entities); // pitch 0 — top-down
         CameraSystem.apply(ctx.flatLevel);
         ctx.flat = CameraSystem.view(ctx.flatLevel);
       },
@@ -984,16 +984,16 @@ globalThis.testCore = {
         t.eq(ctx.flat.upY, 1, "a top-down view's up is map north");
         t.eq(ctx.flat.upZ, 0, "and lies in the ground plane");
         const h = 30; // world px up off the ground (up is −z)
-        const foot = CameraSystem.project(cam, 140, 260);
-        const g = CameraSystem.unproject(cam, foot.x, foot.y);
+        const foot = cam.project(140, 260);
+        const g = cam.unproject(foot.x, foot.y);
         t.near(g.x, 140, 0.01, "ground round-trip x");
         t.near(g.y, 260, 0.01, "ground round-trip y");
-        const head = CameraSystem.project(cam, 140, 260, -h);
+        const head = cam.project(140, 260, -h);
         t.ok(head.y < foot.y, "a raised point draws further up the screen");
-        const r = CameraSystem.unproject(cam, head.x, head.y, -h);
+        const r = cam.unproject(head.x, head.y, -h);
         t.near(r.x, 140, 0.01, "raised round-trip x");
         t.near(r.y, 260, 0.01, "raised round-trip y");
-        const aim = CameraSystem.unproject(cam, foot.x, foot.y, -h);
+        const aim = cam.unproject(foot.x, foot.y, -h);
         t.near(
           aim.y - g.y,
           h * Math.tan(p),
@@ -1002,8 +1002,8 @@ globalThis.testCore = {
         );
         t.eq(aim.x, g.x, "the plane never moves x");
         t.eq(
-          CameraSystem.unproject(ctx.flat, foot.x, foot.y, -h).y,
-          CameraSystem.unproject(ctx.flat, foot.x, foot.y).y,
+          ctx.flat.unproject(foot.x, foot.y, -h).y,
+          ctx.flat.unproject(foot.x, foot.y).y,
           "a top-down view has no plane to choose",
         );
       },
@@ -1024,11 +1024,11 @@ globalThis.testCore = {
         ctx.body = s.create();
         s.add(ctx.body, Position, { x: 500, y: 500, z: 0 });
         s.add(ctx.body, CameraFocus, {});
-        ctx.cam = CameraSystem.create(s, { x: 0, y: 0, pitch: 0, zoom: 2 });
+        ctx.cam = Cameras.create(s, { x: 0, y: 0, pitch: 0, zoom: 2 });
         s.mint(
           ctx.cam,
           CameraFollow,
-          CameraSystem.follow({
+          Cameras.follow({
             lerp: 1,
             zoom: 2,
             pitchLo: 42,
@@ -1055,7 +1055,7 @@ globalThis.testCore = {
         CameraSystem.update(ctx.level);
         CameraSystem.apply(ctx.level); // the view record reads the clamped look-at
         const v = CameraSystem.view(ctx.level);
-        const r = CameraSystem.groundRect(v);
+        const r = v.groundRect();
         t.near(r.x1, 0, 1, "the west edge of the ground rect stops at the world's");
         t.near(r.y1, 0, 1, "the north edge of the ground rect stops at the world's");
         t.ok(
@@ -1087,14 +1087,14 @@ globalThis.testCore = {
         const body = s.create();
         s.add(body, Position, { x: 900, y: 900, z: 0 });
         s.add(body, CameraFocus, {});
-        ctx.cam = CameraSystem.create(s, {
+        ctx.cam = Cameras.create(s, {
           x: 300,
           y: 400,
           pitch: (50 * Math.PI) / 180,
           dist: 2000,
         });
-        s.mint(ctx.cam, CameraFollow, CameraSystem.follow({ lerp: 1, pitch: 50 }));
-        s.mint(ctx.cam, CameraFly, CameraSystem.fly());
+        s.mint(ctx.cam, CameraFollow, Cameras.follow({ lerp: 1, pitch: 50 }));
+        s.mint(ctx.cam, CameraFly, Cameras.fly());
       },
       verify(ctx, t) {
         const s = ctx.level.entities;

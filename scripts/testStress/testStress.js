@@ -127,13 +127,13 @@ globalThis.testStress = {
         // a top-down ortho camera entity framing the whole level (its height = the level's, so
         // the zoom is the surface height over it), and the debug passes over its view
         const sh = surface_get_height(application_surface);
-        CameraSystem.create(s, {
+        Cameras.create(s, {
           x: (COLS * CELL) / 2,
           y: (ROWS * CELL) / 2,
           dist: 2000,
           zoom: sh / (ROWS * CELL),
         });
-        CameraSystem.assign(level, 0);
+        CameraSystem.view(level).assign(0);
         ctx.camera = CameraSystem.view(level);
         ctx.renderer = new Renderer();
         ctx.renderer.insert(

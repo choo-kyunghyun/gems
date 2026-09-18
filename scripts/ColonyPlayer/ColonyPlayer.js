@@ -227,7 +227,7 @@ globalThis.ColonyPlayer = {
    */
   aim(entities, shooterId, view) {
     const pitch = view.pitch;
-    const cursor = CameraSystem.cursorWorld(view); // the GROUND cursor — silhouette height is measured off it
+    const cursor = view.cursorWorld(); // the GROUND cursor — silhouette height is measured off it
     // Health is the shootable set: a corpse has none (ColonyCombat._toCorpse detaches it), so a
     // body on the ground never swallows the aim off the live one standing over it
     const target = Silhouette.pick(entities, cursor, pitch, {
@@ -238,7 +238,7 @@ globalThis.ColonyPlayer = {
       const e = AABB.of(entities, target);
       return { x: e.cx, y: e.cy };
     }
-    return CameraSystem.cursorWorld(view, -AIM_H * RenderBillboard.tall(pitch));
+    return view.cursorWorld(-AIM_H * RenderBillboard.tall(pitch));
   },
 
   /**
@@ -260,7 +260,7 @@ globalThis.ColonyPlayer = {
     } else {
       // flat-camera fallback ONLY — mouse_x/mouse_y are wrong under the pitched matrix camera,
       // so callers there must resolve the aim themselves (PlayerSystem passes nx/ny from the
-      // level-latched world cursor; see CameraSystem.unproject)
+      // level-latched world cursor; see View.unproject)
       const dx = Input.pointer.roomX - pos.x;
       const dy = Input.pointer.roomY - muzzleY;
       const dist = Math.sqrt(dx * dx + dy * dy) || 1;

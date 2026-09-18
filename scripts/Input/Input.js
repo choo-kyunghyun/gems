@@ -58,7 +58,7 @@ globalThis.Input = {
   /**
    * The frame's latched pointer, GUI-space: `x`/`y` (+ `moved` since the previous frame),
    * `wheel` (-1 up / +1 down / 0), `roomX`/`roomY` (mouse_x/mouse_y — right under a flat
-   * camera only, see CameraSystem.cursorWorld), `winX`/`winY` (window pixels, for a cursor-warping
+   * camera only, see View.cursorWorld), `winX`/`winY` (window pixels, for a cursor-warping
    * look), and per button (`left`/`right`/`middle`) the `pressed`/`released`/`down` edges plus
    * `owner` ("" / "ui" / "world", the ownership contract). The UI tree's view of the pointer;
    * every other consumer reads the pointer* queries.

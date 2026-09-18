@@ -79,14 +79,14 @@ globalThis.LevelGrid = class LevelGrid {
    * EXCLUSIVE — cells iterate `x0 <= x < x1`, and the cell BOUNDARY lines at `x0..x1` (inclusive)
    * are the ones bounding them, which is what a line drawer wants. `camera` is optional: with none,
    * or before one is sized (`width > 0` dodges the first-frame NaN rect), the whole grid is the
-   * window. The rect is CameraSystem.groundRect — never camera_get_view_* (it returns 0 for the
+   * window. The rect is View.groundRect — never camera_get_view_* (it returns 0 for the
    * matrix-driven camera) — and groundRect owns the pitch stretch, so a tilted view still gets the
    * cells at the top and bottom of the screen.
    */
   viewRange(camera) {
     if (camera === undefined || !(camera.width > 0))
       return { x0: 0, y0: 0, x1: this.cols, y1: this.rows };
-    const view = CameraSystem.groundRect(camera);
+    const view = camera.groundRect();
     return {
       x0: Math.max(0, Math.floor(view.x1 / this.cellWidth)),
       y0: Math.max(0, Math.floor(view.y1 / this.cellHeight)),

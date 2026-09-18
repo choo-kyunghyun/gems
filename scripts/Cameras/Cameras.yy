@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Cameras",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Cameras",
+  "parent":{
+    "name":"System",
+    "path":"folders/Core/System.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Cameras.js",
+}

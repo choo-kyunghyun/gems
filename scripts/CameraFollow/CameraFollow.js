@@ -2,7 +2,7 @@
  * Follow policy for the camera entity (CameraSystem — the pixel-snapped orthographic 2.5D
  * camera): each sim update it eases the wheel zoom, tilts by the zoom curve, then eases the
  * look-at onto the entity carrying `CameraFocus` and clamps it inside `bounds`. Its tuning is the
- * installer's, not the save's — mint it (`entities.mint`) with `CameraSystem.follow(opt)` on
+ * installer's, not the save's — mint it (`entities.mint`) with `Cameras.follow(opt)` on
  * every activation, seeding `zoom` from the persisted Camera so the view resumes where it was.
  * @typedef {Object} CameraFollow
  * @property {number} lerp  look-at smoothing per frame, 0..1

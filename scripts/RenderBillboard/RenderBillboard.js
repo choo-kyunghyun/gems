@@ -91,7 +91,7 @@ globalThis.RenderBillboard = class RenderBillboard {
   /**
    * THE pitch compensation of the standing pass (header) — also the silhouette→world-z rate a
    * non-render caller needs: a body point `a` silhouette px up a standing sprite stands at
-   * world z = −a·tall(pitch), up being −z (CameraSystem.cursorWorld's aim plane).
+   * world z = −a·tall(pitch), up being −z (View.cursorWorld's aim plane).
    */
   static tall(pitch) {
     return pitch > 0 ? 1 / Math.sin(pitch) : 1;

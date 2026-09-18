@@ -44,7 +44,7 @@ globalThis.RenderLighting = class RenderLighting {
     const ambient = Color.merge(c_white, tint.color, k);
 
     // SCREEN-space overlay (surface = application-surface size) so it survives a pitched 2.5D camera:
-    // blobs are PROJECTED to surface px via CameraSystem.project (a world-rect surface would foreshorten).
+    // blobs are PROJECTED to surface px via View.project (a world-rect surface would foreshorten).
     const w = Math.floor(surface_get_width(application_surface));
     const h = Math.floor(surface_get_height(application_surface));
     if (!(w > 0) || !(h > 0)) return;
@@ -68,7 +68,7 @@ globalThis.RenderLighting = class RenderLighting {
     gpu_set_blendmode(bm_add);
     const zx = w / this.camera.width; // world→screen scale for the blob radius
     entities.forEach([Light, Position], (id, lt, pos) => {
-      const s = CameraSystem.project(this.camera, pos.x, pos.y, 0);
+      const s = this.camera.project(pos.x, pos.y, 0);
       let intensity = lt.intensity ?? 1;
       // flicker: sim-time sine per light (see _flickerT), id-offset so torches don't sync.
       if (lt.flicker)

@@ -163,7 +163,7 @@ globalThis.ColonyMap = {
    * later teardown would tear down the live view.
    */
   suspend(scene) {
-    CameraSystem.unassign(scene.level);
+    CameraSystem.view(scene.level).release();
   },
 
   /**
@@ -188,7 +188,7 @@ globalThis.ColonyMap = {
 
     if (rt.renderer === undefined) ColonyMap._activate(scene);
     else {
-      CameraSystem.assign(level, 0);
+      CameraSystem.view(level).assign(0);
       // snap the camera's look-at to the entry so it doesn't pan from the parked position (the
       // TARGET needs no re-aim: the arrived player carries CameraFocus — take/put re-mints its
       // id, but the follow policy resolves the marker by live query each update)
@@ -757,7 +757,7 @@ globalThis.ColonyMap = {
     let id = entities.first(Camera);
     if (id === -1) {
       const sp = ColonyMap.of(level).spawn;
-      id = CameraSystem.create(entities, {
+      id = Cameras.create(entities, {
         x: sp.x,
         y: sp.y,
         pitch: (pitch * Math.PI) / 180, // frame-0 seed; the curve overwrites it every update
@@ -771,7 +771,7 @@ globalThis.ColonyMap = {
     entities.mint(
       id,
       CameraFollow,
-      CameraSystem.follow({
+      Cameras.follow({
         lerp: 0.15,
         pitch: pitch,
         // pitch-by-zoom (upright-sprite camera) — see ColonyMap.PITCH_CURVE
@@ -794,7 +794,7 @@ globalThis.ColonyMap = {
         },
       }),
     );
-    CameraSystem.assign(level, 0);
+    CameraSystem.view(level).assign(0);
   },
 
   /**

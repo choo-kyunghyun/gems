@@ -1,7 +1,7 @@
 /**
  * Free-fly policy for the camera entity (CameraSystem): a 6DOF spectator "noclip" camera (debug).
  * WASD/Space/Shift move, Q/E roll, RMB yaw/pitch, under a perspective projection. Attach it with
- * `entities.mint(camId, CameraFly, CameraSystem.fly(opt))` to take over and detach it to hand
+ * `entities.mint(camId, CameraFly, Cameras.fly(opt))` to take over and detach it to hand
  * back — the pose (Position + Camera's yaw/pitch/roll) is the one shared component, so neither
  * swap jumps the view, and the follow policy eases home from wherever the fly left it.
  * A `Time.raw` policy: CameraSystem.apply runs it from the scene's draw so it keeps flying while

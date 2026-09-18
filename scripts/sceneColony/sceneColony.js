@@ -352,10 +352,10 @@ class _SceneColonyClass {
     Time.tempo = this.tempo(Music.track());
 
     // world cursor: latch ONCE per frame (GMRT samples mouse live) via the pitch-aware ground-plane
-    // unprojection (see CameraSystem.unproject). Read by BuildMode and Interactable — both name a CELL
+    // unprojection (see View.unproject). Read by BuildMode and Interactable — both name a CELL
     // or a footprint, which is what the ground plane holds.
     const view = CameraSystem.view(this.level);
-    this.mouseWorld = CameraSystem.cursorWorld(view);
+    this.mouseWorld = view.cursorWorld();
     // the AIM point: the same cursor resolved against what it visibly covers, so a shot at a
     // body reaches the footprint the sim tests (ColonyPlayer.aim). Read by PlayerSystem through
     // Playable.

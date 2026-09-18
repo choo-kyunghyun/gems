@@ -5,7 +5,7 @@
  * (Input.pointer.roomX/roomY). Unlike CameraFollow's eased, screen-centred zoom, this one is
  * instant and CURSOR-anchored: the world point under the pointer stays put — an inspector zooms
  * into what you are pointing at, a game camera into what you are watching. Mint it with
- * `CameraSystem.pan(opt)`.
+ * `Cameras.pan(opt)`.
  * @typedef {Object} CameraPan
  * @property {number} zoomMin
  * @property {number} zoomMax

@@ -12,7 +12,7 @@ globalThis.CAMERA_PROJECTION = Object.freeze({
  * the eye basis, the extent and the matrices from these fields every frame (`CameraSystem.view`
  * is the derived record consumers read). A policy component beside it (`CameraFollow`,
  * `CameraPan`, `CameraFly`) is what moves it; a camera with none stands where it was put.
- * Persistent — a level save carries the view it was left at (CameraSystem.create seeds one).
+ * Persistent — a level save carries the view it was left at (Cameras.create seeds one).
  * @typedef {Object} Camera
  * @property {number} projection  a CAMERA_PROJECTION mode
  * @property {number} pitch  ground tilt in RADIANS: 0 = top-down, >0 the eye lifted out of the ground plane to the south (2.5D); past π/2 the eye looks up (a free-fly pose only)
