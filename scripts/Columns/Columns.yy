@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"File",
+  "%Name":"Columns",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"File",
+  "name":"Columns",
   "parent":{
     "name":"Data",
     "path":"folders/Core/Data.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"File.js",
+  "scriptSource":"Columns.js",
 }

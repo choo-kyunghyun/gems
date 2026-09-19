@@ -244,7 +244,7 @@ globalThis.Colliders = class Colliders {
 
   /**
    * Is the bake still the truth? The same candidate ids with the same `solid` flags in the same
-   * order — a walk's order only moves when the set does (ComponentStore). A compare over the
+   * order — a walk's order only moves when the set does (Columns). A compare over the
    * candidates is a few hundred tests; re-deriving them is that many component lookups, AABB
    * allocations and bucket inserts.
    */

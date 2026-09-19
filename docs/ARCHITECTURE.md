@@ -42,7 +42,9 @@ Two top-level pillars (project folders), Core reusable without Game:
 
 Placement rule for new code:
 
-- References only engine concepts (space/time/presentation/entity lifecycle) → Core.
+- References only engine concepts (space/time/presentation/entity lifecycle) → Core. A data
+  structure that knows no layer — the id-keyed store (`Table`, `Columns`, `Handle`, `Row`), the
+  1-D `Grid`, the def `Registry` — or the serialization of one (`Json`, `File`, `Snapshot`) → `Core/Data`.
 - States a gameplay rule — damage, needs, economy, progression — or names specific
   content/scenes/`Colony*` → Game: data to `Game/Component`, behaviour and registries to
   `Game/System`, item definitions to `Game/Item`, an item capability class to
@@ -72,8 +74,8 @@ and are cited from here, never restated):
       factory (`Cameras.create`, `Colliders.box`), input lifecycle (`ColonyKeymap.bind`) — lives in
       an affix-less namespace beside the ticker (NAMING.md), never on it: the two share a
       component, not a module, so a component write never needs a system call to be seen.
-    - Each `Level` owns its `EntityStore`, one sparse set per token, whose walks run down the LEAD
-      token's carriers in an order that is never by index (contract at `ComponentStore`). A
+    - Each `Level` owns its `Table`, one sparse set per token, whose walks run down the LEAD
+      token's carriers in an order that is never by index (contract at `Columns`). A
       component the caller's contract requires is read with `entities.require`, which throws on a
       miss; `entities.get` and its `undefined` guard are for a component whose absence is a state
       (an opt-in `Skeleton`, a lazily seeded `StatusEffects`, a window target that may have gone).
@@ -83,7 +85,7 @@ and are cited from here, never restated):
   places, each keyed by the consumer that owns its shape, and logic — a system, a namespace, a UI
   module — holds none.
     - ENTITY data is a component in a store. A LEVEL is an entity of its own store (`Level.self`,
-      index 0, never removed) and the WORLD one of its own (`World.self` in `World.entities`), so
+      index 0, never removed) and the WORLD one of its own (`World.self` in `World.table`), so
       what is the map's or the world's as a whole is a component of that entity under the owner's
       `KEY` — `Settlement.KEY`, `RoomSystem.KEY`, `ColonyMap.KEY` on a level; `WorldClock.KEY`,
       `Weather.KEY`, `Tracker.KEY` on the world — read through the owner's accessor
@@ -187,13 +189,13 @@ and are cited from here, never restated):
       (`MotionPlanner.scratch`'s `stamp`).
     - A GML built-in costs the boundary crossing whatever it does, so it is reached for only where
       it replaces more JS than the crossing — bulk work inside one call, never a scalar helper.
-    - A hot value in a typed array is mirrored into a plain array (`EntityID.packed`) and an
+    - A hot value in a typed array is mirrored into a plain array (`Handle.packed`) and an
       instance holds scope, never data (`Instance`) — the two layout decisions that carry such a
       `TODO`.
     - A render pass mirroring a grid never sweeps it per frame — it bakes (a `VertexBuffer`, a
       centroid list) and re-sweeps only when the source's `edits` moves (`NavGrid.sync`'s signal
       shape).
-- Live queries over stored handles: an entity id is a generational handle (`EntityID`), not an
+- Live queries over stored handles: an entity id is a generational handle (`Handle`), not an
   identity. A consumer re-derives the entity it wants by component-presence query at use
   (`scene.playerId` from `Playable`, the camera target and the audio listener's body from
   `CameraFocus`, NPCs/beacons/enemies by `entities.query`/`Query`); one that must hold an id across
@@ -235,7 +237,7 @@ and are cited from here, never restated):
   The contract — the poll-once rule, the claims, pointer ownership, the UI tree's raw-record
   exception — lives at `Input`.
 - Serialization-safe data: persisted blobs (Settings/InputPreset, `entities.export`/
-  `EntitySnapshot`) may nest — serialize them with GML `json_stringify` or, when the data carries
+  `Row`) may nest — serialize them with GML `json_stringify` or, when the data carries
   sprite refs or can cycle, the `Json` codec, never JS `JSON.stringify` (#15565, GMRT.md). A
   serialized field holds plain arrays/objects only — no `Set`/`Map` (both cross the boundary empty
   — GMRT.md) and no asset ref outside the codec's tagging. Dense/large arrays still go to binary

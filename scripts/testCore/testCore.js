@@ -41,7 +41,7 @@ function _testTypes(ctx) {
 
 /** A store of `count` entities carrying Position, plus an n-long cycling id list and its data. */
 function _testStore(ctx, count, n) {
-  const s = new EntityStore(count);
+  const s = new Table(count);
   ctx.entities = s;
   const ids = [];
   for (let i = 0; i < count; i++) {
@@ -93,7 +93,7 @@ globalThis.testCore = {
     {
       id: "entity.generation",
       setup(ctx) {
-        ctx.entities = new EntityStore(8);
+        ctx.entities = new Table(8);
       },
       verify(ctx, t) {
         const s = ctx.entities;
@@ -105,14 +105,14 @@ globalThis.testCore = {
         t.eq(s.count(), 0, "count after flush");
         const b = s.create();
         t.eq(
-          EntityID.index(b),
-          EntityID.index(a),
+          Handle.index(b),
+          Handle.index(a),
           "the freed index is recycled",
         );
         t.ok(b !== a, "the recycled id carries a new generation");
         t.eq(
-          EntityID.generation(b),
-          EntityID.generation(a) + 1,
+          Handle.generation(b),
+          Handle.generation(a) + 1,
           "generation bumps by one",
         );
         t.ok(s.isValid(b), "the new owner is valid");
@@ -133,7 +133,7 @@ globalThis.testCore = {
     {
       id: "entity.flush",
       setup(ctx) {
-        ctx.entities = new EntityStore(8);
+        ctx.entities = new Table(8);
       },
       verify(ctx, t) {
         const s = ctx.entities;
@@ -155,7 +155,7 @@ globalThis.testCore = {
     {
       id: "entity.forEach",
       setup(ctx) {
-        const s = new EntityStore(8);
+        const s = new Table(8);
         ctx.entities = s;
         ctx.a = s.create();
         s.add(ctx.a, Position, { x: 1, y: 0, z: 0 });
@@ -201,7 +201,7 @@ globalThis.testCore = {
     {
       id: "entity.walk",
       setup(ctx) {
-        const s = new EntityStore(16);
+        const s = new Table(16);
         ctx.entities = s;
         ctx.ids = [];
         for (let k = 0; k < 6; k++) {
@@ -309,9 +309,9 @@ globalThis.testCore = {
     {
       id: "entity.snapshot",
       setup(ctx) {
-        const s = new EntityStore(8);
+        const s = new Table(8);
         ctx.src = s;
-        ctx.dst = new EntityStore(8);
+        ctx.dst = new Table(8);
         const gone = s.create();
         ctx.a = s.create();
         s.add(ctx.a, Position, { x: 5, y: 6, z: 7 });
@@ -338,8 +338,8 @@ globalThis.testCore = {
         t.eq(visits, 1, "a walk after import runs the rebuilt list");
         const again = d.create();
         t.eq(
-          EntityID.index(again),
-          EntityID.index(ctx.gone),
+          Handle.index(again),
+          Handle.index(ctx.gone),
           "the free list survives",
         );
       },
@@ -351,9 +351,9 @@ globalThis.testCore = {
     {
       id: "entity.mint",
       setup(ctx) {
-        const s = new EntityStore(8);
+        const s = new Table(8);
         ctx.src = s;
-        ctx.dst = new EntityStore(8);
+        ctx.dst = new Table(8);
         ctx.a = s.create();
         s.add(ctx.a, Position, { x: 1, y: 2, z: 3 });
         s.mint(ctx.a, PathResponse, { path: [], index: 0 });
@@ -403,8 +403,8 @@ globalThis.testCore = {
       // the binary channel: a codec token's entries cross export/import as buffers through the
       // sink and the source, unpacked after the plain components
       setup(ctx) {
-        ctx.src = new EntityStore(8);
-        ctx.dst = new EntityStore(8);
+        ctx.src = new Table(8);
+        ctx.dst = new Table(8);
         ctx.bufs = [];
         ctx.seen = false;
       },
@@ -432,7 +432,7 @@ globalThis.testCore = {
           ctx.bufs.push(buf);
           return "blob" + (ctx.bufs.length - 1);
         });
-        t.eq(names.join(","), "TestBlob." + EntityID.index(a), "the sink sees the codec entry");
+        t.eq(names.join(","), "TestBlob." + Handle.index(a), "the sink sees the codec entry");
         t.eq(exp.components.TestBlob[0][1], "blob0", "the export holds the sink's name");
         t.eq(exp.components.Position[0][1].x, 1, "a plain component stays JSON");
         const d = ctx.dst;
@@ -454,7 +454,7 @@ globalThis.testCore = {
         const b2 = raw.components.TestBlob[0][1];
         t.ok(buffer_exists(b2), "without a sink the export holds the buffer");
         ctx.bufs.push(b2);
-        const d2 = new EntityStore(8);
+        const d2 = new Table(8);
         d2.codec("TestBlob", codec);
         d2.import(raw);
         t.eq(d2.get(a, "TestBlob").n, 7, "without a source the buffer unpacks as is");
@@ -480,7 +480,7 @@ globalThis.testCore = {
         const s = level.entities;
         const self = level.self;
         t.ok(s.isValid(self), "the level's own entity is live from construction");
-        t.eq(EntityID.index(self), 0, "it is index 0");
+        t.eq(Handle.index(self), 0, "it is index 0");
         const make = () => {
           ctx.makes++;
           return {
@@ -577,18 +577,18 @@ globalThis.testCore = {
         t.eq(World.ids().join(","), "test_a", "ids lists the resident maps");
         World.activeId = "test_a";
         t.ok(World.active() === lv, "active resolves through the pool");
-        const exp = World.entities.export();
+        const exp = World.table.export();
         t.eq(exp.components.level, undefined, "the Level is minted — no export carries it");
         t.eq(exp.components.map.length, 1, "the map entity rides the export");
-        World.entities.import(exp);
-        t.ok(World.entities.isValid(World.self), "self survives the import");
+        World.table.import(exp);
+        t.ok(World.table.isValid(World.self), "self survives the import");
         t.eq(lv.entities.count(), 0, "the import released the pooled Level");
         t.eq(World.get("test_a"), null, "an imported map entity has no Level yet");
         t.eq(World.ids().length, 0, "ids lists none");
         const lv2 = new Level({ id: "test_a", capacity: 4 });
         World.add("test_a", lv2);
         t.ok(World.get("test_a") === lv2, "add hands the map entity its Level back");
-        t.eq(World.entities.count(), 2, "add re-used the imported map entity");
+        t.eq(World.table.count(), 2, "add re-used the imported map entity");
         World.reset();
         t.eq(lv2.entities.count(), 0, "reset destroyed the pooled level");
         t.eq(World.ids().length, 0, "the pool is empty after reset");
@@ -677,7 +677,7 @@ globalThis.testCore = {
       // a minted token's release hook frees a datum wherever it leaves its slot, so a native
       // handle needs no roster and no reap pass
       setup(ctx) {
-        ctx.s = new EntityStore(8);
+        ctx.s = new Table(8);
         ctx.freed = [];
       },
       verify(ctx, t) {
@@ -881,7 +881,7 @@ globalThis.testCore = {
     {
       id: "collision.aabb",
       setup(ctx) {
-        const s = new EntityStore(8);
+        const s = new Table(8);
         ctx.entities = s;
         ctx.id = s.create();
         s.add(ctx.id, Position, { x: 10, y: 20, z: 0 });
@@ -912,7 +912,7 @@ globalThis.testCore = {
     {
       id: "collision.query",
       setup(ctx) {
-        const s = new EntityStore(8);
+        const s = new Table(8);
         ctx.entities = s;
         ctx.near = s.create();
         s.add(ctx.near, Position, { x: 10, y: 0, z: 0 });
@@ -1316,7 +1316,7 @@ globalThis.testCore = {
       // Game art is assumed — the case reads the box back and tests the space, not the art.
       id: "render.silhouette",
       setup(ctx) {
-        const s = new EntityStore(8);
+        const s = new Table(8);
         ctx.entities = s;
         ctx.body = s.create();
         s.add(ctx.body, Position, { x: 100, y: 100, z: 0 });
@@ -1454,17 +1454,17 @@ globalThis.testCore = {
       id: "id.pack",
       setup() {},
       verify(ctx, t) {
-        const id = EntityID.make(5, 7);
-        t.eq(EntityID.index(id), 5, "index unpacks");
-        t.eq(EntityID.generation(id), 7, "generation unpacks");
-        const top = EntityID.make(
-          EntityID.INDEX_MASK,
-          EntityID.GENERATION_MASK,
+        const id = Handle.make(5, 7);
+        t.eq(Handle.index(id), 5, "index unpacks");
+        t.eq(Handle.generation(id), 7, "generation unpacks");
+        const top = Handle.make(
+          Handle.INDEX_MASK,
+          Handle.GENERATION_MASK,
         );
-        t.eq(EntityID.index(top), EntityID.INDEX_MASK, "index at its mask");
+        t.eq(Handle.index(top), Handle.INDEX_MASK, "index at its mask");
         t.eq(
-          EntityID.generation(top),
-          EntityID.GENERATION_MASK,
+          Handle.generation(top),
+          Handle.GENERATION_MASK,
           "generation at its mask",
         );
       },
@@ -1489,7 +1489,7 @@ globalThis.testCore = {
       // entity and the token — never undefined
       id: "entity.require",
       setup(ctx) {
-        const s = new EntityStore(8);
+        const s = new Table(8);
         ctx.entities = s;
         ctx.a = s.create();
         s.add(ctx.a, Position, { x: 1, y: 2, z: 3 });
@@ -1555,7 +1555,7 @@ globalThis.testCore = {
     // ── perf.measured: the costs that decide the frame ─────────────────────────
     // A static-method call and an object literal each cost about a hundred plain reads, a hash
     // lookup a dozen: the rule for every hot loop is the cheap form in the paired row — the
-    // inline mask over EntityID.index, a cached column over store.get, edgesInto over edges, a
+    // inline mask over Handle.index, a cached column over store.get, edgesInto over edges, a
     // reused buffer over push, and never a per-element reset of a level-sized scratch (the
     // generation stamp, MotionPlanner.scratch's `stamp`).
     {
@@ -1564,7 +1564,7 @@ globalThis.testCore = {
         const n = N;
         ctx.vals = _testVals(n);
         ctx.packed = new Array(n);
-        for (let i = 0; i < n; i++) ctx.packed[i] = EntityID.make(i & 63, 3);
+        for (let i = 0; i < n; i++) ctx.packed[i] = Handle.make(i & 63, 3);
         _testStore(ctx, 64, n);
         ctx.pos = new Array(n);
         for (let i = 0; i < n; i++) ctx.pos[i] = { x: i, y: i, z: 0 };
@@ -1621,10 +1621,10 @@ globalThis.testCore = {
         const readPacked = _testRead(n, packed);
         t.measure("id.index", n, readPacked, () => {
           let s = 0;
-          for (let i = 0; i < n; i++) s += EntityID.index(packed[i]);
+          for (let i = 0; i < n; i++) s += Handle.index(packed[i]);
           return s;
         });
-        const mask = EntityID.INDEX_MASK;
+        const mask = Handle.INDEX_MASK;
         t.measure("id.index.inline", n, readPacked, () => {
           let s = 0;
           for (let i = 0; i < n; i++) s += packed[i] & mask;
@@ -1951,10 +1951,10 @@ globalThis.testCore = {
     // A JS property and a user-defined GM instance property cost the same (both a slot);
     // access by name (variable_struct_get) ~5x that, the price of any token-driven path; a TYPED
     // array element ~20x a plain one — the outlier, so a hot value stored in one is MIRRORED into
-    // a plain array (EntityID.packed). A BUILT-IN instance variable (x/y, image_*) goes through
+    // a plain array (Handle.packed). A BUILT-IN instance variable (x/y, image_*) goes through
     // accessors at 3-4.5x a column read, which is why an instance holds scope, never data.
     // TODO when `read.typed` reaches `read.array` (AOT does not close it: ~22x under `--runtime
-    // native`), the `EntityID.packed` mirror stops paying for itself and typed scratch is an
+    // native`), the `Handle.packed` mirror stops paying for itself and typed scratch is an
     // option again (MotionPlanner); when a built-in reaches a user-defined property, `Instance`
     // may hold data. The instance-scoped built-ins themselves are an API contract, not a gap.
     {
@@ -1994,7 +1994,7 @@ globalThis.testCore = {
       },
     },
     // ── perf.layout: a walk costs per lead carrier, never per index ────────────
-    // A walk runs down the lead token's dense list (ComponentStore), so its cost is the lead's
+    // A walk runs down the lead token's dense list (Columns), so its cost is the lead's
     // carrier count: at 100% (`forEach.full`) it is the column scan plus an indirection, below
     // that it is the slots never visited — `forEach.sparse` against `forEach.trail` is the same
     // four matches led by the rare token and by Position, the lead-order rule measured (both gross
@@ -2078,7 +2078,7 @@ globalThis.testCore = {
         const ids = ctx.ids;
         const objs = ctx.objs;
         const scratch = ctx.scratch;
-        const mask = EntityID.INDEX_MASK;
+        const mask = Handle.INDEX_MASK;
         t.measure(
           "store.churn",
           n,

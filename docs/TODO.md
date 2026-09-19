@@ -26,11 +26,11 @@
 - Markers in the DEV capture — `entry`/`reach` placed in-game instead of hand-added to the exported literal
 - More `testStress` scenarios over the same shape as `stress.pathfind`: a raycast storm (hitscan volleys over the static buckets), a spawn/despawn churn (the free list, the flush cost), a tile-edit storm (remesh + `NavGrid.sync` + a collider-generation restamp per frame)
 - A `DEV_MODE` section timer around `sceneColony.update`'s phases, logging the colony frame profile (sim, renderer, GUI) as a `[BENCH]` line in place of the hand probe
-- ECS: `ComponentStore.get`/`has`/`require`/`add`/`detach` reach the index through `EntityID.index` — inline `id & INDEX_MASK` (perf.measured: `id.index` 48 vs `id.index.inline` 13 ns/op, on every random access)
+- ECS: `Columns.get`/`has`/`require`/`add`/`detach` reach the index through `Handle.index` — inline `id & INDEX_MASK` (perf.measured: `id.index` 48 vs `id.index.inline` 13 ns/op, on every random access)
 - ECS: a walk's callback pays a `Map.get` plus the static call per `has`/`get` (`store.get` 226 vs `store.get.cached` 23 ns/op) — a column handle (`entities.column(token)`) or a NOT token in `forEach` for the exclusion filter the standard view has; the sites are `FollowerSystem` (`Downed`), `ColonyCombat` (`Mesh`), `WorldOverlay` (`Fuse`), `ParticleEmitterSystem` (`ParticleEmitter`)
-- ECS: every `EntityStore` accessor is a second dispatch into `ComponentStore` (one method call per access, `closure.call1` 17 ns/op)
+- ECS: every `Table` accessor is a second dispatch into `Columns` (one method call per access, `closure.call1` 17 ns/op)
 - ECS: no lead-order guard — a `DEV_MODE` warn in `forEach` when a trailing token's `dense.length` is below the lead's (perf.layout: `forEach.trail` 96 vs `forEach.sparse` 6 ns/op)
-- ECS: `EntityStore.flush` mid-walk is unguarded — throw when any set's `walking > 0`, since a recycled index is visited by the same walk
+- ECS: `Table.flush` mid-walk is unguarded — throw when any set's `walking > 0`, since a recycled index is visited by the same walk
 - ECS: `forEach`/`query`/`first` allocate `new Array(n)` per call — a reused scratch (`array.push` 86 ns/op, per walk not per entity)
 - ECS: presence is encoded twice (`column[i]` undefined and `sparse[i]` -1) and data sits by index, not by dense position — the standard packs data beside `dense`; kept for the one-read `get` (`dense.loop` 36 vs `column.loop` 22 ns/op), at `capacity × 2` slots per token
 - ECS: 12-bit generation over a LIFO free list — a slot reused 4096 times revalidates a stale handle; every held id passes `isValid`, so no fix yet

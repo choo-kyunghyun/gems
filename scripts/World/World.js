@@ -1,13 +1,13 @@
 /**
  * THE WORLD — the level pool and the world's own data, the one write place of the layer above a
- * Level: one store, `entities`. Its entity `self` carries the world-scope records as components
+ * Level: one Table, `table`. Its row `self` carries the world-scope records as components
  * under the consumer that owns each — the clock (`WorldClock.KEY`), the sky (`Weather.KEY`), the
  * event queue (`WorldEvents.KEY`), the progression (`Tracker.KEY`) — and every RESIDENT map is an
  * entity of its own carrying its identity (`MAP` — { id }, saved) and its `Level` (`LEVEL` —
  * minted, freed with the entity through `level.destroy`), so a save's world half is
- * `World.entities.export()` and nothing world-scope lives in a singleton. The consumers are logic
+ * `World.table.export()` and nothing world-scope lives in a singleton. The consumers are logic
  * over their record (`WorldClock.state()` seeds and returns the clock through
- * `World.entities.of(World.self, KEY, make)`), reached by their own global, never mirrored into a
+ * `World.table.of(World.self, KEY, make)`), reached by their own global, never mirrored into a
  * member here (a member would be a second name for one object plus a boot-wiring dependency): the
  * active scene's update() drives them (sceneColony: `WorldClock.update`, then `WorldEvents.update`
  * on its timeline). World holds no screen state and never draws — the Game object owns the
@@ -15,7 +15,7 @@
  *
  * A pooled level stays ALIVE for the session: a map is built from file exactly ONCE, then only
  * parks and thaws, so a door trip never rebuilds it — its data and runtime both in the Level.
- * take/put move a WHOLE entity (all components, via EntitySnapshot) between two resident levels'
+ * take/put move a WHOLE entity (all components, via Row) between two resident levels'
  * stores — the travelling-squad and wandering-trader path; a map id with no resident level THROWS
  * from either, since the caller names a pooled map it owns. `reset()` blanks the store — every
  * pooled level freed with its entity, every record gone.
@@ -30,13 +30,13 @@ globalThis.World = {
   LEVEL: "level", // a map entity's Level — minted, freed with the entity
   MAP: "map", // a map entity's identity — { id: mapId }; a save carries it
   activeId: null, // the mapId the active scene is currently stepping + drawing
-  entities: null, // the world's own store — seeded below, blanked whole by reset()
+  table: null, // the world's own store — seeded below, blanked whole by reset()
   self: -1, // the world's own entity — its records (and, one day, its derived entries)
 
   /** The map entity under `mapId`, or -1. */
   _find(mapId) {
     let found = -1;
-    World.entities.forEach([World.MAP], (id, m) => {
+    World.table.forEach([World.MAP], (id, m) => {
       if (m.id === mapId) found = id;
     });
     return found;
@@ -49,17 +49,17 @@ globalThis.World = {
   add(mapId, level) {
     let id = World._find(mapId);
     if (id === -1) {
-      id = World.entities.create();
-      World.entities.add(id, World.MAP, { id: mapId });
+      id = World.table.create();
+      World.table.add(id, World.MAP, { id: mapId });
     }
-    World.entities.mint(id, World.LEVEL, level, World._free);
+    World.table.mint(id, World.LEVEL, level, World._free);
   },
 
   /** The resident level under `mapId`, or null. */
   get(mapId) {
     const id = World._find(mapId);
     if (id === -1) return null;
-    const lv = World.entities.get(id, World.LEVEL);
+    const lv = World.table.get(id, World.LEVEL);
     return lv === undefined ? null : lv;
   },
 
@@ -71,7 +71,7 @@ globalThis.World = {
   /** The map ids with a resident level. */
   ids() {
     const out = [];
-    World.entities.forEach([World.MAP, World.LEVEL], (_id, m) => {
+    World.table.forEach([World.MAP, World.LEVEL], (_id, m) => {
       out.push(m.id);
     });
     return out;
@@ -83,17 +83,17 @@ globalThis.World = {
 
   /**
    * Capture a WHOLE entity (every persistent component) out of a resident level's store and
-   * remove it. Returns the snapshot (the caller now owns it). EntitySnapshot references the
-   * component data objects, so they survive the remove/flush (see EntitySnapshot).
+   * remove it. Returns the snapshot (the caller now owns it). Row references the
+   * component data objects, so they survive the remove/flush (see Row).
    *
-   * A minted component (EntityStore.mint) does not travel: the puppet goes with the source
+   * A minted component (Table.mint) does not travel: the puppet goes with the source
    * store's slot (its release hook — Puppets), and the destination re-mints its own on its first
    * pass; a path or a diff baseline is likewise the destination's.
    */
   take(mapId, id) {
     const lv = World.get(mapId);
     if (lv === null) throw new Error(`World.take: map "${mapId}" is not resident`);
-    const snap = EntitySnapshot.capture(lv.entities, id); // no list → every persistent one
+    const snap = Row.capture(lv.entities, id); // no list → every persistent one
     lv.entities.remove(id);
     return snap;
   },
@@ -105,7 +105,7 @@ globalThis.World = {
   put(mapId, snap, overrides) {
     const lv = World.get(mapId);
     if (lv === null) throw new Error(`World.put: map "${mapId}" is not resident`);
-    return EntitySnapshot.restore(lv.entities, snap, overrides);
+    return Row.restore(lv.entities, snap, overrides);
   },
 
   /**
@@ -115,10 +115,10 @@ globalThis.World = {
    */
   reset() {
     World.activeId = null;
-    World.entities.destroy();
-    World.self = World.entities.create();
+    World.table.destroy();
+    World.self = World.table.create();
     WorldEvents.reset();
   },
 };
-World.entities = new EntityStore(World.CAPACITY);
-World.self = World.entities.create();
+World.table = new Table(World.CAPACITY);
+World.self = World.table.create();

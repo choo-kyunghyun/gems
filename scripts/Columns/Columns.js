@@ -1,5 +1,5 @@
 /**
- * One SPARSE SET per registered token (SoA). Per token: `column[i]` is the data of entity index i
+ * A Table's storage: one SPARSE SET per registered token (SoA). Per token: `column[i]` is the data of row index i
  * (`undefined` = absent — presence stays a plain slot test, so `get`/`has` cost a column read),
  * `dense` lists the indices carrying the token, and `sparse[i]` is index i's position in `dense`
  * (-1 = absent). A walk runs down the LEAD token's dense list and joins the rest by column read,
@@ -15,7 +15,7 @@
  * and, while a walk is on that token, defer the swap-remove until the outermost such walk ends —
  * the walk skips the emptied slot by its column read, so a callback may detach the lead token
  * from ANY entity. A carrier added mid-walk lands past the walk's end and is visited from the
- * next walk. Entity removal stays deferred (EntityStore.remove).
+ * next walk. Entity removal stays deferred (Table.remove).
  *
  * Persistence: a set is TRANSIENT once its token is minted (`mint`) — runtime-rebuilt by the
  * minting system, so `export` and `persistentOf` skip it, and a later `add` keeps it so. The mint
@@ -31,7 +31,7 @@
  * runtime can't carry (docs/GMRT.md #15565). An import fills the codec sets LAST, so an unpack
  * may read a record the same import restored.
  */
-globalThis.ComponentStore = class ComponentStore {
+globalThis.Columns = class Columns {
   constructor(maxEntities, ids) {
     this.maxEntities = maxEntities;
     this.ids = ids;
@@ -86,7 +86,7 @@ globalThis.ComponentStore = class ComponentStore {
       this.register(token);
       set = this._byToken.get(token);
     }
-    const i = EntityID.index(id);
+    const i = Handle.index(id);
     if (set.destroy !== undefined) {
       const prev = set.column[i];
       if (prev !== undefined) if (prev !== data) set.destroy(prev); // replaced: the old handle goes
@@ -117,14 +117,14 @@ globalThis.ComponentStore = class ComponentStore {
   get(id, token) {
     const set = this._byToken.get(token);
     if (set === undefined) return undefined;
-    return set.column[EntityID.index(id)];
+    return set.column[Handle.index(id)];
   }
 
   /** The component the caller's contract requires — throws on a miss (an unregistered token
    *  included), where `get` reads undefined for a component whose absence is a state. */
   require(id, token) {
     const set = this._byToken.get(token);
-    const data = set === undefined ? undefined : set.column[EntityID.index(id)];
+    const data = set === undefined ? undefined : set.column[Handle.index(id)];
     if (data === undefined)
       throw new Error(`entity ${id} carries no ${token}`);
     return data;
@@ -134,12 +134,12 @@ globalThis.ComponentStore = class ComponentStore {
   has(id, token) {
     const set = this._byToken.get(token);
     if (set === undefined) return false;
-    return set.column[EntityID.index(id)] !== undefined;
+    return set.column[Handle.index(id)] !== undefined;
   }
 
   detach(id, token) {
     const set = this._byToken.get(token);
-    if (set !== undefined) this._drop(set, EntityID.index(id));
+    if (set !== undefined) this._drop(set, Handle.index(id));
   }
 
   clear(index) {
@@ -201,7 +201,7 @@ globalThis.ComponentStore = class ComponentStore {
 
   _of(id, skipTransient) {
     const out = {};
-    const i = EntityID.index(id);
+    const i = Handle.index(id);
     for (let c = 0; c < this._tokens.length; c++) {
       const set = this._sets[c];
       // comparisons as the operands: a bare flag on the left of && is clobbered (#15549)

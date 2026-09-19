@@ -1,7 +1,7 @@
 /**
  * Owner of every ParticleEmitter's live stream, and the only caller of part_system_create for
  * one: an emitter without a stream is minted one — a ParticleStream, TRANSIENT with a release
- * hook (EntityStore.mint), so the stream is destroyed when the component goes (a detach, the
+ * hook (Table.mint), so the stream is destroyed when the component goes (a detach, the
  * entity's removal, a level's teardown) and nothing holds an id across frames to reap it — every
  * stream steps one frame, and a stream whose emitter was detached is detached too.
  *

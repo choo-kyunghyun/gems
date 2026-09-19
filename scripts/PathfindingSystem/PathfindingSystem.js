@@ -11,7 +11,7 @@
  * Serves `PathRequest`s into `PathResponse`s over `MotionPlanner`, at most `budget` per tick — the
  * rest stay pending for later ticks, taken round-robin by POSITION in the request walk from where
  * the last tick stopped (`nav.cursor`), so a sustained overload starves no requester: a served
- * request's slot is refilled from the walk's tail (ComponentStore's order contract), so a pending
+ * request's slot is refilled from the walk's tail (Columns's order contract), so a pending
  * request only ever moves toward the front and the forward sweep reaches it within two passes. A
  * pending request its walker refreshes first (`PathFollow.target`'s throttle) is replaced in
  * place. A count bound is not a time bound: a map-crossing plan runs tens of milliseconds on its

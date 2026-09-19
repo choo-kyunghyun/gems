@@ -6,7 +6,7 @@
  * greedy-meshed per material (the generator's walls and the player's alike — what stands there),
  * plus the built entities inside the rect as their catalog descriptors, each carrying `item` (its
  * contentBuild id, which is what stamp() rebuilds it from) and, with opts.withState, its exact
- * EntitySnapshot as `snapshot` (a chest keeps its contents, a turret its damage). export() writes
+ * Row as `snapshot` (a chest keeps its contents, a turret its damage). export() writes
  * a plan as the pretty literal contentPrefabs takes — the DEV capture tool's exit (BuildMode).
  *
  * stamp() puts a plan down at (ox, oy) through BuildMode.applyItem, so a stamped build is
@@ -69,7 +69,7 @@ globalThis.Blueprint = {
       s.gy = gy - y1;
       s.item = e.itemId;
       if (opts.withState === true && scene.level.entities.isValid(e.ent))
-        s.snapshot = EntitySnapshot.capture(scene.level.entities, e.ent);
+        s.snapshot = Row.capture(scene.level.entities, e.ent);
       spawns.push(s);
     }
     return { cols: cols, rows: rows, tiles: tiles, spawns: spawns };

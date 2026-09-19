@@ -30,7 +30,7 @@ globalThis.WorldClock = {
 
   /** The clock record — `{ hour in [0, 24), day 1-based }` — seeded at the starting morning of day 1. */
   state() {
-    return World.entities.of(World.self, WorldClock.KEY, () => ({
+    return World.table.of(World.self, WorldClock.KEY, () => ({
       hour: WorldClock.startHour,
       day: 1,
     }));

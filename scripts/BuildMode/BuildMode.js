@@ -475,7 +475,7 @@ globalThis.BuildMode = {
   // Place a resolved catalog `item` at a cell — the SHARED placement core of live LMB placement
   // and Blueprint.stamp. It does NOT gate on cost/validity (the caller decides) or
   // touch inventory. Options:
-  //   opts.snapshot    restore an EXACT entity from an EntitySnapshot (chest contents, turret
+  //   opts.snapshot    restore an EXACT entity from an Row (chest contents, turret
   //                    damage) instead of a fresh descriptor; Position is overridden to this cell.
   //   opts.deferRemesh skip the solid-collider remesh (a batch stamp remeshes once at the end).
   // Updates the level's build record (built / builtEnts). Returns the entity id (entity) or
@@ -514,11 +514,11 @@ globalThis.BuildMode = {
       return solid;
     }
     // entity: an exact snapshot restore (state preserved) or a fresh descriptor (a new instance);
-    // a built prop is identical to a file/streamed one and persists via EntitySnapshot (see ColonyMap).
+    // a built prop is identical to a file/streamed one and persists via Row (see ColonyMap).
     let id;
     if (opts.snapshot !== undefined) {
       const wp = grid.gridToWorld(gx, gy);
-      id = EntitySnapshot.restore(scene.level.entities, opts.snapshot, {
+      id = Row.restore(scene.level.entities, opts.snapshot, {
         [Position]: { x: wp.x, y: wp.y, z: 0 },
       });
     } else {

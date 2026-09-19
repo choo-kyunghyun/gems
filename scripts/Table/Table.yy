@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"File",
+  "%Name":"Table",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"File",
+  "name":"Table",
   "parent":{
     "name":"Data",
     "path":"folders/Core/Data.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"File.js",
+  "scriptSource":"Table.js",
 }

@@ -94,7 +94,7 @@ globalThis.Diplomacy = {
     let bestId = -1;
     let bestD = range * range;
     // Faction LEADS the query: a factionless candidate was never a match, and the lead's carriers
-    // are what the walk visits (ComponentStore). This scan is per idle actor (throttled by
+    // are what the walk visits (Columns). This scan is per idle actor (throttled by
     // Brain.aggroRate), so it is the crowd's dominant cost.
     const consider = (oid, pos, fac) => {
       if (oid === id) return;

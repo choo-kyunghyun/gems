@@ -39,7 +39,7 @@ globalThis.Level = class Level {
    */
   constructor(opt = {}) {
     this.id = opt.id ?? "";
-    this.entities = new EntityStore(opt.capacity ?? 256);
+    this.entities = new Table(opt.capacity ?? 256);
     this.self = this.entities.create(); // the level's own entity — its grid, records and derived entries
     if (opt.grid !== undefined) this.grid = opt.grid;
   }

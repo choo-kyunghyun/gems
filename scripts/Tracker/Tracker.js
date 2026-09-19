@@ -29,7 +29,7 @@ globalThis.Tracker = {
    * ready, done }.
    */
   state() {
-    return World.entities.of(World.self, Tracker.KEY, () => ({
+    return World.table.of(World.self, Tracker.KEY, () => ({
       counters: {},
       unlocked: {},
       quests: {},

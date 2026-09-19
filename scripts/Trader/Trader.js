@@ -27,7 +27,7 @@ globalThis.Trader = {
 
   /** The traders record — `{ recs: id -> record }`. */
   state() {
-    return World.entities.of(World.self, Trader.KEY, () => ({ recs: {} }));
+    return World.table.of(World.self, Trader.KEY, () => ({ recs: {} }));
   },
 
   /** Wire the arrive/depart handlers on WorldEvents (scene create, after World.reset). */

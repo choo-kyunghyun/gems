@@ -40,7 +40,7 @@ globalThis.Weather = {
    * loaded record needs no _sync(), the next update() re-syncs from it.
    */
   state() {
-    return World.entities.of(World.self, Weather.KEY, () => {
+    return World.table.of(World.self, Weather.KEY, () => {
       const first = Registry.ids(Weather)[0];
       return {
         ambient: first,

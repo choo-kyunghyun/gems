@@ -1,6 +1,6 @@
 /**
  * The doll: derives a humanoid's gear overlay from its Equipment (`rebuild`, called by
- * Loadout and after a carried sheet lands via EntitySnapshot.apply) and pushes any
+ * Loadout and after a carried sheet lands via Row.apply) and pushes any
  * Appearance onto that entity's Spine puppet (`update`, once per frame after SkeletonSystem has
  * minted). No-op for entities without an Appearance — opt-in, skeletal humanoids only.
  *

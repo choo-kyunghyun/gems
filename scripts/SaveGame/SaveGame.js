@@ -218,7 +218,7 @@ globalThis.SaveGame = {
   _simPass: {
     id: "sim",
     capture(ctx) {
-      ctx.manifest.sim = World.entities.export();
+      ctx.manifest.sim = World.table.export();
     },
     restore(ctx) {
       const sim = ctx.manifest.sim;
@@ -227,7 +227,7 @@ globalThis.SaveGame = {
       // slot left in memory can't survive into this one. Before the maps: a trader embodied in
       // the active map is in that map's store, and its record re-links to it by id once the map
       // is up (Trader.onActivate).
-      World.entities.import(sim);
+      World.table.import(sim);
     },
   },
 
@@ -251,7 +251,7 @@ globalThis.SaveGame = {
         const mapId = ids[m];
         const level = World.get(mapId); // the map's data — pooled whether it's active or parked
         const entities = level.entities;
-        // a minted component stays behind (EntityStore.mint); a codec entry's buffer goes to
+        // a minted component stays behind (Table.mint); a codec entry's buffer goes to
         // the bundle under `<map>.<token>.<index>`, its name into the export
         const exp = entities.export((token, index, buffer) => {
           const name = mapId + "." + token + "." + index;

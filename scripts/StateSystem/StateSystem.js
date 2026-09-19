@@ -9,7 +9,7 @@
 /**
  * Per-entity state machine over a NAMED state pool. States register once by id (like
  * Item/Status/InteractAction); State.current/next hold the id STRINGS ("" = none), resolved
- * through the pool each use — so a captured/parked actor (EntitySnapshot, a save restore,
+ * through the pool each use — so a captured/parked actor (Row, a save restore,
  * entities.export) round-trips its state as plain data, never an object ref. Callbacks receive
  * (level, id): the level in hand is the whole context — its store, its grid, its caches — so a
  * state's owner holds no module statics. `change` queues, `update` applies (finish→enter) then

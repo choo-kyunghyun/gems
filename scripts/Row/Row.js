@@ -1,14 +1,14 @@
-/** @typedef {Object} EntitySnapshotRecord @property {Object<string,Object>} components token -> data */
+/** @typedef {Object} RowRecord @property {Object<string,Object>} components token -> data */
 /**
- * The substrate for whole-entity migration between level stores (World.take/put wrap it — the
+ * A ROW captured whole — the substrate for whole-entity migration between level tables (World.take/put wrap it — the
  * squad travelling between maps, a trader hydrating) and for a Blueprint's exact
  * stamps. A whole capture (no list) takes the persistent components: a minted one
- * (EntityStore.mint) stays behind for the destination to rebuild. Data objects are REFERENCED,
+ * (Table.mint) stays behind for the destination to rebuild. Data objects are REFERENCED,
  * not deep-copied: a captured component re-attaches by reference and the objects outlive the
  * source store's destroy() (only the storage map is dropped).
  * For disk, serialize the record yourself (mind the JSON nested-value fault + Set fields).
  */
-globalThis.EntitySnapshot = {
+globalThis.Row = {
   capture(entities, id, components) {
     let comps;
     if (components === undefined) {
@@ -33,7 +33,7 @@ globalThis.EntitySnapshot = {
 
   /** `overrides` applied after the snapshot (e.g. fresh Position so a migrated entity drops old-map coords). */
   restore(entities, snapshot, overrides) {
-    const id = EntitySnapshot.apply(entities, entities.create(), snapshot);
+    const id = Row.apply(entities, entities.create(), snapshot);
     if (overrides !== undefined)
       for (const token in overrides) entities.add(id, token, overrides[token]);
     return id;

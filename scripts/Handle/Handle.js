@@ -1,4 +1,10 @@
-globalThis.EntityID = class EntityID {
+/**
+ * A row handle — index (20 bits) plus generation (12 bits) packed into one number — and the
+ * allocator that hands them out: a freed index comes back at the next generation, so a stale
+ * handle fails `isValid` instead of naming the slot's new owner. The static half packs and
+ * unpacks a handle; the instance half is a Table's allocation table (Table.ids).
+ */
+globalThis.Handle = class Handle {
   static INDEX_BITS = 20;
   // Literal 20, not (1 << INDEX_BITS): GMRT static field initializers can't reference the
   // class's own name — keep the two in sync by hand.
@@ -47,12 +53,12 @@ globalThis.EntityID = class EntityID {
   }
 
   free(id) {
-    const index = EntityID.index(id);
-    const generation = EntityID.generation(id);
+    const index = Handle.index(id);
+    const generation = Handle.generation(id);
     if (this.generations[index] !== generation) return false;
-    const bumped = (generation + 1) & EntityID.GENERATION_MASK;
+    const bumped = (generation + 1) & Handle.GENERATION_MASK;
     this.generations[index] = bumped;
-    this.packed[index] = EntityID.make(index, bumped);
+    this.packed[index] = Handle.make(index, bumped);
     this.freeIndices.push(index);
     return true;
   }
@@ -62,8 +68,8 @@ globalThis.EntityID = class EntityID {
   }
 
   isValid(id) {
-    const index = EntityID.index(id);
-    const generation = EntityID.generation(id);
+    const index = Handle.index(id);
+    const generation = Handle.generation(id);
     return this.generations[index] === generation;
   }
 
@@ -94,7 +100,7 @@ globalThis.EntityID = class EntityID {
   _repack() {
     const g = this.generations;
     const p = this.packed;
-    for (let i = 0; i < p.length; i++) p[i] = EntityID.make(i, g[i]);
+    for (let i = 0; i < p.length; i++) p[i] = Handle.make(i, g[i]);
   }
 
   export() {

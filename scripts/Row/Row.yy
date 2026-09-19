@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"EntityID",
+  "%Name":"Row",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"EntityID",
+  "name":"Row",
   "parent":{
-    "name":"Entity",
-    "path":"folders/Core/Entity.yy",
+    "name":"Data",
+    "path":"folders/Core/Data.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"EntityID.js",
+  "scriptSource":"Row.js",
 }

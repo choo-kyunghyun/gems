@@ -21,7 +21,7 @@
  *
  * Takes the level (its runtime — ColonyMap: terrainMats and the layer handles — its records and
  * its store). GMRT-safe: index loops, structural changes buffered past the scan
- * (ComponentStore.forEach).
+ * (Columns.forEach).
  */
 globalThis.FloraSystem = {
   KEY: "flora", // its token on the level's own entity — a data key (a save holds it)

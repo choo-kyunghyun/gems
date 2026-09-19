@@ -242,7 +242,7 @@ globalThis.ColonySpawn = {
           if (s.kind !== undefined)
             over.Interaction =
               s.kind === "door"
-                ? { kind: "door", open: 0 } // toggle state rides the component (EntitySnapshot-safe)
+                ? { kind: "door", open: 0 } // toggle state rides the component (Row-safe)
                 : { kind: s.kind };
           // a site beacon rises psPortal for as long as it stands. The emitter region is authored
           // over a 128 px frame and the beacon is one 32 px cell, so the stream runs at a quarter —
@@ -253,7 +253,7 @@ globalThis.ColonySpawn = {
       },
       {
         // Decorative LIGHT prop: a small solid post carrying a Light (drawn by RenderLighting).
-        // EntitySnapshot copies every component, so the Light round-trips a map reload for free.
+        // Row copies every component, so the Light round-trips a map reload for free.
         id: "torch",
         components: {
           BBox: { x: -3, y: -3, width: 6, height: 6 }, // thin post (content 2×2, padded)

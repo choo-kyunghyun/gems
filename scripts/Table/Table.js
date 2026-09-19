@@ -1,8 +1,19 @@
-globalThis.EntityStore = class EntityStore {
+/**
+ * THE id-keyed key-value store — a table of ROWS (generational handles — Handle) by COLUMNS
+ * (string tokens, one sparse set each — Columns), the one shape every layer's data takes: a
+ * Level's entities (`level.entities`, its row 0 the level itself — `Level.self`), the World's
+ * records and map roster (`World.table`, row 0 `World.self`). A row's datum under a token is pure
+ * data the caller owns the shape of; the table holds, walks and serializes it and never reads
+ * it. The facade: row lifecycle (create/remove/flush — removal is deferred to a flush), the
+ * per-row accessors, the seeders (`of` a record, `derive` a minted derived entry), `mint` and
+ * `codec` (a token's persistence — Columns' header), the walks, and export/import. Neutral: it
+ * knows no level, no world, no scene.
+ */
+globalThis.Table = class Table {
   constructor(maxEntities) {
     this.maxEntities = maxEntities;
-    this.ids = new EntityID(maxEntities);
-    this.components = new ComponentStore(maxEntities, this.ids);
+    this.ids = new Handle(maxEntities);
+    this.components = new Columns(maxEntities, this.ids);
     this._pending = [];
   }
 
@@ -39,10 +50,10 @@ globalThis.EntityStore = class EntityStore {
   flush() {
     for (const id of this._pending) {
       if (!this.ids.isValid(id)) {
-        Log.warn("EntityStore.flush: stale remove for id " + id + " — skipped");
+        Log.warn("Table.flush: stale remove for id " + id + " — skipped");
         continue;
       }
-      this.components.clear(EntityID.index(id));
+      this.components.clear(Handle.index(id));
       this.ids.free(id);
     }
     this._pending = [];
@@ -62,7 +73,7 @@ globalThis.EntityStore = class EntityStore {
   /** `add` for a runtime-rebuilt component: no export or whole-entity snapshot carries a minted
    *  token, so the system that rebuilds one declares it here and nowhere else. `destroy(data)`,
    *  when given, releases a datum as it leaves its slot — a component holding a native handle
-   *  frees it there, with no roster (ComponentStore's header). */
+   *  frees it there, with no roster (Columns's header). */
   mint(id, token, data, destroy) {
     this.components.mint(id, token, data, destroy);
   }
@@ -91,7 +102,7 @@ globalThis.EntityStore = class EntityStore {
     let data = this.components.get(id, token);
     if (data === undefined) {
       data = make();
-      this.components.mint(id, token, data, EntityStore._free);
+      this.components.mint(id, token, data, Table._free);
     }
     return data;
   }
@@ -103,13 +114,13 @@ globalThis.EntityStore = class EntityStore {
   }
 
   /** Give a token its binary codec — `{ pack(data) → buffer, unpack(buffer) → data }` — so its
-   *  entries cross `export`/`import` as blobs (contract at ComponentStore's header). */
+   *  entries cross `export`/`import` as blobs (contract at Columns's header). */
   codec(token, c) {
     this.components.codec(token, c);
   }
 
   /** `get` for a component the caller's contract requires — throws on a miss (contract at
-   *  ComponentStore.require). */
+   *  Columns.require). */
   require(id, token) {
     return this.components.require(id, token);
   }
@@ -132,30 +143,30 @@ globalThis.EntityStore = class EntityStore {
     return this.components.persistentOf(id);
   }
 
-  /** Ids carrying every token — contract at ComponentStore.query. No tokens → every live id. */
+  /** Ids carrying every token — contract at Columns.query. No tokens → every live id. */
   query(...tokens) {
     if (tokens.length === 0) return this.ids.live();
     return this.components.query(tokens);
   }
 
-  /** First matching id, or -1 — contract at ComponentStore.first. */
+  /** First matching id, or -1 — contract at Columns.first. */
   first(...tokens) {
     return this.components.first(tokens);
   }
 
-  /** Allocation-free iteration, data handed to the callback — contract at ComponentStore.forEach. */
+  /** Allocation-free iteration, data handed to the callback — contract at Columns.forEach. */
   forEach(tokens, fn) {
     this.components.forEach(tokens, fn);
   }
 
   /** The store whole — `sink(token, index, buffer)` takes each codec entry's buffer and returns
-   *  what the export holds for it (contract at ComponentStore.export). */
+   *  what the export holds for it (contract at Columns.export). */
   export(sink) {
     return { ids: this.ids.export(), components: this.components.export(sink) };
   }
 
   /** The store becomes the snapshot — `source(value)` hands each codec entry its buffer back
-   *  (contract at ComponentStore.import). */
+   *  (contract at Columns.import). */
   import(snapshot, source) {
     this.ids.import(snapshot.ids);
     this.components.import(snapshot.components, source);
