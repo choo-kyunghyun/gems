@@ -1,4 +1,8 @@
+// Files on disk, text or bytes through one read/write pair. A bare name lands in the save dir
+// (docs/GMRT.md → working_directory), an included file reads by its project path, and there is
+// no existence check: a missing file reads as undefined (docs/GMRT.md #15733).
 globalThis.File = {
+  /** The names matching `mask`. */
   find(mask) {
     const files = [];
     let fname = file_find_first(mask, fa_none);
@@ -10,52 +14,47 @@ globalThis.File = {
     return files;
   },
 
-  read(fname) {
+  /**
+   * The file as a string, or with `binary` as a fresh buffer the caller owns (buffer_delete
+   * when done); undefined when the file is missing.
+   */
+  read(fname, binary = false) {
     const buffer = buffer_load(fname);
     if (buffer === -1) return undefined;
-    // buffer_text reads until a NUL, but buffer_load gives an exact-size buffer with no
-    // guaranteed terminator — so the read runs past EOF into uninitialized memory and returns
-    // garbage, corrupting JSON.parse non-deterministically. Append our own NUL to stop at EOF.
-    const size = buffer_get_size(buffer);
+    if (binary) return buffer;
+    const size = buffer_get_size(buffer); // a NUL past EOF stops buffer_text (docs/GMRT.md)
     buffer_resize(buffer, size + 1);
     buffer_poke(buffer, size, buffer_u8, 0);
-    buffer_seek(buffer, buffer_seek_start, 0);
     const data = buffer_read(buffer, buffer_text);
     buffer_delete(buffer);
     return data;
   },
 
-  write(fname, data) {
-    const buffer = buffer_create(0, buffer_grow, 1);
-    if (buffer_write(buffer, buffer_text, data) !== 0) {
-      buffer_delete(buffer);
-      return false;
+  /**
+   * Write a string, or with `binary` a buffer's used bytes (the caller keeps the buffer).
+   * Answers nothing: buffer_save_ext reports no result, and a read-back is the only check
+   * (docs/GMRT.md #15733).
+   */
+  write(fname, data, binary = false) {
+    if (binary) {
+      File._save(data, fname);
+      return;
     }
-    buffer_save(buffer, fname);
+    const buffer = buffer_create(0, buffer_grow, 1);
+    buffer_write(buffer, buffer_text, data);
+    File._save(buffer, fname);
     buffer_delete(buffer);
-    return true;
   },
 
-  // Binary I/O — for tile grids / dense layers / anything large or non-scalar. JSON text
-  // on GMRT both faults on nested values and is O(n²) for big inline arrays; a binary buffer
-  // sidesteps both. Caller owns the encoding; File only moves bytes.
-
-  /**
-   * Load a file into a fresh buffer. Caller OWNS it and MUST buffer_delete() when done.
-   * Returns the buffer handle, or undefined if the file does not exist.
-   */
-  readBuffer(fname) {
-    const buffer = buffer_load(fname);
-    if (buffer === -1) return undefined;
-    return buffer;
-  },
-
-  /**
-   * Write a buffer to disk. Saves only the USED bytes via buffer_save_ext — a buffer_grow
-   * buffer over-allocates, so a plain buffer_save would pad the file with trailing garbage.
-   * Answers nothing: buffer_save_ext reports no result, and file_exists is no check (docs/GMRT.md).
-   */
-  writeBuffer(fname, buffer) {
-    buffer_save_ext(buffer, fname, 0, buffer_get_used_size(buffer));
+  _save(buffer, fname) {
+    const size = buffer_get_used_size(buffer);
+    if (size > 0) {
+      buffer_save_ext(buffer, fname, 0, size);
+      return;
+    }
+    const nul = buffer_create(1, buffer_fixed, 1); // a zero-size save writes garbage (docs/GMRT.md)
+    buffer_write(nul, buffer_u8, 0);
+    buffer_save_ext(nul, fname, 0, 1);
+    buffer_delete(nul);
   },
 };

@@ -467,6 +467,37 @@ globalThis.testCore = {
       },
     },
     {
+      id: "file.roundtrip",
+      // text and bytes through one pair: a file reads back as written (the text read stops at
+      // EOF — docs/GMRT.md) and a grow buffer's file holds its used bytes only
+      setup(ctx) {
+        ctx.bufs = [];
+      },
+      verify(ctx, t) {
+        const text = '{"a":[1,2,3],"b":"x"}';
+        File.write("test/text.json", text);
+        t.eq(File.read("test/text.json"), text, "text reads back as written");
+        File.write("test/empty.txt", "");
+        t.eq(File.read("test/empty.txt"), "", "an empty file reads as an empty string");
+        t.eq(File.read("test/missing.txt"), undefined, "a missing file reads as undefined");
+        const out = buffer_create(1, buffer_grow, 1);
+        ctx.bufs.push(out);
+        for (let i = 0; i < 5; i++) buffer_write(out, buffer_u32, i * 7);
+        File.write("test/blob.bin", out, true);
+        const back = File.read("test/blob.bin", true);
+        t.ok(back !== undefined, "the blob reads back");
+        if (back !== undefined) {
+          ctx.bufs.push(back);
+          t.eq(buffer_get_size(back), 20, "the file holds the used bytes only");
+          t.eq(buffer_peek(back, 16, buffer_u32), 28, "the last value is intact");
+        }
+        t.eq(File.read("test/missing.bin", true), undefined, "a missing blob reads as undefined");
+      },
+      teardown(ctx) {
+        for (let i = 0; i < ctx.bufs.length; i++) buffer_delete(ctx.bufs[i]);
+      },
+    },
+    {
       id: "level.self",
       // the level's own entity: a record is a component `of` seeds and a save carries, a derived
       // entry one `derive` mints and the store frees through its own destroy

@@ -12,7 +12,7 @@ globalThis.InputPreset = {
   PATH: "input.json",
 
   save() {
-    return File.write(InputPreset.PATH, json_stringify(Input.export()));
+    File.write(InputPreset.PATH, json_stringify(Input.export()));
   },
 
   /** A missing file is a no-op; a malformed one is logged and skipped. */

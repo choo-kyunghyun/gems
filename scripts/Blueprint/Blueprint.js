@@ -128,6 +128,7 @@ globalThis.Blueprint = {
   export(plan, name) {
     const text = Json.encode(plan, { pretty: true });
     if (text === undefined) return false; // codec already Log.error'd — never write a truncated plan
-    return File.write(name, text);
+    File.write(name, text);
+    return true;
   },
 };

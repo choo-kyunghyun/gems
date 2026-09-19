@@ -22,8 +22,8 @@ globalThis.Poly = {
     const hit = Poly._cache[name];
     if (hit !== undefined) return hit === null ? undefined : hit;
     let m = null;
-    const buf = buffer_load(`meshes/${name}.mesh`);
-    if (buffer_exists(buf)) {
+    const buf = File.read(`meshes/${name}.mesh`, true);
+    if (buf !== undefined) {
       m = Poly._parse(buf, name);
       buffer_delete(buf);
     }
@@ -71,8 +71,8 @@ globalThis.Poly = {
   mesh(name, format) {
     const m = Poly.load(name);
     if (m === undefined) return -1;
-    const buf = buffer_load(`meshes/${name}.mesh`);
-    if (!buffer_exists(buf)) return -1;
+    const buf = File.read(`meshes/${name}.mesh`, true);
+    if (buf === undefined) return -1;
     const body = buffer_create(m.count * 24, buffer_fixed, 1);
     buffer_copy(buf, 24, m.count * 24, body, 0);
     buffer_delete(buf);
