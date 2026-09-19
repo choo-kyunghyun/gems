@@ -1,43 +1,27 @@
-// Ref-safe, nesting-safe, CYCLE-safe JSON codec — the disk-serialization substrate for save
-// games (SaveGame) and any structured blob that outgrows a flat key→scalar store.
+// JSON codec for save data — json_stringify's shape written from JS, so a GML constant (a
+// keycode, a colour) stays a number and a sprite ref carries a tag a JS read-back can revive.
 /**
- * It exists because native JSON on GMRT 0.20 can't round-trip live game data:
- *   1. JSON.stringify FAULTS NATIVELY on a nested object/array (process death, not a JS throw — see
- *      docs/GMRT.md). So encode() is a hand-rolled LINEAR walk that concatenates the output itself,
- *      calling native JSON.stringify only on SCALAR LEAVES (strings/numbers — safe, correct
- *      escaping). JSON.parse handles nesting fine, so decode() uses it directly and then revives.
- *      (GML json_stringify serializes nesting crash-free too — the interop workaround — but it can't
- *      tag asset refs (2) or guard cycles (below), so it backs the flat/ref-free stores instead:
- *      Settings, InputPreset.)
- *   2. An ASSET REF (a sprite handle in Visual.sprite / Skeleton.sprite / an Appearance slot) reports typeof
- *      "object" with an EMPTY key set, so a generic serializer would silently emit {}. encode()
- *      discriminates plain data by `v.constructor === Object` (true for object literals, false for
- *      asset refs) and tags a ref as {"$spr": name}; decode() revives it via asset_get_index.
+ * Why not a built-in: JS JSON.stringify faults on nesting (docs/GMRT.md #15565); GML
+ * json_stringify handles nesting and cycles but writes a keycode or colour constant as an
+ * `@i64@` string and a sprite as `@ref GMSprite(name)`, and only json_parse — whose arrays reach
+ * JS as boundary values (docs/GMRT.md) — revives them. So encode() walks the value itself,
+ * calling JSON.stringify on string leaves only, and tags a sprite ref as {"$spr": name};
+ * decode() is JSON.parse plus a walk that revives the tag through asset_get_index.
  *
- * CYCLE SAFETY: a cross-entity object reference in a component's data can form a CYCLE that a naive
- * recursive walk would follow until it OOMs, so the encoder does DFS cycle detection — an object/array
- * already on the current PATH (an ANCESTOR) is a back-edge → emit null + warn, never recurse into it.
- * Shared-but-acyclic refs (a diamond) still encode fully in each place. A hard STEP-COUNT cap
- * backstops even that. So encode() can never OOM regardless of input — but a SAVE should still pass
- * CLEAN data (durable components only, no live cross-references); the guards are a safety net, not a
- * license to serialize raw runtime state.
+ * A cycle: an object or array already on the DFS path encodes as null with a warning, and a
+ * step cap aborts a runaway walk (encode returns undefined) — a save passes clean, durable data,
+ * the guards are a net. The path is an array scanned by `===` (an object-keyed Set/Map crashes
+ * natively — docs/GMRT.md #15567).
  *
- * The ancestor set is a plain ARRAY scanned by `===`, NOT a Set/Map (an object-keyed Set/Map crashes
- * GMRT natively — see docs/GMRT.md). The path only holds the current ancestor chain (pushed on enter,
- * popped on leave), so the `===` scan is O(depth) — the same parallel-array identity-scan idiom
- * SpriteMeta uses.
- *
- * Contract: values are plain-JSON data (scalars / arrays / object literals) plus sprite refs.
- * Functions, Maps, Sets, and non-sprite asset refs are NOT supported. Encode drops undefined object
- * fields (like native JSON) and warns rather than corrupting the stream.
+ * Contract: plain-JSON data (scalars, arrays, object literals) plus sprite refs. A function,
+ * Map, Set, class instance or other asset ref encodes as null with a warning; an undefined
+ * field is dropped and NaN/Infinity become null, as native JSON does.
  */
 globalThis.Json = {
   _MAX_STEPS: 4000000, // ~4M node visits — orders of magnitude above any real save, well under an OOM
 
   /**
-   * Serialize a JSON-plus-sprite-ref value to a string. Linear, cycle-safe, and step-capped:
-   * it dodges the native nested-value fault, the O(n²) big-array cost, AND any infinite
-   * recursion from a cyclic reference in the input.
+   * Serialize a JSON-plus-sprite-ref value to a string — linear, cycle-safe, step-capped.
    * `opt.pretty` switches to the hand-editable form for files a human reads and diffs
    * (a LevelData exported as a literal): 2-space indent, one object key per line, and pure-scalar
    * arrays kept INLINE so a `[x, y, w, h]` rect stays one line. Save games stay compact.
@@ -98,8 +82,8 @@ globalThis.Json = {
     }
     const t = typeof v;
     if (t === "number") {
-      // JSON has no NaN/Infinity literal — coerce to null like native JSON.stringify does.
-      out.push(isFinite(v) ? String(v) : "null");
+      // JSON has no NaN/Infinity literal; global isFinite passes NaN (docs/GMRT.md)
+      out.push(Number.isFinite(v) ? String(v) : "null");
       return;
     }
     if (t === "boolean") {
@@ -173,7 +157,7 @@ globalThis.Json = {
         out.push("}");
         return;
       }
-      Log.warn("Json.encode: unserializable ref → null");
+      Log.warn("Json.encode: non-plain object → null");
       out.push("null");
       return;
     }
@@ -184,15 +168,12 @@ globalThis.Json = {
 
   /**
    * Parse a string produced by encode() (or any compatible JSON) back to a value, reviving
-   * {"$spr": name} tags to live sprite refs. Returns undefined if the text is not valid JSON.
+   * {"$spr": name} tags to live sprite refs. Returns undefined if the text is not valid JSON
+   * (or is the literal null).
    */
   decode(s) {
-    let root;
-    try {
-      root = JSON.parse(s); // native parse handles nesting fine — only stringify faults
-    } catch (_) {
-      return undefined;
-    }
+    const root = JSON.parse(s); // null on invalid text, never a throw (docs/GMRT.md)
+    if (root === null) return undefined;
     return Json._revive(root);
   },
 

@@ -498,6 +498,52 @@ globalThis.testCore = {
       },
     },
     {
+      id: "json.roundtrip",
+      // the codec's promises: nesting, a sprite ref, a GML constant as a number, NaN and Infinity
+      // as null, a cycle as null, invalid text as undefined, and the inline pretty form
+      setup() {},
+      verify(ctx, t) {
+        const v = {
+          n: 1,
+          f: 0.5,
+          s: 'x"y',
+          arr: [1, 2, { a: true }],
+          spr: pixMissing,
+          key: vk_left,
+          col: c_white,
+          nul: null,
+          nan: NaN,
+          inf: 1 / 0,
+          u: undefined,
+        };
+        const text = Json.encode(v);
+        const bs = String.fromCharCode(92); // a literal backslash miscompiles (docs/GMRT.md)
+        t.eq(
+          text,
+          '{"n":1,"f":0.5,"s":"x' + bs + '"y","arr":[1,2,{"a":true}],"spr":{"$spr":"pixMissing"},"key":37,"col":16777215,"nul":null,"nan":null,"inf":null}',
+          "the compact form",
+        );
+        const d = Json.decode(text);
+        t.ok(d !== undefined, "the compact form decodes");
+        if (d !== undefined) {
+          t.eq(d.arr[2].a, true, "nesting round-trips");
+          t.ok(sprite_exists(d.spr) && sprite_get_name(d.spr) === "pixMissing", "a sprite ref revives");
+          t.ok(d.key === vk_left && d.col === c_white, "a GML constant comes back as its number");
+          t.eq(d.nan, null, "NaN lands as null");
+        }
+        const cyc = { a: 1 };
+        cyc.self = cyc;
+        t.eq(Json.encode(cyc), '{"a":1,"self":null}', "a cycle encodes as null");
+        t.eq(Json.decode("garbage"), undefined, "invalid text decodes as undefined");
+        t.eq(Json.decode('{"a":[1,2'), undefined, "truncated text decodes as undefined");
+        t.eq(
+          Json.encode({ r: [1, 2], o: { k: [{ a: 1 }] } }, { pretty: true }),
+          '{\n  "r": [1, 2],\n  "o": {\n    "k": [\n      {\n        "a": 1\n      }\n    ]\n  }\n}',
+          "the pretty form keeps a scalar array inline",
+        );
+      },
+    },
+    {
       id: "level.self",
       // the level's own entity: a record is a component `of` seeds and a save carries, a derived
       // entry one `derive` mints and the store frees through its own destroy
