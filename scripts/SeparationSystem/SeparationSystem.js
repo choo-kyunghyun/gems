@@ -1,10 +1,10 @@
 // equal-mass MTV push-apart for unit crowding. Pure resolution, run after SolidSystem.update in
 // the SAME tick: the bodies come from the level's Colliders (that update's collider walk, so no
 // second walk here), and a scene that drops this system costs SolidSystem nothing.
-// O(n) via the level's Broadphase — its entry in the level's cache, seeded over the grid's extent
-// on the first update (a grid-less level has no extent to bucket and sweeps O(n²)).
+// O(n) via the level's Broadphase — a derived entry of the level's own entity, seeded over the
+// grid's extent on the first update (a grid-less level has no extent to bucket and sweeps O(n²)).
 globalThis.SeparationSystem = {
-  KEY: "separation", // its Level.cache key — the Broadphase
+  KEY: "separation", // its derived token on the level's own entity — the Broadphase
   iterations: 1, // raise for dense clusters; broadphase re-buckets each pass
   // the broadphase cell (px): the center-bucket contract wants it above the largest dynamic
   // body's diameter (~27px at 16px cells); huge SOLID colliders (the border, water) never enter
@@ -31,8 +31,9 @@ globalThis.SeparationSystem = {
     const grid = level.grid;
     const bp =
       grid !== null
-        ? level.cache.of(
-            SeparationSystem,
+        ? level.entities.derive(
+            level.self,
+            SeparationSystem.KEY,
             () =>
               new Broadphase(
                 grid.cols * grid.cellWidth,

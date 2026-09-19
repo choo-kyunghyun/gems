@@ -23,7 +23,7 @@
  *                              the caller frees only what was never taken
  */
 globalThis.Snapshot = class Snapshot {
-  static VERSION = 12; // bump when the manifest/blob layout changes incompatibly (12: the camera entity in the store)
+  static VERSION = 13; // bump when the manifest/blob layout changes incompatibly (13: the records ride the store on the level's own entity)
 
   constructor() {
     this.passes = [];

@@ -1,8 +1,8 @@
 // In-game world clock — a global time-of-day + day counter every time-aware feature reads. Logic
-// over ONE world record (World.meta under KEY — { hour, day }), advanced once per frame by
+// over ONE world record (World.self under KEY — { hour, day }), advanced once per frame by
 // Time.delta (sim time); persists across map changes and rides the save with the world's records.
 globalThis.WorldClock = {
-  KEY: "clock", // its World.meta key — a data key (a save holds it)
+  KEY: "clock", // its token on the world's own entity — a data key (a save holds it)
   dayLength: 240, // real seconds for one full in-game day (at Time.scale 1)
   startHour: 8, // morning when a fresh world starts
   daysPerSeason: 7, // in-game days per season; the four-season "year" is 4× this
@@ -30,7 +30,7 @@ globalThis.WorldClock = {
 
   /** The clock record — `{ hour in [0, 24), day 1-based }` — seeded at the starting morning of day 1. */
   state() {
-    return World.record(WorldClock.KEY, () => ({
+    return World.entities.of(World.self, WorldClock.KEY, () => ({
       hour: WorldClock.startHour,
       day: 1,
     }));

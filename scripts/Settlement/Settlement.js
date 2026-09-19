@@ -2,7 +2,7 @@
  * A settlement IS a level: the map it stands on is its territory whole, and the level's id is
  * its identity (Resident.settlementId matches it). Its record — { factionId, name, color, comp }:
  * the owner faction, a display name, a tint, and a SettlementComponent id array — is the level's
- * whole-map record under KEY (Records), pooled with the Level and saved beside its store, the
+ * whole-map record under KEY on the level's own entity, pooled and saved with its store, the
  * way the climate record pins the sky. A level carries at most one, authored by `meta.settlement`
  * (ColonyMap._buildWorld — a faction hub, a raider camp) or founded at a Survey Post
  * (BuildMode.claim); until then it is unsettled.
@@ -14,12 +14,12 @@
  * The seed for the planned Farming + "Defend the settlement" raids.
  */
 globalThis.Settlement = {
-  KEY: "settlement", // its Records key — a data key (a save holds it)
+  KEY: "settlement", // its token on the level's own entity — a data key (a save holds it)
   DEFAULT_COLOR: "#55aa55", // fallback tint (matches the legacy build-zone green)
 
   /** The level's settlement record, or undefined while it is unsettled. */
   of(level) {
-    return level.meta.get(Settlement.KEY);
+    return level.entities.get(level.self, Settlement.KEY);
   },
 
   /** The settlement's identity — its level's id (Resident.settlementId matches this). */
@@ -29,7 +29,7 @@ globalThis.Settlement = {
 
   /** Owner faction id: "" = unfactioned; undefined = the level is unsettled. */
   owner(level) {
-    const s = level.meta.get(Settlement.KEY);
+    const s = level.entities.get(level.self, Settlement.KEY);
     return s === undefined ? undefined : s.factionId;
   },
 
@@ -40,14 +40,14 @@ globalThis.Settlement = {
    * its own).
    */
   found(level, opt = {}) {
-    if (level.meta.has(Settlement.KEY)) return undefined;
+    if (level.entities.has(level.self, Settlement.KEY)) return undefined;
     const s = {
       factionId: opt.factionId ?? "",
       name: opt.name ?? "",
       color: opt.color ?? Settlement.DEFAULT_COLOR,
       comp: Array.isArray(opt.comp) ? opt.comp.slice() : [],
     };
-    level.meta.set(Settlement.KEY, s);
+    level.entities.add(level.self, Settlement.KEY, s);
     return s;
   },
 

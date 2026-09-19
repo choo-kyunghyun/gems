@@ -71,6 +71,37 @@ globalThis.EntityStore = class EntityStore {
     return this.components.get(id, token);
   }
 
+  /** The component under `token`, seeded by `make()` when absent — how a consumer reads the
+   *  record it owns on a layer's own entity (`Level.self`, `World.self`): a miss seeds, so a fresh
+   *  level or world starts every record blank. Persistent — a save carries it like any `add`. */
+  of(id, token, make) {
+    let data = this.components.get(id, token);
+    if (data === undefined) {
+      data = make();
+      this.components.add(id, token, data);
+    }
+    return data;
+  }
+
+  /** `of` for what a consumer DERIVES from the layer's data and keeps between frames — a
+   *  collider bake, a nav grid, a camera's native view: seeded through `mint`, so no export
+   *  carries it, and freed as it leaves its slot through its own `destroy()` when it has one (a
+   *  detach, the level's teardown). Never a source of truth — a miss is never an error. */
+  derive(id, token, make) {
+    let data = this.components.get(id, token);
+    if (data === undefined) {
+      data = make();
+      this.components.mint(id, token, data, EntityStore._free);
+    }
+    return data;
+  }
+
+  static _free(data) {
+    if (data === null) return;
+    if (typeof data !== "object") return;
+    if (typeof data.destroy === "function") data.destroy();
+  }
+
   /** `get` for a component the caller's contract requires — throws on a miss (contract at
    *  ComponentStore.require). */
   require(id, token) {

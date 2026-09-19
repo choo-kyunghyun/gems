@@ -64,9 +64,9 @@ and are cited from here, never restated):
       checker consumes them).
         - Systems are TICKERS: plain objects `{ update(level) }` — plus a draw-phase `apply`/`draw`
       where the frame's other clock needs one (`CameraSystem.apply`, `ParticleEmitterSystem.draw`)
-      — the level in hand is the whole context (its store, its grid, its records, its caches), a
-      system never takes the scene, and its only other member is the accessor of its own cache
-      entry (`SolidSystem.colliders`, `PathfindingSystem.nav`, `CameraSystem.view`). What a caller
+      — the level in hand is the whole context (its store, its grid, its own entity), a system
+      never takes the scene, and its only other member is the accessor of its own derived entry
+      (`SolidSystem.colliders`, `PathfindingSystem.nav`, `CameraSystem.view`). What a caller
       invokes on demand — a verb over a component (`Effects.apply`, `Trade.buy`, `Companions.hire`,
       `Needs.restore`, `Rig.set`, `Flora.harvest`), a pure read (`Shelter.tempAt`), an entity
       factory (`Cameras.create`, `Colliders.box`), input lifecycle (`ColonyKeymap.bind`) — lives in
@@ -79,18 +79,18 @@ and are cited from here, never restated):
       (an opt-in `Skeleton`, a lazily seeded `StatusEffects`, a window target that may have gone).
     - Nothing auto-runs systems — the active scene's `update()` dispatches them explicitly. (Store
       handles are canonically `entities`, level handles `level`.)
-- The five homes of state (data and logic apart): every mutable fact lives in exactly one of five
+- The four homes of state (data and logic apart): every mutable fact lives in exactly one of four
   places, each keyed by the consumer that owns its shape, and logic — a system, a namespace, a UI
   module — holds none.
-    - ENTITY data is a component in the level's store.
-    - LEVEL data is a record in `Level.meta` (`Records`, under the owner's `KEY` —
-      `Settlement.KEY`, `RoomSystem.KEY`, `ColonyMap.KEY`); a save holds a Level's three data
-      members — grid, store, records — and nothing else, so a new per-level fact rides along
-      unlisted.
-    - WORLD data is a record in `World.meta` (the clock, the sky, the event queue, the progression,
-      the traders, the dial — `WorldClock.state()`, `Weather.state()`, `Tracker.state()`), read
-      through the owner's `state()`, which seeds the record blank on a miss (`World.record`), so a
-      fresh world starts every record blank and a save's world half is `World.meta.export()`.
+    - ENTITY data is a component in a store. A LEVEL is an entity of its own store (`Level.self`,
+      index 0, never removed) and the WORLD one of its own (`World.self` in `World.entities`), so
+      what is the map's or the world's as a whole is a component of that entity under the owner's
+      `KEY` — `Settlement.KEY`, `RoomSystem.KEY`, `ColonyMap.KEY` on a level; `WorldClock.KEY`,
+      `Weather.KEY`, `Tracker.KEY` on the world — read through the owner's accessor
+      (`Settlement.of(level)`, `WorldClock.state()`), which seeds the record blank on a miss
+      (`entities.of(self, KEY, make)`), so a fresh level or world starts every record blank. A
+      save holds a Level's two data members — grid and store — and the world's store, and nothing
+      else, so a new per-level or per-world fact rides along unlisted.
     - SCENE data is a field of the live scene instance (or a handle it holds — `hud`, `window`,
       `build`) and dies with it.
     - APP data is the run's own — the device, the session, the settings — held by the app
@@ -103,29 +103,32 @@ and are cited from here, never restated):
       only what that scene itself wired (its UI root, its injected hooks, the colony's `World`), and
       a new app member a scene can dirty gets its line in the sweep, not in a scene.
         - Anything DERIVED from a level's data and kept between frames — a collider bake, a nav
-      grid, a room mirror, a broadphase, a pass stack, a camera's view record — is a CACHE entry
-      in `Level.cache` (a `Cache`; `World.cache` is the same bag one layer up), reached by its
-      owner alone through `cache.of(Owner, make)` under `Owner.KEY` — a second module on the key
-      throws — seeded by the owner on a miss (a miss is never an error: a level whose whole cache
-      is freed mid-run ends where its untouched twin does, testCore `level.cache.rebuild`), never
-      serialized, freed with the level through the entry's `destroy`. An entry is a class of its
-      own that owns the queries over it (`Colliders`, `View`, `NavGrid`, `Rooms`, `Broadphase`); a
-      mirror of another entry refreshes off a GENERATION it polls by number (`NavGrid.stamp` off
-      `Colliders.gen`), never a hook the scene wires; and a writer of the data an entry derives
-      from calls nothing — the entry's fingerprint sees the change (`Colliders` fingerprints each
-      collider's `solid`).
+      grid, a room mirror, a broadphase, a pass stack, a camera's view record — is a DERIVED entry:
+      a component of the level's own entity that its owner alone reaches through
+      `entities.derive(level.self, Owner.KEY, make)`, seeded on a miss (a miss is never an error:
+      a level whose derived entries are all freed mid-run ends where its untouched twin does,
+      testCore `level.self.rebuild`), MINTED so no export carries it, and freed as it leaves its
+      slot through its own `destroy` (a detach, the level's teardown). The token is the owner —
+      two modules on one KEY share one entry, as two on one component token would — so an owner
+      with both a record and a derived entry keys them apart (`ColonyMap.KEY`/`RUNTIME`,
+      `RoomSystem.KEY`/`MIRROR`). An entry is a class of its own that owns the queries over it
+      (`Colliders`, `View`, `NavGrid`, `Rooms`, `Broadphase`); a mirror of another entry refreshes
+      off a GENERATION it polls by number (`NavGrid.stamp` off `Colliders.gen`), never a hook the
+      scene wires; and a writer of the data an entry derives from calls nothing — the entry's
+      fingerprint sees the change (`Colliders` fingerprints each collider's `solid`).
     - A singleton keeps only what is none of these — content registries, config, injected hooks,
             and per-tick SCRATCH that holds nothing between ticks (a reused rect, a collector buffer) —
       so a map switch is a pointer swap and nothing of one level or one world survives in a
-      module; a level-sized scratch or a fairness cursor is the level's and rides its cache entry
+      module; a level-sized scratch or a fairness cursor is the level's and rides its derived entry
       (`NavGrid.scratch`, `NavGrid.cursor`). Asset-derived tables (`Vox`, `Poly`, `Rig._info`) are
       run-lifetime and immutable, not state.
-- Level / Scene / World: a `Level` is one map — its DATA (grid, store, `meta`) and the CACHE derived
-  from it — and nothing behavioural (it never updates or draws). A `Scene` is the behaviour: it
-  composes the active level, systems, renderer, camera and UI, and owns `update()`/`draw()`.
-  `World` pools Levels by map id and holds the world's records (`meta`); a visited map stays pooled
-  with its cache, so a park is a camera unassign and a resume a pointer swap, and `World.reset`
-  frees the pool and blanks the records. There is no scene manager: the `Game` object holds the one
+- Level / Scene / World: a `Level` is one map — its grid and its store, whose own entity
+  (`self`) carries the map's records and derived entries — and nothing behavioural (it never
+  updates or draws). A `Scene` is the behaviour: it composes the active level, systems, renderer,
+  camera and UI, and owns `update()`/`draw()`. `World` pools Levels by map id and holds the world's
+  own store (`entities`, its records on `self`); a visited map stays pooled with its derived
+  entries, so a park is a camera unassign and a resume a pointer swap, and `World.reset` frees the
+  pool and blanks the world's store. There is no scene manager: the `Game` object holds the one
   active scene pointer and drives it from its own events (its Create_0 owns the switch/pause
   contract). Exactly one scene is live and a switch destroys it — a scene is never frozen, so it
   carries no state across a swap.

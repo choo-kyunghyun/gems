@@ -10,12 +10,12 @@
  * `rules` is OPTIONAL: with none wired the counter and achievement stages simply don't run and
  * quests still advance (sceneFacet demos the tracker widget with no achievement content at all).
  *
- * Logic over ONE world record (World.meta under KEY — { counters, unlocked, quests }), so the
+ * Logic over ONE world record (World.self under KEY — { counters, unlocked, quests }), so the
  * progression starts blank with the world (World.reset) and rides the save with its records —
  * nothing here touches disk.
  */
 globalThis.Tracker = {
-  KEY: "tracker", // its World.meta key — a data key (a save holds it)
+  KEY: "tracker", // its token on the world's own entity — a data key (a save holds it)
 
   /**
    * injected by the scene that owns the rules — { counterOf(kind), report(key, total) → ids }.
@@ -29,7 +29,7 @@ globalThis.Tracker = {
    * ready, done }.
    */
   state() {
-    return World.record(Tracker.KEY, () => ({
+    return World.entities.of(World.self, Tracker.KEY, () => ({
       counters: {},
       unlocked: {},
       quests: {},

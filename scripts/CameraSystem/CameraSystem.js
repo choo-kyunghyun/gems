@@ -3,7 +3,7 @@
  * view, and this ticker turns it into the frame's matrices. Projection is never data — the
  * component holds what decides it, `apply` derives the eye basis and the extent from that each
  * frame, builds the view + projection matrices and hands them to the native camera handle in the
- * level's view record (View, the level's cache entry under KEY — `view`), so no matrix and no
+ * level's view record (View, the level's derived entry under KEY — `view`), so no matrix and no
  * handle ever sits in the store (a GML array is opaque to the store's dump — docs/GMRT.md).
  *
  * Policy = component presence: a camera entity also carrying `CameraFollow`, `CameraPan` or
@@ -20,11 +20,11 @@
  * to special-case; yaw turns that about world z, roll about the view axis.
  */
 globalThis.CameraSystem = {
-  KEY: "camera", // its Level.cache key — the View
+  KEY: "camera", // its derived token on the level's own entity — the View
 
   /** The level's View, seeded with a fresh native handle and no viewport. */
   view(level) {
-    return level.cache.of(CameraSystem, CameraSystem._seed);
+    return level.entities.derive(level.self, CameraSystem.KEY, CameraSystem._seed);
   },
 
   _seed() {

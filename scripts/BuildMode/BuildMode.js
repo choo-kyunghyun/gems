@@ -32,16 +32,11 @@
  * level's first use and saved with it.
  */
 globalThis.BuildMode = {
-  KEY: "build", // its Records key — a data key (a save holds it)
+  KEY: "build", // its token on the level's own entity — a data key (a save holds it)
 
   /** The level's build record — { built, builtEnts } — seeded blank. */
   of(level) {
-    let rec = level.meta.get(BuildMode.KEY);
-    if (rec === undefined) {
-      rec = { built: {}, builtEnts: {} };
-      level.meta.set(BuildMode.KEY, rec);
-    }
-    return rec;
+    return level.entities.of(level.self, BuildMode.KEY, () => ({ built: {}, builtEnts: {} }));
   },
 
   // DEV free build (F6): no settlement gate, no wood, no refund — the authoring mode, where a
@@ -639,7 +634,7 @@ globalThis.BuildMode = {
   /**
    * Found the player's settlement at a Survey Post: the whole level, owned by the player's faction,
    * then *spend* the post (detach its Interaction). The founded settlement is the stored state
-   * (the level's Records record, pooled and saved with it), so a post on an already-settled
+   * (the level's own record, pooled and saved with it), so a post on an already-settled
    * level is still spent — no re-founding.
    */
   claim(scene, postId) {

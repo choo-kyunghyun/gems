@@ -2,7 +2,7 @@
  * The rooms of a level — enclosure and warmth over the Core `Rooms` mirror. Feeds the mirror its
  * doors (the built door props, Interaction kind "door", stamped by footprint so a doorway closes a
  * room whether the leaf is open or shut) and holds one TEMPERATURE per room in Kelvin, off one
- * whole-map record (Records KEY → { lastHour, temps }). A lumped model — one heat capacity per
+ * whole-map record (KEY → { lastHour, temps } on the level's own entity). A lumped model — one heat capacity per
  * room, no cell field: the outside is Temperature.now() (the sky, the season, the map's climate);
  * a room converges to it at LEAK per in-game hour plus DOOR_LEAK per open door, raised by the
  * Heat sources standing in it (equilibrium = outside + Σpower / (leak × cells), so a source warms a
@@ -12,15 +12,16 @@
  * `first` cell (Rooms), so a wall edit that keeps a room's top-left cell keeps its warmth; a room
  * that vanishes drops off the record on the next step.
  *
- * Takes the level: the mirror is its cache entry (`rooms` — a Rooms over the map's wall layer,
- * seeded on the first read), the temperatures its record (`level.meta`, under the same KEY).
+ * Takes the level: the mirror is a derived entry of its own entity (MIRROR — a Rooms over the
+ * map's wall layer, seeded on the first read), the temperatures its record there (under KEY).
  * `update` runs once per frame BEFORE the sim: the mirror first (the doors standing in the store
  * are the stamped footprints, then the walls are resampled if edited — the environmental needs
  * read it this frame), then the temperatures. What a world point reads off them (under a roof?
  * how warm?) is Shelter's.
  */
 globalThis.RoomSystem = {
-  KEY: "rooms", // its key in both bags — the Rooms mirror in Level.cache, the temperature record in Level.meta
+  KEY: "rooms", // its temperature record's token on the level's own entity — a data key (a save holds it)
+  MIRROR: "rooms_mirror", // the Rooms mirror's derived token there — never saved
   LEAK: 0.6, // 1/h — a sealed room closes 1 − e^-0.6 ≈ 45% of its gap to the outside each in-game hour
   DOOR_LEAK: 1.5, // 1/h more per open door
   _rects: [], // scratch: the doors' footprints handed to Rooms.stamp (the rect objects are reused)
@@ -29,8 +30,9 @@ globalThis.RoomSystem = {
 
   /** The level's room mirror — the wall layer bounds a room (a fence has no roof). */
   rooms(level) {
-    return level.cache.of(
-      RoomSystem,
+    return level.entities.derive(
+      level.self,
+      RoomSystem.MIRROR,
       () => new Rooms(level.grid, [ColonyMap.runtime(level).wallLayer]),
     );
   },
@@ -59,12 +61,7 @@ globalThis.RoomSystem = {
     const rooms = RoomSystem.rooms(level);
     RoomSystem._sync(level, rooms);
     const now = WorldClock.absHours();
-    let rec = level.meta.get(RoomSystem.KEY);
-    if (rec === undefined) {
-      rec = { lastHour: now, temps: {} };
-      level.meta.set(RoomSystem.KEY, rec);
-      return;
-    }
+    const rec = level.entities.of(level.self, RoomSystem.KEY, () => ({ lastHour: now, temps: {} }));
     const dh = now - rec.lastHour;
     if (dh <= 0) return;
     rec.lastHour = now;

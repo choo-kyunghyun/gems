@@ -8,7 +8,7 @@
  * to the record (living state captured as a whole-entity snapshot through World). So a trader is an
  * entity in exactly one place — the map you're standing in.
  *
- * Logic over ONE world record (World.meta under KEY — { recs }), so the traders start blank with
+ * Logic over ONE world record (World.self under KEY — { recs }), so the traders start blank with
  * the world and ride the save with its records; the handlers reach the active level through
  * World.active(), never a held scene. install() wires the handlers — once per scene create, after
  * World.reset drops the previous wiring.
@@ -23,11 +23,11 @@
  *   snap      whole-entity snapshot after the first dehydrate (authoritative living state thereafter)
  */
 globalThis.Trader = {
-  KEY: "traders", // its World.meta key — a data key (a save holds it)
+  KEY: "traders", // its token on the world's own entity — a data key (a save holds it)
 
   /** The traders record — `{ recs: id -> record }`. */
   state() {
-    return World.record(Trader.KEY, () => ({ recs: {} }));
+    return World.entities.of(World.self, Trader.KEY, () => ({ recs: {} }));
   },
 
   /** Wire the arrive/depart handlers on WorldEvents (scene create, after World.reset). */

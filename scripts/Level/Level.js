@@ -1,21 +1,21 @@
 /**
- * ONE map, and everything of it: its DATA and the runtime DERIVED from that data, in two bags a
- * consumer reaches by its own KEY. PURE DATA — a Level never updates or draws; the Scene does
+ * ONE map, and everything of it — PURE DATA: a Level never updates or draws; the Scene does
  * that, and the World pools Levels by map id.
  *
- * The data is three members — the grid it is laid out on, the entities standing on it
- * (CONCEPT.md — a Level is grid-based and owns its entities), and `meta`, its whole-map records
- * (Records — what is the map's as a whole, keyed by the consumer that owns each) — and a save
- * holds exactly these three.
+ * Two members: the grid it is laid out on and the entities standing on it (CONCEPT.md — a Level
+ * is grid-based and owns its entities). What is the map's AS A WHOLE — its whole-map records (the
+ * sky pinned over it, the settlement it is, an indoor flag) and what a consumer DERIVES from its
+ * data and keeps between frames (a nav grid, a collider snapshot, a room mirror, a render pass
+ * stack, a camera's native view) — is a component of `self`, the level's own entity in its own
+ * store, under the consumer's KEY: a record through `entities.of(level.self, KEY, make)`, saved
+ * with the store like any component; a derived entry through `entities.derive`, minted so no
+ * export carries it and freed with the store through its own `destroy()`. So a save holds the
+ * grid and the store and nothing else, a new per-level fact rides along unlisted, and a map
+ * switch is a pointer swap — nothing of one level survives in a singleton. A per-tick scratch
+ * buffer that holds no data between ticks stays module-scope (ARCHITECTURE → Hot-path idioms).
  *
- * `cache` (Cache) is the one place for what a consumer DERIVES from that data and keeps between
- * frames — a nav grid, a collider snapshot, a room mirror, a render pass stack, a camera's native
- * view — each entry reached by its owner through `cache.of(Owner, make)`. Never serialized, never
- * a source of truth: the owner seeds its entry on a miss (a miss is never an error), and an
- * entry with a `destroy()` is freed with the level. A per-tick scratch buffer that holds no data
- * between ticks stays module-scope (ARCHITECTURE → Hot-path idioms); anything a level's frame
- * reads back the next frame lives here, so a map switch is a pointer swap and nothing of one
- * level survives in a singleton.
+ * `self` is index 0: allocated at construction before anything else and never removed, so it
+ * keeps its id across a store export/import (a save restores every entity under its saved id).
  *
  * The grid and the store are optional in practice: a side-scroller has entities and no grid,
  * the level editor a grid it edits and no entities. `grid` is assigned after construction when
@@ -33,13 +33,11 @@ globalThis.Level = class Level {
     this.id = opt.id ?? "";
     this.grid = opt.grid ?? null;
     this.entities = new EntityStore(opt.capacity ?? 256);
-    this.meta = new Records();
-    this.cache = new Cache(); // owner KEY -> derived runtime
+    this.self = this.entities.create(); // the level's own entity — its records and derived entries
   }
 
-  /** Frees the cache (each entry's `destroy`, when it has one), the store and the grid. */
+  /** Frees the store (each derived entry's `destroy`, each minted handle's release hook) and the grid. */
   destroy() {
-    this.cache.destroy();
     this.entities.destroy();
     if (this.grid !== null) this.grid.destroy();
     this.grid = null;

@@ -1,5 +1,5 @@
 /**
- * One world, one queue — logic over ONE world record (World.meta under KEY — { q }); kept off
+ * One world, one queue — logic over ONE world record (World.self under KEY — { q }); kept off
  * WorldClock so the clock stays the pure temporal authority (same split as Temperature).
  *
  * The point: off-focus world state (a wandering trader crossing maps, a scheduled raid, a timed
@@ -16,12 +16,12 @@
  * world), and a kind with no handler is dropped when due.
  */
 globalThis.WorldEvents = {
-  KEY: "events", // its World.meta key — a data key (a save holds it)
+  KEY: "events", // its token on the world's own entity — a data key (a save holds it)
   _handlers: {}, // kind -> fn(data) ; wiring, not data
 
   /** The queue record — `{ q: [{ at, kind, data }] }`, kept sorted ascending by `at` (soonest first). */
   state() {
-    return World.record(WorldEvents.KEY, () => ({ q: [] }));
+    return World.entities.of(World.self, WorldEvents.KEY, () => ({ q: [] }));
   },
 
   /**

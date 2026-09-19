@@ -1,13 +1,13 @@
 /**
  * Moves the dynamic solid bodies and keeps them out of the kinematic solids: each tick the
- * level's Colliders (`colliders` — its entry in the level's cache, seeded on the first read and
+ * level's Colliders (`colliders` — a derived entry of the level's own entity, seeded on the first read and
  * refreshed here, THE collider walk of a tick) list the bodies, and every solid body with a
  * Velocity integrates it in sub-steps of at most `maxStep`, pushed out of any static it enters
  * along one axis at a time (_resolve). Bodies it moves must NOT also be in MovementSystem. The
  * bake's premise, the segment queries over it and the bare static collider are Colliders'.
  */
 globalThis.SolidSystem = {
-  KEY: "solid", // its Level.cache key — the Colliders
+  KEY: "solid", // its derived token on the level's own entity — the Colliders
   maxStep: 8, // keep below thinnest collider to prevent tunneling
   // the static grid's cell (px): insert AND query by AABB SPAN (every cell an AABB overlaps), so
   // there's no cell-size constraint (unlike the center-bucket Broadphase) and huge statics just
@@ -24,7 +24,7 @@ globalThis.SolidSystem = {
    * PathfindingSystem) never sees an empty bake.
    */
   colliders(level) {
-    const c = level.cache.of(SolidSystem, SolidSystem._seed);
+    const c = level.entities.derive(level.self, SolidSystem.KEY, SolidSystem._seed);
     if (c.ids === null) c.refresh(level.entities);
     return c;
   },
@@ -35,7 +35,7 @@ globalThis.SolidSystem = {
 
   update(level) {
     const dt = Time.step;
-    const c = level.cache.of(SolidSystem, SolidSystem._seed);
+    const c = level.entities.derive(level.self, SolidSystem.KEY, SolidSystem._seed);
 
     c.refresh(level.entities);
     const statics = c.statics;

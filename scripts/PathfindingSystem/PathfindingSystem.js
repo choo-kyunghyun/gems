@@ -19,12 +19,12 @@
  * costs.
  */
 globalThis.PathfindingSystem = {
-  KEY: "nav", // its Level.cache key — the level's NavGrid
+  KEY: "nav", // its derived token on the level's own entity — the level's NavGrid
   budget: 4, // requests served per tick; the overflow carries over
 
   /** The level's NavGrid, seeded from its grid on the first read. */
   nav(level) {
-    return level.cache.of(PathfindingSystem, () => {
+    return level.entities.derive(level.self, PathfindingSystem.KEY, () => {
       if (level.grid === null)
         throw new Error(
           `PathfindingSystem: level "${level.id}" has no grid to plan over`,
@@ -81,7 +81,7 @@ globalThis.PathfindingSystem = {
   },
 
   _serve(level, id, req) {
-    const nav = level.cache.get(PathfindingSystem);
+    const nav = level.entities.get(level.self, PathfindingSystem.KEY);
     const entities = level.entities;
     const path = MotionPlanner.plan(
       nav,

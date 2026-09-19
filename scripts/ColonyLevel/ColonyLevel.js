@@ -218,7 +218,7 @@ globalThis.ColonyLevel = {
   /**
    * A material table as save rows — what a generated map's packed terrain ids mean, kept in the
    * map's data record (ColonyMap) and rebuilt by _terrainTypes in the same order, so id = index +
-   * 1 holds. A row is plain data: the sprite by NAME (a record holds no handles — Records), a
+   * 1 holds. A row is plain data: the sprite by NAME (a record holds no handles), a
    * blocking cost as Infinity (null once through JSON, which TileType reads back as blocking).
    * undefined on an authored map (its terrain is the one fill type).
    */
@@ -289,7 +289,7 @@ globalThis.ColonyLevel = {
    * (+Types) } — build()'s bag minus what the scene saved for itself — or null when the buffer or
    * the layer stack doesn't fit (Log.error'd, nothing written).
    */
-  restore(entities, saved, buf) {
+  restore(saved, buf) {
     const keys = saved.layers ?? [];
     let same = keys.length === contentTiles.LAYERS.length;
     let k = 0;
@@ -339,7 +339,6 @@ globalThis.ColonyLevel = {
       grid.destroy();
       return null;
     }
-    entities.import(saved.world);
     return { grid, terrainMats: mats, ...h };
   },
 

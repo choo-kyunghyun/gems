@@ -105,7 +105,7 @@ UINav.color = Color.parse(FacetTheme.accent); // focus ring from kit theme
 //
 // Exactly ONE scene is live: a switch DESTROYS it and sweeps the app singletons before the target
 // builds, so nothing of a scene survives the swap — no stack, no frozen scene. The sweep in _apply
-// is THE list (docs/ARCHITECTURE.md → the five homes of state): an app singleton a scene can touch
+// is THE list (docs/ARCHITECTURE.md → the four homes of state): an app singleton a scene can touch
 // is reset here, never in a scene's destroy, which drops only what that scene itself wired.
 // ─────────────────────────────────────────────────────────────────────────────
 this.scene = null; // the live Scene — stepped + drawn

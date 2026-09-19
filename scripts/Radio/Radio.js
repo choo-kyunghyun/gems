@@ -4,15 +4,15 @@
 // Time.tempo), so tuning Raid (120 BPM) is choosing double time.
 /**
  * Singleton (Game/System). The dial is every SoundMeta def carrying a `name` — declared in
- * contentSounds, so a new station is one data line there. Logic over ONE world record (World.meta
+ * contentSounds, so a new station is one data line there. Logic over ONE world record (World.self
  * under KEY — { station }, the tuned track's ASSET NAME, "" = off), so the dial starts off with
  * the world and rides the save: what plays is Music's, the tempo the scene's, the bed to fall
  * back to the injected `ambient` hook's. The record holds the name, never the asset (a record is
- * plain data — Records); `station()` resolves it back through the dial, so the ref every consumer
+ * plain data); `station()` resolves it back through the dial, so the ref every consumer
  * compares is the declared one (SoundMeta scans refs by identity).
  */
 globalThis.Radio = {
-  KEY: "radio", // its World.meta key — a data key (a save holds it)
+  KEY: "radio", // its token on the world's own entity — a data key (a save holds it)
 
   /**
    * Injected: () => the bed to resume when the dial goes off — sceneColony.create wires
@@ -22,7 +22,7 @@ globalThis.Radio = {
 
   /** The dial record — `{ station }`, the tuned track's asset name or "" for off. */
   state() {
-    return World.record(Radio.KEY, () => ({ station: "" }));
+    return World.entities.of(World.self, Radio.KEY, () => ({ station: "" }));
   },
 
   /**

@@ -2,11 +2,11 @@
 // with the colony's capture/restore PASSES and owns the slot layout, the metadata index, and disk I/O.
 /**
  * A save is the session AS IT STANDS, read off the two data homes and nothing else: the world's
- * records whole (World.meta — the clock, the sky, the progression, the event queue, the traders)
- * and, per resident map, its Level's three data members — its records whole (Level.meta), its
- * grid cell for cell and its entity store whole (each entity under its saved id — colliders,
- * statics, builds and residents alike). No pass names a system or a field: what a consumer
- * keeps in a record rides along unlisted. A load rebuilds nothing from a seed, spawns nothing
+ * store whole (its own entity's records — the clock, the sky, the progression, the event queue,
+ * the traders) and, per resident map, its Level's two data members — its grid cell for cell and
+ * its entity store whole (each entity under its saved id — the level's own entity with its
+ * records, colliders, statics, builds and residents alike). No pass names a system or a field:
+ * what a consumer keeps in a record rides along unlisted. A load rebuilds nothing from a seed, spawns nothing
  * and re-meshes nothing — those are a map's FIRST-visit path (ColonyMap.build); every saved map
  * is pooled back at load (ColonyMap.restoreLevel), its runtime built on its first visit, so the
  * entity set after a load is exactly the one that was saved.
@@ -15,9 +15,9 @@
  *   saves/index.json         { slots: { <slot>: <meta header> } } — the load menu reads THIS
  *                            (file_find_first scans the build dir, NOT the save area, so a directory
  *                            scan can't see saves — the index is the source of truth).
- *   saves/<slot>/manifest.json   the JSON half of the hybrid bundle: metadata, the world's records,
- *                            and one entry per map — its records, its store export and its grid's
- *                            shape (see _mapsPass).
+ *   saves/<slot>/manifest.json   the JSON half of the hybrid bundle: metadata, the world's store,
+ *                            and one entry per map — its store export and its grid's shape (see
+ *                            _mapsPass).
  *   saves/<slot>/map_<id>.bin    the binary half: that map's tile layers (LevelGrid.pack).
  * Passes run in insert order both ways; capture and restore live on the same pass object so they
  * can't drift. A manifest from another Snapshot.VERSION is refused at load — no migration.
@@ -211,12 +211,13 @@ globalThis.SaveGame = {
     restore(_ctx) {}, // header is informational — nothing to apply
   },
 
-  // the world's records whole (World.meta): the clock, the sky, the progression (counters,
-  // unlocks, quests) and the off-focus world — the event queue and the trader records it drives.
+  // the world's store whole (its own entity's records): the clock, the sky, the progression
+  // (counters, unlocks, quests) and the off-focus world — the event queue and the trader records
+  // it drives.
   _simPass: {
     id: "sim",
     capture(ctx) {
-      ctx.manifest.sim = World.meta.export();
+      ctx.manifest.sim = World.entities.export();
     },
     restore(ctx) {
       const sim = ctx.manifest.sim;
@@ -225,18 +226,18 @@ globalThis.SaveGame = {
       // slot left in memory can't survive into this one. Before the maps: a trader embodied in
       // the active map is in that map's store, and its record re-links to it by id once the map
       // is up (Trader.onActivate).
-      World.meta.import(sim);
+      World.entities.import(sim);
     },
   },
 
   /**
-   * Per-map state, one entry per resident map (active or parked) — a Level's three data members,
+   * Per-map state, one entry per resident map (active or parked) — a Level's two data members,
    * which is everything ColonyMap.restoreLevel needs to pool the map back without its file:
-   *   meta         the level's records whole (Records.export) — the map record (spawn, entries,
-   *                the collider id lists, the terrain palette rows), the builds, indoor, climate,
-   *                the settlement, the clocks
-   *   world        the store export whole — every entity under its index +
-   *                generation; on-disk manifest key, renaming it orphans existing saves
+   *   world        the store export whole — every entity under its index + generation, the
+   *                level's own entity first with its records (the map record: spawn, entries,
+   *                the collider id lists, the terrain palette rows; the builds, indoor, climate,
+   *                the settlement, the clocks); on-disk manifest key, renaming it orphans
+   *                existing saves
    *   blob         the grid blob's name (map_<id>) — the tile layers, LevelGrid.pack
    *   layers       the LAYERS keys in pack order (ColonyLevel.restore checks the stack)
    *   cell/cols/rows/capacity   the grid's shape and the store's size
@@ -259,7 +260,6 @@ globalThis.SaveGame = {
         ctx.putBlob(blob, grid.pack());
         maps.push({
           id: mapId,
-          meta: level.meta.export(),
           cell: grid.cellWidth,
           cols: grid.cols,
           rows: grid.rows,

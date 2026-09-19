@@ -399,17 +399,20 @@ globalThis.testCore = {
       },
     },
     {
-      id: "level.cache",
+      id: "level.self",
+      // the level's own entity: a record is a component `of` seeds and a save carries, a derived
+      // entry one `derive` mints and the store frees through its own destroy
       setup(ctx) {
         ctx.level = new Level({ id: "test", capacity: 8 });
-        ctx.ownerA = { KEY: "test_a" };
-        ctx.ownerB = { KEY: "test_b" };
-        ctx.other = { KEY: "test_a" }; // a second module claiming A's key
         ctx.freed = 0;
         ctx.makes = 0;
       },
       verify(ctx, t) {
-        const cache = ctx.level.cache;
+        const level = ctx.level;
+        const s = level.entities;
+        const self = level.self;
+        t.ok(s.isValid(self), "the level's own entity is live from construction");
+        t.eq(EntityID.index(self), 0, "it is index 0");
         const make = () => {
           ctx.makes++;
           return {
@@ -418,37 +421,38 @@ globalThis.testCore = {
             },
           };
         };
-        const a = cache.of(ctx.ownerA, make);
-        t.ok(cache.of(ctx.ownerA, make) === a, "of returns the seeded entry");
+        const a = s.derive(self, "test_a", make);
+        t.ok(s.derive(self, "test_a", make) === a, "derive returns the seeded entry");
         t.eq(ctx.makes, 1, "make runs once");
-        t.ok(cache.get(ctx.ownerA) === a, "get reads the entry");
-        t.eq(cache.get(ctx.ownerB), undefined, "get reads undefined on a miss");
-        let msg = "";
-        try {
-          cache.of(ctx.other, make);
-        } catch (e) {
-          msg = e.message;
-        }
-        t.ok(msg.indexOf("test_a") !== -1, "a second owner on the same key throws, naming it");
+        t.ok(s.get(self, "test_a") === a, "get reads the entry");
+        t.eq(s.get(self, "test_b"), undefined, "get reads undefined on a miss");
         t.ok(
-          cache.of(ctx.ownerB, () => ({ plain: true })).plain,
+          s.derive(self, "test_b", () => ({ plain: true })).plain,
           "an entry without destroy is fine",
         );
-        t.ok(cache.drop(ctx.ownerA), "drop frees the entry");
-        t.eq(ctx.freed, 1, "drop called the entry's destroy");
-        t.ok(!cache.drop(ctx.ownerA), "a second drop is a miss");
-        t.ok(cache.of(ctx.ownerA, make) !== a, "of reseeds after a drop");
-        ctx.level.destroy();
-        t.eq(ctx.freed, 2, "the level's destroy frees every entry");
-        t.eq(cache.get(ctx.ownerA), undefined, "the bag is empty after destroy");
-        const rec = ctx.level.meta.of("test_rec", () => ({ n: 1 }));
-        t.ok(ctx.level.meta.of("test_rec", () => ({ n: 2 })) === rec, "Records.of seeds once");
+        const rec = s.of(self, "test_rec", () => ({ n: 1 }));
+        t.ok(s.of(self, "test_rec", () => ({ n: 2 })) === rec, "of seeds once");
+        const exp = s.export();
+        t.eq(exp.components.test_a, undefined, "a derived entry is minted — no export carries it");
+        t.eq(exp.components.test_b, undefined, "a plain derived entry neither");
+        t.eq(exp.components.test_rec.length, 1, "a record rides the export");
+        const twin = new Level({ id: "twin", capacity: 8 });
+        twin.entities.import(exp);
+        t.ok(twin.entities.isValid(twin.self), "self survives a store import");
+        t.eq(twin.entities.get(twin.self, "test_rec").n, 1, "a record round-trips onto self");
+        twin.destroy();
+        s.detach(self, "test_a");
+        t.eq(ctx.freed, 1, "detach called the entry's destroy");
+        t.eq(s.get(self, "test_a"), undefined, "the slot is empty after the detach");
+        t.ok(s.derive(self, "test_a", make) !== a, "derive reseeds after a detach");
+        level.destroy();
+        t.eq(ctx.freed, 2, "the level's destroy frees every derived entry");
       },
     },
     {
-      id: "level.cache.rebuild",
-      // the cache rule itself: every entry is derived from the level's data, so a level whose
-      // whole cache is freed mid-run ends where its untouched twin does
+      id: "level.self.rebuild",
+      // the derived rule itself: every derived entry is rebuilt from the level's data, so a level
+      // whose derived entries are all freed mid-run ends where its untouched twin does
       setup(ctx) {
         const mk = () => {
           const c = _testLevel(8, 8);
@@ -484,7 +488,12 @@ globalThis.testCore = {
         for (let k = 0; k < 10; k++) {
           step(ctx.p);
           step(ctx.q);
-          if (k === 4) ctx.q.level.cache.destroy(); // solid, nav, separation and camera go
+          if (k === 4) {
+            // solid, nav, separation and camera go
+            const q = ctx.q;
+            const keys = [SolidSystem.KEY, PathfindingSystem.KEY, SeparationSystem.KEY, CameraSystem.KEY];
+            for (let i = 0; i < keys.length; i++) q.entities.detach(q.level.self, keys[i]);
+          }
         }
         const p = ctx.p;
         const q = ctx.q;
@@ -961,7 +970,7 @@ globalThis.testCore = {
         const s = ctx.entities;
         TileEdit.remesh(s, ctx.grid, layer, ctx.colliders);
         t.eq(ctx.colliders.length, 2, "one collider per rect");
-        t.eq(s.count(), 2, "the store holds the colliders");
+        t.eq(s.count(), 3, "the store holds the colliders and the level's own entity");
         const col = s.get(ctx.colliders[0], Collision);
         t.ok(
           col !== undefined && col.kinematic === true,
@@ -970,7 +979,7 @@ globalThis.testCore = {
         TileEdit.clear(layer, 3, 3);
         TileEdit.remesh(s, ctx.grid, layer, ctx.colliders);
         t.eq(ctx.colliders.length, 1, "remesh replaces the set");
-        t.eq(s.count(), 1, "old colliders are flushed");
+        t.eq(s.count(), 2, "old colliders are flushed");
         const box = s.get(ctx.colliders[0], BBox);
         t.ok(
           box.width === 64 && box.height === 64,

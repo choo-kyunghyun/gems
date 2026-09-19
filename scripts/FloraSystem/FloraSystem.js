@@ -1,7 +1,7 @@
 /**
  * The growth and spread of a level's flora, over the Growth component and the contentFlora
  * species table. Runs on the ACTIVE map only, like every system, but in IN-GAME HOURS off one
- * whole-map record: the level's flora clock (Records KEY → { lastHour }, the hour the level was
+ * whole-map record: the level's flora clock (KEY → { lastHour } on its own entity, the hour the level was
  * last grown to). A parked map's clock simply stops, so its first tick after a resume or a load
  * spans the whole absence and the forest grows while the squad is away — no off-focus
  * simulation, no scheduling. A span is cut at DAY boundaries, so a long absence still grows each
@@ -24,7 +24,7 @@
  * (ComponentStore.forEach).
  */
 globalThis.FloraSystem = {
-  KEY: "flora", // its Records key — a data key (a save holds it)
+  KEY: "flora", // its token on the level's own entity — a data key (a save holds it)
   CAP: 1.5, // the flora cap, as a multiple of the biome's generation density
   SPREAD_RATE: 0.4, // expected seedings per in-game hour off mature wild plants (season weight 1)
   POOL_RATE: 0.05, // expected biome-pool rolls per in-game hour
@@ -39,11 +39,7 @@ globalThis.FloraSystem = {
    */
   update(level) {
     const now = WorldClock.absHours();
-    const rec = level.meta.get(FloraSystem.KEY);
-    if (rec === undefined) {
-      level.meta.set(FloraSystem.KEY, { lastHour: now });
-      return;
-    }
+    const rec = level.entities.of(level.self, FloraSystem.KEY, () => ({ lastHour: now }));
     if (now - rec.lastHour < 1) return;
     let t = rec.lastHour;
     while (t < now) {
@@ -99,7 +95,7 @@ globalThis.FloraSystem = {
 
   /** The biome's flora pool for a level, or undefined (no biome record, or a biome without one). */
   _pool(level) {
-    const id = level.meta.get(ColonyMap.BIOME);
+    const id = level.entities.get(level.self, ColonyMap.BIOME);
     if (id === undefined) return undefined;
     const biome = contentBiomes.BIOMES[id];
     return biome === undefined ? undefined : biome.flora;

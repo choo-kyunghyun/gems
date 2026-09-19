@@ -7,7 +7,7 @@
  * displayed condition is the effective one (climate ?? ambient).
  */
 globalThis.Weather = {
-  KEY: "weather", // its World.meta key — a data key (a save holds it)
+  KEY: "weather", // its token on the world's own entity — a data key (a save holds it)
 
   _minHold: 25, // a condition holds 25..70 real seconds (at Time.scale 1) before re-roll
   _maxHold: 70,
@@ -40,7 +40,7 @@ globalThis.Weather = {
    * loaded record needs no _sync(), the next update() re-syncs from it.
    */
   state() {
-    return World.record(Weather.KEY, () => {
+    return World.entities.of(World.self, Weather.KEY, () => {
       const first = Registry.ids(Weather)[0];
       return {
         ambient: first,

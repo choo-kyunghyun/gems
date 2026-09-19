@@ -237,7 +237,7 @@ globalThis.testStress = {
         t.eq(ctx.overlaps, 0, "no body inside a wall after any solid pass");
         t.eq(
           s.count(),
-          AGENTS + ctx.colliders.length + 1, // + the camera entity
+          AGENTS + ctx.colliders.length + 2, // + the camera entity and the level's own
           "no entity leaked or vanished",
         );
       },

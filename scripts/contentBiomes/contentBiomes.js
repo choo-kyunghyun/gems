@@ -138,7 +138,7 @@ globalThis.contentBiomes = {
   //   clutter?   { <material>: [entry] } — the biome's OWN accents on a material's cells, appended
   //              to that material's `clutter` (the same entry shape): an accent one biome grows
   //              and the others don't (the marsh's lotus pads on its shallows)
-  //   wind?      0..1 — the level's CONSTANT wind strength (Records), the grass sway
+  //   wind?      0..1 — the level's CONSTANT wind strength (a whole-map record), the grass sway
   //              amplitude (shMeshlit.vsh u_sway); absent = still (an indoor map)
   //   ground     { lattice, bands } — GenGround: [material, threshold] pairs ascending over the
   //              ground noise (the last one Infinity) splitting the land into patchy features;

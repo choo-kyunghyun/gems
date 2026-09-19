@@ -1,10 +1,10 @@
 // Map engine for the colony scene — world-map travel, the map pool, and the runtime over a Level.
 // Free functions over the scene (composition; GMRT has no usable class inheritance).
 /**
- * A map IS a Level in the World pool, and everything the colony holds of it lives in that Level's
- * two bags under KEY: the DATA record in `level.meta` — a save holds it — and the RUNTIME in
- * `level.cache`, built on the map's first activation and freed with the level. Nothing of a map
- * lives here or on the scene, so a park is a camera unassign and a resume a pointer swap.
+ * A map IS a Level in the World pool, and everything the colony holds of it is a component of
+ * that Level's own entity (`level.self`): the DATA record under KEY — a save holds it — and the
+ * RUNTIME under RUNTIME, derived on the map's first activation and freed with the level. Nothing
+ * of a map lives here or on the scene, so a park is a camera unassign and a resume a pointer swap.
  *
  * The data record (`ColonyMap.of(level)`):
  * @typedef {Object} ColonyMapData
@@ -27,10 +27,10 @@
  * @property {RenderTileMap[]} terrainPasses  a generated map's ground stack, lowest material first — GrassSystem marks them
  * @property {RenderGrass|undefined} grassPass  the grass volume layer — likewise
  * @property {RenderDebugEntity} bboxPass  the lime BBox outlines — the `debugBBox` setting drives its `enabled`
- * The spatial mirrors sit in the same cache under their readers' keys: the NavGrid under
- * PathfindingSystem.KEY, the Rooms under RoomSystem.KEY, the Broadphase under SeparationSystem.KEY;
- * the camera is an ENTITY of the store (_buildCamera) and its native view sits under
- * CameraSystem.KEY.
+ * The spatial mirrors sit on the same entity under their readers' keys: the NavGrid under
+ * PathfindingSystem.KEY, the Rooms under RoomSystem.MIRROR, the Broadphase under
+ * SeparationSystem.KEY; the camera is an ENTITY of the store (_buildCamera) and its native view
+ * sits under CameraSystem.KEY.
  */
 /**
  * Visited maps stay ALIVE in the World level pool — data and runtime both on the Level — so a
@@ -49,12 +49,14 @@
  * runtime built on its first visit). go() picks between them.
  */
 globalThis.ColonyMap = {
-  KEY: "map", // its key in both bags — the data record in Level.meta, the runtime in Level.cache
-  // the Records keys of the whole-map records this engine writes (data keys — a save holds
-  // them): `indoor` true on an interior (no sky passes, the cozy BGM), `climate` the pinned sky
-  // (Weather.setClimate's record), `biome` the profile id (contentBiomes — FloraSystem's spread
-  // pool). A Settlement record sits under Settlement.KEY, the flora clock under FloraSystem.KEY,
-  // the room temperatures under RoomSystem.KEY, the player's builds under BuildMode.KEY.
+  KEY: "map", // its data record's token on the level's own entity — a data key (a save holds it)
+  RUNTIME: "map_runtime", // its runtime's derived token there — never saved
+  // the tokens of the whole-map records this engine writes on the level's own entity (data keys
+  // — a save holds them): `indoor` true on an interior (no sky passes, the cozy BGM), `climate`
+  // the pinned sky (Weather.setClimate's record), `biome` the profile id (contentBiomes —
+  // FloraSystem's spread pool). A Settlement record sits under Settlement.KEY, the flora clock
+  // under FloraSystem.KEY, the room temperatures under RoomSystem.KEY, the player's builds under
+  // BuildMode.KEY.
   INDOOR: "indoor",
   CLIMATE: "climate",
   BIOME: "biome",
@@ -62,12 +64,12 @@ globalThis.ColonyMap = {
 
   /** The level's data record (the typedef above). */
   of(level) {
-    return level.meta.get(ColonyMap.KEY);
+    return level.entities.get(level.self, ColonyMap.KEY);
   },
 
   /** The level's runtime (the typedef above), or undefined before the level is mounted. */
   runtime(level) {
-    return level.cache.get(ColonyMap);
+    return level.entities.get(level.self, ColonyMap.RUNTIME);
   },
 
   /** A data record with every field declared and nothing built. */
@@ -205,7 +207,7 @@ globalThis.ColonyMap = {
    * what plays whenever the player's Radio is off (its `ambient` hook is wired to this).
    */
   bed(level) {
-    const indoor = level.meta.get(ColonyMap.INDOOR) === true;
+    const indoor = level.entities.get(level.self, ColonyMap.INDOOR) === true;
     return indoor ? musAmbientCozy : musAmbientTense;
   },
 
@@ -224,7 +226,8 @@ globalThis.ColonyMap = {
    * open sky when it has none. Called on every arrival like _applyBgm; Weather cross-fades either way.
    */
   _applyClimate(scene) {
-    Weather.setClimate(scene.level.meta.get(ColonyMap.CLIMATE));
+    const level = scene.level;
+    Weather.setClimate(level.entities.get(level.self, ColonyMap.CLIMATE));
   },
 
   /**
@@ -277,15 +280,15 @@ globalThis.ColonyMap = {
   },
 
   /**
-   * Pool a SAVED map's data — its records as captured, its grid cell for cell and its store whole
-   * — with no seed, spawn or remesh (a load makes nothing): the Level, mounted (layer handles) but
+   * Pool a SAVED map's data — its store whole (its records with it) and its grid cell for cell —
+   * with no seed, spawn or remesh (a load makes nothing): the Level, mounted (layer handles) but
    * not activated, so its first visit builds the presentation like any resume. `m` is a SaveGame
    * map entry, `buf` its grid blob (freed here). Returns the level, or null when the entry is
    * unusable (Log.error'd, nothing pooled) — the map's first visit then builds it fresh, loudly.
    */
   restoreLevel(m, buf) {
     const level = new Level({ id: m.id, capacity: m.capacity });
-    level.meta.import(m.meta);
+    level.entities.import(m.world);
     const rec = ColonyMap.of(level);
     if (rec === undefined) {
       Log.error(`map "${m.id}": save entry carries no map record`);
@@ -293,11 +296,7 @@ globalThis.ColonyMap = {
       level.destroy();
       return null;
     }
-    const h = ColonyLevel.restore(
-      level.entities,
-      { ...m, terrainMats: rec.terrainMats },
-      buf,
-    );
+    const h = ColonyLevel.restore({ ...m, terrainMats: rec.terrainMats }, buf);
     buffer_delete(buf);
     if (h === null) {
       level.destroy();
@@ -315,7 +314,7 @@ globalThis.ColonyMap = {
    * one Layer/Type pair per LAYERS entry, plus <key>Types for a materials-bearing layer (wall).
    */
   _mount(level, h) {
-    const rt = level.cache.of(ColonyMap, ColonyMap._runtime);
+    const rt = level.entities.derive(level.self, ColonyMap.RUNTIME, ColonyMap._runtime);
     rt.terrainMats = h.terrainMats;
     for (let i = 0; i < contentTiles.LAYERS.length; i++) {
       const key = contentTiles.LAYERS[i].key;
@@ -359,7 +358,7 @@ globalThis.ColonyMap = {
     const built = ColonyLevel.build(level.entities, data, entryId);
     level.grid = built.grid;
     const rec = ColonyMap._data();
-    level.meta.set(ColonyMap.KEY, rec);
+    level.entities.add(level.self, ColonyMap.KEY, rec);
     rec.spawn = built.spawn;
     rec.entries = ColonyMap._entryTable(level.grid, built.entries); // named entries → world coords
     rec.statics = built.statics;
@@ -377,20 +376,21 @@ globalThis.ColonyMap = {
       scene.playerId = ColonyPlayer.spawn(level.entities, built.spawn);
     }
 
-    // The level's whole-map records (Records), off the data's meta: the indoor flag (no sky
-    // passes, the cozy interior BGM), the climate (pinned over the map by _applyClimate on every
-    // arrival), and the settlement (optional meta.settlement — an authored faction hub / raider
-    // camp; the overworld is the colony's "hub", whose NPCs and stockpile chest are its
-    // Residents, their settlementId this map's id). A level without one stays unsettled until a
-    // Survey Post founds it (BuildMode.claim).
-    const meta = level.meta;
-    meta.set(ColonyMap.BIOME, data.meta.biome);
+    // The level's whole-map records (components of its own entity), off the data's meta: the
+    // indoor flag (no sky passes, the cozy interior BGM), the climate (pinned over the map by
+    // _applyClimate on every arrival), and the settlement (optional meta.settlement — an authored
+    // faction hub / raider camp; the overworld is the colony's "hub", whose NPCs and stockpile
+    // chest are its Residents, their settlementId this map's id). A level without one stays
+    // unsettled until a Survey Post founds it (BuildMode.claim).
+    const entities = level.entities;
+    const self = level.self;
+    entities.add(self, ColonyMap.BIOME, data.meta.biome);
     const prof = contentBiomes.BIOMES[data.meta.biome];
     if (prof !== undefined && prof.wind !== undefined)
-      meta.set(ColonyMap.WIND, prof.wind);
-    if (data.meta.indoor === true) meta.set(ColonyMap.INDOOR, true);
+      entities.add(self, ColonyMap.WIND, prof.wind);
+    if (data.meta.indoor === true) entities.add(self, ColonyMap.INDOOR, true);
     if (data.meta.climate !== undefined)
-      meta.set(ColonyMap.CLIMATE, data.meta.climate);
+      entities.add(self, ColonyMap.CLIMATE, data.meta.climate);
     const s = data.meta.settlement;
     if (s !== undefined)
       Settlement.found(level, {
@@ -525,11 +525,11 @@ globalThis.ColonyMap = {
     // pool over the finished ground, before the entities; the camera's live pitch drives its
     // height compensation like the billboards'
     if (mats !== undefined) {
-      const profile = contentBiomes.BIOMES[level.meta.get(ColonyMap.BIOME)];
+      const profile = contentBiomes.BIOMES[level.entities.get(level.self, ColonyMap.BIOME)];
       const cdefs = ColonyMap._clumpDefs(mats, profile);
       if (cdefs.length > 0) {
         // wind: the meta constant; a save predating it falls back to the biome profile
-        let wind = level.meta.get(ColonyMap.WIND);
+        let wind = level.entities.get(level.self, ColonyMap.WIND);
         if (wind === undefined)
           wind = profile !== undefined && profile.wind !== undefined ? profile.wind : 0;
         rt.grassPass = new RenderGrass(rt.terrainLayer, level.grid, cdefs, {
@@ -706,7 +706,7 @@ globalThis.ColonyMap = {
     // under the weather (tint + rain/snow), both layers of one RenderOverlay that is cut out over
     // every room (Rooms.rects, the boxes a wall tall) — no rain, tint or cloud on a floor under a
     // roof. Skipped indoors (meta.indoor) — no open sky inside a cave.
-    if (level.meta.get(ColonyMap.INDOOR) !== true) {
+    if (level.entities.get(level.self, ColonyMap.INDOOR) !== true) {
       const clouds = new RenderCloudShadow({ camera: camera });
       clouds.enabled = false; // the flat look: no noise field drifting over the ground
       const weather = new RenderWeather({ camera: camera });
