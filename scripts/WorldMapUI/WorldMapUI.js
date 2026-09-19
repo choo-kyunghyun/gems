@@ -5,7 +5,7 @@
  * A schematic chart: every contentSites site as a node placed at its chart-space `pos` over a dark
  * panel, the routes fanning out from the home site drawn under the nodes, and a brief for the
  * selected site beside it — terrain, size, threat, and the trip's hours from where the squad
- * stands. Travel hands the pick to ColonyMap.travel behind a SceneTransition cover.
+ * stands. Travel hands the pick to ColonyTravel.travel behind a SceneTransition cover.
  *
  * The nodes are REBUILT on every open and on every pick (a handful of buttons), so the "you are
  * here" mark and the selection colors follow the live map with no per-frame color swaps; a pick
@@ -286,7 +286,7 @@ globalThis.WorldMapUI = {
     if (page.sel === scene.level.id) return "-";
     return I18n.text(
       "WORLDMAP_TRIP_VAL",
-      ColonyMap.travelHours(scene.level.id, page.sel),
+      ColonyTravel.travelHours(scene.level.id, page.sel),
     );
   },
 
@@ -299,9 +299,9 @@ globalThis.WorldMapUI = {
     const site = contentSites.get(to);
     if (site === undefined || to === scene.level.id) return;
     scene.window.close();
-    const hours = ColonyMap.travelHours(scene.level.id, to);
+    const hours = ColonyTravel.travelHours(scene.level.id, to);
     SceneTransition.start(() => {
-      ColonyMap.travel(scene, to);
+      ColonyTravel.travel(scene, to);
       Toast.push(I18n.text("WORLDMAP_ARRIVED", I18n.text(site.name), hours), {
         type: "info",
       });

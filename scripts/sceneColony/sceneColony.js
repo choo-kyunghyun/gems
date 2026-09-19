@@ -48,7 +48,7 @@ class _SceneColonyClass {
       StatModel.recompute(entities, id);
     };
     // the world — its level pool is the map pool (every visited map stays alive there for the
-    // whole session, see ColonyMap.go) and its records the world's data (the clock, the sky, the
+    // whole session, see ColonyTravel.go) and its records the world's data (the clock, the sky, the
     // progression, the events, the traders, the radio dial) — starts blank per scene create, so a
     // fresh colony session can't inherit the previous one's; a LOAD imports the saved records
     // wholesale further down. The wandering traders' event handlers re-wire after the reset.
@@ -57,7 +57,7 @@ class _SceneColonyClass {
     // the player's BGM dial's fall-back bed is the ACTIVE map's own (indoor ⇄ overworld) — read
     // live through `this`, so the one hook serves every map the scene activates
     Radio.reset();
-    Radio.ambient = () => ColonyMap.bed(this.level);
+    Radio.ambient = () => ColonyTravel.bed(this.level);
 
     // quests that close themselves the instant their objectives are met — what the report seam's
     // `ready` is filtered through. td_humans is absent: its giver turns it in (see _interactNpc).
@@ -125,12 +125,12 @@ class _SceneColonyClass {
       // the starting quests — NEW GAME only; a load brings back its own accepted set + progress
       Tracker.accept(contentQuests.QUEST_GATHER); // collect — tracked passively
       Tracker.accept(contentQuests.QUEST_REACH); // reach — tracked passively
-      ColonyMap.go(this, bootMap, "default");
+      ColonyTravel.go(this, bootMap, "default");
     }
     // the restored dial's station, else the map's bed — carries across map changes (only
     // _apply's reset stops it)
     const station = Radio.station();
-    Music.play(station !== -1 ? station : ColonyMap.bed(this.level));
+    Music.play(station !== -1 ? station : ColonyTravel.bed(this.level));
 
     // starting loadout + companion — NEW GAME only (a load restores the saved character instead).
     if (!loaded) {
@@ -199,7 +199,7 @@ class _SceneColonyClass {
   }
 
   /**
-   * Build the persistent UI tree. Reads entities/playerId LIVE (survives ColonyMap.go's store swap) and
+   * Build the persistent UI tree. Reads entities/playerId LIVE (survives ColonyTravel.go's store swap) and
    * holds no gameplay state, so retheme() can tear it down + rebuild it to re-bake the palette.
    */
   _buildUI() {
@@ -339,7 +339,7 @@ class _SceneColonyClass {
   update() {
     // no pause gate — Game skips scene.update() while the GameOverlay is open
 
-    // re-latch the player id from the live Playable query (derived, not stored — ColonyMap.go's
+    // re-latch the player id from the live Playable query (derived, not stored — ColonyTravel.go's
     // boot/arrival also set it, so this is the per-frame self-heal, never the only source)
     this.playerId = ColonyPlayer.id(this.level.entities);
 
@@ -418,7 +418,7 @@ class _SceneColonyClass {
 
     this.level.entities.flush();
 
-    ColonyPlayer.pace(this.level.entities); // stride-match locomotion playback to actual speed
+    Doll.pace(this.level.entities); // stride-match locomotion playback to actual speed
     SkeletonSystem.update(this.level); // mint the puppets new skeletal bodies lack; retime them on a clock change
     AppearanceSystem.update(this.level); // dress the puppets SkeletonSystem just minted
     Interactable.update(this, this.interact); // THE pick (stations + NPCs) + window range-close/refresh (no E here)
@@ -786,7 +786,7 @@ class _SceneColonyClass {
   /** Only what this scene wired: its hooks, its world, its UI root (the Game object's switch sweeps the rest). */
   destroy() {
     Radio.reset(); // drop the bed hook — the next colony session starts on its map's bed
-    ColonyMap.suspend(this); // release the view before its camera is freed with the level
+    ColonyTravel.suspend(this); // release the view before its camera is freed with the level
     World.reset(); // free every pooled level (its runtime with it), the world's records and the event wiring
     if (this.ui) {
       UI.remove(this.ui);

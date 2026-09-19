@@ -16,7 +16,7 @@ globalThis.Radio = {
 
   /**
    * Injected: () => the bed to resume when the dial goes off — sceneColony.create wires
-   * ColonyMap.bed over the live level. null until wired; off() then just stops the music.
+   * ColonyTravel.bed over the live level. null until wired; off() then just stops the music.
    */
   ambient: null,
 
@@ -37,7 +37,7 @@ globalThis.Radio = {
   },
 
   /**
-   * true while a station is tuned — its track plays through map arrivals (ColonyMap._applyBgm
+   * true while a station is tuned — its track plays through map arrivals (ColonyTravel._applyBgm
    * defers to it).
    */
   on() {

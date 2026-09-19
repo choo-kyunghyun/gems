@@ -71,7 +71,7 @@ globalThis.Weather = {
   },
 
   /**
-   * The active map's climate, applied on every arrival (ColonyMap._applyClimate): `c` is the
+   * The active map's climate, applied on every arrival (ColonyTravel._applyClimate): `c` is the
    * level's `meta.climate` — { weather?, tempMod? }, pinning the sky map-wide — or undefined for
    * an open sky. Either way the change cross-fades like a re-roll.
    */
@@ -149,7 +149,7 @@ globalThis.Weather = {
     return Weather.state().blend;
   },
 
-  /** Blended chroma factor (outgoing → incoming) of the sky — an overcast or snowing sky drains the world's colour a little further (ColonyMap.chroma multiplies it in). */
+  /** Blended chroma factor (outgoing → incoming) of the sky — an overcast or snowing sky drains the world's colour a little further (ColonyView.chroma multiplies it in). */
   chromaMod() {
     const w = Weather.state();
     const p = Weather.get(w.prev).chroma;

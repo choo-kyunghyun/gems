@@ -158,10 +158,10 @@ globalThis.PlayerSystem = {
     let state = "idle";
     if (pl.attackCd > 0) state = pl.attackAnim === "kick" ? "kick" : "attack";
     else if (len > 0) state = "walk";
-    ColonyPlayer.setState(entities, id, state);
+    Doll.setState(entities, id, state);
 
     // facing: flip toward the last horizontal move, at the aim's fine deadzone
-    ColonyPlayer.face(entities, id, dir.x, 0.01);
+    Doll.face(entities, id, dir.x, 0.01);
   },
 
   /**

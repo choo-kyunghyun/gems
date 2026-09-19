@@ -53,7 +53,7 @@ globalThis.Companions = {
   /**
    * Flip `fid` between following and waiting here (the E command); returns the state it moved to,
    * or "" when it is not commandable (see next). Waiting is map-local — a trip forces every member
-   * back to follow (ColonyMap.go).
+   * back to follow (ColonyTravel.go).
    */
   toggle(entities, playerId, fid) {
     const state = Companions.next(entities, fid);

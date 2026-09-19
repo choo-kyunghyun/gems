@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"ColonyView",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"ColonyView",
+  "parent":{
+    "name":"Scene",
+    "path":"folders/Game/Scene.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"ColonyView.js",
+}

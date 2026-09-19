@@ -44,12 +44,12 @@ globalThis.FollowerSystem = {
       }
 
       // doll drive (opt-in via Skeleton): idle/walk by velocity, plus the facing flip
-      ColonyPlayer.setState(
+      Doll.setState(
         entities,
         id,
         vel.x * vel.x + vel.y * vel.y > 1 ? "walk" : "idle",
       );
-      ColonyPlayer.face(entities, id, vel.x);
+      Doll.face(entities, id, vel.x);
     });
   },
 };

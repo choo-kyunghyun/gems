@@ -13,7 +13,7 @@
 globalThis.RenderWeather = class RenderWeather {
   constructor(opt = {}) {
     this.enabled = true;
-    this.camera = opt.camera; // the level's view record (CameraSystem.view); ColonyMap._buildRenderer passes it
+    this.camera = opt.camera; // the level's view record (CameraSystem.view); ColonyView._renderer passes it
     this._maxN = opt.maxParticles ?? 320; // particle budget at density 1
 
     this._rainColor = Color.parse("#aebfd4");

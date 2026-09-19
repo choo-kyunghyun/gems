@@ -88,7 +88,7 @@ globalThis.contentBuild = {
       ],
     },
     {
-      // furniture: solid props over the vox models (ColonySpawn.FURN_MODELS by `furn`, a mesh
+      // furniture: solid props over the vox models (contentPresets.FURN_MODELS by `furn`, a mesh
       // per Interaction `kind`); colliders come from the voxel footprint, no per-item wiring
       labelKey: "BUILD_CAT_FURNITURE",
       items: [

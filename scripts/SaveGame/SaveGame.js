@@ -264,7 +264,7 @@ globalThis.SaveGame = {
     },
     /**
      * Pool every saved map back (ColonyMap.restoreLevel — data only), then enter the ACTIVE one
-     * through ColonyMap.go: the player is in its store, so no squad lands and nothing moves, and
+     * through ColonyTravel.go: the player is in its store, so no squad lands and nothing moves, and
      * its runtime is built there like any first visit. A map that can't be restored is built
      * fresh on its first visit, loudly — the only path on which a load makes anything.
      */
@@ -280,7 +280,7 @@ globalThis.SaveGame = {
             activeMap +
             "' could not be restored — building it fresh",
         );
-      ColonyMap.go(scene, activeMap, "default");
+      ColonyTravel.go(scene, activeMap, "default");
       if (scene.playerId === undefined)
         Log.error("SaveGame: no player in the restored map");
       // aim the camera entity's look-at at the player straight away (the follow policy eases

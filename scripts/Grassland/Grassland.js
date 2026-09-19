@@ -31,7 +31,7 @@ globalThis.Grassland = {
   /**
    * One build-time sweep: every cell a build layer occupies loses its grass (a generated
    * prefab's walls and floors — the runtime side is BuildMode's cut on placement). Called by
-   * ColonyMap._buildRenderer BEFORE the passes exist, so the initial VBOs already see the
+   * ColonyView._renderer BEFORE the passes exist, so the initial VBOs already see the
    * result — there is nothing to mark yet.
    */
   clearBuilt(level) {

@@ -289,8 +289,8 @@ globalThis.CombatAI = {
     if (attacking) st = "attack";
     else if (vel !== undefined && vel.x * vel.x + vel.y * vel.y > 1)
       st = running ? "run" : "walk";
-    ColonyPlayer.setState(entities, id, st);
-    if (vel !== undefined) ColonyPlayer.face(entities, id, vel.x);
+    Doll.setState(entities, id, st);
+    if (vel !== undefined) Doll.face(entities, id, vel.x);
   },
 
   /**

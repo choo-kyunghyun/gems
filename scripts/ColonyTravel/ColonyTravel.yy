@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"ColonyTravel",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"ColonyTravel",
+  "parent":{
+    "name":"Scene",
+    "path":"folders/Game/Scene.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"ColonyTravel.js",
+}

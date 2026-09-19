@@ -66,7 +66,7 @@ globalThis.contentInteractions = {
       },
       {
         // travel beacon (prop kind "travel") — a site's departure point: the world map, from which
-        // the squad deploys to another site (WorldMapUI.travel → ColonyMap.travel)
+        // the squad deploys to another site (WorldMapUI.travel → ColonyTravel.travel)
         id: "travel",
         prompt: "WORLDMAP_PROMPT",
         run(ctx) {

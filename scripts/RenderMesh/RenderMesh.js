@@ -93,7 +93,7 @@ globalThis.RenderMesh = class RenderMesh {
     // consumer gets shaded meshes with zero wiring; the demo injects WorldClock.sunDir.
     this.sun = opt.sun;
     // albedo chroma provider, injected like `sun`: () => 0..1 (shMeshlit's u_chroma — the
-    // world's saturation as an atmosphere dial; the demo injects ColonyMap.chroma). Unset = 1,
+    // world's saturation as an atmosphere dial; the demo injects ColonyView.chroma). Unset = 1,
     // the authored colours.
     this.chroma = opt.chroma;
     this.camera = opt.camera; // optional, the level's view record (CameraSystem.view); when set, the nearest lights to the view centre win

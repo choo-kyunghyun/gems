@@ -1223,7 +1223,7 @@ globalThis.testCore = {
       // footprint (View.cursorWorld, sceneColony AIM_H).
       id: "camera.unproject",
       setup(ctx) {
-        const p = (42 * Math.PI) / 180; // the colony's shallow end (ColonyMap.PITCH_CURVE)
+        const p = (42 * Math.PI) / 180; // the colony's shallow end (ColonyView.PITCH_CURVE)
         ctx.pitch = p;
         ctx.level = new Level({ id: "test", capacity: 4 });
         Cameras.create(ctx.level.entities, {

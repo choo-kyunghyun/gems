@@ -31,7 +31,7 @@ globalThis.contentTiles = {
     {
       key: "floor",
       // pixTexPlaid = near-white checker weave (pixTexBrick is the WALL texture — see
-      // ColonyMap._buildRenderer); wood-tan tint -> parquet flooring. For a type-0 layer the
+      // ColonyView._renderer); wood-tan tint -> parquet flooring. For a type-0 layer the
       // id IS the frame index (and must be non-zero: 0 reads as empty occupancy).
       id: 1,
       name: "BUILD_FLOOR",

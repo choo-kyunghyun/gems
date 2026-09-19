@@ -56,7 +56,7 @@ Settings.register({
   hudRadar: false,
   // Facet color theme ("dark"|"light"; switched live in the Settings tab)
   theme: "dark",
-  // strength of the world's atmospheric desaturation (ColonyMap.chroma): 0 = the authored
+  // strength of the world's atmospheric desaturation (ColonyView.chroma): 0 = the authored
   // colours at every hour, 1 = the full hour/season/sky schedule
   worldChroma: 1.0,
   // lime BBox outlines over the world (RenderDebugEntity) — dev toggle in the overlay's

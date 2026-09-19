@@ -146,7 +146,7 @@ globalThis.ColonyCombat = {
     }
     const vis = entities.get(id, Visual);
     if (vis !== undefined) vis.alpha = 0.4; // dimmed = downed
-    ColonyPlayer.setState(entities, id, "down"); // the doll's fall (no-op without a Skeleton)
+    Doll.setState(entities, id, "down"); // the doll's fall (no-op without a Skeleton)
     entities.add(id, Downed, { timer: m.recoverSecs ?? 6 });
     entities.detach(id, PrevHealth); // no Health now — drop the stale diff baseline
     if (h.onDown !== undefined) h.onDown(id);
@@ -167,7 +167,7 @@ globalThis.ColonyCombat = {
       entities.add(id, Health, { hp: reviveHp });
       const vis = entities.get(id, Visual);
       if (vis !== undefined) vis.alpha = 1;
-      ColonyPlayer.setState(entities, id, "idle"); // up off the ground — its brain drives it from here
+      Doll.setState(entities, id, "idle"); // up off the ground — its brain drives it from here
       const spot = h.downSpot !== undefined ? h.downSpot(id) : undefined;
       if (spot !== undefined) {
         const pos = entities.get(id, Position);
@@ -217,9 +217,9 @@ globalThis.ColonyCombat = {
     // ghost alpha. A rig without one falls back to the crumple, like a plain Visual above.
     const sk = entities.get(id, Skeleton);
     if (sk !== undefined) {
-      const rig = ColonyPlayer.RIGS[sprite_get_name(sk.sprite)];
+      const rig = Doll.RIGS[sprite_get_name(sk.sprite)];
       if (rig !== undefined && rig.down !== undefined) {
-        ColonyPlayer.setState(entities, id, "down");
+        Doll.setState(entities, id, "down");
       } else {
         sk.alpha = 0.4;
         sk.yscale = Math.abs(sk.yscale) * 0.45;

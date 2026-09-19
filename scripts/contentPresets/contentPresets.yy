@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"contentPresets",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"contentPresets",
+  "parent":{
+    "name":"Content",
+    "path":"folders/Game/Content.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"contentPresets.js",
+}

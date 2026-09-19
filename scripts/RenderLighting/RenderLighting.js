@@ -14,7 +14,7 @@
 globalThis.RenderLighting = class RenderLighting {
   constructor(opt = {}) {
     this.enabled = true;
-    this.camera = opt.camera; // the level's view record (CameraSystem.view); ColonyMap._buildRenderer passes it
+    this.camera = opt.camera; // the level's view record (CameraSystem.view); ColonyView._renderer passes it
     // INJECTED ambient provider () => { color, alpha } — keeps this Core pass day/night-agnostic
     // (demo wires WorldClock.tint). Default full daylight (alpha 0) early-outs below.
     this.ambient = opt.ambient ?? (() => ({ color: c_white, alpha: 0 }));

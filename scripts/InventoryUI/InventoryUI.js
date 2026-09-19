@@ -118,7 +118,7 @@ globalThis.InventoryUI = {
     });
     const usageCell = new UIElement({ flexGrow: 1, flexBasis: 0 });
     usageCell.insertChild(
-      // read scene.level.entities LIVE (not a captured const): ColonyMap.go swaps scene.level.entities on a map
+      // read scene.level.entities LIVE (not a captured const): ColonyTravel.go swaps scene.level.entities on a map
       // change while the window is open, so a captured ref would read the parked old store.
       facetLabel(
         () => {

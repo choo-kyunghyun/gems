@@ -6,7 +6,7 @@
  *   id          the map id it pools under (World) — a save stores it, so renaming one is a migration
  *   name        i18n key; `desc` the i18n key of the world map's one-line brief
  *   pos         { x, y } in [0,1] chart space — the world map's node placement AND the travel-time
- *               metric (ColonyMap.travelHours)
+ *               metric (ColonyTravel.travelHours)
  *   danger      0..3 threat tier, the world map's readout; 0 is a SAFE site — the generator stamps
  *               no raider on it (ColonyLevel._generate's spawn filter; the biome tunes the rest)
  *   biome       contentBiomes.BIOMES profile id — the generator's stage tuning, and the world map's
