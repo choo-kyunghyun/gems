@@ -102,6 +102,12 @@ globalThis.EntityStore = class EntityStore {
     if (typeof data.destroy === "function") data.destroy();
   }
 
+  /** Give a token its binary codec — `{ pack(data) → buffer, unpack(buffer) → data }` — so its
+   *  entries cross `export`/`import` as blobs (contract at ComponentStore's header). */
+  codec(token, c) {
+    this.components.codec(token, c);
+  }
+
   /** `get` for a component the caller's contract requires — throws on a miss (contract at
    *  ComponentStore.require). */
   require(id, token) {
@@ -142,13 +148,17 @@ globalThis.EntityStore = class EntityStore {
     this.components.forEach(tokens, fn);
   }
 
-  export() {
-    return { ids: this.ids.export(), components: this.components.export() };
+  /** The store whole — `sink(token, index, buffer)` takes each codec entry's buffer and returns
+   *  what the export holds for it (contract at ComponentStore.export). */
+  export(sink) {
+    return { ids: this.ids.export(), components: this.components.export(sink) };
   }
 
-  import(snapshot) {
+  /** The store becomes the snapshot — `source(value)` hands each codec entry its buffer back
+   *  (contract at ComponentStore.import). */
+  import(snapshot, source) {
     this.ids.import(snapshot.ids);
-    this.components.import(snapshot.components);
+    this.components.import(snapshot.components, source);
   }
 
   /**

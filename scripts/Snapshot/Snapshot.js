@@ -23,7 +23,7 @@
  *                              the caller frees only what was never taken
  */
 globalThis.Snapshot = class Snapshot {
-  static VERSION = 13; // bump when the manifest/blob layout changes incompatibly (13: the records ride the store on the level's own entity)
+  static VERSION = 14; // bump when the manifest/blob layout changes incompatibly (14: the grid rides the store as a blob, the map roster the world's store)
 
   constructor() {
     this.passes = [];

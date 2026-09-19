@@ -98,16 +98,19 @@ globalThis.LevelGrid = class LevelGrid {
   /**
    * The tile layers' cells as one binary buffer — the dense half of a level save (the JSON half
    * is what a cell can't say: which TileType an id means).
-   * Layout, little-endian: u32 cols, u32 rows, u32 layer count, then per layer in `layers` order
-   * cols×rows u16 TileType ids row-major (0 = empty). Returns the buffer; the caller owns it.
+   * Layout, little-endian: u32 cols, u32 rows, u32 cellWidth, u32 cellHeight, u32 layer count,
+   * then per layer in `layers` order cols×rows u16 TileType ids row-major (0 = empty). Returns
+   * the buffer; the caller owns it.
    */
   pack() {
     const cols = this.cols;
     const rows = this.rows;
     const n = this.layers.length;
-    const buf = buffer_create(12 + n * cols * rows * 2, buffer_fixed, 1);
+    const buf = buffer_create(20 + n * cols * rows * 2, buffer_fixed, 1);
     buffer_write(buf, buffer_u32, cols);
     buffer_write(buf, buffer_u32, rows);
+    buffer_write(buf, buffer_u32, this.cellWidth);
+    buffer_write(buf, buffer_u32, this.cellHeight);
     buffer_write(buf, buffer_u32, n);
     for (let l = 0; l < n; l++) {
       const layer = this.layers[l];
@@ -118,6 +121,18 @@ globalThis.LevelGrid = class LevelGrid {
         }
     }
     return buf;
+  }
+
+  /** A pack() buffer's header — { cols, rows, cellWidth, cellHeight, layers } — the shape to
+   *  build the grid that unpacks it. */
+  static shape(buf) {
+    buffer_seek(buf, buffer_seek_start, 0);
+    const cols = buffer_read(buf, buffer_u32);
+    const rows = buffer_read(buf, buffer_u32);
+    const cellWidth = buffer_read(buf, buffer_u32);
+    const cellHeight = buffer_read(buf, buffer_u32);
+    const layers = buffer_read(buf, buffer_u32);
+    return { cols, rows, cellWidth, cellHeight, layers };
   }
 
   /**
@@ -131,6 +146,8 @@ globalThis.LevelGrid = class LevelGrid {
     buffer_seek(buf, buffer_seek_start, 0);
     const cols = buffer_read(buf, buffer_u32);
     const rows = buffer_read(buf, buffer_u32);
+    buffer_read(buf, buffer_u32); // cellWidth — the grid's own (shape)
+    buffer_read(buf, buffer_u32); // cellHeight
     const n = buffer_read(buf, buffer_u32);
     if (cols !== this.cols || rows !== this.rows || n !== this.layers.length) {
       Log.error(

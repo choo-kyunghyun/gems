@@ -399,6 +399,74 @@ globalThis.testCore = {
       },
     },
     {
+      id: "entity.codec",
+      // the binary channel: a codec token's entries cross export/import as buffers through the
+      // sink and the source, unpacked after the plain components
+      setup(ctx) {
+        ctx.src = new EntityStore(8);
+        ctx.dst = new EntityStore(8);
+        ctx.bufs = [];
+        ctx.seen = false;
+      },
+      verify(ctx, t) {
+        const s = ctx.src;
+        const codec = {
+          pack(data) {
+            const b = buffer_create(4, buffer_fixed, 1);
+            buffer_write(b, buffer_u32, data.n);
+            return b;
+          },
+          unpack(b) {
+            if (b === undefined) return undefined;
+            buffer_seek(b, buffer_seek_start, 0);
+            return { n: buffer_read(b, buffer_u32) };
+          },
+        };
+        s.codec("TestBlob", codec);
+        const a = s.create();
+        s.add(a, "TestBlob", { n: 7 });
+        s.add(a, Position, { x: 1, y: 2, z: 0 });
+        const names = [];
+        const exp = s.export((token, index, buf) => {
+          names.push(token + "." + index);
+          ctx.bufs.push(buf);
+          return "blob" + (ctx.bufs.length - 1);
+        });
+        t.eq(names.join(","), "TestBlob." + EntityID.index(a), "the sink sees the codec entry");
+        t.eq(exp.components.TestBlob[0][1], "blob0", "the export holds the sink's name");
+        t.eq(exp.components.Position[0][1].x, 1, "a plain component stays JSON");
+        const d = ctx.dst;
+        d.codec("TestBlob", {
+          pack: codec.pack,
+          unpack(b) {
+            ctx.seen = d.get(a, Position) !== undefined;
+            return codec.unpack(b);
+          },
+        });
+        d.import(exp, (name) => ctx.bufs[Number(name.slice(4))]);
+        t.eq(d.get(a, "TestBlob").n, 7, "the source's buffer unpacks");
+        t.ok(ctx.seen, "unpack runs after the plain components are in");
+        t.eq(d.get(a, Position).y, 2, "the plain component round-trips");
+        d.import(exp, () => undefined);
+        t.eq(d.get(a, "TestBlob"), undefined, "an unpack of nothing leaves the slot empty");
+        t.eq(d.get(a, Position).y, 2, "the plain component still round-trips");
+        const raw = s.export();
+        const b2 = raw.components.TestBlob[0][1];
+        t.ok(buffer_exists(b2), "without a sink the export holds the buffer");
+        ctx.bufs.push(b2);
+        const d2 = new EntityStore(8);
+        d2.codec("TestBlob", codec);
+        d2.import(raw);
+        t.eq(d2.get(a, "TestBlob").n, 7, "without a source the buffer unpacks as is");
+        d2.destroy();
+      },
+      teardown(ctx) {
+        for (let i = 0; i < ctx.bufs.length; i++) buffer_delete(ctx.bufs[i]);
+        ctx.src.destroy();
+        ctx.dst.destroy();
+      },
+    },
+    {
       id: "level.self",
       // the level's own entity: a record is a component `of` seeds and a save carries, a derived
       // entry one `derive` mints and the store frees through its own destroy
@@ -447,6 +515,84 @@ globalThis.testCore = {
         t.ok(s.derive(self, "test_a", make) !== a, "derive reseeds after a detach");
         level.destroy();
         t.eq(ctx.freed, 2, "the level's destroy frees every derived entry");
+        const g = new LevelGrid({ cellWidth: 32, cellHeight: 32, cols: 2, rows: 2 });
+        const lg = new Level({ id: "g", grid: g, capacity: 4 });
+        t.ok(lg.entities.get(lg.self, Level.GRID) === g, "the grid is the GRID component of self");
+        t.ok(lg.grid === g, "grid reads that component");
+        lg.grid = null;
+        t.eq(lg.grid, null, "a grid-less level reads null");
+        lg.grid = g;
+        lg.destroy();
+        t.eq(g.layers.length, 0, "the level's destroy frees its grid");
+      },
+    },
+    {
+      id: "level.grid.blob",
+      // the grid's own pack/unpack: a blob names its shape, so a fresh grid unpacks it
+      setup(ctx) {
+        Object.assign(ctx, _testLevel(3, 2));
+        // numeric ids — what a blob's u16 cell holds (contentTiles); _testTypes' are strings
+        ctx.rock = new TileType({ id: 7, pathCost: null });
+        ctx.mud = new TileType({ id: 9, pathCost: 3 });
+      },
+      verify(ctx, t) {
+        const layer = ctx.layer;
+        layer.set(1, 0, ctx.rock);
+        layer.set(2, 1, ctx.mud);
+        const buf = ctx.grid.pack();
+        const shape = LevelGrid.shape(buf);
+        t.eq(shape.cols, 3, "the header carries cols");
+        t.eq(shape.rows, 2, "the header carries rows");
+        t.eq(shape.cellWidth, 32, "the header carries the cell width");
+        t.eq(shape.layers, 1, "the header carries the layer count");
+        const grid = new LevelGrid({ cellWidth: shape.cellWidth, cellHeight: shape.cellHeight, cols: shape.cols, rows: shape.rows });
+        const twin = new TileLayer(shape.cols, shape.rows, { emptyCost: 1 });
+        grid.insert(twin);
+        const types = [];
+        types[ctx.rock.id] = ctx.rock;
+        types[ctx.mud.id] = ctx.mud;
+        t.ok(grid.unpack(buf, (_l, id) => types[id]), "the blob unpacks into the fresh grid");
+        t.ok(twin.get(1, 0) === ctx.rock, "a cell comes back as its type");
+        t.ok(twin.get(2, 1) === ctx.mud, "another cell too");
+        t.ok(!twin.get(0, 0), "an empty cell stays empty");
+        buffer_delete(buf);
+        grid.destroy();
+      },
+      teardown(ctx) {
+        ctx.level.destroy();
+      },
+    },
+    {
+      id: "world.pool",
+      // the world's store: a pooled map is an entity carrying its id and its Level (minted, freed
+      // with it), and the roster survives an import without the Levels
+      setup(ctx) {
+        World.reset();
+      },
+      verify(ctx, t) {
+        const lv = new Level({ id: "test_a", capacity: 4 });
+        World.add("test_a", lv);
+        t.ok(World.get("test_a") === lv, "get resolves the pooled level");
+        t.eq(World.get("test_b"), null, "a map not pooled reads null");
+        t.eq(World.ids().join(","), "test_a", "ids lists the resident maps");
+        World.activeId = "test_a";
+        t.ok(World.active() === lv, "active resolves through the pool");
+        const exp = World.entities.export();
+        t.eq(exp.components.level, undefined, "the Level is minted — no export carries it");
+        t.eq(exp.components.map.length, 1, "the map entity rides the export");
+        World.entities.import(exp);
+        t.ok(World.entities.isValid(World.self), "self survives the import");
+        t.eq(lv.entities.count(), 0, "the import released the pooled Level");
+        t.eq(World.get("test_a"), null, "an imported map entity has no Level yet");
+        t.eq(World.ids().length, 0, "ids lists none");
+        const lv2 = new Level({ id: "test_a", capacity: 4 });
+        World.add("test_a", lv2);
+        t.ok(World.get("test_a") === lv2, "add hands the map entity its Level back");
+        t.eq(World.entities.count(), 2, "add re-used the imported map entity");
+        World.reset();
+        t.eq(lv2.entities.count(), 0, "reset destroyed the pooled level");
+        t.eq(World.ids().length, 0, "the pool is empty after reset");
+        t.eq(World.activeId, null, "no map is active after reset");
       },
     },
     {

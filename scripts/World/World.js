@@ -1,9 +1,10 @@
 /**
  * THE WORLD — the level pool and the world's own data, the one write place of the layer above a
- * Level. `levels` is a flat mapId -> Level index of every RESIDENT level; `entities` the world's
- * own store, whose one entity `self` carries the world-scope records as components under the
- * consumer that owns each — the clock (`WorldClock.KEY`), the sky (`Weather.KEY`), the event
- * queue (`WorldEvents.KEY`), the progression (`Tracker.KEY`) — so a save's world half is
+ * Level: one store, `entities`. Its entity `self` carries the world-scope records as components
+ * under the consumer that owns each — the clock (`WorldClock.KEY`), the sky (`Weather.KEY`), the
+ * event queue (`WorldEvents.KEY`), the progression (`Tracker.KEY`) — and every RESIDENT map is an
+ * entity of its own carrying its identity (`MAP` — { id }, saved) and its `Level` (`LEVEL` —
+ * minted, freed with the entity through `level.destroy`), so a save's world half is
  * `World.entities.export()` and nothing world-scope lives in a singleton. The consumers are logic
  * over their record (`WorldClock.state()` seeds and returns the clock through
  * `World.entities.of(World.self, KEY, make)`), reached by their own global, never mirrored into a
@@ -16,28 +17,50 @@
  * parks and thaws, so a door trip never rebuilds it — its data and runtime both in the Level.
  * take/put move a WHOLE entity (all components, via EntitySnapshot) between two resident levels'
  * stores — the travelling-squad and wandering-trader path; a map id with no resident level THROWS
- * from either, since the caller names a pooled map it owns. `reset()` frees every pooled level
- * and blanks the world's store.
+ * from either, since the caller names a pooled map it owns. `reset()` blanks the store — every
+ * pooled level freed with its entity, every record gone.
  *
- * `self` is index 0 of a store that holds nothing else yet, so it keeps its id across a save's
- * export/import (Level.self's rule). TODO the pooled maps become entities of this store — a
- * `Level` minted on each under its map id — once the grid rides the store as a component too.
+ * A map entity outlives a store import without its Level (minted — dropped like any): a load
+ * restores the roster with the records, and the maps pass hands each its Level back through `add`,
+ * which finds the entity by id (SaveGame). `self` is index 0 of a store that holds nothing else
+ * yet, so it keeps its id across that import (Level.self's rule).
  */
 globalThis.World = {
-  CAPACITY: 16, // the world store's size — one entity today (self)
-  levels: {}, // mapId -> Level. plain object — for...in is GMRT-safe, Map iteration is not
+  CAPACITY: 64, // the world store's size — self plus one entity per resident map
+  LEVEL: "level", // a map entity's Level — minted, freed with the entity
+  MAP: "map", // a map entity's identity — { id: mapId }; a save carries it
   activeId: null, // the mapId the active scene is currently stepping + drawing
   entities: null, // the world's own store — seeded below, blanked whole by reset()
   self: -1, // the world's own entity — its records (and, one day, its derived entries)
 
-  /** Index a level under its map id. Overwrites — a rebuilt map replaces its entry. */
-  add(mapId, level) {
-    World.levels[mapId] = level;
+  /** The map entity under `mapId`, or -1. */
+  _find(mapId) {
+    let found = -1;
+    World.entities.forEach([World.MAP], (id, m) => {
+      if (m.id === mapId) found = id;
+    });
+    return found;
   },
 
+  /**
+   * Pool a level under its map id — onto the map entity already there (a loaded roster, a
+   * rebuilt map: the Level it held is freed) or a new one.
+   */
+  add(mapId, level) {
+    let id = World._find(mapId);
+    if (id === -1) {
+      id = World.entities.create();
+      World.entities.add(id, World.MAP, { id: mapId });
+    }
+    World.entities.mint(id, World.LEVEL, level, World._free);
+  },
+
+  /** The resident level under `mapId`, or null. */
   get(mapId) {
-    const lv = World.levels[mapId];
-    return lv !== undefined ? lv : null;
+    const id = World._find(mapId);
+    if (id === -1) return null;
+    const lv = World.entities.get(id, World.LEVEL);
+    return lv === undefined ? null : lv;
   },
 
   /** The active level (World.get of `activeId`), or null between maps. */
@@ -45,8 +68,17 @@ globalThis.World = {
     return World.activeId === null ? null : World.get(World.activeId);
   },
 
+  /** The map ids with a resident level. */
   ids() {
-    return Object.keys(World.levels);
+    const out = [];
+    World.entities.forEach([World.MAP, World.LEVEL], (_id, m) => {
+      out.push(m.id);
+    });
+    return out;
+  },
+
+  _free(level) {
+    level.destroy();
   },
 
   /**
@@ -77,13 +109,11 @@ globalThis.World = {
   },
 
   /**
-   * New game / world teardown: free every pooled level, drop the pool, blank the world's store
-   * (every record and derived entry with it — a fresh world seeds each anew) and the event
+   * New game / world teardown: blank the world's store — every pooled level freed with its map
+   * entity, every record and derived entry gone (a fresh world seeds each anew) — and the event
    * wiring (the head composes its family — WorldEvents' handlers are a scene's to re-register).
    */
   reset() {
-    for (const id in World.levels) World.levels[id].destroy();
-    World.levels = {};
     World.activeId = null;
     World.entities.destroy();
     World.self = World.entities.create();

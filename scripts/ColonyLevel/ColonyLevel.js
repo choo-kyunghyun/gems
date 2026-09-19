@@ -283,32 +283,18 @@ globalThis.ColonyLevel = {
    * seed or painter: the grid and its layers/types come up empty exactly as build() makes them,
    * the cells fill from the saved LevelGrid.pack buffer, and the store imports the saved export
    * whole — every entity under its saved id and generation, colliders and statics included, so
-   * nothing is spawned or re-meshed. `saved` is a SaveGame map entry: { cell, cols, rows, layers
-   * (the LAYERS keys the buffer was packed in), terrainMats? (a generated map's palette rows —
-   * _terrainTypes), world (the store export) }. Returns { grid, terrainMats, <key>Layer/<key>Type
-   * (+Types) } — build()'s bag minus what the scene saved for itself — or null when the buffer or
-   * the layer stack doesn't fit (Log.error'd, nothing written).
+   * nothing is spawned or re-meshed. `shape` is the blob's header (LevelGrid.shape), `terrainMats`
+   * a generated map's palette rows (_terrainTypes) or undefined, `buf` the blob (the caller's to
+   * free). Returns { grid, terrainMats, <key>Layer/<key>Type (+Types) } — build()'s bag minus what
+   * the scene saved for itself — or null when the buffer doesn't fit the LAYERS stack
+   * (Log.error'd, nothing written).
    */
-  restore(saved, buf) {
-    const keys = saved.layers ?? [];
-    let same = keys.length === contentTiles.LAYERS.length;
-    let k = 0;
-    while (same) {
-      if (k >= keys.length) break;
-      if (keys[k] !== contentTiles.LAYERS[k].key) same = false;
-      k++;
-    }
-    if (!same) {
-      Log.error(
-        `ColonyLevel.restore: saved layer stack [${keys.join(",")}] is not the LAYERS stack`,
-      );
-      return null;
-    }
+  restore(shape, terrainMats, buf) {
     const grid = new LevelGrid({
-      cellWidth: saved.cell,
-      cellHeight: saved.cell,
-      cols: saved.cols,
-      rows: saved.rows,
+      cellWidth: shape.cellWidth,
+      cellHeight: shape.cellHeight,
+      cols: shape.cols,
+      rows: shape.rows,
     });
     const h = ColonyLevel._makeLayers(grid);
     // per layer, the TileType a packed id means: the terrain palette on a generated map, the
@@ -318,8 +304,8 @@ globalThis.ColonyLevel = {
     for (let i = 0; i < contentTiles.LAYERS.length; i++) {
       const cfg = contentTiles.LAYERS[i];
       const table = [];
-      if (cfg.key === "terrain" && saved.terrainMats !== undefined) {
-        const terrain = ColonyLevel._terrainTypes(saved.terrainMats);
+      if (cfg.key === "terrain" && terrainMats !== undefined) {
+        const terrain = ColonyLevel._terrainTypes(terrainMats);
         mats = terrain.mats;
         for (let t = 0; t < terrain.types.length; t++)
           table[terrain.types[t].id] = terrain.types[t];

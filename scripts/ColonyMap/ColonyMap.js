@@ -280,33 +280,53 @@ globalThis.ColonyMap = {
   },
 
   /**
-   * Pool a SAVED map's data — its store whole (its records with it) and its grid cell for cell —
-   * with no seed, spawn or remesh (a load makes nothing): the Level, mounted (layer handles) but
-   * not activated, so its first visit builds the presentation like any resume. `m` is a SaveGame
-   * map entry, `buf` its grid blob (freed here). Returns the level, or null when the entry is
+   * The level's grid codec (Level.GRID through the store's codec channel — Level's header): pack
+   * is the grid's own; unpack rebuilds the grid from the blob's shape and the map record's
+   * terrain palette (ColonyLevel.restore) and MOUNTS the layer handles it made, since the
+   * TileTypes the cells name are the runtime's. It runs inside the store import, after the plain
+   * components — the record is there to read.
+   */
+  _gridCodec(level) {
+    return {
+      pack: (grid) => grid.pack(),
+      unpack: (buf) => {
+        if (buf === undefined) {
+          Log.error(`map "${level.id}": save carries no grid blob`);
+          return undefined;
+        }
+        const rec = ColonyMap.of(level);
+        const h = ColonyLevel.restore(
+          LevelGrid.shape(buf),
+          rec === undefined ? undefined : rec.terrainMats,
+          buf,
+        );
+        if (h === null) return undefined;
+        ColonyMap._mount(level, h);
+        return h.grid;
+      },
+    };
+  },
+
+  /**
+   * Pool a SAVED map's data — its store whole, the grid cell for cell with it — with no seed,
+   * spawn or remesh (a load makes nothing): the Level, mounted (layer handles) but not activated,
+   * so its first visit builds the presentation like any resume. `m` is a SaveGame map entry,
+   * `source(name)` its blobs (the source's to free). Returns the level, or null when the entry is
    * unusable (Log.error'd, nothing pooled) — the map's first visit then builds it fresh, loudly.
    */
-  restoreLevel(m, buf) {
+  restoreLevel(m, source) {
     const level = new Level({ id: m.id, capacity: m.capacity });
-    level.entities.import(m.world);
-    const rec = ColonyMap.of(level);
-    if (rec === undefined) {
+    level.entities.codec(Level.GRID, ColonyMap._gridCodec(level));
+    level.entities.import(m.world, source);
+    if (ColonyMap.of(level) === undefined)
       Log.error(`map "${m.id}": save entry carries no map record`);
-      buffer_delete(buf);
-      level.destroy();
-      return null;
+    else if (level.grid !== null) {
+      World.add(m.id, level);
+      Log.info(`colony map: ${m.id} [restored]`);
+      return level;
     }
-    const h = ColonyLevel.restore({ ...m, terrainMats: rec.terrainMats }, buf);
-    buffer_delete(buf);
-    if (h === null) {
-      level.destroy();
-      return null;
-    }
-    level.grid = h.grid;
-    ColonyMap._mount(level, h);
-    World.add(m.id, level);
-    Log.info(`colony map: ${m.id} [restored]`);
-    return level;
+    level.destroy(); // the codec said why
+    return null;
   },
 
   /**
@@ -355,6 +375,7 @@ globalThis.ColonyMap = {
       capacity: Math.max(1024, Math.ceil((data.cols * data.rows) / 4)),
     });
     const level = scene.level;
+    level.entities.codec(Level.GRID, ColonyMap._gridCodec(level)); // the grid saves as a blob
     const built = ColonyLevel.build(level.entities, data, entryId);
     level.grid = built.grid;
     const rec = ColonyMap._data();

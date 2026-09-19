@@ -24,6 +24,12 @@
  * clear at flush, a replacing add, an import over the store, the store's destroy) — so a
  * component holding a native handle (a Puppet instance, a particle system) frees it with no
  * roster and no reap pass.
+ *
+ * A set may carry a binary CODEC (`codec`) — `pack(data)` → a buffer, `unpack(buffer)` → data:
+ * its entries cross `export`/`import` as buffers through the caller's sink and source (a name
+ * in the JSON, the bytes in a blob), the channel for what is dense (a tile grid) and JSON on this
+ * runtime can't carry (docs/GMRT.md #15565). An import fills the codec sets LAST, so an unpack
+ * may read a record the same import restored.
  */
 globalThis.ComponentStore = class ComponentStore {
   constructor(maxEntities, ids) {
@@ -65,6 +71,7 @@ globalThis.ComponentStore = class ComponentStore {
         pending: [], // indices whose swap-remove waits for the walk to end
         transient: false, // minted — skipped by export/persistentOf
         destroy: undefined, // a transient token's release hook (mint), called as data leaves a slot
+        codec: undefined, // { pack, unpack } — the set's entries cross an export as buffers (codec)
       };
       this._byToken.set(token, set);
       this._tokens.push(token);
@@ -99,6 +106,12 @@ globalThis.ComponentStore = class ComponentStore {
     const set = this._byToken.get(token);
     set.transient = true;
     if (destroy !== undefined) if (set.destroy === undefined) set.destroy = destroy;
+  }
+
+  /** Give a token its binary codec (header) — registered before the store is exported or imported. */
+  codec(token, c) {
+    this.register(token);
+    this._byToken.get(token).codec = c;
   }
 
   get(id, token) {
@@ -341,20 +354,31 @@ globalThis.ComponentStore = class ComponentStore {
   }
 
   /** Per persistent token its `[index, data]` entries in dense order — the shape `import`
-   *  rebuilds from; a transient set is left out. */
-  export() {
+   *  rebuilds from; a transient set is left out. A codec set's data is packed, and the entry
+   *  holds what `sink(token, index, buffer)` returns (a blob name — the sink owns the buffer), or
+   *  the buffer itself with no sink. */
+  export(sink) {
     const components = {};
     for (let k = 0; k < this._tokens.length; k++) {
       const set = this._sets[k];
       if (set.transient) continue;
+      const token = this._tokens[k];
       const dense = set.dense;
       const column = set.column;
+      const codec = set.codec;
       const entries = [];
       for (let p = 0; p < dense.length; p++) {
         const i = dense[p];
-        if (column[i] !== undefined) entries.push([i, column[i]]);
+        const data = column[i];
+        if (data === undefined) continue;
+        if (codec === undefined) {
+          entries.push([i, data]);
+          continue;
+        }
+        const buf = codec.pack(data);
+        entries.push([i, sink === undefined ? buf : sink(token, i, buf)]);
       }
-      components[this._tokens[k]] = entries;
+      components[token] = entries;
     }
     return components;
   }
@@ -362,12 +386,16 @@ globalThis.ComponentStore = class ComponentStore {
   /**
    * Replace every set with the snapshot's. A token the snapshot names that this store never
    * registered is registered on the way in (a fresh store restoring a whole export), so nothing
-   * an export held is dropped.
+   * an export held is dropped. A codec set's entry is resolved through `source(value)` (the blob
+   * under the name the sink gave; the buffer stays the source's to free) — the value itself with
+   * no source — and unpacked last (header); an unpack returning undefined leaves the slot empty.
    */
-  import(components) {
+  import(components, source) {
     const toks = Object.keys(components);
     for (let t = 0; t < toks.length; t++) this.register(toks[t]);
-    for (let k = 0; k < this._tokens.length; k++) {
+    const n = this._tokens.length; // the sets to replace — one an unpack registers is its own
+    const late = [];
+    for (let k = 0; k < n; k++) {
       const set = this._sets[k];
       this._release(set); // the store's data is replaced whole — its handles go first
       set.column.fill(undefined);
@@ -377,9 +405,27 @@ globalThis.ComponentStore = class ComponentStore {
       set.pending.length = 0;
       const entries = components[this._tokens[k]];
       if (entries === undefined) continue;
+      if (set.codec !== undefined) {
+        late.push(k);
+        continue;
+      }
       for (let j = 0; j < entries.length; j++) {
         const i = entries[j][0];
         set.column[i] = entries[j][1];
+        set.sparse[i] = set.dense.length;
+        set.dense.push(i);
+      }
+    }
+    for (let q = 0; q < late.length; q++) {
+      const k = late[q];
+      const set = this._sets[k];
+      const entries = components[this._tokens[k]];
+      for (let j = 0; j < entries.length; j++) {
+        const i = entries[j][0];
+        const v = entries[j][1];
+        const data = set.codec.unpack(source === undefined ? v : source(v));
+        if (data === undefined) continue;
+        set.column[i] = data;
         set.sparse[i] = set.dense.length;
         set.dense.push(i);
       }

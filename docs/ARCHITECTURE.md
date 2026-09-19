@@ -88,9 +88,12 @@ and are cited from here, never restated):
       `KEY` — `Settlement.KEY`, `RoomSystem.KEY`, `ColonyMap.KEY` on a level; `WorldClock.KEY`,
       `Weather.KEY`, `Tracker.KEY` on the world — read through the owner's accessor
       (`Settlement.of(level)`, `WorldClock.state()`), which seeds the record blank on a miss
-      (`entities.of(self, KEY, make)`), so a fresh level or world starts every record blank. A
-      save holds a Level's two data members — grid and store — and the world's store, and nothing
-      else, so a new per-level or per-world fact rides along unlisted.
+      (`entities.of(self, KEY, make)`), so a fresh level or world starts every record blank. The
+      grid is that entity's `Level.GRID` component (the `grid` accessor), and a pooled map is an
+      entity of the world's store (`World.MAP` + a minted `World.LEVEL`). A save holds a Level's
+      store and the world's store and nothing else, so a new per-level or per-world fact rides
+      along unlisted; what is dense (the grid) crosses as a blob through the store's codec
+      channel (`entities.codec` — pack/unpack per token, the sink and source the save's).
     - SCENE data is a field of the live scene instance (or a handle it holds — `hud`, `window`,
       `build`) and dies with it.
     - APP data is the run's own — the device, the session, the settings — held by the app
@@ -122,13 +125,13 @@ and are cited from here, never restated):
       module; a level-sized scratch or a fairness cursor is the level's and rides its derived entry
       (`NavGrid.scratch`, `NavGrid.cursor`). Asset-derived tables (`Vox`, `Poly`, `Rig._info`) are
       run-lifetime and immutable, not state.
-- Level / Scene / World: a `Level` is one map — its grid and its store, whose own entity
-  (`self`) carries the map's records and derived entries — and nothing behavioural (it never
-  updates or draws). A `Scene` is the behaviour: it composes the active level, systems, renderer,
-  camera and UI, and owns `update()`/`draw()`. `World` pools Levels by map id and holds the world's
-  own store (`entities`, its records on `self`); a visited map stays pooled with its derived
-  entries, so a park is a camera unassign and a resume a pointer swap, and `World.reset` frees the
-  pool and blanks the world's store. There is no scene manager: the `Game` object holds the one
+- Level / Scene / World: a `Level` is one map — its store, whose own entity (`self`) carries the
+  grid, the map's records and its derived entries — and nothing behavioural (it never updates or
+  draws). A `Scene` is the behaviour: it composes the active level, systems, renderer, camera and
+  UI, and owns `update()`/`draw()`. `World` is the store one layer up: its records on `self`, and
+  each pooled map an entity carrying its id and its Level; a visited map stays pooled with its
+  derived entries, so a park is a camera unassign and a resume a pointer swap, and `World.reset`
+  blanks the store, the pool with it. There is no scene manager: the `Game` object holds the one
   active scene pointer and drives it from its own events (its Create_0 owns the switch/pause
   contract). Exactly one scene is live and a switch destroys it — a scene is never frozen, so it
   carries no state across a swap.
@@ -236,7 +239,8 @@ and are cited from here, never restated):
   sprite refs or can cycle, the `Json` codec, never JS `JSON.stringify` (#15565, GMRT.md). A
   serialized field holds plain arrays/objects only — no `Set`/`Map` (both cross the boundary empty
   — GMRT.md) and no asset ref outside the codec's tagging. Dense/large arrays still go to binary
-  blobs, not JSON (see `File` / the Snapshot hybrid). A runtime-rebuilt component (a diff baseline, a
+  blobs, not JSON — a store token with a codec (`entities.codec`) crosses its export as buffers the
+  save hands to the Snapshot bundle (`File` moves the bytes). A runtime-rebuilt component (a diff baseline, a
   path, a live handle) is minted — `entities.mint` at the system that rebuilds it — so no export
   or whole-entity snapshot carries it, and a save pass or a transfer names no component. One
   that holds a native handle (`Instance`, `ParticleStream`) mints with its RELEASE hook, which
