@@ -137,7 +137,7 @@ globalThis.AppearanceSystem = {
     if (inst.skeleton_attachment_get(slot.name) === name) return;
     // attachment scale is rig-pixel space, so the density RATIO keeps the art's world size:
     // a denser rig would otherwise shrink every worn piece with it
-    const k = SpriteMeta.density(inst.sprite_index) / SpriteMeta.density(spr);
+    const k = AssetMeta.density(inst.sprite_index) / AssetMeta.density(spr);
     const uv = sprite_get_uvs(spr, 0);
     const dx = (uv[4] + (sprite_get_width(spr) * uv[6]) / 2 - sprite_get_xoffset(spr)) * k;
     const dy = (uv[5] + (sprite_get_height(spr) * uv[7]) / 2 - sprite_get_yoffset(spr)) * k;

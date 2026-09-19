@@ -70,15 +70,15 @@ globalThis.RadioUI = {
   _stationBtn(scene, def) {
     return facetButton(
       () => {
-        const bpm = SoundMeta.bpm(def.sound);
+        const bpm = AssetMeta.bpm(def.asset);
         let s = I18n.text(def.name);
         if (bpm > 0) s += "   ·   " + I18n.text("RADIO_BPM", bpm);
         return s;
       },
-      () => Radio.tune(def.sound),
+      () => Radio.tune(def.asset),
       {
         height: FacetTheme.rowHSm,
-        selected: () => Radio.station() === def.sound,
+        selected: () => Radio.station() === def.asset,
       },
     );
   },
@@ -87,9 +87,9 @@ globalThis.RadioUI = {
    * the playing track's name — the bed is marked as the map's, a nameless or no track is "-"
    */
   _playing() {
-    const def = SoundMeta.of(Music.track());
+    const def = AssetMeta.of(Music.track());
     if (def === undefined) return I18n.text("RADIO_SILENT");
-    if (def.name === "") return I18n.text("RADIO_SILENT");
+    if (!def.name) return I18n.text("RADIO_SILENT");
     const name = I18n.text(def.name);
     return Radio.on() ? name : name + "  " + I18n.text("RADIO_BED");
   },
@@ -98,7 +98,7 @@ globalThis.RadioUI = {
    * "120 BPM · x2 · 120 TPS" for a track — the scene's tempo rule, previewed
    */
   _tempo(scene, sound) {
-    const bpm = SoundMeta.bpm(sound);
+    const bpm = AssetMeta.bpm(sound);
     const t = Math.round(scene.tempo(sound) * 100) / 100;
     return (
       (bpm > 0 ? I18n.text("RADIO_BPM", bpm) : I18n.text("RADIO_UNTIMED")) +

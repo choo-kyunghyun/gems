@@ -44,7 +44,8 @@ Placement rule for new code:
 
 - References only engine concepts (space/time/presentation/entity lifecycle) → Core. A data
   structure that knows no layer — the id-keyed store (`Table`, `Columns`, `Handle`, `Row`), the
-  1-D `Grid`, the def `Registry` — or the serialization of one (`Json`, `File`, `Snapshot`) → `Core/Data`.
+  1-D `Grid`, the def `Registry`, the asset-keyed `AssetMeta` — or the serialization of one
+  (`Json`, `File`, `Snapshot`) → `Core/Data`.
 - States a gameplay rule — damage, needs, economy, progression — or names specific
   content/scenes/`Colony*` → Game: data to `Game/Component`, behaviour and registries to
   `Game/System`, item definitions to `Game/Item`, an item capability class to
@@ -229,7 +230,8 @@ and are cited from here, never restated):
   `StateSystem`) — adding content is a data entry, not an engine edit. Registration runs from
   `create()`-time calls (`content.register()`), never at script top level (top-level code runs in
   resource order — GMRT.md). The id-keyed, insertion-ordered ones are thin facades over the shared
-  `Registry` ops, which own that store's contract.
+  `Registry` ops, which own that store's contract; the one keyed by asset ref (`AssetMeta`) is its
+  own store, since a Map can't hold a ref key (GMRT.md).
 - Input distribution: one manager, `Input`, polls every device once at the head of the frame and
   hands it out — no consumer reads a device built-in
   (`mouse_*`/`keyboard_*`/`gamepad_*`/`device_mouse_*`); every read is an `Input` query or an

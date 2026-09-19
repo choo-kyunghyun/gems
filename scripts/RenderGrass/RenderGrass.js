@@ -1,7 +1,7 @@
 /**
  * GRASS pass — the grass ground's VOLUME layer, the way a 3D game scatters grass meshes
  * over green terrain: the flat terrain pass under it keeps the distant color mass, this
- * pass stands HD clump sprites (denser sheet than the world — SpriteMeta density) on every
+ * pass stands HD clump sprites (denser sheet than the world — AssetMeta density) on every
  * cell of its material. With enough clumps per cell (the sheet's MAT variants near-solid at
  * the root) the field carries the color mass itself and needs no grass tileset under it —
  * `edge` then stands clumps on transition cells too, so the field's border is the organic
@@ -104,7 +104,7 @@ globalThis.RenderGrass = class RenderGrass {
       const def = this.defs[k];
       const spr = def.sprite;
       const frames = sprite_get_number(spr);
-      const dens = SpriteMeta.density(spr); // source px per world px — divides every extent
+      const dens = AssetMeta.density(spr); // source px per world px — divides every extent
       const sw = sprite_get_width(spr);
       const sh = sprite_get_height(spr);
       const xoff = sprite_get_xoffset(spr);

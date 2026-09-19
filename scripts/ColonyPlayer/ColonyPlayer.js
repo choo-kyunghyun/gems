@@ -101,8 +101,8 @@ globalThis.ColonyPlayer = {
       anim: ColonyPlayer.rest(spineHuman),
       loop: true,
       speed: 1, // authored time
-      xscale: SpriteMeta.fit(spineHuman, k),
-      yscale: SpriteMeta.fit(spineHuman, k),
+      xscale: AssetMeta.fit(spineHuman, k),
+      yscale: AssetMeta.fit(spineHuman, k),
       color: c_white,
       tints: ColonySpawn.skinTints(ColonyPlayer.SKIN),
       alpha: 1,

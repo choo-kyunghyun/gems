@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"SpriteMeta",
+  "%Name":"AssetMeta",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"SpriteMeta",
+  "name":"AssetMeta",
   "parent":{
-    "name":"Util",
-    "path":"folders/Core/Util.yy",
+    "name":"Data",
+    "path":"folders/Core/Data.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"SpriteMeta.js",
+  "scriptSource":"AssetMeta.js",
 }

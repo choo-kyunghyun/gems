@@ -33,7 +33,7 @@
  *   follower hp? recoverSecs? speed? range? state? bonusCapacity? bonusWeight?  (companion; spawns
  *            UNHIRED — "wait" + a rehire Interaction, so talking to it recruits)
  * Every descriptor also takes `label?` (its Name), `size?` — the per-spawn SCALAR (Alpha/boss knob)
- * multiplying the def's `scale` across BBox + Visual + Mesh (see EntityPreset.spawn — SpriteMeta
+ * multiplying the def's `scale` across BBox + Visual + Mesh (see EntityPreset.spawn — AssetMeta
  * density divides the DRAW scale separately) — `settlement?` (the map whose settlement it is a
  * Resident of) and, on mesh spawns, `yaw?`, a visual turn in degrees (BBox stays axis-aligned).
  */
@@ -168,7 +168,7 @@ globalThis.ColonySpawn = {
         id: "npc",
         scale: 1.5,
         components: {
-          BBox: { x: -8, y: -8, width: 16, height: 16 }, // ×1.5 = 24 world px — the doll draws 1:1 (scale = the rig density, SpriteMeta)
+          BBox: { x: -8, y: -8, width: 16, height: 16 }, // ×1.5 = 24 world px — the doll draws 1:1 (scale = the rig density, AssetMeta)
           Collision: { solid: true, kinematic: true },
           Name: { name: "" },
           Persona: { sex: "male", age: 30 }, // baseline — adapt re-picks per spawn (_persona)

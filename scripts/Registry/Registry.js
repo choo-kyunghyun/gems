@@ -4,7 +4,8 @@
  * project is one — `Item` (class statics, since a def is an instance with methods), `Rarity`/
  * `Manufacturer`/`Recipe`/`Prefab`/`Status`/`Need`/`Diplomacy`/`QuestLog`/`SettlementComponent`/
  * `InteractAction`/`Achievement`/`EntityPreset`/`StateSystem` (plain objects) — so their member
- * sets and their storage can't drift apart.
+ * sets and their storage can't drift apart. The one registry keyed by asset ref, `AssetMeta`,
+ * stands apart: a Map can't hold a ref key on GMRT, so it scans its own parallel arrays.
  *
  * These are STATELESS ops over a facade, not a factory minting one: a facade declares no
  * storage — `_of` seeds `_store` (`defs` a Map id -> def, `order` a string[]) on the facade at

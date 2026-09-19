@@ -10,7 +10,7 @@
  *   multiplies on top (the dedicated Alpha/boss knob — see spawn()).
  * @property {Object<string,Object>} [components]  component token -> data, authored at design
  *   scale 1 in world units; DEEP-copied per spawn so instances never share nested data.
- *   Visual.xscale/yscale are DERIVED (design scale / SpriteMeta density), never authored.
+ *   Visual.xscale/yscale are DERIVED (design scale / AssetMeta density), never authored.
  * @property {function} [post]   post(entities, id, ctx) spawn hook for what data can't express
  *   (AI attach, computed colors…); ctx = { x, y, z, scale, opts }. Inherited unless overridden.
  * Any further field is stored as authored and inherited through `extends` the same way — a
@@ -124,7 +124,7 @@ globalThis.EntityPreset = {
   /**
    * Normalize an authored Visual (sprite/color + optional overrides) into the full runtime
    * shape and bake the size split: `scale` = design size (also on the BBox), xscale/yscale =
-   * scale / density (see SpriteMeta — art resolution never touches the BBox).
+   * scale / density (see AssetMeta — art resolution never touches the BBox).
    */
   _bakeVisual(vis, k) {
     vis.visible = vis.visible ?? true;
@@ -135,7 +135,7 @@ globalThis.EntityPreset = {
     vis.speed = vis.speed ?? 0;
     vis.time = vis.time ?? 0;
     vis.scale = k;
-    const f = SpriteMeta.fit(vis.sprite, k);
+    const f = AssetMeta.fit(vis.sprite, k);
     vis.xscale = f;
     vis.yscale = f;
   },
@@ -156,7 +156,7 @@ globalThis.EntityPreset = {
     sk.color = sk.color ?? c_white;
     sk.tints = sk.tints ?? {};
     sk.alpha = sk.alpha ?? 1;
-    const f = SpriteMeta.fit(sk.sprite, k);
+    const f = AssetMeta.fit(sk.sprite, k);
     sk.xscale = f;
     sk.yscale = f;
   },

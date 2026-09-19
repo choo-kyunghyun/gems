@@ -1629,6 +1629,38 @@ globalThis.testCore = {
         t.eq(Registry.ids(Tier).join(","), "low,mid,high", "ids is the order itself");
       },
     },
+    {
+      // the asset-keyed registry: refs are found by identity, a re-registered asset replaces in
+      // place, and each field reads its default off an undeclared or unset asset
+      id: "assetmeta.lookup",
+      setup(ctx) {
+        ctx.before = AssetMeta.all().length;
+        ctx.sheet = {};
+        ctx.track = {};
+        ctx.plain = {};
+        AssetMeta.register([
+          { asset: ctx.sheet, kind: "test", density: 2 },
+          { asset: ctx.track, kind: "test", bpm: 90, name: "TEST_TRACK" },
+        ]);
+        AssetMeta.register([{ asset: ctx.sheet, kind: "test", density: 4 }]);
+      },
+      verify(ctx, t) {
+        t.eq(AssetMeta.all().length - ctx.before, 2, "a re-registered asset adds no entry");
+        t.eq(AssetMeta.of(ctx.sheet).density, 4, "a re-registered asset replaces its def");
+        t.eq(AssetMeta.all()[ctx.before].asset, ctx.sheet, "a replaced def keeps its position");
+        t.eq(AssetMeta.of(ctx.plain), undefined, "an undeclared asset has no def");
+        t.eq(AssetMeta.density(ctx.sheet), 4, "density reads the declared value");
+        t.eq(AssetMeta.density(ctx.plain), 1, "density defaults to 1 undeclared");
+        t.eq(AssetMeta.density(ctx.track), 1, "density defaults to 1 when unset");
+        t.eq(AssetMeta.fit(ctx.sheet, 2), 0.5, "fit divides the design scale by density");
+        t.eq(AssetMeta.bpm(ctx.track), 90, "bpm reads the declared value");
+        t.eq(AssetMeta.bpm(ctx.sheet), 0, "bpm defaults to 0 when unset");
+      },
+      teardown(ctx) {
+        AssetMeta._assets.length = ctx.before;
+        AssetMeta._defs.length = ctx.before;
+      },
+    },
     // ── perf.measured: the costs that decide the frame ─────────────────────────
     // A static-method call and an object literal each cost about a hundred plain reads, a hash
     // lookup a dozen: the rule for every hot loop is the cheap form in the paired row — the

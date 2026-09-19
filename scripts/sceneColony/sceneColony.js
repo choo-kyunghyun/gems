@@ -705,12 +705,12 @@ class _SceneColonyClass {
   }
 
   /**
-   * The sim tempo a track sets while it plays: its declared BPM (SoundMeta) over TEMPO_BPM, 1 for
+   * The sim tempo a track sets while it plays: its declared BPM (AssetMeta) over TEMPO_BPM, 1 for
    * an untimed bed or no track. update() writes it to Time.tempo each frame; RadioUI previews it
    * per station.
    */
   tempo(sound) {
-    const bpm = SoundMeta.bpm(sound);
+    const bpm = AssetMeta.bpm(sound);
     return bpm > 0 ? bpm / TEMPO_BPM : 1;
   }
 

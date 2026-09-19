@@ -3,13 +3,13 @@
 // tempo — the scene runs the whole world at the playing track's beat (sceneColony.tempo →
 // Time.tempo), so tuning Raid (120 BPM) is choosing double time.
 /**
- * Singleton (Game/System). The dial is every SoundMeta def carrying a `name` — declared in
+ * Singleton (Game/System). The dial is every AssetMeta def carrying a `name` — declared in
  * contentSounds, so a new station is one data line there. Logic over ONE world record (World.self
  * under KEY — { station }, the tuned track's ASSET NAME, "" = off), so the dial starts off with
  * the world and rides the save: what plays is Music's, the tempo the scene's, the bed to fall
  * back to the injected `ambient` hook's. The record holds the name, never the asset (a record is
  * plain data); `station()` resolves it back through the dial, so the ref every consumer
- * compares is the declared one (SoundMeta scans refs by identity).
+ * compares is the declared one (AssetMeta scans refs by identity).
  */
 globalThis.Radio = {
   KEY: "radio", // its token on the world's own entity — a data key (a save holds it)
@@ -26,13 +26,13 @@ globalThis.Radio = {
   },
 
   /**
-   * The dial: every declared track with a name, in declaration order (SoundMeta defs).
+   * The dial: every declared track with a name, in declaration order (AssetMeta defs).
    */
   stations() {
-    const all = SoundMeta.all();
+    const all = AssetMeta.all();
     const out = [];
     for (let i = 0; i < all.length; i++)
-      if (all[i].name !== "") out.push(all[i]);
+      if (all[i].name) out.push(all[i]);
     return out;
   },
 
@@ -53,7 +53,7 @@ globalThis.Radio = {
     if (name === "") return -1;
     const list = Radio.stations();
     for (let i = 0; i < list.length; i++)
-      if (audio_get_name(list[i].sound) === name) return list[i].sound;
+      if (audio_get_name(list[i].asset) === name) return list[i].asset;
     return -1;
   },
 
