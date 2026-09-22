@@ -999,18 +999,11 @@ globalThis.testCore = {
       },
       verify(ctx, t) {
         const s = ctx.entities;
-        t.eq(Query.nearest(s, 0, 0), ctx.near, "nearest by distance");
         t.eq(
-          Query.nearest(s, 0, 0, { has: "TestMarker" }),
-          ctx.far,
+          Query.inRadius(s, 0, 0, 200, { has: "TestMarker" }).length,
+          1,
           "has: joins the marker",
         );
-        t.eq(
-          Query.nearest(s, 0, 0, { maxDist: 5 }),
-          -1,
-          "maxDist caps the search",
-        );
-        t.eq(Query.farthest(s, 0, 0), ctx.far, "farthest by distance");
         t.eq(
           Query.inRadius(s, 0, 0, 50).length,
           1,

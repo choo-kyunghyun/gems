@@ -1,35 +1,6 @@
 // Spatial lookup over entities with Position. Point tests only (no BBox — that's AABB's job).
-/** @typedef {Object} QueryOpts @property {string} [has] require this component (its token) @property {number} [maxDist] cap search radius (world px) */
+/** @typedef {Object} QueryOpts @property {string} [has] require this component (its token) */
 globalThis.Query = {
-  nearest(entities, x, y, opts = {}) {
-    let bestId = -1;
-    let bestDist =
-      opts.maxDist !== undefined ? opts.maxDist * opts.maxDist : Infinity;
-    Query._each(entities, opts, (id, pos) => {
-      const d = (pos.x - x) ** 2 + (pos.y - y) ** 2;
-      if (d < bestDist) {
-        bestDist = d;
-        bestId = id;
-      }
-    });
-    return bestId;
-  },
-
-  farthest(entities, x, y, opts = {}) {
-    let bestId = -1;
-    let bestDist = -1;
-    const maxDistSq =
-      opts.maxDist !== undefined ? opts.maxDist * opts.maxDist : Infinity;
-    Query._each(entities, opts, (id, pos) => {
-      const d = (pos.x - x) ** 2 + (pos.y - y) ** 2;
-      if (d > bestDist && d <= maxDistSq) {
-        bestDist = d;
-        bestId = id;
-      }
-    });
-    return bestId;
-  },
-
   inRect(entities, x1, y1, x2, y2, opts = {}) {
     const result = [];
     Query._each(entities, opts, (id, pos) => {
