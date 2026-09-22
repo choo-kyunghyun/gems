@@ -1659,7 +1659,10 @@ globalThis.testCore = {
     // lookup a dozen: the rule for every hot loop is the cheap form in the paired row — the
     // inline mask over Handle.index, a cached column over store.get, edgesInto over edges, a
     // reused buffer over push, and never a per-element reset of a level-sized scratch (the
-    // generation stamp, MotionPlanner.scratch's `stamp`).
+    // generation stamp, MotionPlanner.scratch's `stamp`). The AABB rows also price the two forms
+    // a per-candidate loop chooses between: the centre pair is about half of an edgesInto, and
+    // an AABB.overlap call about twice the inline test (SolidSystem._resolve pays both per
+    // candidate per sub-step).
     {
       id: "perf.measured",
       setup(ctx) {
@@ -1687,6 +1690,14 @@ globalThis.testCore = {
         for (let i = 0; i < n; i++) {
           ctx.keys[i] = names[i % names.length];
           ctx.keyVals[i] = i % names.length;
+        }
+        // rect pairs, every other one overlapping (an odd i's b starts 8 px into a, an even's 20 px past)
+        ctx.ra = new Array(n);
+        ctx.rb = new Array(n);
+        for (let i = 0; i < n; i++) {
+          ctx.ra[i] = { x1: i, y1: 0, x2: i + 16, y2: 16 };
+          const bx = i + (i & 1 ? 8 : 20);
+          ctx.rb[i] = { x1: bx, y1: 0, x2: bx + 16, y2: 16 };
         }
         ctx.buf = [];
         ctx.fillArr = new Array(n).fill(0);
@@ -1779,6 +1790,44 @@ globalThis.testCore = {
           let s = 0;
           for (let i = 0; i < n; i++)
             s += AABB.edgesInto(pos[i], box[i], rect).x1;
+          return s;
+        });
+        // edgesInto minus the centre pair — what dropping cx/cy from the rect would save
+        const edgesOnly = (p, b, out) => {
+          const x1 = p.x + b.x;
+          const y1 = p.y + b.y;
+          out.x1 = x1;
+          out.y1 = y1;
+          out.x2 = x1 + b.width;
+          out.y2 = y1 + b.height;
+          return out;
+        };
+        t.measure("aabb.edgesInto.noCentre", n, readPosBox, () => {
+          let s = 0;
+          for (let i = 0; i < n; i++) s += edgesOnly(pos[i], box[i], rect).x1;
+          return s;
+        });
+
+        const ra = ctx.ra;
+        const rb = ctx.rb;
+        const readRects = () => {
+          let s = 0;
+          for (let i = 0; i < n; i++) s += ra[i].x1 + rb[i].x1;
+          return s;
+        };
+        t.measure("aabb.overlap", n, readRects, () => {
+          let s = 0;
+          for (let i = 0; i < n; i++) s += AABB.overlap(ra[i], rb[i]) ? 1 : 0;
+          return s;
+        });
+        t.measure("aabb.overlap.inline", n, readRects, () => {
+          let s = 0;
+          for (let i = 0; i < n; i++) {
+            const a = ra[i];
+            const b = rb[i];
+            s +=
+              a.x2 > b.x1 && b.x2 > a.x1 && a.y2 > b.y1 && b.y2 > a.y1 ? 1 : 0;
+          }
           return s;
         });
 
