@@ -903,7 +903,7 @@ globalThis.testCore = {
     },
     {
       // the one collider walk per tick: update's refresh lists the bodies, and both its integrate
-      // loop and SeparationSystem (through eachBody) read that list — a body without Velocity is
+      // loop and SeparationSystem (the body arrays by index) read that list — a body without Velocity is
       // listed but never moved, a solid-off body is listed but not separated
       id: "system.solid.bodies",
       setup(ctx) {

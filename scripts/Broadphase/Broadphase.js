@@ -1,16 +1,17 @@
 /**
- * Uniform-grid broadphase for O(n) physics pair queries: buckets each entity
- * into ONE cell by its AABB center, and `pairs()` sweeps within-cell plus the
- * forward half of the 8-neighborhood (right, below, below-right, below-left)
- * so every unordered pair fires exactly once, no dedup. Correctness rests on
- * `cellSize` exceeding the largest entity's full width or height: two
- * overlapping AABBs then always share a cell or sit in adjacent cells, so the
- * sweep can't miss the pair.
+ * Uniform-grid broadphase for O(n) pair queries: buckets each KEY (a number the caller reads
+ * back — an index into its own arrays, an id) into ONE cell by a point, its AABB center, and
+ * `pairs()` sweeps within-cell plus the forward half of the 8-neighborhood (right, below,
+ * below-right, below-left) so every unordered pair fires exactly once, no dedup. The grid
+ * holds nothing but the keys: the caller clears, inserts and reads its own data off the pair.
+ * Correctness rests on `cellSize` exceeding the largest entity's full width or height: two
+ * overlapping AABBs then always share a cell or sit in adjacent cells, so the sweep can't miss
+ * the pair.
  *
- * The sweeper (SeparationSystem) seeds one over the level's grid extent in the
- * level's cache under its key and rebuilds + sweeps it per tick; a grid-less
- * level has no extent and falls back to O(n²). Body-vs-static queries are
- * asymmetric and keep their own grid in `SolidSystem`'s cache.
+ * The sweeper (SeparationSystem) seeds one over the level's grid extent in the level's cache
+ * under its key and refills + sweeps it per tick; a grid-less level has no extent and falls back
+ * to O(n²). Body-vs-static queries are asymmetric and keep their own grid in `SolidSystem`'s
+ * cache.
  */
 globalThis.Broadphase = class Broadphase {
   constructor(worldWidth, worldHeight, cellSize) {
@@ -20,7 +21,6 @@ globalThis.Broadphase = class Broadphase {
     const n = this.cols * this.rows;
     this._buckets = [];
     for (let i = 0; i < n; i++) this._buckets.push([]);
-    this._rect = AABB.rect(); // reused by rebuild — one bucketing pass per tick per sweeper
   }
 
   clear() {
@@ -29,7 +29,7 @@ globalThis.Broadphase = class Broadphase {
     }
   }
 
-  insert(id, cx, cy) {
+  insert(key, cx, cy) {
     const gx = Math.max(
       0,
       Math.min(this.cols - 1, Math.floor(cx / this.cellSize)),
@@ -38,16 +38,7 @@ globalThis.Broadphase = class Broadphase {
       0,
       Math.min(this.rows - 1, Math.floor(cy / this.cellSize)),
     );
-    this._buckets[gy * this.cols + gx].push(id);
-  }
-
-  rebuild(entities, ids) {
-    this.clear();
-    const r = this._rect;
-    for (let i = 0; i < ids.length; i++) {
-      AABB.ofInto(entities, ids[i], r);
-      this.insert(ids[i], r.cx, r.cy);
-    }
+    this._buckets[gy * this.cols + gx].push(key);
   }
 
   pairs(fn) {

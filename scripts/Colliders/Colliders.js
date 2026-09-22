@@ -223,9 +223,9 @@ globalThis.Colliders = class Colliders {
    * Visit the dynamic solid bodies — every non-kinematic collider — as `fn(id, col, pos, box)`,
    * the component objects themselves so `solid` reads live (a corpse drops out of the hits the
    * frame it dies). As of the last refresh: a body removed since may linger (validate the id),
-   * one spawned since is not listed until the next refresh. A per-frame consumer
-   * (SeparationSystem) therefore runs after SolidSystem.update in the same frame — the walk that
-   * lists the bodies is the one update takes, never a second one here.
+   * one spawned since is not listed until the next refresh. A per-frame consumer (SeparationSystem,
+   * which reads the body arrays by index) therefore runs after SolidSystem.update in the same
+   * frame — the walk that lists the bodies is the one update takes, never a second one here.
    */
   eachBody(fn) {
     const ids = this.bodyIds;
