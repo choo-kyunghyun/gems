@@ -1659,10 +1659,10 @@ globalThis.testCore = {
     // lookup a dozen: the rule for every hot loop is the cheap form in the paired row — the
     // inline mask over Handle.index, a cached column over store.get, edgesInto over edges, a
     // reused buffer over push, and never a per-element reset of a level-sized scratch (the
-    // generation stamp, MotionPlanner.scratch's `stamp`). The overlap pair prices the call a
-    // per-candidate loop (SolidSystem._resolve, per sub-step) would pay against the inline test —
-    // about twice; the centre pair the Into rect once carried was about half of an edgesInto,
-    // which is why it holds four edges.
+    // generation stamp, MotionPlanner.scratch's `stamp`). The overlap pair is why a
+    // per-candidate loop (SolidSystem._resolve, SeparationSystem._separate) inlines the test —
+    // the call is about twice it; the centre pair the Into rect once carried was about half of
+    // an edgesInto, which is why it holds four edges.
     {
       id: "perf.measured",
       setup(ctx) {

@@ -50,7 +50,10 @@ globalThis.AABB = {
     );
   },
 
-  /** Strict overlap — touching edges don't count (matches physics separation). */
+  /**
+   * Strict overlap — touching edges don't count (matches physics separation). A per-candidate
+   * loop inlines this test: the call is about twice it (testCore perf.measured aabb.overlap).
+   */
   overlap(a, b) {
     return a.x2 > b.x1 && b.x2 > a.x1 && a.y2 > b.y1 && b.y2 > a.y1;
   },

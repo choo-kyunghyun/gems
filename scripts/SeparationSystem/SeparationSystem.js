@@ -72,7 +72,8 @@ globalThis.SeparationSystem = {
     const a = AABB.edgesInto(pa, boxA, SeparationSystem._a);
     const b = AABB.edgesInto(pb, boxB, SeparationSystem._b);
 
-    if (!AABB.overlap(a, b)) return;
+    // AABB.overlap inlined: the call is ~2x the test per pair (perf.measured aabb.overlap)
+    if (a.x2 <= b.x1 || b.x2 <= a.x1 || a.y2 <= b.y1 || b.y2 <= a.y1) return;
 
     const ox = Math.min(a.x2, b.x2) - Math.max(a.x1, b.x1);
     const oy = Math.min(a.y2, b.y2) - Math.max(a.y1, b.y1);

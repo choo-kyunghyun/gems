@@ -205,7 +205,9 @@ and are cited from here, never restated):
   one store. Markers are components, not tag strings.
 - AABB convention: every collision/geometry consumer derives world-space edges through
   `AABB.edges(pos, box)` / `AABB.of(entities, id)` — never inline `pos.x + box.x` (the non-uniform
-  BBox anchor lives in one place).
+  BBox anchor lives in one place). The overlap test is `AABB.overlap`, except in a per-candidate
+  loop (`SolidSystem._resolve`, `SeparationSystem._separate`), which inlines it — the call is
+  about twice the test (testCore perf.measured `aabb.overlap`).
 - Injection idiom: a module stays model-agnostic by exposing a hook its consumer wires at scene
   setup — Core to Game (`RenderLighting`'s `ambient`, `UIQuestTracker`'s `source`) and, inside
   Game, a system to the scene that owns the stat model (`Combat.mitigate`,

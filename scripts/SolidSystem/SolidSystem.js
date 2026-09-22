@@ -103,7 +103,8 @@ globalThis.SolidSystem = {
         for (let k = 0; k < bucket.length; k++) {
           const b = statics[bucket[k]];
 
-          if (!AABB.overlap(a, b)) continue;
+          // AABB.overlap inlined: the call is ~2x the test per candidate (perf.measured aabb.overlap)
+          if (a.x2 <= b.x1 || b.x2 <= a.x1 || a.y2 <= b.y1 || b.y2 <= a.y1) continue;
 
           const lo = isX ? a.x2 - b.x1 : a.y2 - b.y1; // overlap if pushed toward -
           const hi = isX ? b.x2 - a.x1 : b.y2 - a.y1; // overlap if pushed toward +
