@@ -5,9 +5,10 @@
 globalThis.AABB = {
   /** A zeroed rect for the `*Into` calls — one owner for the shape. */
   rect() {
-    return { x1: 0, y1: 0, x2: 0, y2: 0, cx: 0, cy: 0 };
+    return { x1: 0, y1: 0, x2: 0, y2: 0 };
   },
 
+  /** The edges plus the centre — the one-shot form; a per-test loop uses edgesInto. */
   edges(pos, box) {
     const x1 = pos.x + box.x;
     const y1 = pos.y + box.y;
@@ -17,22 +18,19 @@ globalThis.AABB = {
   },
 
   /**
-   * `edges` into a caller-owned rect (AABB.rect). A pair sweep reuses one or two instead of
-   * allocating per test: the object literal, not the arithmetic, is the cost here — ~3.5x
-   * (testCore perf.measured). The rect is the caller's, so never hand one to something that outlives
-   * the call.
+   * `edges` into a caller-owned rect (AABB.rect), the four edges and no centre: a pair sweep
+   * reuses one or two instead of allocating per test — the object literal is ~3x the arithmetic,
+   * and the centre pair about half of what remains (testCore perf.measured), so a reader that
+   * wants a centre takes `(x1 + x2) * 0.5` where it needs it. The rect is the caller's, so never
+   * hand one to something that outlives the call.
    */
   edgesInto(pos, box, out) {
     const x1 = pos.x + box.x;
     const y1 = pos.y + box.y;
-    const x2 = x1 + box.width;
-    const y2 = y1 + box.height;
     out.x1 = x1;
     out.y1 = y1;
-    out.x2 = x2;
-    out.y2 = y2;
-    out.cx = (x1 + x2) * 0.5;
-    out.cy = (y1 + y2) * 0.5;
+    out.x2 = x1 + box.width;
+    out.y2 = y1 + box.height;
     return out;
   },
 

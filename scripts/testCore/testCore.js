@@ -1659,10 +1659,10 @@ globalThis.testCore = {
     // lookup a dozen: the rule for every hot loop is the cheap form in the paired row — the
     // inline mask over Handle.index, a cached column over store.get, edgesInto over edges, a
     // reused buffer over push, and never a per-element reset of a level-sized scratch (the
-    // generation stamp, MotionPlanner.scratch's `stamp`). The AABB rows also price the two forms
-    // a per-candidate loop chooses between: the centre pair is about half of an edgesInto, and
-    // an AABB.overlap call about twice the inline test (SolidSystem._resolve pays both per
-    // candidate per sub-step).
+    // generation stamp, MotionPlanner.scratch's `stamp`). The overlap pair prices the call a
+    // per-candidate loop (SolidSystem._resolve, per sub-step) would pay against the inline test —
+    // about twice; the centre pair the Into rect once carried was about half of an edgesInto,
+    // which is why it holds four edges.
     {
       id: "perf.measured",
       setup(ctx) {
@@ -1792,22 +1792,6 @@ globalThis.testCore = {
             s += AABB.edgesInto(pos[i], box[i], rect).x1;
           return s;
         });
-        // edgesInto minus the centre pair — what dropping cx/cy from the rect would save
-        const edgesOnly = (p, b, out) => {
-          const x1 = p.x + b.x;
-          const y1 = p.y + b.y;
-          out.x1 = x1;
-          out.y1 = y1;
-          out.x2 = x1 + b.width;
-          out.y2 = y1 + b.height;
-          return out;
-        };
-        t.measure("aabb.edgesInto.noCentre", n, readPosBox, () => {
-          let s = 0;
-          for (let i = 0; i < n; i++) s += edgesOnly(pos[i], box[i], rect).x1;
-          return s;
-        });
-
         const ra = ctx.ra;
         const rb = ctx.rb;
         const readRects = () => {

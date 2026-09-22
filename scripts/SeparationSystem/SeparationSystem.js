@@ -56,7 +56,7 @@ globalThis.SeparationSystem = {
         for (let k = 0; k < w; k++) {
           const i = bodies[k];
           AABB.edgesInto(poss[i], boxes[i], r);
-          bp.insert(i, r.cx, r.cy);
+          bp.insert(i, (r.x1 + r.x2) * 0.5, (r.y1 + r.y2) * 0.5);
         }
         bp.pairs(sep);
       } else {
@@ -78,11 +78,11 @@ globalThis.SeparationSystem = {
     const oy = Math.min(a.y2, b.y2) - Math.max(a.y1, b.y1);
 
     if (ox < oy) {
-      const dir = a.cx < b.cx ? -1 : 1;
+      const dir = a.x1 + a.x2 < b.x1 + b.x2 ? -1 : 1; // by centre
       pa.x += dir * ox * 0.5;
       pb.x -= dir * ox * 0.5;
     } else {
-      const dir = a.cy < b.cy ? -1 : 1;
+      const dir = a.y1 + a.y2 < b.y1 + b.y2 ? -1 : 1;
       pa.y += dir * oy * 0.5;
       pb.y -= dir * oy * 0.5;
     }
