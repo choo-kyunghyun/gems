@@ -92,7 +92,8 @@ globalThis.Audio = {
             offset,
             pitch,
           );
-    // set after the fact: the mask is the one tail argument both play calls would need padded
+    // set after the fact: both play calls take the mask as their last argument, but an absent
+    // mask means the global one, which has no value to pass in its place
     if (params.listener_mask !== undefined)
       audio_sound_set_listener_mask(h, params.listener_mask);
     return h;
