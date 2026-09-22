@@ -5,8 +5,7 @@
  * cells of `cell` px, parallel-array buckets — GMRT: no object-keyed Map/Set — with `minX`/`minY`,
  * how far the statics overhang below the grid's origin: the border boxes sit at -cell..0, a
  * static there is clamped into the edge cell, and `walk`'s clip reaches down to it), so a body
- * or a cast tests only the cells it touches; `gen`, the count of times that static set has
- * CHANGED (a body spawn refreshes the fingerprint without moving it) — the signal a mirror of
+ * or a cast tests only the cells it touches; `gen`, the count of bakes — the signal a mirror of
  * the kinematic solids (NavGrid) polls by number; and the dynamic solid bodies as of the last
  * refresh — parallel arrays of the component objects themselves, reused (a stale tail past
  * `bodyCount` is never read; `bodyVels` holds undefined for a body without Velocity, listed for
@@ -14,8 +13,9 @@
  *
  * Everything here is derived from the store's Collision carriers: `refresh` walks them once —
  * THE collider walk of a tick (every wall is a carrier, so a walk costs the level's collider
- * count) — fingerprints the walk as each id with its `solid` flag, and re-bakes only when the
- * fingerprint moved. That is what makes a whole map's worth of statics affordable: re-deriving
+ * count) — fingerprints the KINEMATIC carriers as each id with its `solid` flag (a body coming
+ * or going never touches the bake), and re-bakes only when the fingerprint moved. That is what
+ * makes a whole map's worth of statics affordable: re-deriving
  * them costs with the LEVEL's size (every wall, water rect and boulder, plus a bucket per cell
  * they span), while the body loop that resolves collisions costs with the number of movers. The
  * bake holds a STATIC IS STATIC premise: a kinematic solid never moves or resizes in place —
@@ -37,7 +37,7 @@ globalThis.Colliders = class Colliders {
   /** @param {number} cell the bucket grid's cell (px) — a pure perf knob, see SolidSystem.cell */
   constructor(cell) {
     this.cell = cell;
-    this.ids = null; // the fingerprint's ids: the walk's Collision carriers in order; null = never
+    this.ids = null; // the fingerprint's ids: the walk's kinematic carriers in order; null = never
     this.solids = null; // the fingerprint's `solid` flag per id
     this.statics = [];
     this.gen = 0;
@@ -53,7 +53,7 @@ globalThis.Colliders = class Colliders {
     this.bodyVels = [];
     this.bodyCount = 0;
     // the walk's candidate lists, fingerprinted against `ids`/`solids` (level-sized scratch,
-    // reused — docs/ARCHITECTURE.md → Hot-path idioms)
+    // reused — docs/ARCHITECTURE.md → Hot-path idioms; a bake swaps them with the fingerprint)
     this._candIds = [];
     this._candSolids = [];
   }
@@ -93,10 +93,10 @@ globalThis.Colliders = class Colliders {
   }
 
   /**
-   * Re-fingerprint the store's colliders and re-bake if the set moved; the same pass lists the
-   * dynamic bodies for the integrate loop and `eachBody`. Velocity cannot join the walk's tokens
-   * (a static carries none, and the fingerprint needs every static), so it is one `get` per
-   * BODY — the movers, not the walls.
+   * Re-fingerprint the store's kinematic colliders and re-bake if the set moved; the same pass
+   * lists the dynamic bodies for the integrate loop and `eachBody`. Velocity cannot join the
+   * walk's tokens (a static carries none, and the fingerprint needs every static), so it is one
+   * `get` per BODY — the movers, not the walls.
    */
   refresh(entities) {
     const ids = this._candIds;
@@ -109,10 +109,12 @@ globalThis.Colliders = class Colliders {
     let w = 0;
     let b = 0;
     entities.forEach([Collision, Position, BBox], (id, col, pos, box) => {
-      ids[w] = id;
-      flags[w] = col.solid;
-      w++;
-      if (col.kinematic) return;
+      if (col.kinematic) {
+        ids[w] = id;
+        flags[w] = col.solid;
+        w++;
+        return;
+      }
       bIds[b] = id;
       bCols[b] = col;
       bPos[b] = pos;
@@ -243,7 +245,7 @@ globalThis.Colliders = class Colliders {
   }
 
   /**
-   * Is the bake still the truth? The same candidate ids with the same `solid` flags in the same
+   * Is the bake still the truth? The same kinematic ids with the same `solid` flags in the same
    * order — a walk's order only moves when the set does (Columns). A compare over the
    * candidates is a few hundred tests; re-deriving them is that many component lookups, AABB
    * allocations and bucket inserts.
@@ -264,13 +266,13 @@ globalThis.Colliders = class Colliders {
    * Bake the kinematic solids into flat records: edges (plus the id, for a raycast's hit) so the
    * body×static resolve loop reads plain fields — no AABB.of / entities.get per test. Those per-test
    * Map lookups + edge allocs were ~70% of the colony's tick cost before the snapshot existed.
+   * The candidates are the kinematic carriers, so a moved fingerprint IS a moved static set: every
+   * bake counts and rebuilds the grid.
    */
   _bake(entities, ids, flags) {
     const statics = [];
     for (let i = 0; i < ids.length; i++) {
       if (!flags[i]) continue;
-      const col = entities.get(ids[i], Collision);
-      if (!col.kinematic) continue;
       const e = AABB.of(entities, ids[i]);
       statics.push({
         id: ids[i],
@@ -280,31 +282,16 @@ globalThis.Colliders = class Colliders {
         y2: e.y2,
       });
     }
-    // A refresh on a changed candidate set is usually a dynamic body coming or going, with the
-    // statics themselves identical — then the buckets (indexes into an equal-by-index list)
-    // still hold and the generation stays. A first bake always counts.
-    const changed = this.ids === null || !this._same(statics);
-    this.ids = ids.slice(); // the scratch lists are reused next tick, but the fingerprint must outlive them
-    this.solids = flags.slice();
+    // the fingerprint takes the scratch lists; the old fingerprint becomes next tick's scratch
+    const prevIds = this.ids;
+    const prevSolids = this.solids;
+    this.ids = ids;
+    this.solids = flags;
+    this._candIds = prevIds === null ? [] : prevIds;
+    this._candSolids = prevSolids === null ? [] : prevSolids;
     this.statics = statics;
-    if (!changed) return;
     this.gen++;
     this._gridRebuild(statics);
-  }
-
-  /** Same rects at the same indexes as the current bake (the walk order is stable). */
-  _same(statics) {
-    const prev = this.statics;
-    if (prev.length !== statics.length) return false;
-    for (let i = 0; i < statics.length; i++) {
-      const a = prev[i];
-      const b = statics[i];
-      if (a.x1 !== b.x1) return false;
-      if (a.y1 !== b.y1) return false;
-      if (a.x2 !== b.x2) return false;
-      if (a.y2 !== b.y2) return false;
-    }
-    return true;
   }
 
   /**

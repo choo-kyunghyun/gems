@@ -1153,7 +1153,7 @@ globalThis.testCore = {
         PathfindingSystem.update(level);
         t.eq(s.get(ctx.walker, PathResponse).path.length, 8, "with the wall gone the path runs straight");
         t.eq(s.get(ctx.other, PathResponse), undefined, "a restamp drops every held path");
-        // a body spawn refreshes the fingerprint but moves no static: no restamp, paths stay
+        // a body spawn never enters the fingerprint (kinematic carriers only): no restamp, paths stay
         hold();
         const body = s.create();
         s.add(body, Position, { x: 200, y: 200, z: 0 });

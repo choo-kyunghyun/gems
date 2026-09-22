@@ -121,7 +121,7 @@ and are cited from here, never restated):
       (`Colliders`, `View`, `NavGrid`, `Rooms`, `Broadphase`); a mirror of another entry refreshes
       off a GENERATION it polls by number (`NavGrid.stamp` off `Colliders.gen`), never a hook the
       scene wires; and a writer of the data an entry derives from calls nothing — the entry's
-      fingerprint sees the change (`Colliders` fingerprints each collider's `solid`).
+      fingerprint sees the change (`Colliders` fingerprints each kinematic collider's `solid`).
     - A singleton keeps only what is none of these — content registries, config, injected hooks,
             and per-tick SCRATCH that holds nothing between ticks (a reused rect, a collector buffer) —
       so a map switch is a pointer swap and nothing of one level or one world survives in a
