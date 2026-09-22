@@ -105,5 +105,44 @@ globalThis.testGame = {
         instance_destroy(ctx.inst);
       },
     },
+    // ── audio.groups: the two audio groups load at boot and carry the category gains ──
+    // Only audiogroup_default loads on its own: Audio.init loads audiogroup_sfx and
+    // audiogroup_track, and the volume sliders are those groups' gains (a 50 ms ramp on the
+    // track's), so a cue plays only from a loaded group and a track lands in its own. The case
+    // reads the groups the assets declare through their names — a group id is not `===`-safe.
+    {
+      id: "audio.groups",
+      frames: 6, // the 50 ms ramp on the track gain settles within a few frames
+      setup(ctx) {
+        ctx.sfx = audio_group_get_gain(audiogroup_sfx);
+        ctx.track = audio_group_get_gain(audiogroup_track);
+        Audio.setSfxGain(0.25);
+        Music.setGain(0.5);
+        ctx.h = Music.play(musRaid, { fadeMs: 0 });
+      },
+      verify(ctx, t) {
+        t.ok(audio_group_is_loaded(audiogroup_sfx), "audiogroup_sfx not loaded");
+        t.ok(audio_group_is_loaded(audiogroup_track), "audiogroup_track not loaded");
+        t.eq(
+          audio_group_name(audio_sound_get_audio_group(sndButtonClick)),
+          "audiogroup_sfx",
+          "a cue's group",
+        );
+        t.eq(
+          audio_group_name(audio_sound_get_audio_group(musRaid)),
+          "audiogroup_track",
+          "a track's group",
+        );
+        t.near(audio_group_get_gain(audiogroup_sfx), 0.25, 1e-6, "sfx gain");
+        t.near(audio_group_get_gain(audiogroup_track), 0.5, 1e-6, "track gain after its ramp");
+        t.ok(ctx.h !== -1 && audio_is_playing(ctx.h), "the track plays from its group");
+        t.eq(Music.track(), musRaid, "Music.track");
+      },
+      teardown(ctx) {
+        Music.stop(0);
+        Audio.setSfxGain(ctx.sfx);
+        audio_group_set_gain(audiogroup_track, ctx.track, 0);
+      },
+    },
   ],
 };

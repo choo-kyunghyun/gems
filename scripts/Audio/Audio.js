@@ -20,8 +20,15 @@
  * @property {number} [falloff_factor]
  */
 
+/**
+ * Audio — the cue player over GameMaker's audio engine, and the boot of the audio family
+ * (AudioListener, Music). Volume is three gains the settings sliders drive live: the master
+ * (listener 0), the SFX group and the track group — a group's gain multiplies every sound in
+ * it, playing or not, so a slider never has to find the instances. Cues live in audiogroup_sfx
+ * and tracks in audiogroup_track; only audiogroup_default loads on its own, so init loads both
+ * and a play from a group still landing answers -1 (`loaded`).
+ */
 globalThis.Audio = {
-  _defaultGain: 1.0,
   falloff_ref: 128,
   falloff_max: 960,
   falloff_factor: 1.0,
@@ -29,9 +36,19 @@ globalThis.Audio = {
   init() {
     audio_falloff_set_model(audio_falloff_linear_distance_clamped);
     AudioListener.init();
+    audio_group_load(audiogroup_sfx);
+    audio_group_load(audiogroup_track);
     Audio.setMasterGain(Settings.get("volMaster"));
+    Audio.setSfxGain(Settings.get("volSfx"));
     Music.setGain(Settings.get("volMusic"));
-    Audio.setDefaultGain(Settings.get("volSfx"));
+  },
+
+  /**
+   * Whether a sound's audio group is in memory — the group load is asynchronous, and a play
+   * before it lands answers -1.
+   */
+  loaded(sound) {
+    return audio_group_is_loaded(audio_sound_get_audio_group(sound));
   },
 
   /**
@@ -51,8 +68,8 @@ globalThis.Audio = {
    * Returns the sound instance handle, or -1.
    */
   play(params) {
-    if (!audio_exists(params.sound)) return -1;
-    const gain = (params.gain ?? 1.0) * Audio._defaultGain;
+    if (!audio_exists(params.sound) || !Audio.loaded(params.sound)) return -1;
+    const gain = params.gain ?? 1.0;
     const loop = params.loop ?? false;
     const priority = params.priority ?? 0;
     const offset = params.offset ?? 0;
@@ -81,11 +98,13 @@ globalThis.Audio = {
     return h;
   },
 
-  setDefaultGain(gain) {
-    Audio._defaultGain = clamp(gain, 0, 1);
-  },
-
+  /** Master volume (0..1): listener 0's gain, over every group. */
   setMasterGain(gain) {
     audio_set_master_gain(0, clamp(gain, 0, 1));
+  },
+
+  /** SFX volume (0..1): audiogroup_sfx's gain, so a cue already playing follows the slider too. */
+  setSfxGain(gain) {
+    audio_group_set_gain(audiogroup_sfx, clamp(gain, 0, 1), 0);
   },
 };

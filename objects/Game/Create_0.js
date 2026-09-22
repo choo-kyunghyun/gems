@@ -72,7 +72,7 @@ FacetTheme.setMode(Settings.get("theme"));
 // restore saved display state (vsync, AA, fps cap, fullscreen/resolution); GUI sized by UI.applyScale
 Display.applyVideo();
 
-// spatial falloff model + 2D listener orientation + saved volumes; after Settings.load
+// spatial falloff model + 2D listener orientation + the group loads + saved volumes; after Settings.load
 Audio.init();
 
 // the colony keymap is the app's control scheme, registered once for the run (no scene binds or

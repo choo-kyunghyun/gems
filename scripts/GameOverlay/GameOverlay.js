@@ -330,7 +330,7 @@ globalThis.GameOverlay = {
     volSection.insertChild(
       facetRow(
         I18n.textRef("SETTINGS_VOL_SFX"),
-        volSlider("volSfx", (v) => Audio.setDefaultGain(v)),
+        volSlider("volSfx", (v) => Audio.setSfxGain(v)),
         { key: "volSfx" },
       ),
     );
