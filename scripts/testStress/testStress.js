@@ -24,7 +24,7 @@ const OVERLAP_EVERY = 60; // frames between the body-vs-wall sweeps (500 × ~80 
  * solid pass and before the separation push — the one point where zero must hold.
  */
 function _stressOverlaps(level) {
-  const statics = PuppetSystem.colliders(level).statics;
+  const statics = PathfindingSystem.nav(level).statics; // the walls as last stamped
   const rect = AABB.rect();
   let overlaps = 0;
   level.entities.forEach(["StressAgent", Position, BBox], (id, ag, pos, box) => {

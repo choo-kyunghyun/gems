@@ -100,7 +100,7 @@ globalThis.Table = class Table {
   }
 
   /** `of` for what a consumer DERIVES from the layer's data and keeps between frames — a
-   *  collider bake, a nav grid, a camera's native view: seeded through `mint`, so no export
+   *  collider generation, a nav grid, a camera's native view: seeded through `mint`, so no export
    *  carries it, and freed as it leaves its slot through its own `destroy()` when it has one (a
    *  detach, the level's teardown). Never a source of truth — a miss is never an error. */
   derive(id, token, make) {

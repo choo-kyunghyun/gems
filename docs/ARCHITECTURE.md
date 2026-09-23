@@ -108,7 +108,7 @@ and are cited from here, never restated):
       Create_0) sweeps every app member a scene can touch in ONE list — a scene's `destroy` drops
       only what that scene itself wired (its UI root, its injected hooks, the colony's `World`), and
       a new app member a scene can dirty gets its line in the sweep, not in a scene.
-        - Anything DERIVED from a level's data and kept between frames — a collider bake, a nav
+        - Anything DERIVED from a level's data and kept between frames — a collider generation, a nav
       grid, a room mirror, a broadphase, a pass stack, a camera's view record — is a DERIVED entry:
       a component of the level's own entity that its owner alone reaches through
       `entities.derive(level.self, Owner.KEY, make)`, seeded on a miss (a miss is never an error:
@@ -118,10 +118,11 @@ and are cited from here, never restated):
       two modules on one KEY share one entry, as two on one component token would — so an owner
       with both a record and a derived entry keys them apart (`ColonyMap.KEY`/`RUNTIME`,
       `RoomSystem.KEY`/`MIRROR`). An entry is a class of its own that owns the queries over it
-      (`Colliders`, `View`, `NavGrid`, `Rooms`); a mirror of another entry refreshes
-      off a GENERATION it polls by number (`NavGrid.stamp` off `Colliders.gen`), never a hook the
-      scene wires; and a writer of the data an entry derives from calls nothing — the entry's
-      fingerprint sees the change (`Colliders` fingerprints each kinematic collider's `solid`).
+      (`View`, `NavGrid`, `Rooms`), or a bare record where it holds only a count
+      (`PuppetSystem.colliders`); a mirror of another entry refreshes off a GENERATION it polls
+      by number (`NavGrid.stamp` off `PuppetSystem.colliders`' `gen`), never a hook the scene
+      wires; and a writer of the data an entry derives from calls nothing — the owner's walk sees
+      the change (PuppetSystem counts each kinematic collider's `solid` flip into `gen`).
     - A singleton keeps only what is none of these — content registries, config, injected hooks,
             and per-tick SCRATCH that holds nothing between ticks (a reused rect, a collector buffer) —
       so a map switch is a pointer swap and nothing of one level or one world survives in a

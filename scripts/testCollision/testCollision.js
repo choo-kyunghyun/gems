@@ -1,5 +1,5 @@
 // Core/Collision and Puppet cases: SolidSystem and SeparationSystem over the mirrors
-// PuppetSystem keeps, the collider fingerprint, AABB, Query (the position walks, the runtime's
+// PuppetSystem keeps, the collider generation, AABB, Query (the position walks, the runtime's
 // mask queries and the segment casts), and perf.builtin, the runtime's collision built-ins
 // against Core/Collision. Every case here references Core only; the case contract and the
 // perf.* rule are Test's.
@@ -39,11 +39,7 @@ Test.register(Test.CHECK, [
       t.eq(vel.x, 0, "a blocked body's velocity is what it moved: none");
       const wallPos = s.get(ctx.wall, Position);
       t.eq(wallPos.x, 100, "kinematic solid never moves");
-      t.eq(
-        PuppetSystem.colliders(ctx.level).statics.length,
-        1,
-        "static snapshot holds the wall",
-      );
+      t.eq(PuppetSystem.colliders(ctx.level).count, 1, "the walk counts the wall");
     },
     teardown(ctx) {
       Time.step = ctx.step;
@@ -51,9 +47,9 @@ Test.register(Test.CHECK, [
     },
   },
   {
-    id: "solid.fingerprint",
+    id: "solid.gen",
     // a kinematic collider's `solid` flipped IN PLACE (a door's leaf, a trunk growing solid)
-    // re-bakes like a wall built or torn down — no call from the writer
+    // moves the generation like a wall built or torn down — no call from the writer
     setup(ctx) {
       ctx.level = new Level({ id: "test", capacity: 8 });
       const s = ctx.level.entities;
@@ -74,19 +70,16 @@ Test.register(Test.CHECK, [
       PuppetSystem.update(level); // the mirrors, ahead of the solid pass as in the scene
       SolidSystem.update(level);
       const c = PuppetSystem.colliders(level);
-      t.eq(c.statics.length, 1, "the wall bakes");
-      t.eq(c.gen, 1, "the first bake counts");
+      t.eq(c.gen, 1, "the wall's shaping counts");
       col.solid = false; // the leaf opens
       for (let k = 0; k < 20; k++) {
         PuppetSystem.update(level); // the leaf's mirror empties its mask
         SolidSystem.update(level);
       }
-      t.eq(c.statics.length, 0, "an open leaf leaves the bake");
       t.eq(c.gen, 2, "the flip moved the generation");
       t.ok(s.get(ctx.body, Position).x > 100, "the body walks through the open leaf");
       col.solid = true; // the leaf closes behind it
       PuppetSystem.update(level); // the mirror's walk is the collider walk
-      t.eq(c.statics.length, 1, "a closed leaf re-enters the bake");
       t.eq(c.gen, 3, "the flip back moved the generation again");
       PuppetSystem.update(level);
       t.eq(c.gen, 3, "an unchanged set holds the generation");

@@ -5,8 +5,7 @@
  * a face by its own tangential velocity (x blocked, y free), and its Velocity is rewritten as the
  * displacement it actually made, so a reader of speed (Doll.pace) sees a body pressed into a
  * wall stand still. Every displacement a body takes goes through the runtime (SeparationSystem's
- * push too), so no body is ever inside a solid. The bake NavGrid stamps and the bare static
- * collider are Colliders'.
+ * push too), so no body is ever inside a solid. The bare static collider is Colliders'.
  */
 globalThis.SolidSystem = {
   maxStep: 8, // the runtime's sub-step (px): keep below the thinnest collider to prevent tunneling
@@ -18,7 +17,7 @@ globalThis.SolidSystem = {
     level.entities.forEach([Velocity, Collision, Instance, Position], (id, vel, col, h, pos) => {
       if (!col.solid) return;
       if (!h.shaped) return; // no mirror yet — PuppetSystem's next update shapes it
-      if (h.still) return; // a kinematic never moves (Colliders' premise)
+      if (h.still) return; // a kinematic never moves (PuppetSystem's premise)
       const dx = vel.x * dt;
       const dy = vel.y * dt;
       const m = Math.max(Math.abs(dx), Math.abs(dy));

@@ -201,8 +201,8 @@ Test.register(Test.CHECK, [
         "the path re-plans to the twin's length",
       );
       t.eq(
-        PuppetSystem.colliders(q.level).statics.length,
-        PuppetSystem.colliders(p.level).statics.length,
+        PathfindingSystem.nav(q.level).statics.length,
+        PathfindingSystem.nav(p.level).statics.length,
         "the collider snapshot rebuilds whole",
       );
       t.eq(
@@ -328,6 +328,18 @@ Test.register(Test.CHECK, [
       t.ok(r1 !== undefined, "the request is served");
       t.ok(r1.path.length > 8, "the path detours around the stamped wall: " + r1.path.length);
       t.eq(s.get(ctx.other, PathResponse), undefined, "the first stamp drops every held path");
+      // the wall's `solid` flips in place (a door's leaf): the stamp leaves it out, then takes it back
+      const col = s.get(ctx.wall, Collision);
+      col.solid = false;
+      ask();
+      PuppetSystem.update(level);
+      PathfindingSystem.update(level);
+      t.eq(s.get(ctx.walker, PathResponse).path.length, 8, "an open leaf leaves the stamp");
+      col.solid = true;
+      ask();
+      PuppetSystem.update(level);
+      PathfindingSystem.update(level);
+      t.ok(s.get(ctx.walker, PathResponse).path.length > 8, "a closed leaf re-enters the stamp");
       // the wall goes: the next collider walk moves the generation, and the update after it
       // restamps with no hook and no call from the writer
       hold();
@@ -338,7 +350,7 @@ Test.register(Test.CHECK, [
       PathfindingSystem.update(level);
       t.eq(s.get(ctx.walker, PathResponse).path.length, 8, "with the wall gone the path runs straight");
       t.eq(s.get(ctx.other, PathResponse), undefined, "a restamp drops every held path");
-      // a body spawn never enters the fingerprint (kinematic carriers only): no restamp, paths stay
+      // a body spawn never moves the generation (kinematic carriers only): no restamp, paths stay
       hold();
       const body = s.create();
       s.add(body, Position, { x: 200, y: 200, z: 0 });
@@ -347,7 +359,7 @@ Test.register(Test.CHECK, [
       PuppetSystem.update(level);
       PathfindingSystem.update(level);
       t.ok(s.get(ctx.other, PathResponse) !== undefined, "a body spawn keeps every held path");
-      t.eq(PuppetSystem.colliders(level).gen, 2, "the generation counts the static set's changes");
+      t.eq(PuppetSystem.colliders(level).gen, 4, "the generation counts the static set's changes");
     },
     teardown(ctx) {
       ctx.level.destroy();

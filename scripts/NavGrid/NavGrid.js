@@ -11,10 +11,10 @@
  *   - the tile layers' cost (LevelGrid.costAt) is the BASE, cached and resampled by `sync` only
  *     when the level's edit counter moves (a tile paint);
  *   - the kinematic-solid colliders (walls, water, the level border, a closed door) are STAMPED
- *     over a copy of the base by `stamp`, fed the static snapshot SolidSystem already keeps with
- *     its generation — a stamp under the generation already stamped is a no-op, so the one live
- *     blocking source is polled by number, never re-derived. Dynamic bodies never enter (agents
- *     don't block each other's planning; SeparationSystem keeps them apart).
+ *     over a copy of the base by `stamp`, fed their rects (`statics`) with the generation they
+ *     were taken at (`gen`, PuppetSystem's) — the serving system re-derives them only when that
+ *     generation moved, so the one live blocking source is polled by number. Dynamic bodies
+ *     never enter (agents don't block each other's planning; SeparationSystem keeps them apart).
  */
 globalThis.NavGrid = class NavGrid {
   /** @param {LevelGrid} tiles the level this grid mirrors (dims, cell size, and the cost source) */
@@ -29,8 +29,8 @@ globalThis.NavGrid = class NavGrid {
     this.cursor = 0; // PathfindingSystem's request-walk position
     this._base = new Grid(this.cols, this.rows); // terrain costs alone
     this._edits = -1; // tiles.edits() the base was sampled at; -1 = never
-    this._statics = []; // the last stamped snapshot, re-applied when the base resamples
-    this._stampGen = -1; // the collider generation the snapshot was stamped at; -1 = never
+    this.statics = []; // the last stamped snapshot, re-applied when the base resamples
+    this.gen = -1; // the collider generation the snapshot was taken at; -1 = never
   }
 
   destroy() {
@@ -81,19 +81,14 @@ globalThis.NavGrid = class NavGrid {
   }
 
   /**
-   * Take the kinematic-solid snapshot (`{x1,y1,x2,y2}` world px each, x2/y2 exclusive) as the
-   * blocking set and recompose; with `gen`, the snapshot's generation, a repeat of the one
-   * already stamped is a no-op. Returns whether it recomposed. The array is kept by reference —
-   * SolidSystem replaces it, never mutates it in place.
+   * Take the kinematic-solid snapshot (`{x1,y1,x2,y2}` world px each, x2/y2 exclusive) taken at
+   * collider generation `gen` as the blocking set and recompose. The array is kept by reference —
+   * the caller replaces it, never mutates it in place.
    */
   stamp(statics, gen = -1) {
-    if (gen !== -1) {
-      if (gen === this._stampGen) return false;
-    }
-    this._stampGen = gen;
-    this._statics = statics;
+    this.gen = gen;
+    this.statics = statics;
     this._compose();
-    return true;
   }
 
   /** base copy, then every static's footprint (clipped to the level) → Infinity */
@@ -107,7 +102,7 @@ globalThis.NavGrid = class NavGrid {
     const ch = this.cellH;
     const cols = this.cols;
     const rows = this.rows;
-    const statics = this._statics;
+    const statics = this.statics;
     for (let i = 0; i < statics.length; i++) {
       const s = statics[i];
       // inclusive cell range (x2/y2 are exclusive edges, so -1)

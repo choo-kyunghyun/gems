@@ -11,16 +11,20 @@
  * The ticker keeps each collider's instance a live copy of the components at the sim head —
  * the mask off `BBox` (`pixMaskUnit` under `image_xscale`/`image_yscale` = box / MASK, the
  * runtime having no shaped mask at runtime — docs/GMRT.md), the instance's x/y at the box's
- * centre off `Position` every tick for a mover and once for a kinematic (a kinematic never
- * moves — `Colliders`' static-is-static premise), `Collision.solid` as the mask (`pixMaskNone`
+ * centre off `Position` every tick for a mover and once for a kinematic, `Collision.solid` as
+ * the mask (`pixMaskNone`
  * while off, so a corpse or an open door answers no query yet still draws), and `eid`, the
  * entity behind the instance a query reads back. The components stay the truth: nothing reads
  * a position off the instance, and a writer of Position calls nothing — the next update sees it.
  *
- * The walk is THE collider walk of a tick: it also lists the kinematic carriers for the level's
- * Colliders (`colliders` — its derived entry, seeded on the first read), whose fingerprint
- * re-bakes the statics NavGrid stamps when the set moved. So the bake is as of this tick's
- * update; a reader ahead of it (a map's first tick) gets a walk of its own.
+ * The walk is THE collider walk of a tick, so it also counts the kinematic set's changes into
+ * `gen` on the level's `colliders` record (its derived entry): a kinematic shaped (added), one
+ * whose `solid` flipped (a door's leaf, a trunk growing solid), or fewer kinematics walked than
+ * last time (removed — a removal masked by an addition is counted by the addition). That rests
+ * on a STATIC IS STATIC premise: a kinematic solid never moves or resizes in place — every one
+ * comes from a level build, a tile remesh or a prop spawn, each of which replaces entities — so
+ * give a solid a Velocity and the generation goes stale. A mirror of the kinematic solids
+ * (NavGrid) polls `gen` by number and re-derives only when it moved; a writer calls nothing.
  *
  * A rigged collider's box is centred (every preset's is), so its mask centre IS its feet and
  * `draw_self` at the instance's x/y lands the doll where `RenderBillboard` expects it; the
@@ -40,7 +44,7 @@
  * a body along a face it is pressed into, and Position read back off the instance.
  */
 globalThis.PuppetSystem = {
-  KEY: "colliders", // its derived token on the level's own entity — the Colliders
+  KEY: "colliders", // its derived token on the level's own entity — the kinematic set's record
   MASK: 32, // the unit mask sprite's side (px)
   _probe: null,
   _doomed: [],
@@ -121,46 +125,48 @@ globalThis.PuppetSystem = {
     pos.y = inst.y - h.oy;
   },
 
-  /** The level's Colliders, baked: a level this system has not walked yet takes a walk here. */
+  /**
+   * The level's kinematic-set record: `gen`, the count of changes to the set as of the last walk
+   * (0 before the first), and `count`, the kinematics that walk saw.
+   */
   colliders(level) {
-    const c = level.entities.derive(level.self, PuppetSystem.KEY, PuppetSystem._seed);
-    if (c.ids === null) c.walk(level.entities);
-    return c;
+    return level.entities.derive(level.self, PuppetSystem.KEY, PuppetSystem._seed);
   },
 
   _seed() {
-    return new Colliders();
+    return { gen: 0, count: 0 };
   },
 
   update(level) {
     const entities = level.entities;
     const held = entities.column(Instance); // hoisted: one index read per collider, not a get
     const mask = Handle.INDEX_MASK;
-    const c = entities.derive(level.self, PuppetSystem.KEY, PuppetSystem._seed);
-    const walkIds = c.walkIds;
-    const walkSolids = c.walkSolids;
-    let w = 0;
+    const c = PuppetSystem.colliders(level);
+    let still = 0;
+    let moved = false;
     entities.forEach([Collision, Position, BBox], (id, col, pos, box) => {
       let h = held[id & mask];
       if (h === undefined) h = PuppetSystem.attach(entities, id);
-      if (!h.shaped) PuppetSystem._shape(h, id, col, pos, box);
+      if (!h.shaped) {
+        PuppetSystem._shape(h, id, col, pos, box);
+        if (h.still) moved = true;
+      }
       const inst = h.inst;
       if (col.solid !== h.solid) {
         h.solid = col.solid;
         inst.mask_index = col.solid ? pixMaskUnit : pixMaskNone;
+        if (h.still) moved = true;
       }
       if (h.still) {
-        walkIds[w] = id;
-        walkSolids[w] = col.solid;
-        w++;
+        still++;
         return;
       }
       inst.x = pos.x + h.ox;
       inst.y = pos.y + h.oy;
     });
-    walkIds.length = w;
-    walkSolids.length = w;
-    c.refresh(entities);
+    if (still !== c.count) moved = true;
+    c.count = still;
+    if (moved) c.gen++;
     // a rig with no collider draws at its feet
     entities.forEach([Skeleton, Instance, Position], (id, sk, h, pos) => {
       if (h.shaped) return;
