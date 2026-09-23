@@ -208,6 +208,32 @@ Test.register(Test.CHECK, [
     },
   },
   {
+    // a walk with no lead, or an undefined token, is refused before it reaches the token map
+    id: "entity.tokens",
+    setup(ctx) {
+      ctx.entities = new Table(4);
+      ctx.entities.add(ctx.entities.create(), Position, { x: 0, y: 0, z: 0 });
+    },
+    verify(ctx, t) {
+      const s = ctx.entities;
+      const refused = (fn) => {
+        try {
+          fn();
+        } catch (e) {
+          return true;
+        }
+        return false;
+      };
+      t.ok(refused(() => s.first()), "first() with no tokens throws");
+      t.ok(refused(() => s.forEach([], () => {})), "forEach with no tokens throws");
+      t.ok(refused(() => s.query(Position, undefined)), "an undefined token throws");
+      t.eq(s.query().length, 1, "query() with no tokens still lists every live id");
+    },
+    teardown(ctx) {
+      ctx.entities.destroy();
+    },
+  },
+  {
     id: "entity.walk",
     setup(ctx) {
       const s = new Table(16);

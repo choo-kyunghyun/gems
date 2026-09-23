@@ -210,6 +210,14 @@ globalThis.Columns = class Columns {
     );
   }
 
+  /** BUG: an undefined token kills the runner as a Map key (docs/GMRT.md #15567) — a walk is
+   *  refused one first, as is an empty list, which has no lead. */
+  _check(tokens, op) {
+    if (tokens.length === 0) throw new Error(`Columns.${op}: no tokens`);
+    for (let c = 0; c < tokens.length; c++)
+      if (tokens[c] === undefined) throw new Error(`Columns.${op}: token ${c} is undefined`);
+  }
+
   /** Every component of the entity, token → data (a debug dump's shape). */
   componentsOf(id) {
     return this._of(id, false);
@@ -235,6 +243,7 @@ globalThis.Columns = class Columns {
 
   /** BUG: closure-free, `c === n` in place of `.every()` (docs/GMRT.md #15549). */
   query(tokens) {
+    this._check(tokens, "query");
     const n = tokens.length;
     const lead = this._byToken.get(tokens[0]);
     if (lead === undefined) return [];
@@ -263,6 +272,7 @@ globalThis.Columns = class Columns {
   /** First matching id in the lead's dense order, or -1 — `query(...)[0]` without the array, and
    *  the walk stops at the hit. */
   first(tokens) {
+    this._check(tokens, "first");
     const n = tokens.length;
     const lead = this._byToken.get(tokens[0]);
     if (lead === undefined) return -1;
@@ -297,6 +307,7 @@ globalThis.Columns = class Columns {
    * meanwhile; a callback may add, detach, or queue a removal freely.
    */
   forEach(tokens, fn) {
+    this._check(tokens, "forEach");
     const n = tokens.length;
     const lead = this._byToken.get(tokens[0]);
     if (lead === undefined) return;
