@@ -32,12 +32,19 @@
  * per-instance activate being inert (docs/GMRT.md), so the caller parks the other pooled levels
  * again after it (ColonyTravel.resume); a puppet released while parked waits on the doomed list
  * for that thaw, the one point that can destroy it (`reap`).
+ *
+ * What a query or a move over the mirrors shares lives here too: `list`, the one runtime hit
+ * list every `*_list` built-in fills and its caller drains before anything else can ask, and
+ * `move`, the one way a body displaces — one axis at a time through `move_and_collide` against
+ * `Solid` with the other axis's move capped to 0, so the runtime's perpendicular try never creeps
+ * a body along a face it is pressed into, and Position read back off the instance.
  */
 globalThis.PuppetSystem = {
   KEY: "colliders", // its derived token on the level's own entity — the Colliders
   MASK: 32, // the unit mask sprite's side (px)
   _probe: null,
   _doomed: [],
+  _list: -1, // the runtime's hit list, made on first use and kept for the run
 
   /**
    * The entity's puppet, minted on first call. Returns the Instance component data so a caller
@@ -92,6 +99,26 @@ globalThis.PuppetSystem = {
     const doomed = PuppetSystem._doomed;
     for (let i = 0; i < doomed.length; i++) instance_destroy(doomed[i]);
     doomed.length = 0;
+  },
+
+  /** The runtime's hit list, cleared — drained by its caller before the next ask. */
+  list() {
+    if (PuppetSystem._list === -1) PuppetSystem._list = ds_list_create();
+    ds_list_clear(PuppetSystem._list);
+    return PuppetSystem._list;
+  },
+
+  /**
+   * Displace a shaped mirror by (dx, dy) in `iters` sub-steps against the Solids and read the
+   * Position back. The return of `move_and_collide` is a GML array: read through array_length
+   * or not at all (docs/GMRT.md).
+   */
+  move(h, pos, dx, dy, iters) {
+    const inst = h.inst;
+    if (dx !== 0) inst.move_and_collide(dx, 0, Solid, iters, 0, 0, -1, 0);
+    if (dy !== 0) inst.move_and_collide(0, dy, Solid, iters, 0, 0, 0, -1);
+    pos.x = inst.x - h.ox;
+    pos.y = inst.y - h.oy;
   },
 
   /** The level's Colliders, baked: a level this system has not walked yet takes a walk here. */

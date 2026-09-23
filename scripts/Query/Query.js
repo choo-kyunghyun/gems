@@ -7,8 +7,6 @@
  * @typedef {Object} QueryOpts @property {string} [has] require this component (its token)
  */
 globalThis.Query = {
-  _list: -1, // the runtime's hit list, made on first use and kept for the run
-
   inRect(entities, x1, y1, x2, y2, opts = {}) {
     const result = [];
     Query._each(entities, opts, (id, pos) => {
@@ -30,14 +28,14 @@ globalThis.Query = {
 
   /** The solid colliders whose mask overlaps the rect. */
   maskRect(entities, x1, y1, x2, y2, opts = {}) {
-    const list = Query._ready();
+    const list = PuppetSystem.list();
     const found = PuppetSystem.probe().collision_rectangle_list(x1, y1, x2, y2, Puppet, false, true, list, false);
     return Query._ids(entities, list, found, opts.has);
   },
 
   /** The solid colliders whose mask overlaps the circle. */
   maskRadius(entities, x, y, radius, opts = {}) {
-    const list = Query._ready();
+    const list = PuppetSystem.list();
     const found = PuppetSystem.probe().collision_circle_list(x, y, radius, Puppet, false, true, list, false);
     return Query._ids(entities, list, found, opts.has);
   },
@@ -54,12 +52,6 @@ globalThis.Query = {
       return;
     }
     entities.forEach([Position], (id, pos) => fn(id, pos));
-  },
-
-  _ready() {
-    if (Query._list === -1) Query._list = ds_list_create();
-    ds_list_clear(Query._list);
-    return Query._list;
   },
 
   /** The list's entities: a live mirror's id, carrying `has` when asked. */

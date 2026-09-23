@@ -11,7 +11,6 @@
  *   opts: { ignore? (id) }
  */
 globalThis.Raycast = {
-  _list: -1, // the runtime's hit list, made on first use and kept for the run
   _hits: [], // cast()'s scratch — holds the one nearest hit while collecting
 
   /** Nearest hit along (x0,y0)->(x1,y1), or null. */
@@ -36,9 +35,7 @@ globalThis.Raycast = {
     const entities = level.entities;
     const dx = x1 - x0;
     const dy = y1 - y0;
-    if (Raycast._list === -1) Raycast._list = ds_list_create();
-    const list = Raycast._list;
-    ds_list_clear(list);
+    const list = PuppetSystem.list();
     const found = PuppetSystem.probe().collision_line_list(
       x0,
       y0,
