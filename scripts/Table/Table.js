@@ -160,8 +160,14 @@ globalThis.Table = class Table {
     return { ids: this.ids.export(), components: this.components.export(sink) };
   }
 
-  /** `source(value)` hands each codec entry its buffer back. */
+  /**
+   * `source(value)` hands each codec entry its buffer back. The store is replaced whole, so a
+   * queued removal is dropped with it, and a walk would run on rebuilt lists, so mid-walk it
+   * throws.
+   */
   import(snapshot, source) {
+    if (this.components.walking()) throw new Error("Table.import: called mid-walk");
+    this._pending = [];
     this.ids.import(snapshot.ids);
     this.components.import(snapshot.components, source);
   }

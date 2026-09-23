@@ -384,6 +384,31 @@ Test.register(Test.CHECK, [
     },
   },
   {
+    // an import replaces the store whole, so a removal queued before it names nothing after it
+    id: "entity.import.pending",
+    setup(ctx) {
+      ctx.entities = new Table(4);
+      ctx.src = new Table(4);
+    },
+    verify(ctx, t) {
+      const s = ctx.entities;
+      const src = ctx.src;
+      const id = src.create();
+      src.add(id, Position, { x: 3, y: 0, z: 0 });
+      const same = s.create();
+      t.eq(same, id, "both stores hand out the same first id");
+      s.remove(same);
+      s.import(src.export());
+      s.flush();
+      t.ok(s.isValid(id), "the imported entity survives the next flush");
+      t.eq(s.query(Position).length, 1, "its data survives too");
+    },
+    teardown(ctx) {
+      ctx.entities.destroy();
+      ctx.src.destroy();
+    },
+  },
+  {
     // one record stamped twice: every stamp owns its data, apart from the source and each other
     id: "row.stamp",
     setup(ctx) {
