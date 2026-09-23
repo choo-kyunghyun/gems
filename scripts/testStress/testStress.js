@@ -157,6 +157,9 @@ globalThis.testStress = {
         let solidUs = 0;
         let sepUs = 0;
         let t1 = get_timer();
+        PuppetSystem.update(ctx.level); // the mirrors, as the colony's sim head runs them
+        const puppetUs = get_timer() - t1;
+        t1 = get_timer();
         // the walkers: arrive → new goal; else steer at PathFollow's movement point
         s.forEach(["StressAgent", Position, Velocity], (id, ag, pos, vel) => {
           const gx = ag.tx - pos.x;
@@ -201,6 +204,7 @@ globalThis.testStress = {
         sepUs += get_timer() - t2;
         s.flush();
         t.sample("stress.pathfind.update", get_timer() - t0); // us per frame, the phases below inside it
+        t.sample("stress.pathfind.puppet", puppetUs);
         t.sample("stress.pathfind.steer", steerUs);
         t.sample("stress.pathfind.path", pathUs);
         t.sample("stress.pathfind.solid", solidUs);

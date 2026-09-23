@@ -120,6 +120,14 @@ globalThis.Columns = class Columns {
     return set.column[Handle.index(id)];
   }
 
+  /** The token's column, registered if new — a per-tick reader hoists it once and indexes it by
+   *  `id & Handle.INDEX_MASK` in place of a `get` per entity (testCore perf.measured
+   *  store.get.cached), never holding it past the tick. */
+  column(token) {
+    this.register(token);
+    return this._byToken.get(token).column;
+  }
+
   /** The component the caller's contract requires — throws on a miss (an unregistered token
    *  included), where `get` reads undefined for a component whose absence is a state. */
   require(id, token) {

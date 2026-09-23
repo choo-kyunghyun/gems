@@ -16,6 +16,14 @@
  * (or removing the entity) and the puppet goes with it.
  *
  * @typedef {Object} Instance
- * @property {Id<"Instance">} inst  the live Puppet instance
+ * @property {Id<"Instance">} inst  the live Puppet (or Solid) instance
+ * @property {boolean} rigged  Rig.mint has bound the entity's Skeleton to it
+ * @property {boolean} shaped  PuppetSystem has sized, anchored and placed its mask
+ * @property {boolean} still   a kinematic's — placed once, never synced
+ * @property {boolean} solid   the Collision.solid the mask currently mirrors
+ * @property {number} sx       the mask scale (BBox / PuppetSystem.MASK) — image_xscale's
+ * @property {number} sy
+ * @property {number} ox       the mask centre off Position
+ * @property {number} oy
  */
 globalThis.Instance = "Instance";

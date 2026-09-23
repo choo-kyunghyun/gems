@@ -1,6 +1,7 @@
 /**
- * The per-frame scan of the puppets for what only a frame can see: a Skeleton with no puppet
- * yet (a spawn, a load, a map transfer) is minted one, a change of the sim clock (Time.scale,
+ * The per-frame scan of the puppets for what only a frame can see: a Skeleton not yet bound to
+ * its puppet (a spawn, a load, a map transfer — or a puppet PuppetSystem minted for the
+ * collider first) is minted its binding, a change of the sim clock (Time.scale,
  * Time.tempo) that every puppet's `image_speed` carries retimes them all so animation pauses
  * and dilates with the world, and a one-shot about to wrap is parked on its last pose a step
  * ahead — the runtime replays it from its first key whatever the set's loop flag (on either
@@ -16,7 +17,7 @@ globalThis.SkeletonSystem = {
     const fps = game_get_speed(gamespeed_fps);
     entities.forEach([Skeleton], (id, sk) => {
       const held = entities.get(id, Instance);
-      if (held === undefined) {
+      if (held === undefined || !held.rigged) {
         Rig.mint(entities, id, sk);
         return;
       }

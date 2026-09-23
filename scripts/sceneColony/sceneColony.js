@@ -394,6 +394,7 @@ class _SceneColonyClass {
         Drowsiness,
         SLEEP_RECOVER * Time.step,
       );
+    PuppetSystem.update(this.level); // the mirrors: every collider's instance at this tick's Position, mask and solid
     FollowerSystem.update(this.level); // seek, by live Follower query (before physics)
     // physics: brains decide velocity (player input, then AI) → resolve paths → collide → push
     // crowders apart → projectiles → fuses → expire.

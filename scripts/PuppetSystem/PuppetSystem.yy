@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"PuppetSystem",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"PuppetSystem",
+  "parent":{
+    "name":"Puppet",
+    "path":"folders/Core/Puppet.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"PuppetSystem.js",
+}

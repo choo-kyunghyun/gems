@@ -1017,6 +1017,72 @@ globalThis.testCore = {
         ctx.entities.destroy();
       },
     },
+    // ── puppet.mirror: every collider's instance mirrors its components ─────────────
+    // PuppetSystem's contract: a kinematic is a Solid, a body a Puppet, the mask is the AABB,
+    // the instance follows Position, a solid flip empties the mask, a parked level answers no
+    // query, and the level's teardown destroys the instance.
+    {
+      id: "puppet.mirror",
+      setup(ctx) {
+        ctx.level = new Level({ id: "test", capacity: 8 });
+        const s = ctx.level.entities;
+        ctx.entities = s;
+        ctx.wall = Colliders.box(s, 100, 0, 64, 32);
+        ctx.body = s.create();
+        s.add(ctx.body, Position, { x: 40, y: 40, z: 0 });
+        s.add(ctx.body, BBox, { x: -8, y: -8, width: 16, height: 16 });
+        s.add(ctx.body, Collision, { solid: true });
+        ctx.probe = instance_create_depth(-4000, -4000, 0, Puppet); // the queries' scope, off-level
+        PuppetSystem.update(ctx.level);
+      },
+      verify(ctx, t) {
+        const s = ctx.entities;
+        const probe = ctx.probe;
+        const wall = s.get(ctx.wall, Instance);
+        const body = s.get(ctx.body, Instance);
+        t.ok(wall !== undefined && body !== undefined, "a collider is minted a mirror");
+        if (wall === undefined || body === undefined) return;
+        const wi = wall.inst;
+        const bi = body.inst;
+        t.eq(object_get_name(wi.object_index), "Solid", "a kinematic's object");
+        t.eq(object_get_name(bi.object_index), "Puppet", "a body's object");
+        const e = AABB.of(s, ctx.wall);
+        t.ok(
+          wi.bbox_left === e.x1 && wi.bbox_top === e.y1 && wi.bbox_right === e.x2 && wi.bbox_bottom === e.y2,
+          "a static's mask is its AABB: " + wi.bbox_left + "," + wi.bbox_top + "-" + wi.bbox_right + "," + wi.bbox_bottom,
+        );
+        t.ok(bi.bbox_left === 32 && bi.bbox_right === 48, "a body's mask is its AABB: " + bi.bbox_left + "-" + bi.bbox_right);
+        t.eq(bi.x, 40, "a centred body's instance sits at its Position");
+        t.eq(bi.eid, ctx.body, "eid names the entity");
+        const at = (x1, y1, x2, y2, obj) => instance_exists(probe.collision_rectangle(x1, y1, x2, y2, obj, false, true));
+        t.ok(at(110, 10, 120, 20, Solid), "Solid answers for the wall");
+        t.ok(!at(30, 30, 50, 50, Solid), "Solid does not answer for the body");
+        t.ok(at(30, 30, 50, 50, Puppet), "Puppet answers for the body");
+        t.ok(at(110, 10, 120, 20, Puppet), "Puppet answers for the wall, its child's");
+        s.get(ctx.body, Position).x = 200;
+        PuppetSystem.update(ctx.level);
+        t.eq(bi.x, 200, "the instance follows Position");
+        t.ok(!at(30, 30, 50, 50, Puppet), "the old place is empty");
+        s.get(ctx.body, Collision).solid = false;
+        PuppetSystem.update(ctx.level);
+        t.ok(!at(190, 30, 210, 50, Puppet), "a solid-off body answers no rectangle");
+        t.ok(!instance_exists(probe.collision_point(200, 40, Puppet, false, true)), "nor a point");
+        s.get(ctx.body, Collision).solid = true;
+        PuppetSystem.update(ctx.level);
+        t.ok(at(190, 30, 210, 50, Puppet), "solid on: it answers again");
+        PuppetSystem.park(ctx.level);
+        t.ok(!at(110, 10, 120, 20, Solid), "a parked level's mirrors answer nothing");
+        PuppetSystem.thaw(ctx.level);
+        t.ok(at(110, 10, 120, 20, Solid), "thawed, they answer");
+        ctx.level.destroy();
+        ctx.level = null;
+        t.ok(!instance_exists(wi), "the level's teardown destroys the mirror");
+      },
+      teardown(ctx) {
+        instance_destroy(ctx.probe);
+        if (ctx.level !== null) ctx.level.destroy();
+      },
+    },
     {
       id: "collision.raycast",
       setup(ctx) {
@@ -1900,7 +1966,7 @@ globalThis.testCore = {
         }
 
         // the bodies: 12 px centred boxes at integer positions (so the bboxes agree exactly),
-        // each mirrored by a Puppet at the box's top-left
+        // each mirrored by a Puppet at the box's centre
         const n = BENCH_BODIES;
         ctx.n = n;
         ctx.bodyIds = new Array(n);
@@ -1917,7 +1983,7 @@ globalThis.testCore = {
           s.add(id, BBox, box);
           s.add(id, Collision, { solid: true });
           s.add(id, Velocity, { x: 0, y: 0, z: 0 });
-          const inst = instance_create_layer(px - 6, py - 6, ctx.layer, Puppet);
+          const inst = instance_create_layer(px, py, ctx.layer, Puppet); // centre-origin mask
           inst.image_xscale = 12 / 32;
           inst.image_yscale = 12 / 32;
           inst.depth = id; // the entity behind the instance, carried on a built-in the mask ignores
@@ -2032,8 +2098,8 @@ globalThis.testCore = {
           for (let i = 0; i < n; i++) {
             const p = bodyPos[i];
             const inst = bodyInst[i];
-            inst.x = p.x - 6;
-            inst.y = p.y - 6;
+            inst.x = p.x;
+            inst.y = p.y;
             acc += p.x;
           }
           return acc;

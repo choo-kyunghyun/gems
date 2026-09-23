@@ -78,6 +78,11 @@ globalThis.Table = class Table {
     this.components.mint(id, token, data, destroy);
   }
 
+  /** The token's raw column for a per-tick reader — contract at Columns.column. */
+  column(token) {
+    return this.components.column(token);
+  }
+
   get(id, token) {
     return this.components.get(id, token);
   }

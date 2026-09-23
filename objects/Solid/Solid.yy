@@ -1,15 +1,18 @@
 {
   "$GMObject":"",
-  "%Name":"Puppet",
+  "%Name":"Solid",
   "eventList":[],
   "managed":true,
-  "name":"Puppet",
+  "name":"Solid",
   "overriddenProperties":[],
   "parent":{
     "name":"Puppet",
     "path":"folders/Core/Puppet.yy",
   },
-  "parentObjectId":null,
+  "parentObjectId":{
+    "name":"Puppet",
+    "path":"objects/Puppet/Puppet.yy",
+  },
   "persistent":false,
   "physicsAngularDamping":0.1,
   "physicsDensity":0.5,

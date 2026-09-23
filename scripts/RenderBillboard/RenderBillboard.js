@@ -164,10 +164,20 @@ globalThis.RenderBillboard = class RenderBillboard {
     // scene, never against itself), then depth only, so what draws later still sorts against
     // the silhouette. Depth first would keep the lower of the two coplanar depths, and the
     // colour pass would lose the same lottery against it.
+    // The puppet draws at its own x/y (its Position — PuppetSystem) under an image scale that is
+    // the MASK's, so the rig's draw scale rides the world matrix as its own pure scale about the
+    // feet, ahead of the tilt: T(-p) · S · [R · T(p)] (matrix_build folds a scale INTO the
+    // rotation, which is why S is a matrix of its own).
     entities.forEach([Skeleton, Instance, Position], (entity, sk, held, rp) => {
       matrix_set(
         matrix_world,
-        matrix_build(rp.x, rp.y, 0, tiltDeg, 0, 0, 1, 1, tall),
+        matrix_multiply(
+          matrix_multiply(
+            matrix_build(-rp.x, -rp.y, 0, 0, 0, 0, 1, 1, 1),
+            matrix_build(0, 0, 0, 0, 0, 0, sk.xscale / held.sx, sk.yscale / held.sy, 1),
+          ),
+          matrix_build(rp.x, rp.y, 0, tiltDeg, 0, 0, 1, 1, tall),
+        ),
       );
       gpu_set_zwriteenable(false);
       held.inst.draw_self();

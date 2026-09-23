@@ -110,6 +110,51 @@ globalThis.testGame = {
     // audiogroup_track, and the volume sliders are those groups' gains (a 50 ms ramp on the
     // track's), so a cue plays only from a loaded group and a track lands in its own. The case
     // reads the groups the assets declare through their names — a group id is not `===`-safe.
+    // ── puppet.draw: a rigged puppet's mask is the instance's scale, its draw the matrix's ──
+    // RenderBillboard draws a puppet at its own x/y under image_xscale = the MASK's scale, undone
+    // by the world matrix T(-p)·S·R·T(p) (the colony's dolls are the visual check). Here a doll
+    // draws that way beside a plain reference, and the bbox reads the mask.
+    {
+      id: "puppet.draw",
+      frames: 2,
+      setup(ctx) {
+        const make = (x) => {
+          const inst = instance_create_depth(x, DOLL_Y, 0, Puppet);
+          inst.sprite_index = spineHuman;
+          inst.skeleton_animation_set("idle0", true);
+          inst.image_speed = 0;
+          return inst;
+        };
+        ctx.ref = make(DOLL_X - 150);
+        ctx.doll = make(DOLL_X + 150);
+        ctx.doll.mask_index = pixMaskUnit;
+        ctx.doll.image_xscale = 0.5; // a 16 px mask
+        ctx.doll.image_yscale = 0.5;
+      },
+      frame(ctx, i) {},
+      draw(ctx) {
+        ctx.ref.draw_self();
+        const p = ctx.doll;
+        matrix_set(
+          matrix_world,
+          matrix_multiply(
+            matrix_build(-p.x, -p.y, 0, 0, 0, 0, 1, 1, 1),
+            matrix_build(p.x, p.y, 0, 0, 0, 0, 1 / 0.5, 1 / 0.5, 1),
+          ),
+        );
+        p.draw_self();
+        matrix_set(matrix_world, matrix_build_identity());
+      },
+      verify(ctx, t) {
+        const d = ctx.doll;
+        t.eq(d.bbox_right - d.bbox_left, 16, "the mask is the instance's scale, not the draw's");
+        t.eq(d.bbox_left, DOLL_X + 150 - 8, "the mask is centred on the instance");
+      },
+      teardown(ctx) {
+        instance_destroy(ctx.ref);
+        instance_destroy(ctx.doll);
+      },
+    },
     {
       id: "audio.groups",
       frames: 6, // the 50 ms ramp on the track gain settles within a few frames

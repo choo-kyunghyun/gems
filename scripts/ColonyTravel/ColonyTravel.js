@@ -101,6 +101,7 @@ globalThis.ColonyTravel = {
    */
   suspend(scene) {
     CameraSystem.view(scene.level).release();
+    PuppetSystem.park(scene.level); // its mirrors leave the room-global queries
   },
 
   /**
@@ -128,6 +129,11 @@ globalThis.ColonyTravel = {
     const level = World.get(mapId); // the pooled data, exactly as it parked (or loaded)
     scene.level = level;
     World.activeId = mapId;
+    PuppetSystem.thaw(level); // activates every mirror in the room, so the other pooled maps park again
+    const pooled = World.ids();
+    for (let i = 0; i < pooled.length; i++) {
+      if (pooled[i] !== mapId) PuppetSystem.park(World.get(pooled[i]));
+    }
     const data = ColonyMap.of(level);
     const rt = ColonyMap.runtime(level);
 

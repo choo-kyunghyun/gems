@@ -42,8 +42,10 @@ globalThis.Rig = {
   },
 
   /**
-   * Push the draw transform — `xscale`/`yscale`/`color`/`alpha` — onto the puppet, after a
-   * writer changed one (a facing flip, a corpse's crumple). No-op without a Skeleton or puppet.
+   * Push the draw tint — `color`/`alpha` — onto the puppet, after a writer changed one (a
+   * corpse's crumple). `xscale`/`yscale` need no push: RenderBillboard reads them off the
+   * Skeleton each draw, the instance's image scale being the mask's (PuppetSystem). No-op
+   * without a Skeleton or puppet.
    */
   apply(entities, id) {
     const sk = entities.get(id, Skeleton);
@@ -87,6 +89,7 @@ globalThis.Rig = {
   /** The entity's first puppet — or the one a map transfer or a load left it without. */
   mint(entities, id, sk) {
     const held = Puppets.attach(entities, id);
+    held.rigged = true;
     held.inst.sprite_index = sk.sprite;
     Rig._play(held.inst, sk);
     Rig._transform(held.inst, sk);
@@ -136,8 +139,6 @@ globalThis.Rig = {
   },
 
   _transform(inst, sk) {
-    inst.image_xscale = sk.xscale;
-    inst.image_yscale = sk.yscale;
     inst.image_blend = sk.color;
     inst.image_alpha = sk.alpha;
   },
