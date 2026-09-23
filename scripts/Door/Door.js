@@ -31,21 +31,15 @@ globalThis.Door = {
     return "";
   },
 
-  /** a solid BODY (non-kinematic) overlapping the frame, grown 4 px — what a closing leaf would trap */
+  /** a solid BODY (non-kinematic) whose mask overlaps the frame, grown 4 px — what a closing leaf would trap */
   _blocked(entities, id) {
     const box = AABB.of(entities, id);
-    const ids = Query.inRect(
-      entities,
-      box.x1 - 4,
-      box.y1 - 4,
-      box.x2 + 4,
-      box.y2 + 4,
-      { has: Collision },
-    );
+    const ids = Query.maskRect(entities, box.x1 - 4, box.y1 - 4, box.x2 + 4, box.y2 + 4, {
+      has: Collision,
+    });
     for (let i = 0; i < ids.length; i++) {
       if (ids[i] === id) continue;
-      const c = entities.require(ids[i], Collision);
-      if (c.solid === true && c.kinematic === false) return true;
+      if (entities.require(ids[i], Collision).kinematic === false) return true; // solid: a solid-off body has no mask
     }
     return false;
   },

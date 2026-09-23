@@ -1095,6 +1095,42 @@ globalThis.testCore = {
         if (ctx.level !== null) ctx.level.destroy();
       },
     },
+    // ── collision.mask: the runtime's mask queries over the mirrors ──────────────────
+    {
+      id: "collision.mask",
+      setup(ctx) {
+        ctx.level = new Level({ id: "test", capacity: 8 });
+        const s = ctx.level.entities;
+        ctx.entities = s;
+        ctx.wall = Colliders.box(s, 100, 0, 32, 64);
+        const body = (x, y, solid) => {
+          const id = s.create();
+          s.add(id, Position, { x, y, z: 0 });
+          s.add(id, BBox, { x: -8, y: -8, width: 16, height: 16 });
+          s.add(id, Collision, { solid });
+          return id;
+        };
+        ctx.near = body(40, 40, true); // box 32..48: its centre outside a rect to 36, its box inside
+        ctx.marked = body(200, 40, true);
+        s.add(ctx.marked, "TestMarker", { on: true });
+        ctx.corpse = body(40, 100, false);
+        PuppetSystem.update(ctx.level);
+      },
+      verify(ctx, t) {
+        const s = ctx.entities;
+        const rect = Query.maskRect(s, 0, 0, 36, 60);
+        t.eq(rect.length, 1, "a box reaching into the rect counts, its centre outside");
+        t.eq(rect[0], ctx.near, "and it is the body");
+        t.eq(Query.inRect(s, 0, 0, 36, 60).length, 0, "where the point form counts the centre only");
+        t.eq(Query.maskRect(s, 90, 10, 110, 20).length, 1, "a static's mask answers a rect");
+        t.eq(Query.maskRadius(s, 60, 40, 20).length, 1, "a circle reaches a box");
+        t.eq(Query.maskRadius(s, 0, 0, 1000, { has: "TestMarker" }).length, 1, "has: narrows to the marker's carrier");
+        t.eq(Query.maskRadius(s, 40, 100, 4).length, 0, "a solid-off body wears no mask");
+      },
+      teardown(ctx) {
+        ctx.level.destroy();
+      },
+    },
     {
       id: "collision.raycast",
       setup(ctx) {
@@ -2106,7 +2142,7 @@ globalThis.testCore = {
           return acc;
         });
 
-        // ── Query.inRect vs collision_rectangle_list (+ the id read-back per hit)
+        // ── Query.inRect (a Position walk) vs Query.maskRect (the runtime's list + the id read-back)
         const queries = ctx.queries;
         const nq = queries.length;
         let jsFound = 0;
@@ -2125,20 +2161,16 @@ globalThis.testCore = {
           return acc;
         });
         const gmSets = [];
-        t.measure("builtin.collision_rectangle_list", nq, _testEmpty(nq), () => {
+        t.measure("query.maskRect", nq, _testEmpty(nq), () => {
           let acc = 0;
           gmSets.length = 0;
           for (let k = 0; k < nq; k++) {
             const q = queries[k];
-            ds_list_clear(list);
-            const found = probe.collision_rectangle_list(q.x1, q.y1, q.x2, q.y2, Puppet, false, true, list, false);
+            const ids = Query.maskRect(s, q.x1, q.y1, q.x2, q.y2);
             const set = new Set();
-            for (let j = 0; j < found; j++) {
-              const eid = ds_list_find_value(list, j).eid;
-              if (eid !== undefined) set.add(eid); // the fractional probe mirrors no entity
-            }
+            for (let j = 0; j < ids.length; j++) set.add(ids[j]);
             gmSets.push(set);
-            acc += found;
+            acc += ids.length;
           }
           gmFound = acc;
           return acc;
@@ -2152,7 +2184,7 @@ globalThis.testCore = {
             if (!set.has(ids[j]) && s.get(ids[j], BBox).width === 12) missing++;
           }
         }
-        t.eq(missing, 0, "every body Query.inRect finds, collision_rectangle_list finds");
+        t.eq(missing, 0, "every body Query.inRect finds, Query.maskRect finds");
         Log.info("[BENCH] builtin.query hits js " + jsFound + " gm " + gmFound + " over " + nq + " rects");
 
         // ── instance_place_list per body (+ read-back): the pair sweep a separation pass asks for

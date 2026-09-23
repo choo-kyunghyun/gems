@@ -67,7 +67,7 @@ globalThis.Combat = {
     const owner = opts.owner;
     const pen = opts.penetration ?? 0;
     const hits = [];
-    const ids = Query.inRadius(entities, x, y, radius, { has: Health });
+    const ids = Query.maskRadius(entities, x, y, radius, { has: Health }); // a body's box in the blast, not its centre
     for (let i = 0; i < ids.length; i++) {
       const id = ids[i];
       if (id === owner) continue;
