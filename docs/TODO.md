@@ -5,6 +5,13 @@
 - [#15998] Foot rotation for Spine sprites is broken
 - [#15999] Mix is ​​not applied to single-key Spine animations like down
 
+## Bugs
+
+- `Snapshot.remove` can't remove a pass inserted as a bare function — `insert` stores its wrapper
+- `UIInput._processKeyboard` caches ctrl in a local bool, the `#15549` shape (docs/GMRT.md) — read it live like shift
+- `I18n.textRef` decides values vs getters by `params[0]` alone — a mixed list calls a value or passes a getter uncalled
+- `GenLakes` and `GenGround` sample the same `noise2(ctx.seed, lattice)` field — at equal lattices lakes trace the ground bands; `salt` is stored but unused
+
 ## Planned
 
 - Runtime upgrade: re-audit every GMRT.md and SPINE.md entry — a fixed defect leaves its workaround as silent dead weight — and re-run `GEMS_TEST=1 gm-cli run gems.yyp` on the candidate; a `perf.*` ratio that moved names the `TODO` at the site citing it, a `testGame` case that flipped names its retirement in its FAIL line, and a JIT (the absolute ns/op collapsing toward V8) makes every hot-path idiom advisory (docs/ARCHITECTURE.md)
