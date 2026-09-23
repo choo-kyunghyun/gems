@@ -12,7 +12,6 @@
  * @typedef {Object} ColonyMapData
  * @property {{x:number,y:number}} spawn  the point the map was entered at (world) — the respawn point, the trader's market point
  * @property {Object<string,{x:number,y:number}>} entries  the named arrival points (world) — a later arrival lands at one
- * @property {number[]} statics  the collider ids no tile layer owns (impassable terrain, the level edge) — a remesh never frees them
  * @property {Object<string,number[]>} colliders  per solid LAYERS key, its greedy-meshed collider ids (remeshed whole on an edit — BuildMode)
  * @property {Array|undefined} terrainMats  a generated map's terrain material table as rows (ColonyLevel.terrainRows); undefined with one fill type
  * @property {AABBRect|undefined} reachZone  the reach quest's region; undefined on a map without the marker
@@ -70,7 +69,6 @@ globalThis.ColonyMap = {
     return {
       spawn: undefined,
       entries: undefined,
-      statics: undefined,
       colliders: {},
       terrainMats: undefined,
       reachZone: undefined,
@@ -215,7 +213,6 @@ globalThis.ColonyMap = {
     level.entities.add(level.self, ColonyMap.KEY, rec);
     rec.spawn = built.spawn;
     rec.entries = ColonyMap._entryTable(level.grid, built.entries); // named entries → world coords
-    rec.statics = built.statics;
     rec.terrainMats = ColonyLevel.terrainRows(built.terrainMats);
     // <key>Colliders for a solid layer (wall, fence — BuildMode remeshes exactly these)
     for (let i = 0; i < contentTiles.LAYERS.length; i++) {

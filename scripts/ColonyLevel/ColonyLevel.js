@@ -4,7 +4,7 @@ const ANCHOR_CLEAR = 6; // cells around a site's anchor prefab kept procedural-f
 /**
  * The colony's level builder: load(), which turns a world-map SITE (contentSites) into level data —
  * a LevelData whose `meta` carries the site's generator inputs — and build(), which paints that
- * data into a store + grid and returns { grid, spawn, entries, statics, spawns, <key>Layer/<key>Type
+ * data into a store + grid and returns { grid, spawn, entries, spawns, <key>Layer/<key>Type
  * per layer, <key>Colliders per solid layer } for the caller to hang on its Level
  * (ColonyMap._buildWorld does; the Level owns the grid's lifecycle from there). Solid-layer
  * colliders are greedy-meshed by TileEdit.
@@ -118,10 +118,9 @@ globalThis.ColonyLevel = {
    * `entries` the named arrival points in grid coords (_entries); `terrainMats` the material
    * table the render passes stack.
    *
-   * TWO kinds of collider list, because they have different lifetimes: a solid layer's
-   * `<key>Colliders` is its greedy mesh, which BuildMode remeshes wholesale on every edit of that
-   * layer, while `statics` is the geometry that has no tile layer to remesh from (impassable
-   * terrain, the level edge).
+   * A solid layer's `<key>Colliders` is its greedy mesh, which BuildMode remeshes wholesale on
+   * every edit of that layer; the geometry with no tile layer to remesh from (impassable terrain,
+   * the level edge) is bare colliders no list owns, so a remesh never frees them.
    */
   build(entities, data, entryId = "default") {
     const cell = data.cell ?? CELL;
@@ -132,11 +131,10 @@ globalThis.ColonyLevel = {
       rows: data.rows,
     });
     const h = ColonyLevel._makeLayers(grid);
-    const statics = [];
 
     // the generator's passes ACCUMULATE the level's LevelData (the anchor prefab's content among
     // them) over the terrain base _generate paints; the one painter then writes that content
-    const gen = ColonyLevel._generate(entities, grid, h, data, statics);
+    const gen = ColonyLevel._generate(entities, grid, h, data);
     const painted = LevelData.paint(gen.out, { layers: h });
 
     // one collider list per SOLID layer, each remeshed on its own (a wall edit never touches the
@@ -155,7 +153,6 @@ globalThis.ColonyLevel = {
       grid,
       spawn,
       entries,
-      statics,
       spawns: painted.spawns,
       terrainMats: gen.mats,
       ...h,
@@ -175,10 +172,10 @@ globalThis.ColonyLevel = {
    * The terrain lands as per-cell TileTypes on the
    * terrain layer, so it is ordinary tile data from here on — LevelGrid.costAt prices nav from it
    * and the stacked dual-grid passes render it, with no generator left running at play time.
-   * Impassable terrain and the level edge become COLLIDE-ONLY boxes collected into `statics`, apart
-   * from the wall layer's mesh so a build-mode remesh can't free them.
+   * Impassable terrain and the level edge become COLLIDE-ONLY boxes apart from the wall layer's
+   * mesh, so a build-mode remesh can't free them.
    */
-  _generate(entities, grid, h, data, statics) {
+  _generate(entities, grid, h, data) {
     const t0 = current_time;
     const biomeId = data.meta.biome;
     const gen = OverworldGen.create({
@@ -197,14 +194,8 @@ globalThis.ColonyLevel = {
     h.terrainTypes = {};
     for (let i = 0; i < terrain.mats.length; i++)
       h.terrainTypes[terrain.mats[i].material] = terrain.mats[i].type;
-    Colliders.boxes(
-      entities,
-      out.solid,
-      grid.cellWidth,
-      grid.cellHeight,
-      statics,
-    );
-    ColonyLevel.buildWorldBorder(entities, grid, statics);
+    Colliders.boxes(entities, out.solid, grid.cellWidth, grid.cellHeight, []);
+    ColonyLevel.buildWorldBorder(entities, grid);
     let rects = 0;
     for (let i = 0; i < out.tiles.length; i++)
       rects += out.tiles[i].rects.length;
@@ -282,7 +273,7 @@ globalThis.ColonyLevel = {
    * Rebuild a Level from a SAVE — build()'s counterpart for a map that already exists, with no
    * seed or painter: the grid and its layers/types come up empty exactly as build() makes them,
    * the cells fill from the saved LevelGrid.pack buffer, and the store imports the saved export
-   * whole — every entity under its saved id and generation, colliders and statics included, so
+   * whole — every entity under its saved id and generation, colliders included, so
    * nothing is spawned or re-meshed. `shape` is the blob's header (LevelGrid.shape), `terrainMats`
    * a generated map's palette rows (_terrainTypes) or undefined, `buf` the blob (the caller's to
    * free). Returns { grid, terrainMats, <key>Layer/<key>Type (+Types) } — build()'s bag minus what
@@ -334,15 +325,15 @@ globalThis.ColonyLevel = {
    * rasterizes them. Left/right span one cell past top/bottom to cover the outer corners (no
    * diagonal slip-through).
    */
-  buildWorldBorder(entities, grid, out) {
+  buildWorldBorder(entities, grid) {
     const cw = grid.cellWidth;
     const ch = grid.cellHeight;
     const W = grid.cols * cw;
     const H = grid.rows * ch;
-    out.push(Colliders.box(entities, 0, -ch, W, ch)); // top
-    out.push(Colliders.box(entities, 0, H, W, ch)); // bottom
-    out.push(Colliders.box(entities, -cw, -ch, cw, H + 2 * ch)); // left
-    out.push(Colliders.box(entities, W, -ch, cw, H + 2 * ch)); // right
+    Colliders.box(entities, 0, -ch, W, ch); // top
+    Colliders.box(entities, 0, H, W, ch); // bottom
+    Colliders.box(entities, -cw, -ch, cw, H + 2 * ch); // left
+    Colliders.box(entities, W, -ch, cw, H + 2 * ch); // right
   },
 
   /** Resolve the player spawn (world coords): the named entry, falling back to `default`. */
