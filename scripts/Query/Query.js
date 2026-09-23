@@ -20,7 +20,8 @@
  *   centre to each mirror's origin — its box centre (PuppetSystem)
  */
 globalThis.Query = {
-  _hits: [], // cast()'s scratch — holds the one nearest hit while collecting
+  _nx: 0, // _slab's entry normal, read right after the hit it returned
+  _ny: 0,
 
   inRect(entities, x1, y1, x2, y2, opts = {}) {
     const result = [];
@@ -58,16 +59,50 @@ globalThis.Query = {
 
   /** Nearest hit along (x0,y0)->(x1,y1), or null. */
   cast(entities, x0, y0, x1, y1, opts = {}) {
-    const hits = Query._hits;
-    hits.length = 0;
-    Query._collect(entities, x0, y0, x1, y1, opts.ignore, hits, true);
-    return hits.length === 0 ? null : hits[0];
+    const ignore = opts.ignore;
+    const dx = x1 - x0;
+    const dy = y1 - y0;
+    const list = PuppetSystem.list();
+    const found = Query._line(x0, y0, x1, y1, list);
+    let bestT = Infinity;
+    let bestId = -1;
+    let nx = 0;
+    let ny = 0;
+    for (let k = 0; k < found; k++) {
+      const inst = ds_list_find_value(list, k);
+      const id = inst.eid;
+      if (id === undefined) continue; // a Puppet that mirrors no entity (a probe, a test's doll)
+      if (id === ignore) continue;
+      const t = Query._slab(x0, y0, dx, dy, inst.bbox_left, inst.bbox_top, inst.bbox_right, inst.bbox_bottom);
+      if (t < 0 || t >= bestT) continue;
+      if (!entities.isValid(id)) continue; // removed since the mirror's sync (PuppetSystem)
+      bestT = t;
+      bestId = id;
+      nx = Query._nx;
+      ny = Query._ny;
+    }
+    if (bestT === Infinity) return null;
+    return { id: bestId, x: x0 + dx * bestT, y: y0 + dy * bestT, nx, ny, t: bestT };
   },
 
   /** Every hit the segment crosses, ASCENDING by entry distance `t` — multi-hit counterpart to cast(). */
   castAll(entities, x0, y0, x1, y1, opts = {}) {
+    const ignore = opts.ignore;
+    const dx = x1 - x0;
+    const dy = y1 - y0;
+    const list = PuppetSystem.list();
+    const found = Query._line(x0, y0, x1, y1, list);
     const hits = [];
-    Query._collect(entities, x0, y0, x1, y1, opts.ignore, hits, false);
+    for (let k = 0; k < found; k++) {
+      const inst = ds_list_find_value(list, k);
+      const id = inst.eid;
+      if (id === undefined) continue; // a Puppet that mirrors no entity
+      if (id === ignore) continue;
+      const t = Query._slab(x0, y0, dx, dy, inst.bbox_left, inst.bbox_top, inst.bbox_right, inst.bbox_bottom);
+      if (t < 0) continue;
+      if (!entities.isValid(id)) continue;
+      hits.push({ id, x: x0 + dx * t, y: y0 + dy * t, nx: Query._nx, ny: Query._ny, t });
+    }
     // BUG: [#15593] sort by t with a SIGN comparator, NOT `a.t - b.t`.
     hits.sort((a, b) => (a.t < b.t ? -1 : a.t > b.t ? 1 : 0));
     return hits;
@@ -110,65 +145,14 @@ globalThis.Query = {
     return result;
   },
 
-  /** The runtime's line list into `hits`; `nearest` keeps only the closest. */
-  _collect(entities, x0, y0, x1, y1, ignore, hits, nearest) {
-    const dx = x1 - x0;
-    const dy = y1 - y0;
-    const list = PuppetSystem.list();
-    const found = PuppetSystem.probe().collision_line_list(
-      x0,
-      y0,
-      x1,
-      y1,
-      Puppet,
-      false,
-      true,
-      list,
-      false,
-    );
-    let bestT = Infinity;
-    for (let k = 0; k < found; k++) {
-      const inst = ds_list_find_value(list, k);
-      const id = inst.eid;
-      if (id === undefined) continue; // a Puppet that mirrors no entity (a probe, a test's doll)
-      if (id === ignore) continue;
-      const r = Query._slab(
-        x0,
-        y0,
-        dx,
-        dy,
-        inst.bbox_left,
-        inst.bbox_top,
-        inst.bbox_right,
-        inst.bbox_bottom,
-      );
-      if (r === null) continue;
-      if (!entities.isValid(id)) continue; // removed since the mirror's sync (PuppetSystem)
-      if (nearest) {
-        if (r.t >= bestT) continue;
-        bestT = r.t;
-      }
-      Query._add(hits, nearest, id, r, x0, y0, dx, dy);
-    }
-  },
-
-  _add(hits, nearest, id, r, x0, y0, dx, dy) {
-    const hit = {
-      id,
-      x: x0 + dx * r.t,
-      y: y0 + dy * r.t,
-      nx: r.nx,
-      ny: r.ny,
-      t: r.t,
-    };
-    if (!nearest) hits.push(hit);
-    else if (hits.length === 0) hits.push(hit);
-    else hits[0] = hit;
+  /** The runtime's line list over every mirror into `list`, unordered; returns the count. */
+  _line(x0, y0, x1, y1, list) {
+    return PuppetSystem.probe().collision_line_list(x0, y0, x1, y1, Puppet, false, true, list, false);
   },
 
   /**
-   * Slab test of the segment vs an AABB. Returns { t, nx, ny } at entry (t clamped to 0 if
-   * starting inside), or null. nx/ny is the surface normal pointing back along the ray.
+   * Slab test of the segment vs an AABB: the entry `t` (clamped to 0 when starting inside), or
+   * -1 on a miss. The entry normal, pointing back along the ray, lands in `_nx`/`_ny`.
    */
   _slab(x0, y0, dx, dy, bx1, by1, bx2, by2) {
     let txEntry, txExit, tyEntry, tyExit;
@@ -180,7 +164,7 @@ globalThis.Query = {
       txEntry = (bx2 - x0) / dx;
       txExit = (bx1 - x0) / dx;
     } else {
-      if (x0 < bx1 || x0 > bx2) return null;
+      if (x0 < bx1 || x0 > bx2) return -1;
       txEntry = -Infinity;
       txExit = Infinity;
     }
@@ -192,7 +176,7 @@ globalThis.Query = {
       tyEntry = (by2 - y0) / dy;
       tyExit = (by1 - y0) / dy;
     } else {
-      if (y0 < by1 || y0 > by2) return null;
+      if (y0 < by1 || y0 > by2) return -1;
       tyEntry = -Infinity;
       tyExit = Infinity;
     }
@@ -200,12 +184,11 @@ globalThis.Query = {
     const tEntry = Math.max(txEntry, tyEntry);
     const tExit = Math.min(txExit, tyExit);
 
-    if (tEntry > tExit || tEntry > 1 || tExit < 0) return null;
+    if (tEntry > tExit || tEntry > 1 || tExit < 0) return -1;
 
-    return {
-      t: Math.max(tEntry, 0),
-      nx: txEntry > tyEntry ? (dx > 0 ? -1 : 1) : 0,
-      ny: txEntry > tyEntry ? 0 : dy > 0 ? -1 : 1,
-    };
+    const xFace = txEntry > tyEntry;
+    Query._nx = xFace ? (dx > 0 ? -1 : 1) : 0;
+    Query._ny = xFace ? 0 : dy > 0 ? -1 : 1;
+    return Math.max(tEntry, 0);
   },
 };

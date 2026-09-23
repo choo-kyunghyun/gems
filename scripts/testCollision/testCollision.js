@@ -706,19 +706,10 @@ Test.register(Test.CHECK, [
           const dy = g.y1 - g.y0;
           for (let j = 0; j < found; j++) {
             const h = ds_list_find_value(list, j);
-            const r = Query._slab(
-              g.x0,
-              g.y0,
-              dx,
-              dy,
-              h.bbox_left,
-              h.bbox_top,
-              h.bbox_right,
-              h.bbox_bottom,
-            );
-            if (r === null) continue;
-            if (r.t < bestT) {
-              bestT = r.t;
+            const r = Query._slab(g.x0, g.y0, dx, dy, h.bbox_left, h.bbox_top, h.bbox_right, h.bbox_bottom);
+            if (r < 0) continue;
+            if (r < bestT) {
+              bestT = r;
               bestId = h.eid;
             }
           }
