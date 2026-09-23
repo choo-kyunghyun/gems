@@ -8,9 +8,10 @@
  * A slot is a directory holding a JSON manifest plus its blobs; `saves/index.json` is the source of
  * truth for the slot list, since a directory scan can't see the save area. Passes run in insert
  * order both ways, capture and restore on one object so they can't drift. A manifest from another
- * Snapshot.VERSION is refused — no migration.
+ * VERSION is refused — no migration.
  */
 globalThis.SaveGame = {
+  VERSION: 14, // bump when the manifest/blob layout changes incompatibly
   DIR: "saves/",
   INDEX: "saves/index.json",
   _index: null,
@@ -32,6 +33,7 @@ globalThis.SaveGame = {
   save(scene, slot) {
     const t0 = current_time;
     const bundle = SaveGame.frame().capture(scene);
+    bundle.manifest.version = SaveGame.VERSION;
     const dir = SaveGame.DIR + slot + "/";
     // recording each blob's name keeps load self-describing for any pass's blobs.
     bundle.manifest._blobs = [];
@@ -87,14 +89,14 @@ globalThis.SaveGame = {
       Log.error("SaveGame: manifest for '" + slot + "' is corrupt");
       return false;
     }
-    if (manifest.version !== Snapshot.VERSION) {
+    if (manifest.version !== SaveGame.VERSION) {
       Log.error(
         "SaveGame: slot '" +
           slot +
           "' is save version " +
           manifest.version +
           ", this build reads " +
-          Snapshot.VERSION,
+          SaveGame.VERSION,
       );
       return false;
     }
@@ -165,7 +167,7 @@ globalThis.SaveGame = {
       const inv = pid !== undefined ? w.get(pid, Inventory) : undefined;
       ctx.manifest.activeMap = World.activeId;
       ctx.manifest.meta = {
-        version: Snapshot.VERSION,
+        version: SaveGame.VERSION,
         savedAt: new Date().toISOString(), // date_datetime_string is garbled (docs/GMRT.md)
         map: World.activeId,
         day: WorldClock.state().day,

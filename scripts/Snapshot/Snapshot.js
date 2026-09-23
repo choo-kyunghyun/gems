@@ -17,8 +17,6 @@
  *                              restore itself; the caller frees only what was never taken
  */
 globalThis.Snapshot = class Snapshot {
-  static VERSION = 14; // bump when the manifest/blob layout changes incompatibly
-
   constructor() {
     this.passes = [];
   }
@@ -46,7 +44,7 @@ globalThis.Snapshot = class Snapshot {
    * caller owns and frees.
    */
   capture(scene) {
-    const manifest = { version: Snapshot.VERSION };
+    const manifest = {};
     const blobs = [];
     const ctx = {
       mode: "capture",
