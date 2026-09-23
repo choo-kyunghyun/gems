@@ -69,7 +69,7 @@ and are cited from here, never restated):
       where the frame's other clock needs one (`CameraSystem.apply`, `ParticleEmitterSystem.draw`)
       — the level in hand is the whole context (its store, its grid, its own entity), a system
       never takes the scene, and its only other member is the accessor of its own derived entry
-      (`SolidSystem.colliders`, `PathfindingSystem.nav`, `CameraSystem.view`). What a caller
+      (`PuppetSystem.colliders`, `PathfindingSystem.nav`, `CameraSystem.view`). What a caller
       invokes on demand — a verb over a component (`Effects.apply`, `Trade.buy`, `Companions.hire`,
       `Needs.restore`, `Rig.set`, `Flora.harvest`), a pure read (`Shelter.tempAt`), an entity
       factory (`Cameras.create`, `Colliders.box`), input lifecycle (`ColonyKeymap.bind`) — lives in

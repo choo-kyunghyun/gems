@@ -720,7 +720,7 @@ globalThis.testCore = {
           if (k === 4) {
             // solid, nav, separation and camera go
             const q = ctx.q;
-            const keys = [SolidSystem.KEY, PathfindingSystem.KEY, CameraSystem.KEY];
+            const keys = [PuppetSystem.KEY, PathfindingSystem.KEY, CameraSystem.KEY];
             for (let i = 0; i < keys.length; i++) q.entities.detach(q.level.self, keys[i]);
           }
         }
@@ -740,8 +740,8 @@ globalThis.testCore = {
           "the path re-plans to the twin's length",
         );
         t.eq(
-          SolidSystem.colliders(q.level).statics.length,
-          SolidSystem.colliders(p.level).statics.length,
+          PuppetSystem.colliders(q.level).statics.length,
+          PuppetSystem.colliders(p.level).statics.length,
           "the collider snapshot rebuilds whole",
         );
         t.eq(
@@ -862,7 +862,7 @@ globalThis.testCore = {
         const wallPos = s.get(ctx.wall, Position);
         t.eq(wallPos.x, 100, "kinematic solid never moves");
         t.eq(
-          SolidSystem.colliders(ctx.level).statics.length,
+          PuppetSystem.colliders(ctx.level).statics.length,
           1,
           "static snapshot holds the wall",
         );
@@ -892,7 +892,7 @@ globalThis.testCore = {
         const col = s.get(ctx.wall, Collision);
         PuppetSystem.update(level); // the mirrors, ahead of the solid pass as in the scene
         SolidSystem.update(level);
-        const c = SolidSystem.colliders(level);
+        const c = PuppetSystem.colliders(level);
         t.eq(c.statics.length, 1, "the wall bakes");
         t.eq(c.gen, 1, "the first bake counts");
         col.solid = false; // the leaf opens
@@ -904,10 +904,10 @@ globalThis.testCore = {
         t.eq(c.gen, 2, "the flip moved the generation");
         t.ok(s.get(ctx.body, Position).x > 100, "the body walks through the open leaf");
         col.solid = true; // the leaf closes behind it
-        SolidSystem.update(level);
+        PuppetSystem.update(level); // the mirror's walk is the collider walk
         t.eq(c.statics.length, 1, "a closed leaf re-enters the bake");
         t.eq(c.gen, 3, "the flip back moved the generation again");
-        SolidSystem.update(level);
+        PuppetSystem.update(level);
         t.eq(c.gen, 3, "an unchanged set holds the generation");
       },
       teardown(ctx) {
@@ -915,9 +915,8 @@ globalThis.testCore = {
       },
     },
     {
-      // the one collider walk per tick: update's refresh lists the bodies, and both its integrate
-      // loop and SeparationSystem (the body arrays by index) read that list — a body without Velocity is
-      // listed but never moved, a solid-off body is listed but not separated
+      // the bodies each pass walks: a body without Velocity is never moved, a solid-off body
+      // never separated, a kinematic neither
       id: "system.solid.bodies",
       setup(ctx) {
         ctx.level = new Level({ id: "test", capacity: 8 });
@@ -938,7 +937,7 @@ globalThis.testCore = {
         s.add(ctx.b, BBox, { x: 0, y: 0, width: 16, height: 16 });
         s.add(ctx.b, Collision, { solid: true });
         s.add(ctx.b, Velocity, { x: 0, y: 0, z: 0 });
-        ctx.corpse = s.create(); // solid off: listed, never separated
+        ctx.corpse = s.create(); // solid off: never separated
         s.add(ctx.corpse, Position, { x: 40, y: 40, z: 0 });
         s.add(ctx.corpse, BBox, { x: 0, y: 0, width: 16, height: 16 });
         s.add(ctx.corpse, Collision, { solid: false });
@@ -948,15 +947,8 @@ globalThis.testCore = {
         const s = ctx.entities;
         PuppetSystem.update(ctx.level); // the mirrors, as the scene runs them first
         SolidSystem.update(ctx.level);
-        let listed = 0;
-        let sawStill = false;
-        SolidSystem.colliders(ctx.level).eachBody((id) => {
-          listed++;
-          if (id === ctx.still) sawStill = true;
-        });
-        t.eq(listed, 4, "eachBody lists every non-kinematic collider");
-        t.ok(sawStill, "a body without Velocity is listed");
         t.eq(s.get(ctx.still, Position).x, 10, "a body without Velocity is not integrated");
+        t.eq(s.get(ctx.wall, Position).x, 100, "a kinematic is not integrated");
 
         SeparationSystem.update(ctx.level);
         const pa = s.get(ctx.a, Position);
@@ -1246,7 +1238,7 @@ globalThis.testCore = {
           s.mint(ctx.other, PathResponse, { path: [{ x: 0, y: 0 }], index: 0 });
         const ask = () =>
           s.mint(ctx.walker, PathRequest, { startX: 0, startY: 0, goalX: 7, goalY: 0 });
-        SolidSystem.update(level); // the tick's collider walk snapshots the wall
+        PuppetSystem.update(level); // the tick's collider walk snapshots the wall
         PathfindingSystem.update(level); // seeds the nav grid, stamps the wall, serves the request
         const r1 = s.get(ctx.walker, PathResponse);
         t.ok(r1 !== undefined, "the request is served");
@@ -1258,7 +1250,7 @@ globalThis.testCore = {
         s.remove(ctx.wall);
         s.flush();
         ask();
-        SolidSystem.update(level);
+        PuppetSystem.update(level);
         PathfindingSystem.update(level);
         t.eq(s.get(ctx.walker, PathResponse).path.length, 8, "with the wall gone the path runs straight");
         t.eq(s.get(ctx.other, PathResponse), undefined, "a restamp drops every held path");
@@ -1268,10 +1260,10 @@ globalThis.testCore = {
         s.add(body, Position, { x: 200, y: 200, z: 0 });
         s.add(body, BBox, { x: -8, y: -8, width: 16, height: 16 });
         s.add(body, Collision, { solid: true });
-        SolidSystem.update(level);
+        PuppetSystem.update(level);
         PathfindingSystem.update(level);
         t.ok(s.get(ctx.other, PathResponse) !== undefined, "a body spawn keeps every held path");
-        t.eq(SolidSystem.colliders(level).gen, 2, "the generation counts the static set's changes");
+        t.eq(PuppetSystem.colliders(level).gen, 2, "the generation counts the static set's changes");
       },
       teardown(ctx) {
         ctx.level.destroy();
@@ -2030,7 +2022,6 @@ globalThis.testCore = {
         }
         PuppetSystem.update(level); // the mirrors
         for (let i = 0; i < n; i++) ctx.bodyInst[i] = s.get(ctx.bodyIds[i], Instance).inst;
-        ctx.colliders = SolidSystem.colliders(level); // the bake the JS rows read
 
         // rect pairs for the overlap row (perf.measured's shape)
         ctx.ra = new Array(N);
@@ -2070,7 +2061,6 @@ globalThis.testCore = {
         const bodyPos = ctx.bodyPos;
         const bodyBox = ctx.bodyBox;
         const bodyInst = ctx.bodyInst;
-        const c = ctx.colliders;
 
         // ── the mirror holds: an instance carries its entity and the bbox the components give
         const b0 = bodyInst[0];

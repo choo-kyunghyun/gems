@@ -3,10 +3,10 @@
  * read from the level's grid (a level with no grid has nowhere to plan and throws — a wiring
  * error). Every tick `update` keeps the grid current first: the tile costs through `sync`
  * (a no-op while the layers' edit count holds) and the kinematic solids through `stamp`, off
- * the bake SolidSystem keeps (Colliders) — restamped only when its generation moved (a wall built or
+ * the bake PuppetSystem keeps (Colliders) — restamped only when its generation moved (a wall built or
  * torn down; a body spawn moves nothing), and then every held `PathResponse` is dropped, since
  * a new wall may cut one (the walkers re-request on their own throttle). The snapshot is the
- * last collider walk's, so a wall raised after this tick's SolidSystem.update lands one tick on.
+ * last collider walk's, so a wall raised after this tick's PuppetSystem.update lands one tick on.
  *
  * Serves `PathRequest`s into `PathResponse`s over `MotionPlanner`, at most `budget` per tick — the
  * rest stay pending for later ticks, taken round-robin by POSITION in the request walk from where
@@ -44,7 +44,7 @@ globalThis.PathfindingSystem = {
     const entities = level.entities;
     const nav = PathfindingSystem.nav(level);
     nav.sync();
-    const colliders = SolidSystem.colliders(level);
+    const colliders = PuppetSystem.colliders(level);
     if (nav.stamp(colliders.statics, colliders.gen))
       PathfindingSystem._invalidate(entities);
     const budget = PathfindingSystem.budget;

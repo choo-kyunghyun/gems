@@ -9,6 +9,11 @@
  * behind the instance a query reads back. The components stay the truth: nothing reads a
  * position off the instance, and a writer of Position calls nothing — the next update sees it.
  *
+ * The walk is THE collider walk of a tick: it also lists the kinematic carriers for the level's
+ * Colliders (`colliders` — its derived entry, seeded on the first read), whose fingerprint
+ * re-bakes the statics NavGrid stamps when the set moved. So the bake is as of this tick's
+ * update; a reader ahead of it (a map's first tick) gets a walk of its own.
+ *
  * A rigged collider's box is centred (every preset's is), so its mask centre IS its feet and
  * `draw_self` at the instance's x/y lands the doll where `RenderBillboard` expects it; the
  * draw scale rides that pass's world matrix since `image_xscale` is the mask's. A rig without a
@@ -21,12 +26,28 @@
  * (Puppets.reap).
  */
 globalThis.PuppetSystem = {
+  KEY: "colliders", // its derived token on the level's own entity — the Colliders
   MASK: 32, // the unit mask sprite's side (px)
+
+  /** The level's Colliders, baked: a level this system has not walked yet takes a walk here. */
+  colliders(level) {
+    const c = level.entities.derive(level.self, PuppetSystem.KEY, PuppetSystem._seed);
+    if (c.ids === null) c.walk(level.entities);
+    return c;
+  },
+
+  _seed() {
+    return new Colliders();
+  },
 
   update(level) {
     const entities = level.entities;
     const held = entities.column(Instance); // hoisted: one index read per collider, not a get
     const mask = Handle.INDEX_MASK;
+    const c = entities.derive(level.self, PuppetSystem.KEY, PuppetSystem._seed);
+    const walkIds = c.walkIds;
+    const walkSolids = c.walkSolids;
+    let w = 0;
     entities.forEach([Collision, Position, BBox], (id, col, pos, box) => {
       let h = held[id & mask];
       if (h === undefined) h = Puppets.attach(entities, id);
@@ -36,10 +57,18 @@ globalThis.PuppetSystem = {
         h.solid = col.solid;
         inst.mask_index = col.solid ? pixMaskUnit : pixMaskNone;
       }
-      if (h.still) return;
+      if (h.still) {
+        walkIds[w] = id;
+        walkSolids[w] = col.solid;
+        w++;
+        return;
+      }
       inst.x = pos.x + h.ox;
       inst.y = pos.y + h.oy;
     });
+    walkIds.length = w;
+    walkSolids.length = w;
+    c.refresh(entities);
     // a rig with no collider draws at its feet
     entities.forEach([Skeleton, Instance, Position], (id, sk, h, pos) => {
       if (h.shaped) return;
