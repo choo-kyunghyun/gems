@@ -14,6 +14,7 @@ Project guidelines for Claude Code.
 - After changing code, run the game and verify the behavior. Verification is reported in conversation, never written into the repo — no run output or "verified <date>" stamps in code, docs, or commit messages.
 - A comment states only the intent the code cannot — abstract and short, never the details the code already shows.
     - A file has at most one header.
+    - A comment speaks only for its own script — never naming a caller, another script, or its internals and conventions; a shared fact is stated, not pointed to.
     - A known runtime quirk is cited from `docs/GMRT.md`, never re-explained.
     - Runtime quirks and future work carry a conventional tag such as `TODO` or `BUG`.
 - A commit message is `type(scope): summary` — a short imperative line naming the change in the abstract, never its details.
