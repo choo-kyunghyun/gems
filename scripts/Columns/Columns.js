@@ -77,7 +77,7 @@ globalThis.Columns = class Columns {
       this.register(token);
       set = this._byToken.get(token);
     }
-    const i = Handle.index(id);
+    const i = id & Handle.INDEX_MASK;
     if (set.destroy !== undefined) {
       const prev = set.column[i];
       if (prev !== undefined) if (prev !== data) set.destroy(prev); // replaced: the old data is released
@@ -107,7 +107,7 @@ globalThis.Columns = class Columns {
   get(id, token) {
     const set = this._byToken.get(token);
     if (set === undefined) return undefined;
-    return set.column[Handle.index(id)];
+    return set.column[id & Handle.INDEX_MASK];
   }
 
   /** The token's column, registered if new — a per-tick reader hoists it once and indexes it by
@@ -121,7 +121,7 @@ globalThis.Columns = class Columns {
    *  included), where `get` reads undefined for a component whose absence is a state. */
   require(id, token) {
     const set = this._byToken.get(token);
-    const data = set === undefined ? undefined : set.column[Handle.index(id)];
+    const data = set === undefined ? undefined : set.column[id & Handle.INDEX_MASK];
     if (data === undefined)
       throw new Error(`entity ${id} carries no ${token}`);
     return data;
@@ -131,12 +131,12 @@ globalThis.Columns = class Columns {
   has(id, token) {
     const set = this._byToken.get(token);
     if (set === undefined) return false;
-    return set.column[Handle.index(id)] !== undefined;
+    return set.column[id & Handle.INDEX_MASK] !== undefined;
   }
 
   detach(id, token) {
     const set = this._byToken.get(token);
-    if (set !== undefined) this._drop(set, Handle.index(id));
+    if (set !== undefined) this._drop(set, id & Handle.INDEX_MASK);
   }
 
   clear(index) {
@@ -198,7 +198,7 @@ globalThis.Columns = class Columns {
 
   _of(id, skipTransient) {
     const out = {};
-    const i = Handle.index(id);
+    const i = id & Handle.INDEX_MASK;
     for (let c = 0; c < this._tokens.length; c++) {
       const set = this._sets[c];
       // BUG: comparisons as the operands, never a bare flag left of && (docs/GMRT.md #15549)
