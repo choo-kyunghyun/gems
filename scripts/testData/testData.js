@@ -716,9 +716,9 @@ Test.register(Test.CHECK, [
     },
     verify(ctx, t) {
       t.eq(AssetMeta.all().length - ctx.before, 2, "a re-registered asset adds no entry");
-      t.eq(AssetMeta.of(ctx.sheet).density, 4, "a re-registered asset replaces its def");
+      t.eq(AssetMeta.get(ctx.sheet).density, 4, "a re-registered asset replaces its def");
       t.eq(AssetMeta.all()[ctx.before].asset, ctx.sheet, "a replaced def keeps its position");
-      t.eq(AssetMeta.of(ctx.plain), undefined, "an undeclared asset has no def");
+      t.eq(AssetMeta.get(ctx.plain), undefined, "an undeclared asset has no def");
       t.eq(AssetMeta.density(ctx.sheet), 4, "density reads the declared value");
       t.eq(AssetMeta.density(ctx.plain), 1, "density defaults to 1 undeclared");
       t.eq(AssetMeta.density(ctx.track), 1, "density defaults to 1 when unset");

@@ -3,7 +3,7 @@
  *
  * capture() reads a plan off a cell rect of the live map — every tile layer but the terrain, plus
  * the built entities as catalog descriptors carrying the `item` id stamp() rebuilds them from, and
- * optionally each one's exact snapshot. export() writes a plan as a pretty prefab literal.
+ * optionally each one's exact record. export() writes a plan as a pretty prefab literal.
  *
  * stamp() places a plan through the build path, so a stamped build is identical to a hand-placed
  * one. Only catalog content survives: a tiles entry no catalog item paints, or a spawn without
@@ -60,7 +60,7 @@ globalThis.Blueprint = {
       s.gy = gy - y1;
       s.item = e.itemId;
       if (opts.withState === true && scene.level.entities.isValid(e.ent))
-        s.snapshot = Row.capture(scene.level.entities, e.ent);
+        s.record = Row.capture(scene.level.entities, e.ent);
       spawns.push(s);
     }
     return { cols: cols, rows: rows, tiles: tiles, spawns: spawns };
@@ -104,9 +104,9 @@ globalThis.Blueprint = {
         Log.warn(`Blueprint: spawn "${s.preset}" is no catalog item — skipped`);
         continue;
       }
-      // an id that is now a tile item lands as that tile, its snapshot ignored
+      // an id that is now a tile item lands as that tile, its record ignored
       BuildMode.applyItem(scene, ox + s.gx, oy + s.gy, item, {
-        snapshot: s.snapshot,
+        record: s.record,
       });
       n++;
     }

@@ -78,7 +78,7 @@ globalThis.RadioUI = {
 
   /** The playing track's name, the map's bed marked as such; silent for a nameless or no track. */
   _playing() {
-    const def = AssetMeta.of(Music.track());
+    const def = AssetMeta.get(Music.track());
     if (def === undefined) return I18n.text("RADIO_SILENT");
     if (!def.name) return I18n.text("RADIO_SILENT");
     const name = I18n.text(def.name);

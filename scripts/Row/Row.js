@@ -23,16 +23,16 @@ globalThis.Row = {
   },
 
   /** Onto an existing entity the caller already created. */
-  apply(entities, id, snapshot) {
-    const comps = snapshot.components;
+  apply(entities, id, record) {
+    const comps = record.components;
     // for...in over a plain object; Map iteration is unsafe (docs/GMRT.md)
     for (const token in comps) entities.add(id, token, Row._copy(comps[token]));
     return id;
   },
 
-  /** `overrides` apply after the snapshot, such as a migrated entity's fresh position. */
-  restore(entities, snapshot, overrides) {
-    const id = Row.apply(entities, entities.create(), snapshot);
+  /** `overrides` apply after the record, such as a migrated entity's fresh position. */
+  restore(entities, record, overrides) {
+    const id = Row.apply(entities, entities.create(), record);
     if (overrides !== undefined)
       for (const token in overrides) entities.add(id, token, overrides[token]);
     return id;

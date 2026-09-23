@@ -4,9 +4,9 @@
  * stays valid across it.
  */
 globalThis.Grid = class Grid {
-  constructor(width, height) {
-    this.rows = height;
-    this.cols = width;
+  constructor(cols, rows) {
+    this.rows = rows;
+    this.cols = cols;
     this.data = Array(this.size()).fill(0);
   }
 
@@ -16,14 +16,14 @@ globalThis.Grid = class Grid {
 
   export() {
     return {
-      width: this.cols,
-      height: this.rows,
+      cols: this.cols,
+      rows: this.rows,
       data: this.data.slice(),
     };
   }
 
   static import(data) {
-    const grid = new Grid(data.width, data.height);
+    const grid = new Grid(data.cols, data.rows);
     grid.data = data.data;
     return grid;
   }

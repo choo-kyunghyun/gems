@@ -67,22 +67,22 @@ globalThis.World = {
   },
 
   /**
-   * Capture every persistent component of an entity and remove it; the caller owns the snapshot.
+   * Capture every persistent component of an entity and remove it; the caller owns the record.
    * Minted components do not travel — the destination re-mints its own.
    */
   take(mapId, id) {
     const lv = World.get(mapId);
     if (lv === null) throw new Error(`World.take: map "${mapId}" is not resident`);
-    const snap = Row.capture(lv.entities, id);
+    const record = Row.capture(lv.entities, id);
     lv.entities.remove(id);
-    return snap;
+    return record;
   },
 
-  /** Restore a snapshot into a resident level; `overrides` apply after. Returns the new id. */
-  put(mapId, snap, overrides) {
+  /** Restore a record into a resident level; `overrides` apply after. Returns the new id. */
+  put(mapId, record, overrides) {
     const lv = World.get(mapId);
     if (lv === null) throw new Error(`World.put: map "${mapId}" is not resident`);
-    return Row.restore(lv.entities, snap, overrides);
+    return Row.restore(lv.entities, record, overrides);
   },
 
   /**

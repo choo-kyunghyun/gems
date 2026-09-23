@@ -49,7 +49,7 @@ globalThis.AssetMeta = {
   },
 
   /** undefined for an undeclared asset, which is legal. */
-  of(asset) {
+  get(asset) {
     let i = 0;
     while (i < AssetMeta._assets.length) {
       if (AssetMeta._assets[i] === asset) return AssetMeta._defs[i];
@@ -59,7 +59,7 @@ globalThis.AssetMeta = {
   },
 
   density(sprite) {
-    const def = AssetMeta.of(sprite);
+    const def = AssetMeta.get(sprite);
     if (def === undefined) return 1;
     return def.density > 0 ? def.density : 1;
   },
@@ -70,7 +70,7 @@ globalThis.AssetMeta = {
   },
 
   bpm(sound) {
-    const def = AssetMeta.of(sound);
+    const def = AssetMeta.get(sound);
     if (def === undefined) return 0;
     return def.bpm > 0 ? def.bpm : 0;
   },

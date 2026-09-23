@@ -8,8 +8,8 @@ const DIRTY_CAP = 256; // cell writes tracked individually before a mirror just 
  * @implements {LevelLayer}
  */
 globalThis.TileLayer = class TileLayer {
-  constructor(width, height, opt = {}) {
-    this.grid = new Grid(width, height);
+  constructor(cols, rows, opt = {}) {
+    this.grid = new Grid(cols, rows);
     this.emptyCost = opt.emptyCost;
     this.edits = 0;
     this.dirty = [];
@@ -33,7 +33,7 @@ globalThis.TileLayer = class TileLayer {
   }
 
   static from(data, opt) {
-    const layer = new TileLayer(data.width, data.height, opt);
+    const layer = new TileLayer(data.cols, data.rows, opt);
     layer.import(data);
     return layer;
   }

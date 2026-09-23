@@ -426,7 +426,7 @@ globalThis.BuildMode = {
 
   // The placement core: no cost or validity gate, no inventory — the caller decides. Records the
   // cell in the build record.
-  //   opts.snapshot    restore this exact Row instead of a fresh descriptor, moved to the cell.
+  //   opts.record      restore this exact Row instead of a fresh descriptor, moved to the cell.
   //   opts.deferRemesh skip the solid-collider remesh; the caller remeshes once for a batch.
   // Returns the entity id for an entity, else whether a solid tile was placed (a deferred
   // caller's pending remesh).
@@ -463,9 +463,9 @@ globalThis.BuildMode = {
     }
     // a built entity is an ordinary one: it persists like any other
     let id;
-    if (opts.snapshot !== undefined) {
+    if (opts.record !== undefined) {
       const wp = grid.gridToWorld(gx, gy);
-      id = Row.restore(scene.level.entities, opts.snapshot, {
+      id = Row.restore(scene.level.entities, opts.record, {
         [Position]: { x: wp.x, y: wp.y, z: 0 },
       });
     } else {
