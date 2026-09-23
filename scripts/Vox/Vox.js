@@ -32,7 +32,7 @@ globalThis.Vox = {
     const hit = Vox._cache[name];
     if (hit !== undefined) return hit === null ? undefined : hit;
     let m = null;
-    const buf = File.read(`meshes/${name}.vox`, true);
+    const buf = File.readBytes(`meshes/${name}.vox`);
     if (buf !== undefined) {
       m = Vox._parse(buf, name);
       buffer_delete(buf);

@@ -39,7 +39,7 @@ globalThis.SaveGame = {
     bundle.manifest._blobs = [];
     for (let i = 0; i < bundle.blobs.length; i++) {
       const b = bundle.blobs[i];
-      File.write(dir + b.name + ".bin", b.buffer, true);
+      File.writeBytes(dir + b.name + ".bin", b.buffer);
       bundle.manifest._blobs.push(b.name);
       buffer_delete(b.buffer);
     }
@@ -104,7 +104,7 @@ globalThis.SaveGame = {
     const blobs = {};
     const names = manifest._blobs !== undefined ? manifest._blobs : [];
     for (let i = 0; i < names.length; i++) {
-      const buf = File.read(dir + names[i] + ".bin", true);
+      const buf = File.readBytes(dir + names[i] + ".bin");
       if (buf !== undefined) blobs[names[i]] = buf;
     }
     SaveGame._pending = { manifest, blobs, slot };

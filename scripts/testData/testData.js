@@ -546,15 +546,15 @@ Test.register(Test.CHECK, [
       const out = buffer_create(1, buffer_grow, 1);
       ctx.bufs.push(out);
       for (let i = 0; i < 5; i++) buffer_write(out, buffer_u32, i * 7);
-      File.write("test/blob.bin", out, true);
-      const back = File.read("test/blob.bin", true);
+      File.writeBytes("test/blob.bin", out);
+      const back = File.readBytes("test/blob.bin");
       t.ok(back !== undefined, "the blob reads back");
       if (back !== undefined) {
         ctx.bufs.push(back);
         t.eq(buffer_get_size(back), 20, "the file holds the used bytes only");
         t.eq(buffer_peek(back, 16, buffer_u32), 28, "the last value is intact");
       }
-      t.eq(File.read("test/missing.bin", true), undefined, "a missing blob reads as undefined");
+      t.eq(File.readBytes("test/missing.bin"), undefined, "a missing blob reads as undefined");
     },
     teardown(ctx) {
       for (let i = 0; i < ctx.bufs.length; i++) buffer_delete(ctx.bufs[i]);
