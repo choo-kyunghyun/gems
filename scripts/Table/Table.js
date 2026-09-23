@@ -38,10 +38,12 @@ globalThis.Table = class Table {
 
   /**
    * Removal is deferred so a system can remove while iterating; flush at a safe point, the last
-   * step of a sim tick, never mid-iteration. A stale queued id is skipped with a warning, since
-   * clearing by raw index would wipe a recycled slot's new owner.
+   * step of a sim tick. Mid-walk it throws: an index it frees could be recycled into the same
+   * walk. A stale queued id is skipped with a warning, since clearing by raw index would wipe a
+   * recycled slot's new owner.
    */
   flush() {
+    if (this.components.walking()) throw new Error("Table.flush: called mid-walk");
     for (const id of this._pending) {
       if (!this.ids.isValid(id)) {
         Log.warn("Table.flush: stale remove for id " + id + " — skipped");

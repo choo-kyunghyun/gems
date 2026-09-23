@@ -105,6 +105,34 @@ Test.register(Test.CHECK, [
     },
   },
   {
+    // a flush inside a walk could recycle a freed index into that same walk
+    id: "entity.flush.walk",
+    setup(ctx) {
+      ctx.entities = new Table(8);
+    },
+    verify(ctx, t) {
+      const s = ctx.entities;
+      const a = s.create();
+      s.add(a, Position, { x: 0, y: 0, z: 0 });
+      s.remove(a);
+      let thrown = false;
+      s.forEach([Position], () => {
+        try {
+          s.flush();
+        } catch (e) {
+          thrown = true;
+        }
+      });
+      t.ok(thrown, "a flush mid-walk throws");
+      t.ok(s.isValid(a), "the refused flush commits nothing");
+      s.flush();
+      t.ok(!s.isValid(a), "a flush after the walk commits");
+    },
+    teardown(ctx) {
+      ctx.entities.destroy();
+    },
+  },
+  {
     id: "entity.forEach",
     setup(ctx) {
       const s = new Table(8);

@@ -23,6 +23,9 @@
  * may read a record the same import restored.
  */
 globalThis.Columns = class Columns {
+  /** The lead size below which a walk's order costs too little to warn about. */
+  static LEAD_WARN = 64;
+
   constructor(maxEntities, ids) {
     this.maxEntities = maxEntities;
     this.ids = ids;
@@ -31,6 +34,7 @@ globalThis.Columns = class Columns {
     // (docs/GMRT.md #15095); the Map is only O(1) token lookup.
     this._tokens = [];
     this._sets = [];
+    this._misled = {}; // token lists already warned for a trailing token rarer than the lead
   }
 
   destroy() {
@@ -186,6 +190,26 @@ globalThis.Columns = class Columns {
     pending.length = 0;
   }
 
+  /** Whether a walk is running on any token. */
+  walking() {
+    const sets = this._sets;
+    for (let c = 0; c < sets.length; c++) if (sets[c].walking > 0) return true;
+    return false;
+  }
+
+  /** Warn once per token list whose trailing token has under half the lead's carriers. */
+  _lead(tokens, lead, set) {
+    if (lead.dense.length < Columns.LEAD_WARN) return;
+    if (set.dense.length * 2 >= lead.dense.length) return;
+    const key = tokens.join(",");
+    if (this._misled[key] === true) return;
+    this._misled[key] = true;
+    Log.warn(
+      `Columns.forEach: [${key}] leads ${lead.dense.length} carriers, ` +
+        `but ${set.dense.length} carry a trailing token — lead with the rarer one`,
+    );
+  }
+
   /** Every component of the entity, token → data (a debug dump's shape). */
   componentsOf(id) {
     return this._of(id, false);
@@ -280,6 +304,7 @@ globalThis.Columns = class Columns {
     for (let c = 1; c < n; c++) {
       const set = this._byToken.get(tokens[c]);
       if (set === undefined) return;
+      this._lead(tokens, lead, set);
       columns[c] = set.column;
     }
 
