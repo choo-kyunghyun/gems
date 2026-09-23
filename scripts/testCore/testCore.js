@@ -23,6 +23,8 @@ const N = 4000; // the Measured Costs / Member Access loop length
 const N_NATIVE = 20000; // the Native vs JS loop length — a ~40 ns boundary wants the resolution
 const ENTITIES = 500; // the Data Layout store (the colony's size)
 const PLAN_COLS = 128; // the overworld's side, the size perf.plan's figure is about
+const BENCH_STATICS = 200; // perf.builtin's statics
+const BENCH_BODIES = 500; // perf.builtin's bodies, the colony's count
 
 /** A 32 px-cell level with one empty-cost-1 tile layer, its own store. */
 function _testLevel(cols, rows) {
@@ -1848,6 +1850,426 @@ globalThis.testCore = {
       },
       teardown(ctx) {
         ctx.entities.destroy();
+      },
+    },
+    // ── perf.builtin: the runtime's collision built-ins against Core/Collision ────────
+    // What replacing AABB / Broadphase / Colliders / Query / Raycast with the runtime's instance
+    // collision would cost and change. Every collider gets a mask instance a tick would keep in
+    // sync (TestSolid a static, Puppet a body, `eid` the entity behind it), and each row is a
+    // built-in against the JS form over the colony's shape: 500 bodies, ~200 statics. Every
+    // built-in runs instance-scoped (a collision call throws outside one), and a hit is read
+    // back through the DS list and its `eid` — the price a replacement pays, not a benchmark
+    // shortcut. The checks record where the two disagree: an instance bbox is integer pixels,
+    // and a body sits at fractional positions.
+    {
+      id: "perf.builtin",
+      frames: 2, // the masks land on the instances after their first step
+      setup(ctx) {
+        const grid = new LevelGrid({ cellWidth: 32, cellHeight: 32, cols: 64, rows: 64 });
+        grid.insert(new TileLayer(64, 64, { emptyCost: 1 }));
+        const level = new Level({ id: "test", grid, capacity: 1024 });
+        const s = level.entities;
+        ctx.level = level;
+        ctx.entities = s;
+        let seed = 4242;
+        const rand = () => {
+          seed = (seed * 48271) % 2147483647;
+          return seed / 2147483647;
+        };
+        ctx.insts = []; // every instance made here, for teardown
+        ctx.list = ds_list_create();
+        ctx.layer = layer_create(0, "BenchInstances"); // an explicit layer, not a depth-managed one
+        ctx.probe = instance_create_layer(-4000, -4000, ctx.layer, Puppet); // the scope the built-ins run in, parked off-level
+        ctx.insts.push(ctx.probe);
+
+        // the statics: random 32-128 px boxes on the cell lattice, each mirrored by a TestSolid
+        ctx.staticIds = [];
+        for (let k = 0; k < BENCH_STATICS; k++) {
+          const x = 32 * Math.floor(rand() * 60);
+          const y = 32 * Math.floor(rand() * 60);
+          const w = 32 * (1 + Math.floor(rand() * 4));
+          const h = 32 * (1 + Math.floor(rand() * 4));
+          const id = Colliders.box(s, x, y, w, h);
+          ctx.staticIds.push(id);
+          const inst = instance_create_layer(x, y, ctx.layer, TestSolid);
+          inst.image_xscale = w / 32;
+          inst.image_yscale = h / 32;
+          inst.depth = id; // the entity behind the instance, carried on a built-in the mask ignores
+          ctx.insts.push(inst);
+        }
+
+        // the bodies: 12 px centred boxes at integer positions (so the bboxes agree exactly),
+        // each mirrored by a Puppet at the box's top-left
+        const n = BENCH_BODIES;
+        ctx.n = n;
+        ctx.bodyIds = new Array(n);
+        ctx.bodyPos = new Array(n);
+        ctx.bodyBox = new Array(n);
+        ctx.bodyInst = new Array(n);
+        for (let i = 0; i < n; i++) {
+          const px = 16 + Math.floor(rand() * 2016);
+          const py = 16 + Math.floor(rand() * 2016);
+          const id = s.create();
+          const pos = { x: px, y: py, z: 0 };
+          const box = { x: -6, y: -6, width: 12, height: 12 };
+          s.add(id, Position, pos);
+          s.add(id, BBox, box);
+          s.add(id, Collision, { solid: true });
+          s.add(id, Velocity, { x: 0, y: 0, z: 0 });
+          const inst = instance_create_layer(px - 6, py - 6, ctx.layer, Puppet);
+          inst.image_xscale = 12 / 32;
+          inst.image_yscale = 12 / 32;
+          inst.depth = id; // the entity behind the instance, carried on a built-in the mask ignores
+          ctx.bodyIds[i] = id;
+          ctx.bodyPos[i] = pos;
+          ctx.bodyBox[i] = box;
+          ctx.bodyInst[i] = inst;
+          ctx.insts.push(inst);
+        }
+        ctx.colliders = SolidSystem.colliders(level); // the bake the JS rows read
+
+        // rect pairs for the overlap row (perf.measured's shape)
+        ctx.ra = new Array(N);
+        ctx.rb = new Array(N);
+        for (let i = 0; i < N; i++) {
+          ctx.ra[i] = { x1: i, y1: 0, x2: i + 16, y2: 16 };
+          const bx = i + (i & 1 ? 8 : 20);
+          ctx.rb[i] = { x1: bx, y1: 0, x2: bx + 16, y2: 16 };
+        }
+        // query rects, segments
+        ctx.queries = [];
+        for (let k = 0; k < 64; k++) {
+          const x = Math.floor(rand() * 1800);
+          const y = Math.floor(rand() * 1800);
+          ctx.queries.push({ x1: x, y1: y, x2: x + 256, y2: y + 256 });
+        }
+        ctx.segs = [];
+        for (let k = 0; k < 200; k++) {
+          const x0 = 64 + Math.floor(rand() * 1920);
+          const y0 = 64 + Math.floor(rand() * 1920);
+          const a = rand() * 6.2831853;
+          const len = 64 + rand() * 448;
+          ctx.segs.push({
+            x0,
+            y0,
+            x1: Math.round(x0 + Math.cos(a) * len),
+            y1: Math.round(y0 + Math.sin(a) * len),
+          });
+        }
+      },
+      verify(ctx, t) {
+        const s = ctx.entities;
+        const level = ctx.level;
+        const probe = ctx.probe;
+        const list = ctx.list;
+        const n = ctx.n;
+        const bodyPos = ctx.bodyPos;
+        const bodyBox = ctx.bodyBox;
+        const bodyInst = ctx.bodyInst;
+        const c = ctx.colliders;
+
+        // ── the mirror holds: an instance carries its entity and the bbox the components give
+        const b0 = bodyInst[0];
+        t.eq(b0.depth, ctx.bodyIds[0], "an instance variable set from JS reads back");
+        t.eq(b0.bbox_left, bodyPos[0].x - 6, "a body's mask left edge");
+        t.eq(b0.bbox_right - b0.bbox_left, 12, "a body's mask width");
+        const s0 = ctx.insts[1];
+        t.eq(s0.bbox_left, s.get(ctx.staticIds[0], Position).x, "a static's mask left edge");
+
+        // ── semantics: touching edges, and a fractional position
+        const touch = rectangle_in_rectangle(0, 0, 16, 16, 16, 0, 32, 16);
+        t.eq(
+          AABB.overlap({ x1: 0, y1: 0, x2: 16, y2: 16 }, { x1: 16, y1: 0, x2: 32, y2: 16 }),
+          false,
+          "AABB: touching edges do not overlap",
+        );
+        Log.info("[BENCH] builtin.touching rectangle_in_rectangle " + touch);
+        const fa = instance_create_layer(500.5, 500.5, ctx.layer, Puppet);
+        ctx.insts.push(fa);
+        Log.info("[BENCH] builtin.fractional x 500.5 -> bbox_left " + fa.bbox_left + " right " + fa.bbox_right);
+
+        // ── AABB.overlap vs rectangle_in_rectangle: the boundary crossing alone
+        const ra = ctx.ra;
+        const rb = ctx.rb;
+        const readRects = () => {
+          let acc = 0;
+          for (let i = 0; i < N; i++) acc += ra[i].x1 + rb[i].x1;
+          return acc;
+        };
+        let jsOverlaps = 0;
+        let gmOverlaps = 0;
+        t.measure("aabb.overlap.inline", N, readRects, () => {
+          let acc = 0;
+          for (let i = 0; i < N; i++) {
+            const a = ra[i];
+            const b = rb[i];
+            acc += a.x2 > b.x1 && b.x2 > a.x1 && a.y2 > b.y1 && b.y2 > a.y1 ? 1 : 0;
+          }
+          jsOverlaps = acc;
+          return acc;
+        });
+        t.measure("builtin.rectangle_in_rectangle", N, readRects, () => {
+          let acc = 0;
+          for (let i = 0; i < N; i++) {
+            const a = ra[i];
+            const b = rb[i];
+            acc += rectangle_in_rectangle(a.x1, a.y1, a.x2, a.y2, b.x1, b.y1, b.x2, b.y2) !== 0 ? 1 : 0;
+          }
+          gmOverlaps = acc;
+          return acc;
+        });
+        t.eq(gmOverlaps, jsOverlaps, "rectangle_in_rectangle agrees with AABB.overlap on the pairs");
+
+        // ── the sync a replacement pays every tick: a body's x/y onto its instance
+        const readPos = () => {
+          let acc = 0;
+          for (let i = 0; i < n; i++) acc += bodyPos[i].x + bodyPos[i].y;
+          return acc;
+        };
+        t.measure("builtin.sync.xy", n, readPos, () => {
+          let acc = 0;
+          for (let i = 0; i < n; i++) {
+            const p = bodyPos[i];
+            const inst = bodyInst[i];
+            inst.x = p.x - 6;
+            inst.y = p.y - 6;
+            acc += p.x;
+          }
+          return acc;
+        });
+
+        // ── Query.inRect vs collision_rectangle_list (+ the id read-back per hit)
+        const queries = ctx.queries;
+        const nq = queries.length;
+        let jsFound = 0;
+        let gmFound = 0;
+        const jsIds = [];
+        t.measure("query.inRect", nq, _testEmpty(nq), () => {
+          let acc = 0;
+          jsIds.length = 0;
+          for (let k = 0; k < nq; k++) {
+            const q = queries[k];
+            const ids = Query.inRect(s, q.x1, q.y1, q.x2, q.y2);
+            acc += ids.length;
+            jsIds.push(ids);
+          }
+          jsFound = acc;
+          return acc;
+        });
+        const gmSets = [];
+        t.measure("builtin.collision_rectangle_list", nq, _testEmpty(nq), () => {
+          let acc = 0;
+          gmSets.length = 0;
+          for (let k = 0; k < nq; k++) {
+            const q = queries[k];
+            ds_list_clear(list);
+            const found = probe.collision_rectangle_list(q.x1, q.y1, q.x2, q.y2, Puppet, false, true, list, false);
+            const set = new Set();
+            for (let j = 0; j < found; j++) set.add(ds_list_find_value(list, j).depth);
+            gmSets.push(set);
+            acc += found;
+          }
+          gmFound = acc;
+          return acc;
+        });
+        let missing = 0;
+        for (let k = 0; k < nq; k++) {
+          const ids = jsIds[k];
+          const set = gmSets[k];
+          for (let j = 0; j < ids.length; j++) {
+            // a Position inside the rect is a mask overlapping it; statics carry Position too
+            if (!set.has(ids[j]) && s.get(ids[j], BBox).width === 12) missing++;
+          }
+        }
+        t.eq(missing, 0, "every body Query.inRect finds, collision_rectangle_list finds");
+        Log.info("[BENCH] builtin.query hits js " + jsFound + " gm " + gmFound + " over " + nq + " rects");
+
+        // ── Broadphase pairs vs instance_place_list per body (+ read-back)
+        const bp = new Broadphase(2048, 2048, 96);
+        let jsPairs = 0;
+        let gmPairs = 0;
+        const pairFn = (i, j) => {
+          const pa = bodyPos[i];
+          const pb = bodyPos[j];
+          const ba = bodyBox[i];
+          const bb = bodyBox[j];
+          const ax1 = pa.x + ba.x;
+          const ay1 = pa.y + ba.y;
+          const bx1 = pb.x + bb.x;
+          const by1 = pb.y + bb.y;
+          if (ax1 + ba.width > bx1 && bx1 + bb.width > ax1 && ay1 + ba.height > by1 && by1 + bb.height > ay1)
+            jsPairs++;
+        };
+        t.measure("broadphase.pairs", n, _testEmpty(n), () => {
+          bp.clear();
+          for (let i = 0; i < n; i++) bp.insert(i, bodyPos[i].x, bodyPos[i].y);
+          jsPairs = 0;
+          bp.pairs(pairFn);
+          return jsPairs;
+        });
+        t.measure("builtin.instance_place_list.bodies", n, _testEmpty(n), () => {
+          let acc = 0;
+          for (let i = 0; i < n; i++) {
+            const inst = bodyInst[i];
+            ds_list_clear(list);
+            const found = inst.instance_place_list(inst.x, inst.y, Puppet, list, false);
+            for (let j = 0; j < found; j++) acc += ds_list_find_value(list, j).depth > 0 ? 1 : 0;
+          }
+          gmPairs = acc;
+          return acc;
+        });
+        t.eq(gmPairs / 2, jsPairs, "instance_place_list finds the pairs the Broadphase sweep finds (each twice)");
+
+        // ── SolidSystem's static candidates: the bake's cells vs instance_place_list + bbox reads
+        const statics = c.statics;
+        const rect = AABB.rect();
+        let jsCand = 0;
+        let gmCand = 0;
+        const seen = new Array(statics.length).fill(0); // a multi-cell static sits in every cell it spans
+        let gen = 0;
+        t.measure("colliders.candidates", n, _testEmpty(n), () => {
+          let acc = 0;
+          const cell = c.cell;
+          const cols = c.cols;
+          const buckets = c.buckets;
+          for (let i = 0; i < n; i++) {
+            gen++;
+            const a = AABB.edgesInto(bodyPos[i], bodyBox[i], rect);
+            const gx0 = c.clampCol(Math.floor(a.x1 / cell));
+            const gy0 = c.clampRow(Math.floor(a.y1 / cell));
+            const gx1 = c.clampCol(Math.ceil(a.x2 / cell) - 1);
+            const gy1 = c.clampRow(Math.ceil(a.y2 / cell) - 1);
+            for (let gy = gy0; gy <= gy1; gy++) {
+              for (let gx = gx0; gx <= gx1; gx++) {
+                const bucket = buckets[gy * cols + gx];
+                for (let k = 0; k < bucket.length; k++) {
+                  const si = bucket[k];
+                  if (seen[si] === gen) continue;
+                  seen[si] = gen;
+                  const b = statics[si];
+                  if (a.x2 <= b.x1 || b.x2 <= a.x1 || a.y2 <= b.y1 || b.y2 <= a.y1) continue;
+                  acc += b.x1 + b.y1 + b.x2 + b.y2 > 0 ? 1 : 0;
+                }
+              }
+            }
+          }
+          jsCand = acc;
+          return acc;
+        });
+        t.measure("builtin.instance_place_list.statics", n, _testEmpty(n), () => {
+          let acc = 0;
+          for (let i = 0; i < n; i++) {
+            const inst = bodyInst[i];
+            ds_list_clear(list);
+            const found = inst.instance_place_list(inst.x, inst.y, TestSolid, list, false);
+            for (let j = 0; j < found; j++) {
+              const h = ds_list_find_value(list, j);
+              acc += h.bbox_left + h.bbox_top + h.bbox_right + h.bbox_bottom > 0 ? 1 : 0;
+            }
+          }
+          gmCand = acc;
+          return acc;
+        });
+        t.eq(gmCand, jsCand, "instance_place_list lists the statics the bake's cells find");
+
+        // ── Raycast.cast vs collision_line (a line of sight) and collision_line_list + slab (a hit point)
+        const segs = ctx.segs;
+        const ns = segs.length;
+        const jsHits = new Array(ns);
+        const gmHits = new Array(ns);
+        const targets = [TestSolid, Puppet];
+        t.measure("raycast.cast", ns, _testEmpty(ns), () => {
+          let acc = 0;
+          for (let k = 0; k < ns; k++) {
+            const g = segs[k];
+            const hit = Raycast.cast(level, g.x0, g.y0, g.x1, g.y1);
+            jsHits[k] = hit;
+            if (hit !== null) acc++;
+          }
+          return acc;
+        });
+        t.measure("builtin.collision_line", ns, _testEmpty(ns), () => {
+          let acc = 0;
+          for (let k = 0; k < ns; k++) {
+            const g = segs[k];
+            const r = probe.collision_line(g.x0, g.y0, g.x1, g.y1, targets, false, true);
+            const hit = instance_exists(r);
+            gmHits[k] = hit;
+            if (hit) acc++;
+          }
+          return acc;
+        });
+        let disagree = 0;
+        for (let k = 0; k < ns; k++) if ((jsHits[k] !== null) !== gmHits[k]) disagree++;
+        t.eq(disagree, 0, "collision_line agrees with Raycast.cast on a line of sight");
+        let nearestAgree = 0;
+        let nearestBoth = 0;
+        t.measure("builtin.collision_line_list.nearest", ns, _testEmpty(ns), () => {
+          let acc = 0;
+          nearestAgree = 0;
+          nearestBoth = 0;
+          for (let k = 0; k < ns; k++) {
+            const g = segs[k];
+            ds_list_clear(list);
+            const found = probe.collision_line_list(g.x0, g.y0, g.x1, g.y1, targets, false, true, list, true);
+            let bestT = Infinity;
+            let bestId = -1;
+            const dx = g.x1 - g.x0;
+            const dy = g.y1 - g.y0;
+            for (let j = 0; j < found; j++) {
+              const h = ds_list_find_value(list, j);
+              const r = Raycast._segmentAABB(
+                g.x0,
+                g.y0,
+                dx,
+                dy,
+                h.bbox_left,
+                h.bbox_top,
+                h.bbox_right,
+                h.bbox_bottom,
+              );
+              if (r === null) continue;
+              if (r.t < bestT) {
+                bestT = r.t;
+                bestId = h.depth;
+              }
+            }
+            if (bestId !== -1) acc++;
+            const js = jsHits[k];
+            if (js !== null && bestId !== -1) {
+              nearestBoth++;
+              if (Math.abs(js.t - bestT) < 1e-6) nearestAgree++; // by distance: a shared edge is a tie
+            }
+          }
+          return acc;
+        });
+        t.eq(nearestAgree, nearestBoth, "the nearest hit's distance agrees between the slab walk and the list");
+
+        // ── SolidSystem's resolve (a 1 px step on each axis) vs move_and_collide, the runtime's
+        // own resolver. Last, since both move the bodies. Its return is a GML array — read through
+        // array_length, never coerced (docs/GMRT.md).
+        t.measure("solid.resolve.step", n, _testEmpty(n), () => {
+          let acc = 0;
+          for (let i = 0; i < n; i++) {
+            const pos = bodyPos[i];
+            pos.x += 1;
+            acc += SolidSystem._resolve(c, pos, bodyBox[i], statics, 1, true);
+            pos.y += 1;
+            acc += SolidSystem._resolve(c, pos, bodyBox[i], statics, 1, false);
+          }
+          return acc;
+        });
+        t.measure("builtin.move_and_collide", n, _testEmpty(n), () => {
+          let acc = 0;
+          for (let i = 0; i < n; i++) acc += array_length(bodyInst[i].move_and_collide(1, 1, TestSolid));
+          return acc;
+        });
+      },
+      teardown(ctx) {
+        for (let i = 0; i < ctx.insts.length; i++) instance_destroy(ctx.insts[i]);
+        ds_list_destroy(ctx.list);
+        layer_destroy(ctx.layer);
+        ctx.level.destroy();
       },
     },
     // ── perf.plan: what one A* expansion costs ──────────────────────────────
