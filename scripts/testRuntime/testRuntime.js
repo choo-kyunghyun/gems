@@ -149,9 +149,15 @@ Test.register(Test.CHECK, [
         for (let i = 0; i < n; i++) s += pos[i].x + box[i].x;
         return s;
       };
-      t.measure("aabb.edges", n, readPosBox, () => {
+      t.measure("aabb.literal", n, readPosBox, () => {
         let s = 0;
-        for (let i = 0; i < n; i++) s += AABB.edges(pos[i], box[i]).x1;
+        for (let i = 0; i < n; i++) {
+          const x1 = pos[i].x + box[i].x;
+          const y1 = pos[i].y + box[i].y;
+          const x2 = x1 + box[i].width;
+          const y2 = y1 + box[i].height;
+          s += { x1, y1, x2, y2, cx: (x1 + x2) * 0.5, cy: (y1 + y2) * 0.5 }.x1;
+        }
         return s;
       });
       const rect = AABB.rect();

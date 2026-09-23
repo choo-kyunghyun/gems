@@ -205,8 +205,8 @@ and are cited from here, never restated):
   through `entities.isValid` before every use, and no id ever crosses a map — it names a slot in
   one store. Markers are components, not tag strings.
 - AABB convention: every collision/geometry consumer derives world-space edges through
-  `AABB.edges(pos, box)` / `AABB.of(entities, id)` — never inline `pos.x + box.x` (the non-uniform
-  BBox anchor lives in one place). The overlap test is `AABB.overlap`, except in a per-candidate
+  `AABB.edgesInto(pos, box, out)` / `AABB.of(entities, id)` — never inline `pos.x + box.x` (the
+  non-uniform BBox anchor lives in one place). The overlap test is `AABB.overlap`, except in a per-candidate
   loop, which inlines it — the call is about twice the test (testRuntime perf.measured
   `aabb.overlap`). The collision itself is the runtime's, over each collider's mirror instance
   (`PuppetSystem`): a query, a cast or a move goes through `Puppet`/`Solid`, never a JS sweep.
