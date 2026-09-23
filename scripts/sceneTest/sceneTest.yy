@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"sceneTest",
   "parent":{
-    "name":"Dev",
-    "path":"folders/Game/Dev.yy",
+    "name":"Test",
+    "path":"folders/Game/Dev/Test.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

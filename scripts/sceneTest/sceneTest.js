@@ -1,12 +1,10 @@
-// Test harness. Runs the testCore cases, then testGame's, then the testStress scenarios, one per Step so the
-// window stays live (a scenario spans `frames` Steps and draws its level), and reports
+// Test harness. Runs the cases the `test*` modules registered with Test, tier by tier, one per
+// Step so the window stays live (a scenario spans `frames` Steps and draws its level), and reports
 // through game.log lines under a prefix — `[TEST]` the run's banner + summary, `[CHECK]` a case's
 // PASS/FAIL, `[BENCH]` a ns/op figure a case measured — so a run is read with a grep and never
 // written into the repo. Re-run in the same session for a before/after: a timing compares only
-// inside one window (docs/ARCHITECTURE.md → Hot-path idioms). Booted directly, with game_end after the summary, when Game's
-// Create_0 sets TEST_AUTORUN.
-
-const REPEATS = 3; // per measure, base and run each; the minimum of each is what the figure nets
+// inside one window (docs/ARCHITECTURE.md → Hot-path idioms). Booted directly, with game_end after
+// the summary, when Game's Create_0 sets TEST_AUTORUN.
 
 /**
  * the scene's factory — the one ref the Game object boots, the catalogue labels and openScene takes (see Scene)
@@ -73,13 +71,7 @@ class _SceneTestClass {
 
   /** Queue every case and log the banner; update() drains one case per frame. */
   _start() {
-    this._cases = [];
-    const core = testCore.CASES;
-    for (let i = 0; i < core.length; i++) this._cases.push(core[i]);
-    const game = testGame.CASES; // the Game-side cases: what the pinned runtime does with an asset
-    for (let i = 0; i < game.length; i++) this._cases.push(game[i]);
-    const stress = testStress.CASES; // the scenarios last: seconds each, and they draw
-    for (let i = 0; i < stress.length; i++) this._cases.push(stress[i]);
+    this._cases = Test.cases("");
     this._cursor = 0;
     this._frame = 0;
     this._pass = 0;
@@ -135,7 +127,7 @@ class _SceneTestClass {
     let alive = true;
     if (this._frame === 0) {
       this._ctx = {};
-      this._t = _testCollector();
+      this._t = Test.collector();
       alive = this._guard("setup", () => c.setup(this._ctx));
     }
     if (alive) {
@@ -176,90 +168,4 @@ class _SceneTestClass {
     UI.remove(this.ui);
     this.ui.destroy();
   }
-}
-
-/**
- * The collector a case is handed: the assertions (each miss is one FAIL line); `measure`, which
- * times `run` against `base` — the SAME loop of n without the op — REPEATS times each, keeps the
- * minimum of each, and logs the difference per op as one `[BENCH]` line (the per-op cost net of
- * the loop; returns the ns); and `sample`, which accumulates one value per frame of a scenario
- * under an id, reported by the runner at the case's end as one `[BENCH] <id> p50 … p95 … max …`
- * line — a distribution, since a scenario's cost is its spread, not a mean.
- */
-function _testCollector() {
-  const t = { fails: [], _sampleIds: [], _samples: [] };
-  t.sample = (id, value) => {
-    let k = t._sampleIds.indexOf(id);
-    if (k < 0) {
-      k = t._sampleIds.length;
-      t._sampleIds.push(id);
-      t._samples.push([]);
-    }
-    t._samples[k].push(value);
-  };
-  t.report = () => {
-    for (let k = 0; k < t._sampleIds.length; k++) {
-      const v = t._samples[k];
-      v.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)); // a SIGN comparator (docs/GMRT.md #15593)
-      const n = v.length;
-      const at = (q) => v[Math.min(n - 1, Math.floor(q * n))];
-      Log.info(
-        "[BENCH] " +
-          t._sampleIds[k] +
-          " p50 " +
-          at(0.5) +
-          " p95 " +
-          at(0.95) +
-          " max " +
-          v[n - 1] +
-          " (n=" +
-          n +
-          ")",
-      );
-    }
-  };
-  t.ok = (cond, msg) => {
-    if (!cond) t.fails.push(msg);
-  };
-  t.eq = (actual, expected, msg) => {
-    if (actual !== expected)
-      t.fails.push(msg + " : " + actual + " expected " + expected);
-  };
-  t.near = (actual, expected, eps, msg) => {
-    if (Math.abs(actual - expected) > eps)
-      t.fails.push(msg + " : " + actual + " expected " + expected + " ±" + eps);
-  };
-  t.measure = (id, n, base, run) => {
-    let b = Infinity;
-    let r = Infinity;
-    for (let k = 0; k < REPEATS; k++) {
-      const tb = _testTime(base);
-      if (tb < b) b = tb;
-      const tr = _testTime(run);
-      if (tr < r) r = tr;
-    }
-    const ns = Math.round(((r - b) / n) * 10000) / 10; // us → ns, one decimal
-    Log.info(
-      "[BENCH] " +
-        id +
-        " " +
-        ns +
-        " ns/op (n=" +
-        n +
-        ", base " +
-        b +
-        " us, run " +
-        r +
-        " us)",
-    );
-    return ns;
-  };
-  return t;
-}
-
-/** Wall microseconds fn takes. */
-function _testTime(fn) {
-  const t0 = get_timer();
-  fn();
-  return get_timer() - t0;
 }
