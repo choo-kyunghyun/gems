@@ -1,7 +1,6 @@
-// The colony's PRESENTATION over a mounted Level — the render pass stack and the follow camera —
-// built once per level on its first activation (ColonyTravel), into the runtime record ColonyMap
-// owns (ColonyMap.runtime: `renderer`, `tilePasses`, `terrainPasses`, `grassPass`, `bboxPass`).
 /**
+ * The colony's presentation over a mounted level.
+ *
  * Everything here is a READ of the level — its grid, its layer handles and material table, its
  * whole-map records (indoor, biome, wind) — and a write into `ColonyMap.runtime(level)`; nothing
  * of a map lives here. The camera is an ENTITY of the level's store (Cameras.create) under the

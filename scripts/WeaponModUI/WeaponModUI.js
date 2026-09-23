@@ -1,6 +1,6 @@
-// Weapon-attachment PANEL — the install/remove view of the WORKBENCH (the Toolkit module). Owns no
-// page: CraftingUI builds the master-detail hosts and calls buildPanel()/refresh().
 /**
+ * Weapon-attachment panel of the workbench.
+ *
  * Master-detail over the player's WEAPON INSTANCES (each a unique slot with a uid + inline `mods` MAP
  * { slotId -> attachmentItemId }, plus, for a gun, a loaded `ammo` itemId + `rounds`):
  *   • LEFT  — owned weapon instances; click to select (by uid). "+N" = filled slots, "[E]" = equipped.

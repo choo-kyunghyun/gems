@@ -1,6 +1,6 @@
-// SaveGame — the colony's disk save/load driver (Game). Composes a Snapshot (the Core pass frame)
-// with the colony's capture/restore PASSES and owns the slot layout, the metadata index, and disk I/O.
 /**
+ * The colony's disk save/load driver.
+ *
  * A save is the session AS IT STANDS, read off the two data homes and nothing else: the world's
  * store whole (its own entity's records — the clock, the sky, the progression, the event queue,
  * the traders — and the map roster) and, per resident map, its Level's entity store whole (each

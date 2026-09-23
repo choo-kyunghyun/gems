@@ -1,6 +1,6 @@
-// Interaction engine for the colony scene: each frame it picks one `Interaction`-carrying target
-// (under the cursor if in range, else nearest), prompts it, and runs its action on E.
 /**
+ * Interaction engine for the colony scene.
+ *
  * THE ONE-PICK INVARIANT: everything E can act on — a station, a ripe plant, a quest NPC, a
  * merchant, a companion hired or not — carries `Interaction`, so there is exactly one candidate set
  * and one pick per frame (the handle's `target`), and the highlight, the prompt (the pill, or an

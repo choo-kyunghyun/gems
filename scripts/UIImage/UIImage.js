@@ -7,9 +7,10 @@ globalThis.OBJECT_FIT = Object.freeze({
   SCALE_DOWN: 4,
 });
 
-// draws a sprite into the element rect per OBJECT_FIT, optionally animating on Time.raw.
-// guards sprite_exists throughout (GMRT returns 0 frames for SVG sprites — see CLAUDE.md).
-/** @implements {UIComponent} */
+/**
+ * Draws a sprite into the element rect per OBJECT_FIT. BUG: SVG sprites, see docs/GMRT.md.
+ * @implements {UIComponent}
+ */
 globalThis.UIImage = class UIImage {
   /** image: { sprite, subimg, xscale, yscale, rot, color, alpha, speed, fit } */
   constructor(image = {}) {

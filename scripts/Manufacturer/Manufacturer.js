@@ -1,5 +1,6 @@
-// Manufacturer registry — each genre registers its own companies (the colony's via content.register).
 /**
+ * Manufacturer registry.
+ *
  * A def may carry a signature `ops` layer (same operator shape as WeaponMod.ops); Loadout
  * folds it into every weapon the company makes, so brand identity is mechanical, not just cosmetic.
  */

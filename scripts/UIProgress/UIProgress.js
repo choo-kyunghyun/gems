@@ -1,6 +1,7 @@
-// Non-interactive 0..1 fill bar (health, mana, loading). Read-only, so no onUpdate.
-// Style structs mirror UISlider: { color, rad?, border?, borderColor? }.
-/** @implements {UIComponent} */
+/**
+ * Non-interactive 0..1 fill bar.
+ * @implements {UIComponent}
+ */
 globalThis.UIProgress = class UIProgress {
   /** progress: { getValue|value, label, track, fill, color, font } */
   constructor(progress = {}) {

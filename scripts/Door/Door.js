@@ -1,6 +1,6 @@
-// The built door's rule (the woodenDoor prop, Interaction kind "door"): a solid slab that swings
-// open. contentInteractions' `door` def is one call here; showing a refusal is the view's.
 /**
+ * A built door: a solid slab that swings open.
+ *
  * Closed = a solid slab (blocks bodies AND pathing — NavGrid rasterizes the kinematic collider
  * live); open = non-solid with the slab swung SWING° on its centre. State (`open`) + yaw are
  * component data, so a door round-trips map parking/Row as-is. A door carries

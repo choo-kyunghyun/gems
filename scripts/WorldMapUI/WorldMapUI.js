@@ -1,7 +1,6 @@
-// The world map page of the scene's Window — the colony's site picker, opened from a travel
-// beacon (the "travel" InteractAction: `scene.window.open("travel", { target })`, the beacon
-// being what Interactable range-closes on).
 /**
+ * World map page of the scene's Window.
+ *
  * A schematic chart: every contentSites site as a node placed at its chart-space `pos` over a dark
  * panel, the routes fanning out from the home site drawn under the nodes, and a brief for the
  * selected site beside it — terrain, size, threat, and the trip's hours from where the squad

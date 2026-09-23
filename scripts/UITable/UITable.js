@@ -108,8 +108,6 @@ globalThis.UITable = class UITable {
     this._selRow = row;
     return this;
   }
-  // The sort stack stores column INDICES, which shift when columns change — so remap by each
-  // sorted column's `key`, dropping any whose column is gone (or has no `key`).
   /**
    * Swap the column set, remapping the active sort by each column's stable `key`.
    */

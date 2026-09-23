@@ -1,5 +1,6 @@
-// Ambient world temperature in KELVIN (canonical unit — toCelsius/toFahrenheit to display).
 /**
+ * Ambient world temperature in kelvin.
+ *
  * Read live. Kept off WorldClock so the clock stays the pure temporal authority; weather + map
  * climate modifiers fold into now() here. The diurnal swing is a cosine of the hour.
  */

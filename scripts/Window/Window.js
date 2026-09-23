@@ -1,6 +1,6 @@
-// The gameplay window shell — ONE near-fullscreen facetOverlay a scene composes, holding every
-// page it can show (the bag, a chest, the workbench, the world map, a shop) and showing one.
 /**
+ * The gameplay window shell — one overlay showing one page at a time.
+ *
  * A page is a plain object its UI module builds once per scene (`StorageUI.build(scene)`) and the
  * scene adds under an id — a station page under its InteractAction id, the bag under "bag":
  *   el            UIElement — the content column, stacked absolute in the card (facetTabs' shape),

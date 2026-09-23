@@ -1,6 +1,7 @@
-// World-space AABB geometry — owns the non-uniform BBox anchor
-// (walls at a corner, players centered).
-/** @typedef {{x1:number,y1:number,x2:number,y2:number}} AABBRect */
+/**
+ * World-space AABB geometry.
+ * @typedef {{x1:number,y1:number,x2:number,y2:number}} AABBRect
+ */
 globalThis.AABB = {
   /** A zeroed rect for `at`/`ofInto` — one owner for the shape. */
   rect() {

@@ -1,7 +1,6 @@
-// The on-demand verbs over an entity's StatusEffects — apply/remove/maintain a status, list the
-// live instances, read the live multiplier — the one call a consumer makes (Consumption, Needs,
-// EncumbranceSystem, the HUD); the per-tick dot/hot + duration/expiry is StatusSystem's.
 /**
+ * On-demand status verbs over an entity's StatusEffects.
+ *
  * Stat-model coupling is ONE injected hook (like Combat.mitigate): a `mods`-bearing status only affects
  * derived Stats once the game re-derives, so apply/remove (and StatusSystem's expiry) call
  * onStatsChanged (default no-op; the Game wires StatModel.recompute). dot/hot and live `mult` need

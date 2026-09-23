@@ -1,6 +1,6 @@
-// Shared column set + row model for colony inventory UITables — centralized so column widths / Settings
-// gates and the row field set live in one place. StorageUI takes both; InventoryUI only the rows.
 /**
+ * Shared columns and row model for the colony inventory tables.
+ *
  * A table sort is VIEW-ONLY — it never reorders the underlying Inventory. The bag's own Sort button
  * (InventoryUI) is the one thing that rewrites real slot order.
  */

@@ -1,6 +1,6 @@
-// Registers the colony's concrete InteractAction defs — the data behind the generic Interactable engine.
-// Called once from content.register(); adding an interaction = one entry here + a prompt key.
 /**
+ * The colony's InteractAction defs.
+ *
  * Two families: WINDOW actions open their page through the scene's Window with the target
  * (`scene.window.open(id, { target })` — so Interactable range-closes it and E closes it); INSTANT
  * actions act once per E press. The survival ones (hydrate/feed/buff) act on

@@ -1,6 +1,6 @@
-// Wandering traders — merchants that cross the map graph off-focus, driven entirely by WorldEvents.
-// A singleton (Game); the reference consumer of WorldEvents + the World level pool.
 /**
+ * Wandering traders driven by WorldEvents.
+ *
  * Off-screen a trader is NOT an entity — it's a flat RECORD tagged with a map id, advanced by discrete
  * scheduled events (trader_arrive / trader_depart) on the WorldClock timeline, no per-frame sim. When
  * its map is the ACTIVE one the record is HYDRATED into a real Merchant NPC entity (via ColonySpawn — so

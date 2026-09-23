@@ -1,6 +1,6 @@
-// Pure operations on an entity's Equipment + Stats + Inventory (no world tick). Equipped items STAY in
-// the Inventory (still counting toward capacity/maxWeight); the slot only references their uid.
 /**
+ * Pure equipment operations; an equipped item stays in the Inventory.
+ *
  * The wearer CARRIES Inventory and Equipment — every entry point reads them with `require`, so a
  * caller handing a bare entity fails at once. A refusal is stated, never folded into false: `equip`
  * returns "" when equipped, else the i18n key of why (the TradeSystem shape), which the view shows.

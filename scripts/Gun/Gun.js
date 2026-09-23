@@ -1,6 +1,6 @@
-// Item-component: marks a Weapon item as a gun (ammo-driven, magazine-fed) — its presence
-// (Item.hasComponent(Gun)) makes composeWeapon take the gun branch. Firing pipeline on the class below.
 /**
+ * Item component marking a weapon as a gun.
+ *
  * Firing pipeline: loaded Ammo base → this gun-base `ops` layer → each attachment's ops, so a gun-base
  * can pre-bias a round before attachments.
  *   • caliber   — which Ammo chambers (must match Ammo.caliber).

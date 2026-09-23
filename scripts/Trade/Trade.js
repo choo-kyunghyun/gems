@@ -1,7 +1,6 @@
-// Buy/sell/price for a Merchant — pure ops over the Merchant + the buyer's/merchant's Inventory,
-// the one call a trade view makes (TradeUI); the restock heartbeat is TradeSystem's.
-// Currency-agnostic (money = merchant.currencyId).
 /**
+ * Buying, selling and pricing for a merchant.
+ *
  * Prices: marketValue = round(Rarity.modify(rarity, value)); buy = ceil(·buyMargin), sell =
  * floor(·sellMargin). buy/sell return { amount, reason } — reason is a ""/i18n key so the UI can toast
  * why nothing happened. An instance moves by reference (uid/mods preserved).

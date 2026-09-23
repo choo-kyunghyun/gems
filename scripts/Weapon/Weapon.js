@@ -1,6 +1,6 @@
-// Item-component: the universal weapon profile that fully drives the action — the player brain runs
-// whatever it describes (no built-in attack). Flat class queried by `instanceof`. Contract below.
 /**
+ * Item component: the weapon profile that drives an attack.
+ *
  * Unarmed falls back to PlayerSystem's fist profile so an empty-handed player never fires a free
  * bullet. Melee vs gun is decided by a sibling Gun component (Item.hasComponent(Gun) → ammo-driven
  * ranged), NOT a flag here; melee uses damage/hitbox, and fireCd (cadence) is shared by both. `slots` =

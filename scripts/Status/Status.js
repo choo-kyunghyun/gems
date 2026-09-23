@@ -1,6 +1,6 @@
-// Status/buff DEFINITION registry (parallel of Item/Rarity). Registered at scene create()
-// (contentStatuses.register), NOT at top level — GMRT load-order. Effect kinds on the declaration below.
 /**
+ * Status definition registry.
+ *
  * A status carries up to three effect kinds:
  *   dot/hot — Health change per `interval` (StatusSystem.update)
  *   mult    — live multiplicative factors read at use via Effects.scale; never folded into Stats

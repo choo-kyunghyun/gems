@@ -1,7 +1,6 @@
-// The colony's ENTITY KINDS — the EntityPreset defs a spawn descriptor names. Split out of
-// ColonySpawn so that file is logic-only: the adapter and the hook vocabulary stay there, the
-// table of kinds lives here.
 /**
+ * The colony's entity kinds.
+ *
  * A def is component data + design scale + the two hooks ColonySpawn's contract names: `adapt`
  * turns the descriptor's own fields into per-spawn overrides, `post` wires what data can't
  * express once the id exists. Both call ColonySpawn's helpers (adaptMob, skin, persona, outfit,

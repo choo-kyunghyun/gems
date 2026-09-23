@@ -1,6 +1,5 @@
-// Companion marker + follow behavior. MEMBERSHIP is the separate Squad component (see Squad): WITH
-// Squad it travels with the player, WITHOUT it is a map resident. Follow/carry-bonus rules: FollowerSystem.
 /**
+ * Companion follow behavior; membership is Squad's.
  * @typedef {Object} Follower
  * @property {"follow"|"wait"} state
  * @property {number} speed          move speed (px/s) while following

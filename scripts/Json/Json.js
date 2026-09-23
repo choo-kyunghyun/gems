@@ -1,6 +1,6 @@
-// JSON codec for save data — json_stringify's shape written from JS, so a GML constant (a
-// keycode, a colour) stays a number and a sprite ref carries a tag a JS read-back can revive.
 /**
+ * JSON codec for save data.
+ *
  * Why not a built-in: JS JSON.stringify faults on nesting (docs/GMRT.md #15565); GML
  * json_stringify handles nesting and cycles but writes a keycode or colour constant as an
  * `@i64@` string and a sprite as `@ref GMSprite(name)`, and only json_parse — whose arrays reach

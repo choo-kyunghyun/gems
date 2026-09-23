@@ -1,7 +1,6 @@
-// Sound metadata DECLARATIONS — the AssetMeta defs, as code. Every BGM track has a line: its name
-// puts it on the Radio dial (in this order), and a TIMED one carries the tempo it was synthesized
-// at (tools/audio-kit/scratch); an ambient bed has no tempo and resolves to the default.
 /**
+ * Sound metadata declarations.
+ *
  * One idempotent register into AssetMeta, called from Game's Create (beside contentSprites).
  * Def shape at the AssetMeta declaration.
  */

@@ -1,6 +1,7 @@
-// Hover-to-show tooltip — feeds the global Tooltip renderer once dwell passes `delay`. Add it as the
-// FIRST component (facetTooltip does, index 0) so a sibling's `block` doesn't suppress its own tooltip.
-/** @implements {UIComponent} */
+/**
+ * Hover tooltip; must be the element's first component.
+ * @implements {UIComponent}
+ */
 globalThis.UITooltip = class UITooltip {
   /** tooltip: { label: string | () => string, delay: seconds } */
   constructor(tooltip = {}) {

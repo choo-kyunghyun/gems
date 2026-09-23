@@ -221,8 +221,7 @@ globalThis.UITabs = class UITabs {
     }
   }
 
-  // UINav: the axis switches tabs (one focus stop); confirm advances, wrapping.
-  /**   */
+  /** The axis switches tabs, so the strip is one focus stop. */
   navAxis(element, dir) {
     this.select(clamp(this.index + dir, 0, this.tabs.length - 1));
   }

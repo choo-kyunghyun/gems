@@ -1,6 +1,7 @@
-// Numeric `< n >` stepper — UISelect's arrow model over a min/max/step range. Without
-// `wrap`, the arrow at a reached limit is dimmed and inert.
-/** @implements {UIComponent} */
+/**
+ * Numeric stepper over a min/max/step range.
+ * @implements {UIComponent}
+ */
 globalThis.UIStepper = class UIStepper {
   /** stepper: { min, max, step, wrap, value, onChange, format, color, arrowColor, arrowHover, arrowDisabled, font, halign, valign } */
   constructor(stepper = {}) {
@@ -111,8 +112,7 @@ globalThis.UIStepper = class UIStepper {
     uiDrawRestore(st);
   }
 
-  // UINav: left/right steps value (horizontal nav adjusts instead of moving focus).
-  /**   */
+  /** Horizontal nav steps the value instead of moving focus. */
   navAxis(element, dir) {
     if (dir < 0) this.decrement();
     else this.increment();

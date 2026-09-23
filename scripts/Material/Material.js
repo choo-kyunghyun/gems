@@ -1,6 +1,6 @@
-// Item-component: marks an Item a buildable material, carrying the tint a built structure is drawn with
-// ("one neutral sprite, tinted per material" — N+M sprites, not N×M). Flat class queried by `instanceof`.
 /**
+ * Item component marking an item as a buildable material.
+ *
  * A built entity resolves Material.color → Visual.color. Color-only for now; no speculative fields.
  */
 globalThis.Material = class Material {

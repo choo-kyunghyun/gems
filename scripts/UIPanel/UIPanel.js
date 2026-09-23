@@ -1,6 +1,5 @@
-// Rounded-rect background (base visual under most widgets) — a flat fill + optional 1px border.
-// Colors/alpha are live fields so UIButton/UIModal can swap them per frame.
 /**
+ * Rounded-rect background.
  * @typedef {Object} UIPanelOpts
  * @property {number} [color] fill color
  * @property {number} [alpha]

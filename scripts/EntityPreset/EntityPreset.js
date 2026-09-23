@@ -1,6 +1,5 @@
-// Named entity templates with variant inheritance and a spawn-time size/art bake — the
-// declarative side of entity construction (behavioral wiring stays code, via `post`).
 /**
+ * Named entity templates with variant inheritance.
  * @typedef {Object} EntityPresetDef
  * @property {string} id
  * @property {string} [extends]  base preset id, resolved at REGISTER time (base registers first;

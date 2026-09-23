@@ -1,6 +1,6 @@
-// HUD + overlay panels for the colony scene — free functions taking the scene (mirrors ColonyCombat/ColonyMap).
-// Panels read scene.level.entities/playerId LIVE via facetLabel callbacks, surviving the map-change store swap.
 /**
+ * HUD and overlay panels for the colony scene.
+ *
  * build() returns the HUD HANDLE — the four panels this module keeps TOGGLING (`card` the top-right
  * card, `bar` the hotbar, `dialogue` the NPC card, `sleep` the veil) beside the hotbar's own timing
  * (`timer`/`slide`) — and the scene keeps that one field, handing it back to update(), the shape a

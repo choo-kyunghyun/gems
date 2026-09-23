@@ -1,6 +1,6 @@
-// The colony's build CATALOG — what build mode's palette offers, by category. Split out of
-// BuildMode so the mode file is logic-only (the contentBiomes precedent).
 /**
+ * The colony's build catalog.
+ *
  * Pure data plus its lookups, no registration step (a plain top-level literal, like contentTiles).
  * An item is one of two kinds: a TILE (`layer` names the contentTiles.LAYERS key it edits, `mat`
  * a wall's per-cell material) or an ENTITY, whose `spawn` fields lay over the build descriptor

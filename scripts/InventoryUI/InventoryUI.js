@@ -1,7 +1,6 @@
-// The bag page of the scene's Window — tabbed character window (Items / Equipment / Party / Stats /
-// Quests / Achievements / Radio / Settings). Built ONCE; rebuild() only swaps data so
-// filter/selection/active tab survive every equip or use.
 /**
+ * Bag page of the scene's Window — the tabbed character window.
+ *
  * The Items tab is a slot GRID (UISlots) beside a detail pane — icons carry recognition, the pane
  * carries the metadata a table would spread across columns (chest/trade keep their tables).
  * Opened under "bag" with no target — the inventory key toggles it (sceneColony.update), it

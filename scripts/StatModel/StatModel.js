@@ -1,6 +1,6 @@
-// Swappable stat model: rewrite ATTRS + derive() to change the attribute set (D&D-6, SPECIAL, …)
-// without touching anything downstream — combat reads derived Stats only, via Combat's injected mitigate.
 /**
+ * Swappable stat model from attributes to derived Stats.
+ *
  * Game-side (names the colony sheet, like CombatAI). Lean 4-attr set: POW→attack, VIT→maxHp, AGI→speed,
  * END→maxStamina.
  */

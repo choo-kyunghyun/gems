@@ -1,7 +1,6 @@
-// THE progression state of one world — lifetime counters, achievement unlocks, and active quest
-// progress in one record, behind one report seam. Gameplay reports a fact ONCE (report) and the
-// fan-out happens here, so a chokepoint can no longer bump a counter and forget the consumers.
 /**
+ * The progression state of one world, behind one report seam.
+ *
  * Names NO key and states NO rule: the counter names, the unlock thresholds, and the objective
  * counts all belong to content, reached through the injected `rules` hook (the same idiom as
  * `Combat.mitigate`). That is what keeps this a store rather than a game — `Achievement`/`QuestLog`

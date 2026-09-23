@@ -1,6 +1,6 @@
-// Item-component: marks an Item as a workbench module — slotted into a bench's single module slot
-// (Interaction.module) to change what it can do. Flat class queried by `instanceof`. Modes below.
 /**
+ * Item component marking an item as a workbench module.
+ *
  * One upgradeable bench instead of a station per category. `kind` selects the window mode (CraftingUI):
  *   • "recipes" (default) — unlocks recipes whose `requires` matches this module's itemId (base
  *     recipes, with no `requires`, always available).

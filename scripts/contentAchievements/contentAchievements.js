@@ -1,6 +1,6 @@
-// Colony achievement CONTENT — the defs plus the trigger rules mapping a gameplay counter onto unlock
-// requests. Called once from sceneColony.create() (not top-level — GMRT load-order). Idempotent.
 /**
+ * Colony achievement defs and their trigger rules.
+ *
  * Separated from contentQuests (quest data) so each content family has one home. THE RULES HOOK:
  * sceneColony wires this module onto `Tracker.rules`, so a single gameplay report drives both
  * stages — counterOf names the counter an event kind feeds, then report turns a met threshold into

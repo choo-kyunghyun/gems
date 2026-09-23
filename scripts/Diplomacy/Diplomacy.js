@@ -1,8 +1,8 @@
-// Faction roster + relation matrix — two layers: id-level config (register/setRelation/isHostile/isAlly)
-// and entity-level glue (factionOf/hostile/allied/nearestHostile) that AI and combat call.
 /**
+ * Faction roster and relation matrix.
+ *
  * Relations are symmetric, default "neutral"; same id → "ally" always. GMRT: a plain object, which
- * also avoids the 50-method class ceiling (see CLAUDE.md).
+ * also avoids the 50-method class ceiling (docs/GMRT.md).
  */
 globalThis.Diplomacy = {
   _rel: new Map(), // canonical pair key → "ally" | "neutral" | "hostile"

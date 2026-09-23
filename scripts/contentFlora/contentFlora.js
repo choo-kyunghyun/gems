@@ -1,8 +1,6 @@
-// The colony's plant SPECIES — what a tree or crop is: its sprite, how long it takes to ripen, the
-// seasons it grows in, the ground it roots on and what it yields. FloraSystem drives the rules,
-// contentBiomes names which species a biome carries (its `flora` pool), and BuildMode plants the
-// `plant` ones. Split like contentBiomes so the system file is logic-only.
 /**
+ * The colony's plant species.
+ *
  * Pure data plus its by-id lookup, no registration step (a plain top-level literal). A species:
  *   name       i18n key (the entity's Name)
  *   preset     the ColonySpawn preset it spawns as — "tree" (a solid trunk under a canopy) or

@@ -1,5 +1,7 @@
-// ◀ / ▶ inline cycler — left half steps back, right forward. UIDropdown is the popup alternative for many options.
-/** @implements {UIComponent} */
+/**
+ * Inline ◀/▶ cycler.
+ * @implements {UIComponent}
+ */
 globalThis.UISelect = class UISelect {
   /** select: { items: {name,value}[], index, onChange, color, arrowColor, arrowHover, font, halign, valign } */
   constructor(select = {}) {
@@ -103,8 +105,7 @@ globalThis.UISelect = class UISelect {
     uiDrawRestore(st);
   }
 
-  // UINav: horizontal nav adjusts value instead of moving focus; confirm advances.
-  /**   */
+  /** Horizontal nav adjusts the value instead of moving focus. */
   navAxis(element, dir) {
     if (dir < 0) this.retreat();
     else this.advance();

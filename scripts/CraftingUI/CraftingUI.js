@@ -1,6 +1,6 @@
-// WORKBENCH page of the scene's Window — opened by the "workbench" InteractAction
-// (`scene.window.open("workbench", { target })`, the bench read live off scene.window.target).
 /**
+ * Workbench page of the scene's Window.
+ *
  * One bench upgraded by a single MODULE slot (Interaction.module): slot a WorkbenchModule to change
  * what it does. Two parts:
  *   • a MODULE BAR (top) — slotted module + Remove + an Install button per owned module. rebuilt each refresh.

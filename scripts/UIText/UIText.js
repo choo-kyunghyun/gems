@@ -1,6 +1,5 @@
-// text label. re-measures only on string or font change; self-sizes via setWidth/setHeight.
-// draws from pos.left/top so no pos.width NaN guard needed.
 /**
+ * Text label.
  * @typedef {Object} UITextOpts
  * @property {() => string} [textRef]
  * @property {number} [halign] fa_*

@@ -1,6 +1,7 @@
-// Boolean toggle — checkbox (box + tick) or switch (pill + knob) per `style`.
-// Drawn immediate-mode in onDraw; eases on Time.raw (the clock split).
-/** @implements {UIComponent} */
+/**
+ * Boolean toggle, drawn as a checkbox or a switch.
+ * @implements {UIComponent}
+ */
 globalThis.UICheckbox = class UICheckbox {
   constructor(box = {}) {
     this._get = box.getValue ?? (() => box.value ?? false); // static or live source

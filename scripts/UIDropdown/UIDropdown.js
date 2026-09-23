@@ -34,7 +34,6 @@ globalThis.UIDropdown = class UIDropdown {
     return this._index;
   }
 
-  // getValue/getName are methods for symmetry with getIndex (same house style).
   /** Undefined if empty. */
   getValue() {
     return uiItemValue(this.items, this._index);

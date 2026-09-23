@@ -1,11 +1,5 @@
-// opt-in death behaviour. only entities carrying Mortal react in ColonyCombat.resolveHealth; no Mortal
-// = left alone (e.g. built turrets handled by BuildMode.reapDestroyed).
-//   "despawn"  spill inventory as drops, then remove (no live preset takes this path)
-//   "corpse"   strip the combatant in place → lootable body over its Inventory
-//              (Interaction "corpse" → StorageUI), reaped when emptied (mobs)
-//   "respawn"  refill health and reposition (player)
-//   "down"     detach Health → Downed{timer} → revive at recovery spot (companions)
 /**
+ * Opt-in death behavior; an entity without it is left alone.
  * @typedef {Object} Mortal
  * @property {"despawn"|"corpse"|"respawn"|"down"} kind
  * @property {number} [recoverSecs]  "down": sim-seconds incapacitated before recovery

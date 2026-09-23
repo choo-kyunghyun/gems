@@ -1,6 +1,6 @@
-// Single damage applier for all paths (melee, hitscan, projectile, blast) — stays stat-agnostic via
-// the injected `mitigate` hook. Only subtracts hp; the reaction at <=0 hp is the Mortal death pass.
 /**
+ * The one stat-agnostic damage applier for every damage path.
+ *
  * The colony wires its defense formula in sceneColony.create, so the applier itself never reads a stat
  * sheet — hitscan needs only Health + Faction. A cast (hitscan, explode) takes the LEVEL; the
  * segment cast (Query.castAll) and the appliers take its store.

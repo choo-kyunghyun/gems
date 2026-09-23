@@ -1,7 +1,6 @@
-// The Radio tab of the inventory window: a now-playing readout over the dial — Off, then one
-// button per station, the tuned one lit. The player's knob on the sim tempo: a timed station's
-// BPM is the rate the world runs at while it plays (sceneColony.tempo).
 /**
+ * Radio tab of the inventory window.
+ *
  * Built ONCE by InventoryUI.build; every label and `selected` reads Radio/Music/Time live, so a
  * tune shows the frame it lands and the tab needs no rebuild hook.
  */

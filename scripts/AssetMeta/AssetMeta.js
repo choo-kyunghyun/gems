@@ -1,6 +1,6 @@
-// Asset METADATA registry — the semantic layer GameMaker doesn't store on an asset (kind, art
-// density, tempo), DECLARED per asset. Def shape + storage on the AssetMeta declaration below.
 /**
+ * Declared per-asset metadata that GameMaker does not store.
+ *
  * An asset carries what its resource holds — a sprite its frames/trim/origin, a sound its samples/
  * length/gain — and nothing else; the facts game code needs live here as DECLARED data, keyed by
  * the asset. Declarations are code — contentSprites and contentSounds register them at boot; only

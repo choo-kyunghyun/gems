@@ -1,6 +1,5 @@
-// Quest DEFINITIONS — a pure content registry, like Item/Rarity. The runtime side (accepting,
-// objective progress, turn-in) lives in Tracker, which reads defs from here.
 /**
+ * Quest definition registry; progress is Tracker's.
  * @typedef {Object} QuestDef
  * @property {string} id
  * @property {string} name i18n key

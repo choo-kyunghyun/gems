@@ -1,6 +1,6 @@
-// Map ARRIVAL for the colony scene — world-map travel, the squad's crossing, and the two ways
-// into a map. Free functions over the scene (composition; GMRT has no usable class inheritance).
 /**
+ * Map arrival for the colony scene.
+ *
  * Visited maps stay ALIVE in the World level pool — data and runtime both on the Level
  * (ColonyMap) — so a trip never destroys/rebuilds. Only the SQUAD migrates: every entity sharing
  * the player's Squad id (player included) moves as a WHOLE entity through World.take/put — a trip

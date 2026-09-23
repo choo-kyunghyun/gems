@@ -1,6 +1,6 @@
-// Colony status defs — the content for the Status registry. Registered once at level create()
-// (NOT top-level — GMRT load-order). Colors drive HUD chip tints.
 /**
+ * Colony status defs.
+ *
  * A DoT poison is symmetric to regen — one def + an applier away if needed.
  */
 globalThis.contentStatuses = {

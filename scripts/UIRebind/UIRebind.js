@@ -1,9 +1,8 @@
-// Key-rebind row: click → "press a key…" capture → next press rebinds the action's keyboard key
-// through Input.rebind (Esc/click cancels), so every consumer reads the new key and the rebind
-// is recorded for persistence.
 /**
+ * Key-rebind row.
+ *
  * Keyboard only; mouse/gamepad bindings show read-only via label(). GMRT: capture state is an instance
- * field read live (no cached bool — clobber, see CLAUDE.md).
+ * field read live (no cached bool — clobber, see docs/GMRT.md).
  * @implements {UIComponent}
  */
 globalThis.UIRebind = class UIRebind {

@@ -1,6 +1,6 @@
-// Combat/loot plumbing for the colony scene — free functions taking the scene (composition; GMRT has
-// no usable class inheritance). Scene side effects come in as callbacks/options.
 /**
+ * Combat and loot flow for the colony scene.
+ *
  * Contract: the scene owns `entities`, `playerId` and `window` (its `dirty` is set on a bag
  * change); the damage-number baseline is the entity's own (PrevHealth). The enemy
  * set is derived LIVE by Faction (hostile to the player) and companions LIVE by the Follower

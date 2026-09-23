@@ -1,6 +1,5 @@
-// Squad MEMBERSHIP — entities sharing a squad id travel together (a trip transfers every member,
-// player included, via World.take/put). Minted at ColonyPlayer.spawn; Companions.hire/kick attach/detach.
 /**
+ * Squad membership — members travel together.
  * @typedef {Object} Squad
  * @property {string} id  squad identity — members match by this value (uuid, minted per player)
  */

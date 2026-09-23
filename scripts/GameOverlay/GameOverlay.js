@@ -34,9 +34,10 @@ globalThis.GameOverlay = {
     GameOverlay._extraTabs.push({ label, short, build });
   },
 
-  // per-frame pause/open driver (Step_0, before UINav.update). owns UINav.suspended for gameplay
-  // scenes. a scene opts in via this.gameplay = true in create() (field initializers don't run — GMRT).
-  /** game: the Game controller (its `background` re-themes) */
+  /**
+   * Per-frame pause/open driver; a scene opts in with `this.gameplay = true` in create().
+   * game: the Game controller (its `background` re-themes)
+   */
   update(game) {
     GameOverlay._game = game;
     const scene = game.scene;

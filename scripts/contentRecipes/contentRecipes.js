@@ -1,6 +1,6 @@
-// Colony crafting recipes. `requires` = the WorkbenchModule itemId that must be slotted (undefined =
-// base, always available). Registered once at level create() (NOT top-level — GMRT load-order).
 /**
+ * Colony crafting recipes.
+ *
  * The Toolkit module isn't a recipe gate — it switches the workbench to the weapon-mod panel
  * (WeaponModUI).
  */

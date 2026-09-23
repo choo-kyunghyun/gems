@@ -1,6 +1,6 @@
-// Entity construction for the colony levels — spawnEntity is the DESCRIPTOR ADAPTER, the one place a
-// spawn descriptor becomes an entity. The entity kinds themselves are contentPresets' table.
 /**
+ * Entity construction for colony levels — the one place a spawn descriptor becomes an entity.
+ *
  * The entity kinds are EntityPreset DEFS (contentPresets — registered by content.register) —
  * component data + design scale + two hooks the def owns: `adapt(s, over, ctx)` turns its own
  * descriptor fields into per-spawn component overrides (field-merged onto the def like a variant)

@@ -1,6 +1,6 @@
-// Map engine for the colony scene — the map pool and the data + runtime over a Level.
-// Free functions over the level (composition; GMRT has no usable class inheritance).
 /**
+ * Map engine for the colony scene.
+ *
  * A map IS a Level in the World pool, and everything the colony holds of it is a component of
  * that Level's own entity (`level.self`): the DATA record under KEY — a save holds it — and the
  * RUNTIME under RUNTIME, derived on the map's first activation and freed with the level. Nothing

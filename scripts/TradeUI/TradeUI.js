@@ -1,6 +1,6 @@
-// Merchant trade page of the scene's Window — the shop counterpart to StorageUI, in three columns:
-// LEFT = stock, MIDDLE = bag, RIGHT = the deal panel that prices and commits. All logic is TradeSystem.
 /**
+ * Merchant trade page of the scene's Window.
+ *
  * This file is presentation + the deal gesture, plus the sell-side worn/favorited guard (it reads
  * the player's Equipment/Favorites). ONE row is selected across both tables — picking in one clears
  * the other — and the deal column prices it: unit price, availability, an amount slider with -/+

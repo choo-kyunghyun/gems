@@ -1,6 +1,6 @@
-// Item-component: marks a fungible Item as an installable weapon attachment. Flat class queried by
-// `instanceof` (composition over inheritance). Fold points + schema on the class below.
 /**
+ * Item component marking an item as a weapon attachment.
+ *
  * Installing consumes one unit and records its itemId in the weapon instance's `mods` map under the
  * slot id. Two fold points:
  *   • composeWeapon applies `ops` as operators over the composed fields (gun: velocity/mass/power/

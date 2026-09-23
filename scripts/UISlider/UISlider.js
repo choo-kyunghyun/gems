@@ -1,5 +1,7 @@
-// Draggable slider — continuous, stepped, or snapped to a `values` array. Draws immediate-mode.
-/** @implements {UIComponent} */
+/**
+ * Draggable slider — continuous, stepped, or snapped to values.
+ * @implements {UIComponent}
+ */
 globalThis.UISlider = class UISlider {
   static VALUE_W = 58; // right-side width reserved for the value readout (showValue); wide enough that "100%" at the 16px body font clears the thumb
 
@@ -191,8 +193,7 @@ globalThis.UISlider = class UISlider {
     draw_set_alpha(a0);
   }
 
-  // UINav: left/right nudges value by `step` (or 1/20 range when continuous).
-  /**   */
+  /** Horizontal nav nudges the value instead of moving focus. */
   navAxis(element, dir) {
     if (this.readOnly) return;
     const inc =

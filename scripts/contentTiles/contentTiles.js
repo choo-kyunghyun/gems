@@ -1,6 +1,6 @@
-// The colony's tile MATERIAL data — the resident tile-layer stack a level's grid is built from.
-// Split out of ColonyLevel so that file is logic-only.
 /**
+ * The colony's tile material data.
+ *
  * Pure data plus its by-key lookup, no registration step (a plain top-level literal, like
  * contentBiomes' palette); a sibling stack authors its own table and the builder never changes.
  *

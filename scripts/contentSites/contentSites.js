@@ -1,7 +1,6 @@
-// The colony's WORLD MAP data — the sites a travel beacon can deploy the squad to. Each is one
-// Level in the World pool, generated on first arrival (ColonyLevel.load → build) and resident
-// thereafter.
 /**
+ * The colony's world map sites.
+ *
  * Pure data plus its by-id lookup, no registration step (like contentTiles). A site:
  *   id          the map id it pools under (World) — a save stores it, so renaming one is a migration
  *   name        i18n key; `desc` the i18n key of the world map's one-line brief

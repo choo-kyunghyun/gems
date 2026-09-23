@@ -1,5 +1,6 @@
-// Bag↔Chest transfer page of the scene's Window — a two-column UITable layout.
 /**
+ * Bag–chest transfer page of the scene's Window.
+ *
  * Opened by the "storage" / "corpse" InteractActions through the shell —
  * `scene.window.open("storage", { target, onTake })`: `target` is the chest entity (read live off
  * scene.window.target), `onTake` an optional per-open hook fired per stack taken (a corpse's pickup

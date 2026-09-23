@@ -1,9 +1,5 @@
-// Instant melee swing (no projectile): the weapon's hitbox rect, placed off the attacker's AABB centre
-// and mirrored left/right by its facing, damages every Health whose MASK it overlaps — the runtime's
-// rect query over the mirrors (Query.maskRect), so a hit is as of this tick's PuppetSystem.update and
-// a solid-off body (a corpse, which carries no Health anyway) is never hit. Skips the attacker +
-// faction allies. Subtracts hp only.
 /**
+ * Instant melee swing over the weapon's hitbox.
  * @typedef {object} MeleeHitbox
  * @property {number} width   px
  * @property {number} height  px

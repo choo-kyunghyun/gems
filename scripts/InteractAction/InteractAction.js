@@ -1,6 +1,6 @@
-// Registry of interaction behaviors — the data-driven generalization of the old hardcoded Station
-// `kind` switch. Genre-agnostic (concrete defs are content; the colony's set is contentInteractions).
 /**
+ * Registry of interaction behaviors.
+ *
  * An entity's `Interaction.kind` names a def here; the Game/UI `Interactable` engine looks it up on E
  * and calls def.run(ctx). This holds only the registry — adding an interaction is a data entry, not an
  * engine edit.

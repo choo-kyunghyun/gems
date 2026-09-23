@@ -1,9 +1,6 @@
-// Low-poly VOLUME meshes — Vox's counterpart for the curved props (barrel, stool, lantern,
-// stand, turret): poly-kit (tools/poly-kit) bakes the exact 24 B/vertex stream RenderMesh's
-// vertex format declares, so `load` is a header parse and `mesh` a buffer hand-off — no
-// runtime meshing. A `meshes/<name>.mesh` SHADOWS the same name's `.vox` spare
-// (RenderMesh._model and ColonySpawn.footprint try Poly first).
 /**
+ * Low-poly volume meshes, baked offline so loading does no meshing.
+ *
  * File format (little-endian, poly-kit polylib is the writer):
  *   header 24 B: "PMSH" + u32 version (1) + u32 vertex count + f32 content w, d, h
  *   vertex 24 B: f32 x, y, z (canvas-centered, up = -z, feet at 0 — Vox's game space)

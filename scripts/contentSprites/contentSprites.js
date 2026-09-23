@@ -1,6 +1,6 @@
-// Sprite metadata DECLARATIONS — the AssetMeta defs, as code. Only sprites whose density
-// departs from the art-native 1 need a line: everything else resolves to the default.
 /**
+ * Sprite metadata declarations.
+ *
  * One idempotent register into AssetMeta, called from Game's Create (before any level spawns
  * entities, so the density bake reads declared values). Def shape at the AssetMeta declaration.
  */

@@ -1,6 +1,6 @@
-// The shape the PLAYER sees an entity as, and the cursor tests over it — the pick half of the
-// art projection contract RenderBillboard draws (AABB owns the sim half, the ground footprint).
 /**
+ * The shape the player sees an entity as, and cursor tests over it.
+ *
  * A pitched view splits an entity's shape in two: the sim's footprint lies on the ground, while
  * a body is DRAWN standing off it (RenderBillboard's STANDING pass), so the two cover different
  * screen pixels and only the drawn one is what a click means.
