@@ -144,5 +144,54 @@ globalThis.testGame = {
         audio_group_set_gain(audiogroup_track, ctx.track, 0);
       },
     },
+    // ── puppet.area: the area collision queries find a Puppet ─────────────────────
+    // The runtime's area queries skip an instance whose object has no editor sprite, whatever
+    // sprite it is given at runtime (docs/GMRT.md); Puppet carries pixMissing as its editor
+    // sprite for that reason, and this case guards it — a puppet sprited the Rig way (a Spine
+    // sprite) and one with a plain sprite must both answer the three queries at their bbox.
+    {
+      id: "puppet.area",
+      frames: 2, // the Spine bbox lands after the first draw
+      setup(ctx) {
+        ctx.doll = instance_create_depth(DOLL_X, DOLL_Y, 0, Puppet);
+        ctx.doll.sprite_index = spineHuman;
+        ctx.doll.skeleton_animation_set("idle0", true);
+        ctx.pix = instance_create_depth(DOLL_X + 200, DOLL_Y, 0, Puppet);
+        ctx.pix.sprite_index = pixItemApple;
+      },
+      frame(ctx, i) {},
+      draw(ctx) {
+        ctx.doll.draw_self();
+        ctx.pix.draw_self();
+      },
+      verify(ctx, t) {
+        // instance-scoped: a collision query needs an instance self (the runner is a struct)
+        const probe = (inst, tag) => {
+          const l = inst.bbox_left;
+          const r = inst.bbox_right;
+          const top = inst.bbox_top;
+          const bot = inst.bbox_bottom;
+          t.ok(r > l && bot > top, tag + " bbox " + l + "," + top + "-" + r + "," + bot);
+          const cx = (l + r) / 2;
+          const cy = (top + bot) / 2;
+          t.ok(instance_exists(inst.collision_point(cx, cy, inst, false, false)), tag + " collision_point");
+          t.ok(
+            instance_exists(inst.collision_rectangle(cx - 1, cy - 1, cx + 1, cy + 1, inst, false, false)),
+            tag + " collision_rectangle",
+          );
+          t.ok(instance_exists(inst.collision_circle(cx, cy, 2, inst, false, false)), tag + " collision_circle");
+          t.ok(
+            instance_exists(inst.collision_line(l - 8, cy, r + 8, cy, inst, false, false)),
+            tag + " collision_line",
+          );
+        };
+        probe(ctx.doll, "spine");
+        probe(ctx.pix, "pix");
+      },
+      teardown(ctx) {
+        instance_destroy(ctx.doll);
+        instance_destroy(ctx.pix);
+      },
+    },
   ],
 };

@@ -6,8 +6,8 @@
   "name":"Puppet",
   "overriddenProperties":[],
   "parent":{
-    "name":"Render",
-    "path":"folders/Core/Render.yy",
+    "name":"Puppet",
+    "path":"folders/Core/Puppet.yy",
   },
   "parentObjectId":null,
   "persistent":false,
@@ -27,7 +27,10 @@
   "resourceType":"GMObject",
   "resourceVersion":"2.0",
   "solid":false,
-  "spriteId":null,
+  "spriteId":{
+    "name":"pixMissing",
+    "path":"sprites/pixMissing/pixMissing.yy",
+  },
   "spriteMaskId":null,
   "visible":false,
 }
