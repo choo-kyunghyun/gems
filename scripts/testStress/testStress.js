@@ -28,7 +28,7 @@ function _stressOverlaps(level) {
   const rect = AABB.rect();
   let overlaps = 0;
   level.entities.forEach(["StressAgent", Position, BBox], (id, ag, pos, box) => {
-    AABB.edgesInto(pos, box, rect);
+    AABB.at(pos, box, rect);
     for (let k = 0; k < statics.length; k++) {
       const st = statics[k];
       if (

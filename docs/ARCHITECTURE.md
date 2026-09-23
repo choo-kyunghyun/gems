@@ -182,7 +182,7 @@ and are cited from here, never restated):
       marker joins the query, never a `has` filter after it).
     - One match wants `first(...)`, not `query(...)[0]`.
     - Geometry in a pair sweep writes into a caller-owned `AABB.rect()` scratch through
-      `edgesInto`/`ofInto` rather than allocating per test.
+      `at`/`ofInto` rather than allocating per test.
     - A collector writes through a reused buffer (`buf[w++] = id`, then `length = w`), never a
       fresh array per tick.
     - Anything loop-invariant (a `Map` lookup, a `this.` chain, a class static) is hoisted out of
@@ -205,7 +205,7 @@ and are cited from here, never restated):
   through `entities.isValid` before every use, and no id ever crosses a map — it names a slot in
   one store. Markers are components, not tag strings.
 - AABB convention: every collision/geometry consumer derives world-space edges through
-  `AABB.edgesInto(pos, box, out)` / `AABB.of(entities, id)` — never inline `pos.x + box.x` (the
+  `AABB.at(pos, box, out)` / `AABB.of(entities, id)` — never inline `pos.x + box.x` (the
   non-uniform BBox anchor lives in one place). The overlap test is `AABB.overlap`, except in a per-candidate
   loop, which inlines it — the call is about twice the test (testRuntime perf.measured
   `aabb.overlap`). The collision itself is the runtime's, over each collider's mirror instance

@@ -86,14 +86,14 @@ globalThis.Diplomacy = {
 
   /**
    * The nearest hostile Health carrier whose mask reaches within `range` px of (x,y), or -1 —
-   * the runtime's ordered circle query (Query.maskRadius), so a body whose box crosses the ring
+   * the runtime's ordered circle query (Query.maskCircle), so a body whose box crosses the ring
    * counts, nearness is its box centre's, and a solid-off body never answers. CombatAI's aggro
    * acquisition.
    */
   nearestHostile(entities, id, x, y, range) {
     const fa = Diplomacy.factionOf(entities, id);
     if (fa === undefined) return -1;
-    const ids = Query.maskRadius(entities, x, y, range, { has: Health, ignore: id, ordered: true });
+    const ids = Query.maskCircle(entities, x, y, range, { has: Health, ignore: id, ordered: true });
     for (let i = 0; i < ids.length; i++) {
       const oid = ids[i];
       const fb = Diplomacy.factionOf(entities, oid);

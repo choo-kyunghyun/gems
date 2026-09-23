@@ -36,7 +36,7 @@ globalThis.RenderDebugEntity = class RenderDebugEntity {
         draw_primitive_begin(pr_linelist);
         verts = 0;
       }
-      const e = AABB.edgesInto(entities.get(id, Position), bbox, this._rect);
+      const e = AABB.at(entities.get(id, Position), bbox, this._rect);
       draw_vertex(e.x1, e.y1);
       draw_vertex(e.x2, e.y1);
       draw_vertex(e.x2, e.y1);

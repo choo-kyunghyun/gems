@@ -2,7 +2,7 @@
 // (walls at a corner, players centered).
 /** @typedef {{x1:number,y1:number,x2:number,y2:number}} AABBRect */
 globalThis.AABB = {
-  /** A zeroed rect for the `*Into` calls — one owner for the shape. */
+  /** A zeroed rect for `at`/`ofInto` — one owner for the shape. */
   rect() {
     return { x1: 0, y1: 0, x2: 0, y2: 0 };
   },
@@ -14,7 +14,7 @@ globalThis.AABB = {
    * reader that wants a centre takes `(x1 + x2) * 0.5` where it needs it. The rect is the
    * caller's, so never hand one to something that outlives the call.
    */
-  edgesInto(pos, box, out) {
+  at(pos, box, out) {
     const x1 = pos.x + box.x;
     const y1 = pos.y + box.y;
     out.x1 = x1;
@@ -40,9 +40,9 @@ globalThis.AABB = {
     return { x1, y1, x2, y2, cx: (x1 + x2) * 0.5, cy: (y1 + y2) * 0.5 };
   },
 
-  /** `of` into a caller-owned rect (see edgesInto). */
+  /** `of` into a caller-owned rect (see at). */
   ofInto(entities, id, out) {
-    return AABB.edgesInto(
+    return AABB.at(
       entities.get(id, Position),
       entities.get(id, BBox),
       out,

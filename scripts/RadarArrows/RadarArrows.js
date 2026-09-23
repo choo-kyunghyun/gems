@@ -31,7 +31,7 @@ globalThis.RadarArrows = {
       matrix_set(matrix_world, matrix_build(0, 0, -lift, 0, 0, 0, 1, 1, 1));
     }
 
-    const ids = Query.inRadius(entities, tp.x, tp.y, range);
+    const ids = Query.inCircle(entities, tp.x, tp.y, range);
     for (let i = 0; i < ids.length; i++) {
       const id = ids[i];
       if (id === target) continue;
@@ -44,7 +44,7 @@ globalThis.RadarArrows = {
       if (dist < 1) continue; // on top of the player — no meaningful direction
       const nx = dx / dist;
       const ny = dy / dist;
-      const t = dist / range; // 0 near → 1 far (clamped by the inRadius cull)
+      const t = dist / range; // 0 near → 1 far (clamped by the inCircle cull)
       const size = near + (far - near) * t; // far → smaller
       draw_set_alpha(1 - 0.45 * t); // far → dimmer
       RadarArrows._arrow(tp.x + nx * ring, tp.y + ny * ring, nx, ny, size, col);

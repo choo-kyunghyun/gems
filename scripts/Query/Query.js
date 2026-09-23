@@ -1,6 +1,6 @@
 /**
- * Spatial lookup over entities. Three families: `inRect`/`inRadius` test a POSITION — any
- * entity, a plant or a beacon included, the JS walk — `maskRect`/`maskRadius` ask the runtime
+ * Spatial lookup over entities. Three families: `inRect`/`inCircle` test a POSITION — any
+ * entity, a plant or a beacon included, the JS walk — `maskRect`/`maskCircle` ask the runtime
  * for the colliders whose MASK overlaps the shape (the mirrors, PuppetSystem — a solid collider
  * only, since a solid-off one wears the empty mask), so a body whose centre lies outside but
  * whose box reaches in counts, and `cast`/`castAll` are the segment casts over the same mirrors:
@@ -16,7 +16,7 @@
  * @typedef {Object} QueryOpts
  *   @property {number} [ignore] skip this entity (the asker itself)
  *   @property {string} [has] the id forms only: require this component (its token)
- *   @property {boolean} [ordered] maskRadius only: nearest first, by the distance from the
+ *   @property {boolean} [ordered] maskCircle only: nearest first, by the distance from the
  *   centre to each mirror's origin — its box centre (PuppetSystem)
  */
 globalThis.Query = {
@@ -32,7 +32,7 @@ globalThis.Query = {
     return result;
   },
 
-  inRadius(entities, x, y, radius, opts = {}) {
+  inCircle(entities, x, y, radius, opts = {}) {
     const result = [];
     const rSq = radius * radius;
     Query._each(entities, opts, (id, pos) => {
@@ -50,7 +50,7 @@ globalThis.Query = {
   },
 
   /** The solid colliders whose mask overlaps the circle, nearest first when `ordered`. */
-  maskRadius(entities, x, y, radius, opts = {}) {
+  maskCircle(entities, x, y, radius, opts = {}) {
     const list = PuppetSystem.list();
     const ordered = opts.ordered === true;
     const found = PuppetSystem.probe().collision_circle_list(x, y, radius, Puppet, false, true, list, ordered);

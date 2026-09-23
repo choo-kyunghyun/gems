@@ -182,19 +182,19 @@ Test.register(Test.CHECK, [
     verify(ctx, t) {
       const s = ctx.entities;
       t.eq(
-        Query.inRadius(s, 0, 0, 200, { has: "TestMarker" }).length,
+        Query.inCircle(s, 0, 0, 200, { has: "TestMarker" }).length,
         1,
         "has: joins the marker",
       );
       t.eq(
-        Query.inRadius(s, 0, 0, 50).length,
+        Query.inCircle(s, 0, 0, 50).length,
         1,
-        "inRadius counts inside only",
+        "inCircle counts inside only",
       );
       t.eq(Query.inRect(s, 0, -1, 200, 1).length, 2, "inRect counts both");
       t.eq(Query.inRect(s, 0, -1, 200, 1, { ignore: ctx.near })[0], ctx.far, "ignore: drops the asker");
       t.eq(
-        Query.inRadius(s, 0, 0, 200, { has: "TestMarker", ignore: ctx.far }).length,
+        Query.inCircle(s, 0, 0, 200, { has: "TestMarker", ignore: ctx.far }).length,
         0,
         "ignore: drops it from a joined walk too",
       );
@@ -297,11 +297,11 @@ Test.register(Test.CHECK, [
       t.eq(rect[0], ctx.near, "and it is the body");
       t.eq(Query.inRect(s, 0, 0, 36, 60).length, 0, "where the point form counts the centre only");
       t.eq(Query.maskRect(s, 90, 10, 110, 20).length, 1, "a static's mask answers a rect");
-      t.eq(Query.maskRadius(s, 60, 40, 20).length, 1, "a circle reaches a box");
-      t.eq(Query.maskRadius(s, 0, 0, 1000, { has: "TestMarker" }).length, 1, "has: narrows to the marker's carrier");
-      t.eq(Query.maskRadius(s, 40, 100, 4).length, 0, "a solid-off body wears no mask");
+      t.eq(Query.maskCircle(s, 60, 40, 20).length, 1, "a circle reaches a box");
+      t.eq(Query.maskCircle(s, 0, 0, 1000, { has: "TestMarker" }).length, 1, "has: narrows to the marker's carrier");
+      t.eq(Query.maskCircle(s, 40, 100, 4).length, 0, "a solid-off body wears no mask");
       t.eq(Query.maskRect(s, 0, 0, 36, 60, { ignore: ctx.near }).length, 0, "ignore: drops the asker's mask");
-      const order = Query.maskRadius(s, 0, 40, 1000, { ordered: true });
+      const order = Query.maskCircle(s, 0, 40, 1000, { ordered: true });
       t.eq(order.length, 3, "ordered: every solid mask in reach");
       t.ok(
         order[0] === ctx.near && order[1] === ctx.wall && order[2] === ctx.marked,
@@ -577,7 +577,7 @@ Test.register(Test.CHECK, [
       Log.info("[BENCH] builtin.query hits js " + jsFound + " gm " + gmFound + " over " + nq + " rects");
 
       // ── the nearest body in a ring: a Position walk keeping the least distance vs
-      // Query.maskRadius ordered, whose first body is the answer
+      // Query.maskCircle ordered, whose first body is the answer
       const ring = BENCH_RADIUS;
       const jsNear = new Array(nq);
       const gmNear = new Array(nq);
@@ -602,11 +602,11 @@ Test.register(Test.CHECK, [
         }
         return acc;
       });
-      t.measure("query.maskRadius.ordered", nq, Test.empty(nq), () => {
+      t.measure("query.maskCircle.ordered", nq, Test.empty(nq), () => {
         let acc = 0;
         for (let k = 0; k < nq; k++) {
           const q = queries[k];
-          const ids = Query.maskRadius(s, (q.x1 + q.x2) * 0.5, (q.y1 + q.y2) * 0.5, ring, {
+          const ids = Query.maskCircle(s, (q.x1 + q.x2) * 0.5, (q.y1 + q.y2) * 0.5, ring, {
             has: Velocity,
             ordered: true,
           });

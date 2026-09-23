@@ -26,12 +26,12 @@ Test.register(Test.CHECK, [
   // ── perf.measured: the costs that decide the frame ─────────────────────────
   // A static-method call and an object literal each cost about a hundred plain reads, a hash
   // lookup a dozen: the rule for every hot loop is the cheap form in the paired row — the
-  // inline mask over Handle.index, a cached column over store.get, edgesInto over edges, a
+  // inline mask over Handle.index, a cached column over store.get, AABB.at over a literal, a
   // reused buffer over push, and never a per-element reset of a level-sized scratch (the
   // generation stamp, MotionPlanner.scratch's `stamp`). The overlap pair is why a
   // per-candidate loop inlines the test —
-  // the call is about twice it; the centre pair the Into rect once carried was about half of
-  // an edgesInto, which is why it holds four edges.
+  // the call is about twice it; the centre pair is about half of an AABB.at, which is why its
+  // rect holds four edges.
   {
     id: "perf.measured",
     setup(ctx) {
@@ -161,10 +161,10 @@ Test.register(Test.CHECK, [
         return s;
       });
       const rect = AABB.rect();
-      t.measure("aabb.edgesInto", n, readPosBox, () => {
+      t.measure("aabb.at", n, readPosBox, () => {
         let s = 0;
         for (let i = 0; i < n; i++)
-          s += AABB.edgesInto(pos[i], box[i], rect).x1;
+          s += AABB.at(pos[i], box[i], rect).x1;
         return s;
       });
       const ra = ctx.ra;
