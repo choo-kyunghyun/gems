@@ -15,7 +15,7 @@
  * request only ever moves toward the front and the forward sweep reaches it within two passes. A
  * pending request its walker refreshes first (`PathFollow.target`'s throttle) is replaced in
  * place. A count bound is not a time bound: a map-crossing plan runs tens of milliseconds on its
- * own, so serving one is over a frame whatever the budget — testCore `perf.plan` is what that
+ * own, so serving one is over a frame whatever the budget — testLevel `perf.plan` is what that
  * costs.
  */
 globalThis.PathfindingSystem = {

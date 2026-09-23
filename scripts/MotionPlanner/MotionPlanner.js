@@ -39,14 +39,14 @@ globalThis.MotionPlanner = {
    * The working record a plan over a `count`-cell grid reuses — g/from/closed per cell and the
    * path scratch; `stamp`/`gen`, the per-plan generation (a cell's g/from/closed are live only
    * while `stamp[i]` equals the plan's `gen`, so nothing is cleared between plans — a fill over
-   * the level is a VM loop even on a typed array, ~10 ms per plan on a 128² level (testCore
+   * the level is a VM loop even on a typed array, ~10 ms per plan on a 128² level (testRuntime
    * perf.measured, array.fill)); the open set `hn`/`hf`, a binary min-heap as parallel node/f
    * arrays whose live length is a local in `plan` (in JS rather than ds_priority so a plan holds
    * no GML resource and pays no boundary crossing per op, sifted INLINE in the loop — a push per
-   * neighbour is too hot for a call, testCore perf.measured); and `iters`, the expansions the
+   * neighbour is too hot for a call, testRuntime perf.measured); and `iters`, the expansions the
    * last plan spent (what a time budget and `perf.plan` divide by).
    * PLAIN arrays, not typed: a typed element read costs ~20x a plain one on this runtime
-   * (testCore perf.access, `read.typed` vs `read.array`), and the expansion loop is all
+   * (testRuntime perf.access, `read.typed` vs `read.array`), and the expansion loop is all
    * scratch reads. Typed would only pay for the memory, which a level-sized array does not need.
    * TODO typed scratch is an option again when `read.typed` reaches `read.array`.
    */
@@ -73,7 +73,7 @@ globalThis.MotionPlanner = {
    *
    * The expansion loop is written FLAT on purpose — the grid accessors, the heuristic and the
    * heap are inlined and the neighbour scan indexes `grid.data` directly. A static-method call
-   * and an object literal each cost about a hundred plain reads here (testCore perf.measured), so
+   * and an object literal each cost about a hundred plain reads here (testRuntime perf.measured), so
    * the call-per-neighbour form this replaced spent most of an expansion on the boundary rather
    * than on the search. Keep it flat; `perf.plan` is the row that says what it costs.
    */

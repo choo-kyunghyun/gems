@@ -29,7 +29,7 @@ globalThis.Handle = class Handle {
      * packed[index] = the id `alloc()` hands out for that index at its CURRENT generation.
      * A derived mirror of `generations` (rebuilt by _repack), kept so a query can emit an id
      * by one plain-array read instead of recomposing make(index, generation) per match — a
-     * typed-array read costs ~20x a plain one here (testCore perf.access), and this sits on every
+     * typed-array read costs ~20x a plain one here (testRuntime perf.access), and this sits on every
      * matched entity of every query. A freed index holds the id its NEXT owner will get,
      * which no query can reach: flush() clears the component slots before freeing the id.
      * TODO retire the mirror (query reads `generations`) when `read.typed` reaches `read.array`.

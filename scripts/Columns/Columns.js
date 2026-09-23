@@ -4,7 +4,7 @@
  * `dense` lists the indices carrying the token, and `sparse[i]` is index i's position in `dense`
  * (-1 = absent). A walk runs down the LEAD token's dense list and joins the rest by column read,
  * so it visits the lead's carriers and never the index space: the lead token is the contract —
- * the rarest token leads, since it alone decides the walk's length (testCore perf.layout).
+ * the rarest token leads, since it alone decides the walk's length (testData perf.layout).
  *
  * Order: a dense list is insertion order until a removal, which swap-removes (the last carrier
  * takes the hole), so `query`/`first`/`forEach` run in an order that is stable between mutations
@@ -121,7 +121,7 @@ globalThis.Columns = class Columns {
   }
 
   /** The token's column, registered if new — a per-tick reader hoists it once and indexes it by
-   *  `id & Handle.INDEX_MASK` in place of a `get` per entity (testCore perf.measured
+   *  `id & Handle.INDEX_MASK` in place of a `get` per entity (testRuntime perf.measured
    *  store.get.cached), never holding it past the tick. */
   column(token) {
     this.register(token);
@@ -276,7 +276,7 @@ globalThis.Columns = class Columns {
   /**
    * The allocation-free counterpart to `query`, and the form a per-tick system wants: no
    * result array, and the callback is handed the component data the walk ALREADY resolved,
-   * so the loop body pays no `get` per entity (testCore perf.layout, `query.get`).
+   * so the loop body pays no `get` per entity (testData perf.layout, `query.get`).
    *
    * `fn(id, data0, data1, data2, data3)` — data in token order, up to the FOURTH token;
    * a match on a fifth or later token still gates the visit, but read its data with `get`

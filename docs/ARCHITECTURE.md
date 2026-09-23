@@ -8,8 +8,8 @@ module's contract lives in JSDoc at its owning declaration, and the project fold
 
 Routing rule: the code is the primary reference. Before designing or modifying an area, read its
 owning files' JSDoc contracts, the invariants here, the quirks in GMRT.md, and — for anything on a
-per-tick or per-entity path — the hot-path idioms below and the costs `testCore`'s `perf.*` cases
-measure. An area is located through the folder tree and the `globalThis.X =` declaration that owns
+per-tick or per-entity path — the hot-path idioms below and the costs the `perf.*` cases
+measure (`testRuntime`, `testData`, `testCollision`, `testLevel`). An area is located through the folder tree and the `globalThis.X =` declaration that owns
 a name, never through a list here; a new contract goes to its owner.
 
 Doc laws — what this file may contain:
@@ -113,7 +113,7 @@ and are cited from here, never restated):
       a component of the level's own entity that its owner alone reaches through
       `entities.derive(level.self, Owner.KEY, make)`, seeded on a miss (a miss is never an error:
       a level whose derived entries are all freed mid-run ends where its untouched twin does,
-      testCore `level.self.rebuild`), MINTED so no export carries it, and freed as it leaves its
+      testLevel `level.self.rebuild`), MINTED so no export carries it, and freed as it leaves its
       slot through its own `destroy` (a detach, the level's teardown). The token is the owner —
       two modules on one KEY share one entry, as two on one component token would — so an owner
       with both a record and a derived entry keys them apart (`ColonyMap.KEY`/`RUNTIME`,
@@ -169,7 +169,7 @@ and are cited from here, never restated):
   lets the bed fast-forward skip hours while bodies still move one bounded step a frame.
 - Hot-path idioms: the runtime is a VM, so per-element constants decide the frame, not complexity
   class — a call, an allocation or a hash lookup per element is what costs, and the fix is the
-  cheap form, never a better complexity class. The costs are measured, not remembered: `testCore`'s
+  cheap form, never a better complexity class. The costs are measured, not remembered: the
   `perf.*` cases are the record (one `[BENCH]` line per op through `sceneTest`), a same-run ratio
   only; a per-op claim in a comment is a measure there, and the ratio that would retire an idiom is
   a `TODO` at the idiom's site citing its measure, walked on a runtime upgrade (TODO.md → Planned).
@@ -206,7 +206,7 @@ and are cited from here, never restated):
 - AABB convention: every collision/geometry consumer derives world-space edges through
   `AABB.edges(pos, box)` / `AABB.of(entities, id)` — never inline `pos.x + box.x` (the non-uniform
   BBox anchor lives in one place). The overlap test is `AABB.overlap`, except in a per-candidate
-  loop, which inlines it — the call is about twice the test (testCore perf.measured
+  loop, which inlines it — the call is about twice the test (testRuntime perf.measured
   `aabb.overlap`). The collision itself is the runtime's, over each collider's mirror instance
   (`PuppetSystem`): a query, a cast or a move goes through `Puppet`/`Solid`, never a JS sweep.
 - Injection idiom: a module stays model-agnostic by exposing a hook its consumer wires at scene
