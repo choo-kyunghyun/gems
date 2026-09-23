@@ -87,7 +87,7 @@ globalThis.World = {
    * component data objects, so they survive the remove/flush (see Row).
    *
    * A minted component (Table.mint) does not travel: the puppet goes with the source
-   * store's slot (its release hook — Puppets), and the destination re-mints its own on its first
+   * store's slot (its release hook — PuppetSystem), and the destination re-mints its own on its first
    * pass; a path or a diff baseline is likewise the destination's.
    */
   take(mapId, id) {

@@ -11,7 +11,7 @@
  * serializes nor transfers — a snapshot, load, or map transfer drops it and the feature system
  * re-attaches (Rig.mint).
  *
- * Puppets alone mints (with the release hook that destroys the instance) — presence of this
+ * PuppetSystem alone mints (with the release hook that destroys the instance) — presence of this
  * component IS "a live puppet exists", so a consumer releases one by detaching the component
  * (or removing the entity) and the puppet goes with it.
  *

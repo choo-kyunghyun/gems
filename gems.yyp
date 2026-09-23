@@ -358,7 +358,6 @@
     {"id":{"name":"Progression","path":"scripts/Progression/Progression.yy",},},
     {"id":{"name":"Projectile","path":"scripts/Projectile/Projectile.yy",},},
     {"id":{"name":"ProjectileSystem","path":"scripts/ProjectileSystem/ProjectileSystem.yy",},},
-    {"id":{"name":"Puppets","path":"scripts/Puppets/Puppets.yy",},},
     {"id":{"name":"PuppetSystem","path":"scripts/PuppetSystem/PuppetSystem.yy",},},
     {"id":{"name":"Query","path":"scripts/Query/Query.yy",},},
     {"id":{"name":"QuestLog","path":"scripts/QuestLog/QuestLog.yy",},},

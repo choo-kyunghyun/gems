@@ -1,6 +1,6 @@
 /**
  * Segment casts over the mirrors (PuppetSystem): one `collision_line_list` over `Puppet` —
- * every collider's instance, a Solid's included — from the parked probe (Puppets.probe), then
+ * every collider's instance, a Solid's included — from the parked probe (PuppetSystem.probe), then
  * each hit's bbox through the slab test for the entry point, the normal and `t`, since the
  * runtime's list orders by an instance's ORIGIN distance and carries no point. A solid-off
  * collider wears the empty mask, so it never lists (a corpse or an open door is not a hit), and
@@ -39,7 +39,7 @@ globalThis.Raycast = {
     if (Raycast._list === -1) Raycast._list = ds_list_create();
     const list = Raycast._list;
     ds_list_clear(list);
-    const found = Puppets.probe().collision_line_list(
+    const found = PuppetSystem.probe().collision_line_list(
       x0,
       y0,
       x1,

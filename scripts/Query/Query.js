@@ -31,14 +31,14 @@ globalThis.Query = {
   /** The solid colliders whose mask overlaps the rect. */
   maskRect(entities, x1, y1, x2, y2, opts = {}) {
     const list = Query._ready();
-    const found = Puppets.probe().collision_rectangle_list(x1, y1, x2, y2, Puppet, false, true, list, false);
+    const found = PuppetSystem.probe().collision_rectangle_list(x1, y1, x2, y2, Puppet, false, true, list, false);
     return Query._ids(entities, list, found, opts.has);
   },
 
   /** The solid colliders whose mask overlaps the circle. */
   maskRadius(entities, x, y, radius, opts = {}) {
     const list = Query._ready();
-    const found = Puppets.probe().collision_circle_list(x, y, radius, Puppet, false, true, list, false);
+    const found = PuppetSystem.probe().collision_circle_list(x, y, radius, Puppet, false, true, list, false);
     return Query._ids(entities, list, found, opts.has);
   },
 

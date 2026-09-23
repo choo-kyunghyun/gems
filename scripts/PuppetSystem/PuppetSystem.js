@@ -1,13 +1,21 @@
 /**
- * The puppet as the entity's mirror: every collider owns one instance (`Puppets`), and this
- * ticker keeps it a live copy of the components at the sim head — the mask off `BBox`
- * (`pixMaskUnit` under `image_xscale`/`image_yscale` = box / MASK, the runtime having no
- * shaped mask at runtime — docs/GMRT.md), the instance's x/y at the box's centre off
- * `Position` every tick for a mover and once for a kinematic (a kinematic never moves —
- * `Colliders`' static-is-static premise), `Collision.solid` as the mask (`pixMaskNone` while
- * off, so a corpse or an open door answers no query yet still draws), and `eid`, the entity
- * behind the instance a query reads back. The components stay the truth: nothing reads a
- * position off the instance, and a writer of Position calls nothing — the next update sees it.
+ * The puppet as the entity's mirror. Owner of every Puppet's lifetime — the ONLY caller of
+ * instance_create/instance_destroy, which is what lets two features share one instance per
+ * entity instead of each minting its own: `attach` mints the entity's Instance as a TRANSIENT
+ * component with a release hook (Table.mint), so the puppet goes when the component does — a
+ * detach, the entity's removal at flush, a whole-entity transfer, a level's teardown — and
+ * nothing holds an id across frames to reap it. The object is the query filter: a kinematic
+ * collider is a `Solid`, `Puppet`'s child, so `Puppet` names every mirror and `Solid` the
+ * statics alone.
+ *
+ * The ticker keeps each collider's instance a live copy of the components at the sim head —
+ * the mask off `BBox` (`pixMaskUnit` under `image_xscale`/`image_yscale` = box / MASK, the
+ * runtime having no shaped mask at runtime — docs/GMRT.md), the instance's x/y at the box's
+ * centre off `Position` every tick for a mover and once for a kinematic (a kinematic never
+ * moves — `Colliders`' static-is-static premise), `Collision.solid` as the mask (`pixMaskNone`
+ * while off, so a corpse or an open door answers no query yet still draws), and `eid`, the
+ * entity behind the instance a query reads back. The components stay the truth: nothing reads
+ * a position off the instance, and a writer of Position calls nothing — the next update sees it.
  *
  * The walk is THE collider walk of a tick: it also lists the kinematic carriers for the level's
  * Colliders (`colliders` — its derived entry, seeded on the first read), whose fingerprint
@@ -22,12 +30,69 @@
  * The built-ins are room-global, so a parked level's mirrors leave every query through `park`
  * (deactivated, still held) and come back through `thaw` — which activates EVERY instance, the
  * per-instance activate being inert (docs/GMRT.md), so the caller parks the other pooled levels
- * again after it (ColonyTravel.resume); a puppet released while parked is destroyed there too
- * (Puppets.reap).
+ * again after it (ColonyTravel.resume); a puppet released while parked waits on the doomed list
+ * for that thaw, the one point that can destroy it (`reap`).
  */
 globalThis.PuppetSystem = {
   KEY: "colliders", // its derived token on the level's own entity — the Colliders
   MASK: 32, // the unit mask sprite's side (px)
+  _probe: null,
+  _doomed: [],
+
+  /**
+   * The entity's puppet, minted on first call. Returns the Instance component data so a caller
+   * that just attached reads `inst` without a second `get`; the mirror fields (Instance) start
+   * unshaped, for `update` to fill.
+   */
+  attach(entities, id) {
+    const held = entities.get(id, Instance);
+    if (held !== undefined) return held;
+    const col = entities.get(id, Collision);
+    const obj = col !== undefined && col.kinematic === true ? Solid : Puppet;
+    const data = {
+      inst: instance_create_depth(0, 0, 0, obj),
+      rigged: false,
+      shaped: false,
+      still: false,
+      solid: false,
+      sx: 1,
+      sy: 1,
+      ox: 0,
+      oy: 0,
+    };
+    entities.mint(id, Instance, data, PuppetSystem._release);
+    return data;
+  },
+
+  /**
+   * The parked instance a query runs in — a collision built-in needs an instance self — off
+   * every level with the empty mask, made on first use and kept for the run.
+   */
+  probe() {
+    if (PuppetSystem._probe === null) {
+      const p = instance_create_depth(-4096, -4096, 0, Puppet);
+      p.mask_index = pixMaskNone;
+      PuppetSystem._probe = p;
+    }
+    return PuppetSystem._probe;
+  },
+
+  /**
+   * The release hook: the component left its slot, so the puppet goes with it. A parked
+   * level's puppet is deactivated, which `instance_destroy` silently skips and no per-instance
+   * activate can undo (docs/GMRT.md), so it waits on the doomed list for the next `reap`.
+   */
+  _release(data) {
+    if (instance_exists(data.inst)) instance_destroy(data.inst);
+    else PuppetSystem._doomed.push(data.inst);
+  },
+
+  /** Destroy the released puppets a park kept alive — right after an `instance_activate_all`. */
+  reap() {
+    const doomed = PuppetSystem._doomed;
+    for (let i = 0; i < doomed.length; i++) instance_destroy(doomed[i]);
+    doomed.length = 0;
+  },
 
   /** The level's Colliders, baked: a level this system has not walked yet takes a walk here. */
   colliders(level) {
@@ -50,7 +115,7 @@ globalThis.PuppetSystem = {
     let w = 0;
     entities.forEach([Collision, Position, BBox], (id, col, pos, box) => {
       let h = held[id & mask];
-      if (h === undefined) h = Puppets.attach(entities, id);
+      if (h === undefined) h = PuppetSystem.attach(entities, id);
       if (!h.shaped) PuppetSystem._shape(h, id, col, pos, box);
       const inst = h.inst;
       if (col.solid !== h.solid) {
@@ -106,6 +171,6 @@ globalThis.PuppetSystem = {
   /** Bring a parked level's mirrors back — and every other parked level's with them (above). */
   thaw(level) {
     instance_activate_all();
-    Puppets.reap();
+    PuppetSystem.reap();
   },
 };

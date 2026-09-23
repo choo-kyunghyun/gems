@@ -1986,7 +1986,7 @@ globalThis.testCore = {
         };
         ctx.insts = []; // every instance made here beyond the mirrors, for teardown
         ctx.list = ds_list_create();
-        ctx.probe = Puppets.probe(); // the scope the built-ins run in
+        ctx.probe = PuppetSystem.probe(); // the scope the built-ins run in
 
         // the statics: random 32-128 px boxes on the cell lattice
         ctx.staticIds = [];
