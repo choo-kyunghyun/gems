@@ -1,7 +1,8 @@
-// Move-and-raycast for free projectiles (guns are hitscan). Each tick raycasts the motion: a bullet
-// damages a hit Health and is spent on any impact (wall, ally, or hit); a lob arcs over bodies and
-// stops where it meets a structure (Combat.isStructure) or where its range runs out, and lies there
-// for its Fuse. A projectile carries no Collision, so it is invisible to Raycast/Solid.
+// Move-and-cast for free projectiles (guns are hitscan). Each tick casts the motion (Query.cast):
+// a bullet damages a hit Health and is spent on any impact (wall, ally, or hit); a lob arcs over
+// bodies and stops where it meets a structure (Combat.isStructure) or where its range runs out,
+// and lies there for its Fuse. A projectile carries no Collision, so neither a cast nor the solid
+// pass sees it.
 const LAND_GAP = 1; // px a lob rests off the surface it struck, along the surface normal
 
 globalThis.ProjectileSystem = {
@@ -28,7 +29,7 @@ globalThis.ProjectileSystem = {
       const hit =
         proj.lob === true
           ? ProjectileSystem._structure(level, pos.x, pos.y, x1, y1, proj.owner)
-          : Raycast.cast(level, pos.x, pos.y, x1, y1, { ignore: proj.owner });
+          : Query.cast(entities, pos.x, pos.y, x1, y1, { ignore: proj.owner });
 
       if (hit === null) {
         pos.x = x1;
@@ -78,7 +79,7 @@ globalThis.ProjectileSystem = {
    * flown over. castAll allocates per step; only a lob in flight pays it.
    */
   _structure(level, x0, y0, x1, y1, owner) {
-    const all = Raycast.castAll(level, x0, y0, x1, y1, { ignore: owner });
+    const all = Query.castAll(level.entities, x0, y0, x1, y1, { ignore: owner });
     for (let i = 0; i < all.length; i++) {
       if (Combat.isStructure(level.entities, all[i].id)) return all[i];
     }

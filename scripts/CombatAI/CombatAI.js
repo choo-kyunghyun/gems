@@ -136,7 +136,7 @@ globalThis.CombatAI = {
             brain.losCd -= Time.step;
           } else {
             brain.losCd = brain.losRate;
-            const hit = Raycast.cast(level, sp.x, sp.y, tp.x, tp.y, {
+            const hit = Query.cast(entities, sp.x, sp.y, tp.x, tp.y, {
               ignore: id,
             });
             brain.losBlocked =

@@ -1,7 +1,8 @@
 // Core/Collision and Puppet cases: SolidSystem and SeparationSystem over the mirrors
-// PuppetSystem keeps, the collider fingerprint, AABB, Query, Raycast, the runtime's mask
-// queries, and perf.builtin, the runtime's collision built-ins against Core/Collision. Every
-// case here references Core only; the case contract and the perf.* rule are Test's.
+// PuppetSystem keeps, the collider fingerprint, AABB, Query (the position walks, the runtime's
+// mask queries and the segment casts), and perf.builtin, the runtime's collision built-ins
+// against Core/Collision. Every case here references Core only; the case contract and the
+// perf.* rule are Test's.
 
 const N = 4000; // the perf.builtin loop length
 const BENCH_STATICS = 200; // perf.builtin's statics
@@ -305,17 +306,18 @@ Test.register(Test.CHECK, [
     },
   },
   {
-    id: "collision.raycast",
+    id: "collision.cast",
     setup(ctx) {
       ctx.level = new Level({ id: "test", capacity: 8 });
       const s = ctx.level.entities;
       ctx.entities = s;
       ctx.wall = Colliders.box(s, 100, 0, 32, 64);
-      PuppetSystem.update(ctx.level); // the wall's mirror, which the cast lists
+      ctx.far = Colliders.box(s, 150, 0, 32, 64); // a second wall on the same line, for castAll
+      PuppetSystem.update(ctx.level); // the walls' mirrors, which the cast lists
     },
     verify(ctx, t) {
       const s = ctx.entities;
-      const hit = Raycast.cast(ctx.level, 0, 16, 200, 16);
+      const hit = Query.cast(s, 0, 16, 200, 16);
       t.ok(hit !== null, "a segment through the wall hits");
       if (hit !== null) {
         t.eq(hit.id, ctx.wall, "hit id is the wall");
@@ -324,15 +326,25 @@ Test.register(Test.CHECK, [
         t.eq(hit.nx, -1, "normal points back along the ray");
       }
       t.eq(
-        Raycast.cast(ctx.level, 0, 16, 90, 16),
+        Query.cast(s, 0, 16, 90, 16),
         null,
         "a segment short of the wall misses",
       );
       t.eq(
-        Raycast.cast(ctx.level, 0, 80, 200, 80),
+        Query.cast(s, 0, 80, 200, 80),
         null,
         "a segment beside the wall misses",
       );
+      const all = Query.castAll(s, 0, 16, 200, 16);
+      t.eq(all.length, 2, "castAll lists every wall the segment crosses");
+      if (all.length === 2) {
+        t.eq(all[0].id, ctx.wall, "ascending by t: the near wall first");
+        t.eq(all[1].id, ctx.far, "then the far wall");
+        t.ok(all[0].t < all[1].t, "t ascends");
+      }
+      const rest = Query.castAll(s, 0, 16, 200, 16, { ignore: ctx.wall });
+      t.eq(rest.length, 1, "ignore drops the named entity");
+      if (rest.length === 1) t.eq(rest[0].id, ctx.far, "and the far wall remains");
     },
     teardown(ctx) {
       ctx.level.destroy();
@@ -344,7 +356,7 @@ Test.register(Test.CHECK, [
   // Puppet a body, `eid` the entity behind it) at the colony's shape: 500 bodies, ~200 statics.
   // Each row is a built-in against the JS form; every built-in runs instance-scoped (a
   // collision call throws outside one), and a hit is read back through the DS list and its
-  // `eid` — the price a replacement pays, not a benchmark shortcut. Raycast.cast rides
+  // `eid` — the price a replacement pays, not a benchmark shortcut. Query.cast rides
   // collision_line_list itself now, so its row is a cast's cost and the collision_line row
   // what a hit-or-miss alone costs. The checks record where the two agree and differ: the
   // runtime keeps a fractional bbox (docs/GMRT.md), and rectangle_in_rectangle counts a
@@ -595,17 +607,17 @@ Test.register(Test.CHECK, [
       });
       t.ok(gmCand >= 0, "instance_place_list lists the statics a body overlaps: " + gmCand);
 
-      // ── Raycast.cast vs collision_line (a line of sight) and collision_line_list + slab (a hit point)
+      // ── Query.cast vs collision_line (a line of sight) and collision_line_list + slab (a hit point)
       const segs = ctx.segs;
       const ns = segs.length;
       const jsHits = new Array(ns);
       const gmHits = new Array(ns);
       const targets = Puppet; // a Solid is its child
-      t.measure("raycast.cast", ns, Test.empty(ns), () => {
+      t.measure("query.cast", ns, Test.empty(ns), () => {
         let acc = 0;
         for (let k = 0; k < ns; k++) {
           const g = segs[k];
-          const hit = Raycast.cast(level, g.x0, g.y0, g.x1, g.y1);
+          const hit = Query.cast(s, g.x0, g.y0, g.x1, g.y1);
           jsHits[k] = hit;
           if (hit !== null) acc++;
         }
@@ -624,7 +636,7 @@ Test.register(Test.CHECK, [
       });
       let disagree = 0;
       for (let k = 0; k < ns; k++) if ((jsHits[k] !== null) !== gmHits[k]) disagree++;
-      t.eq(disagree, 0, "collision_line agrees with Raycast.cast on a line of sight");
+      t.eq(disagree, 0, "collision_line agrees with Query.cast on a line of sight");
       let nearestAgree = 0;
       let nearestBoth = 0;
       t.measure("builtin.collision_line_list.nearest", ns, Test.empty(ns), () => {
@@ -641,7 +653,7 @@ Test.register(Test.CHECK, [
           const dy = g.y1 - g.y0;
           for (let j = 0; j < found; j++) {
             const h = ds_list_find_value(list, j);
-            const r = Raycast._segmentAABB(
+            const r = Query._slab(
               g.x0,
               g.y0,
               dx,

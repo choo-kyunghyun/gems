@@ -2,8 +2,8 @@
 // the injected `mitigate` hook. Only subtracts hp; the reaction at <=0 hp is the Mortal death pass.
 /**
  * The colony wires its defense formula in sceneColony.create, so the applier itself never reads a stat
- * sheet — hitscan needs only Health + Faction. A cast (hitscan, explode) takes the LEVEL — Raycast
- * reads its collider cache; the appliers take the store.
+ * sheet — hitscan needs only Health + Faction. A cast (hitscan, explode) takes the LEVEL; the
+ * segment cast (Query.castAll) and the appliers take its store.
  */
 globalThis.Combat = {
   // injected defense formula — default identity; colony overrides with max(1, amount-max(0,defense-pen))
@@ -30,7 +30,7 @@ globalThis.Combat = {
     const owner = opts.owner;
     const pen = opts.penetration ?? 0;
     let remaining = opts.pierce ?? 1;
-    const all = Raycast.castAll(level, x0, y0, x1, y1, { ignore: owner });
+    const all = Query.castAll(entities, x0, y0, x1, y1, { ignore: owner });
     const hits = [];
     let endX = x1;
     let endY = y1;
@@ -98,7 +98,7 @@ globalThis.Combat = {
 
   /** true when a structure lies on the segment; bodies are looked through */
   _shadowed(level, x0, y0, x1, y1, owner) {
-    const all = Raycast.castAll(level, x0, y0, x1, y1, { ignore: owner });
+    const all = Query.castAll(level.entities, x0, y0, x1, y1, { ignore: owner });
     for (let i = 0; i < all.length; i++) {
       if (Combat.isStructure(level.entities, all[i].id)) return true;
     }
