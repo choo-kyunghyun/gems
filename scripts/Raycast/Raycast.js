@@ -1,21 +1,18 @@
 /**
- * Segment casts against the SOLID colliders, both halves off the level's Colliders (SolidSystem's
- * per-tick bake — the store holds ~80% statics, so no cast scans it): the kinematic solids through
- * the bake's bucket grid (a DDA walk — a cast costs the cells it crosses), the dynamic bodies through
- * its body list, with `solid` read live (a corpse or an open door is not a hit). A hit is
- * { id, x, y, nx, ny, t }, nx/ny the surface normal pointing back along the ray, t the segment
- * parameter (0 = start, clamped to 0 when the start is inside). Both lists can lag a removal by a
- * tick, so a hit's id is validated against the store.
- * Every cast takes the LEVEL (its collider cache).
+ * Segment casts over the mirrors (PuppetSystem): one `collision_line_list` over `Puppet` —
+ * every collider's instance, a Solid's included — from the parked probe (Puppets.probe), then
+ * each hit's bbox through the slab test for the entry point, the normal and `t`, since the
+ * runtime's list orders by an instance's ORIGIN distance and carries no point. A solid-off
+ * collider wears the empty mask, so it never lists (a corpse or an open door is not a hit), and
+ * a parked level's mirrors are deactivated. A hit is { id, x, y, nx, ny, t }, nx/ny the surface
+ * normal pointing back along the ray, t the segment parameter (0 = start, clamped to 0 when the
+ * start is inside). The mirrors are as of this tick's PuppetSystem.update, so a hit's id is
+ * still validated against the store. Every cast takes the LEVEL (its store).
  *   opts: { ignore? (id) }
  */
 globalThis.Raycast = {
-  _rect: AABB.rect(), // reused per-candidate edges (docs/ARCHITECTURE.md → Hot-path idioms)
+  _list: -1, // the runtime's hit list, made on first use and kept for the run
   _hits: [], // cast()'s scratch — holds the one nearest hit while collecting
-  // per static index, the cast that last tested it: a multi-cell static sits in every bucket it
-  // spans, and this is the dedupe (a generation stamp, never a fill — docs/ARCHITECTURE.md → Hot-path idioms)
-  _seen: [],
-  _gen: 0,
 
   /** Nearest hit along (x0,y0)->(x1,y1), or null. */
   cast(level, x0, y0, x1, y1, opts = {}) {
@@ -34,57 +31,49 @@ globalThis.Raycast = {
     return hits;
   },
 
-  /**
-   * Both halves into `hits`. `nearest` keeps only the closest (the bodies go first, so their best t
-   * bounds the static walk, which then stops at the first cell entered past it).
-   */
+  /** The runtime's list into `hits`; `nearest` keeps only the closest. */
   _collect(level, x0, y0, x1, y1, ignore, hits, nearest) {
     const entities = level.entities;
     const dx = x1 - x0;
     const dy = y1 - y0;
-    const rect = Raycast._rect;
+    if (Raycast._list === -1) Raycast._list = ds_list_create();
+    const list = Raycast._list;
+    ds_list_clear(list);
+    const found = Puppets.probe().collision_line_list(
+      x0,
+      y0,
+      x1,
+      y1,
+      Puppet,
+      false,
+      true,
+      list,
+      false,
+    );
     let bestT = Infinity;
-
-    const colliders = SolidSystem.colliders(level);
-    colliders.eachBody((id, col, pos, box) => {
-      if (id === ignore) return;
-      if (!col.solid) return;
-      const e = AABB.edgesInto(pos, box, rect);
-      const r = Raycast._segmentAABB(x0, y0, dx, dy, e.x1, e.y1, e.x2, e.y2);
-      if (r === null) return;
-      if (!entities.isValid(id)) return; // removed since the list (Colliders.eachBody)
+    for (let k = 0; k < found; k++) {
+      const inst = ds_list_find_value(list, k);
+      const id = inst.eid;
+      if (id === undefined) continue; // a Puppet that mirrors no entity (a probe, a test's doll)
+      if (id === ignore) continue;
+      const r = Raycast._segmentAABB(
+        x0,
+        y0,
+        dx,
+        dy,
+        inst.bbox_left,
+        inst.bbox_top,
+        inst.bbox_right,
+        inst.bbox_bottom,
+      );
+      if (r === null) continue;
+      if (!entities.isValid(id)) continue; // removed since the mirror's sync (PuppetSystem)
       if (nearest) {
-        if (r.t >= bestT) return;
+        if (r.t >= bestT) continue;
         bestT = r.t;
       }
       Raycast._add(hits, nearest, id, r, x0, y0, dx, dy);
-    });
-
-    const statics = colliders.statics;
-    const seen = Raycast._seen;
-    while (seen.length < statics.length) seen.push(0);
-    const gen = ++Raycast._gen;
-    colliders.walk(x0, y0, x1, y1, (bucket, tEntry) => {
-      if (nearest) {
-        if (tEntry > bestT) return false;
-      }
-      for (let k = 0; k < bucket.length; k++) {
-        const i = bucket[k];
-        if (seen[i] === gen) continue;
-        seen[i] = gen;
-        const s = statics[i];
-        if (s.id === ignore) continue;
-        const r = Raycast._segmentAABB(x0, y0, dx, dy, s.x1, s.y1, s.x2, s.y2);
-        if (r === null) continue;
-        if (!entities.isValid(s.id)) continue; // removed since the bake (Colliders.statics)
-        if (nearest) {
-          if (r.t >= bestT) continue;
-          bestT = r.t;
-        }
-        Raycast._add(hits, nearest, s.id, r, x0, y0, dx, dy);
-      }
-      return true;
-    });
+    }
   },
 
   _add(hits, nearest, id, r, x0, y0, dx, dy) {

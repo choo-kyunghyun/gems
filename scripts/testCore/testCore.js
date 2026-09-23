@@ -1090,7 +1090,7 @@ globalThis.testCore = {
         const s = ctx.level.entities;
         ctx.entities = s;
         ctx.wall = Colliders.box(s, 100, 0, 32, 64);
-        SolidSystem.update(ctx.level); // takes the static snapshot the cast walks
+        PuppetSystem.update(ctx.level); // the wall's mirror, which the cast lists
       },
       verify(ctx, t) {
         const s = ctx.entities;
@@ -1920,14 +1920,15 @@ globalThis.testCore = {
     },
     // ── perf.builtin: the runtime's collision built-ins against Core/Collision ────────
     // What replacing AABB / Broadphase / Colliders / Query / Raycast with the runtime's instance
-    // collision would cost and change. Every collider gets a mask instance a tick would keep in
-    // sync (TestSolid a static, Puppet a body, `eid` the entity behind it), and each row is a
-    // built-in against the JS form over the colony's shape: 500 bodies, ~200 statics. Every
-    // built-in runs instance-scoped (a collision call throws outside one), and a hit is read
-    // back through the DS list and its `eid` — the price a replacement pays, not a benchmark
-    // shortcut. The checks record where the two agree and differ: the runtime keeps a fractional
-    // bbox (docs/GMRT.md), and rectangle_in_rectangle counts a touching edge where AABB.overlap
-    // is strict.
+    // collision costs and changes, over the mirrors PuppetSystem keeps (a Solid a static, a
+    // Puppet a body, `eid` the entity behind it) at the colony's shape: 500 bodies, ~200 statics.
+    // Each row is a built-in against the JS form; every built-in runs instance-scoped (a
+    // collision call throws outside one), and a hit is read back through the DS list and its
+    // `eid` — the price a replacement pays, not a benchmark shortcut. Raycast.cast rides
+    // collision_line_list itself now, so its row is a cast's cost and the collision_line row
+    // what a hit-or-miss alone costs. The checks record where the two agree and differ: the
+    // runtime keeps a fractional bbox (docs/GMRT.md), and rectangle_in_rectangle counts a
+    // touching edge where AABB.overlap is strict.
     {
       id: "perf.builtin",
       frames: 2, // the masks land on the instances after their first step
@@ -1943,13 +1944,11 @@ globalThis.testCore = {
           seed = (seed * 48271) % 2147483647;
           return seed / 2147483647;
         };
-        ctx.insts = []; // every instance made here, for teardown
+        ctx.insts = []; // every instance made here beyond the mirrors, for teardown
         ctx.list = ds_list_create();
-        ctx.layer = layer_create(0, "BenchInstances"); // an explicit layer, not a depth-managed one
-        ctx.probe = instance_create_layer(-4000, -4000, ctx.layer, Puppet); // the scope the built-ins run in, parked off-level
-        ctx.insts.push(ctx.probe);
+        ctx.probe = Puppets.probe(); // the scope the built-ins run in
 
-        // the statics: random 32-128 px boxes on the cell lattice, each mirrored by a TestSolid
+        // the statics: random 32-128 px boxes on the cell lattice
         ctx.staticIds = [];
         for (let k = 0; k < BENCH_STATICS; k++) {
           const x = 32 * Math.floor(rand() * 60);
@@ -1958,15 +1957,9 @@ globalThis.testCore = {
           const h = 32 * (1 + Math.floor(rand() * 4));
           const id = Colliders.box(s, x, y, w, h);
           ctx.staticIds.push(id);
-          const inst = instance_create_layer(x, y, ctx.layer, TestSolid);
-          inst.image_xscale = w / 32;
-          inst.image_yscale = h / 32;
-          inst.depth = id; // the entity behind the instance, carried on a built-in the mask ignores
-          ctx.insts.push(inst);
         }
 
-        // the bodies: 12 px centred boxes at integer positions (so the bboxes agree exactly),
-        // each mirrored by a Puppet at the box's centre
+        // the bodies: 12 px centred boxes at integer positions (so the bboxes agree exactly)
         const n = BENCH_BODIES;
         ctx.n = n;
         ctx.bodyIds = new Array(n);
@@ -1983,16 +1976,12 @@ globalThis.testCore = {
           s.add(id, BBox, box);
           s.add(id, Collision, { solid: true });
           s.add(id, Velocity, { x: 0, y: 0, z: 0 });
-          const inst = instance_create_layer(px, py, ctx.layer, Puppet); // centre-origin mask
-          inst.image_xscale = 12 / 32;
-          inst.image_yscale = 12 / 32;
-          inst.depth = id; // the entity behind the instance, carried on a built-in the mask ignores
           ctx.bodyIds[i] = id;
           ctx.bodyPos[i] = pos;
           ctx.bodyBox[i] = box;
-          ctx.bodyInst[i] = inst;
-          ctx.insts.push(inst);
         }
+        PuppetSystem.update(level); // the mirrors
+        for (let i = 0; i < n; i++) ctx.bodyInst[i] = s.get(ctx.bodyIds[i], Instance).inst;
         ctx.colliders = SolidSystem.colliders(level); // the bake the JS rows read
 
         // rect pairs for the overlap row (perf.measured's shape)
@@ -2037,10 +2026,10 @@ globalThis.testCore = {
 
         // ── the mirror holds: an instance carries its entity and the bbox the components give
         const b0 = bodyInst[0];
-        t.eq(b0.depth, ctx.bodyIds[0], "an instance variable set from JS reads back");
+        t.eq(b0.eid, ctx.bodyIds[0], "eid reads back");
         t.eq(b0.bbox_left, bodyPos[0].x - 6, "a body's mask left edge");
         t.eq(b0.bbox_right - b0.bbox_left, 12, "a body's mask width");
-        const s0 = ctx.insts[1];
+        const s0 = s.get(ctx.staticIds[0], Instance).inst;
         t.eq(s0.bbox_left, s.get(ctx.staticIds[0], Position).x, "a static's mask left edge");
 
         // ── semantics: touching edges, and a fractional position
@@ -2051,7 +2040,7 @@ globalThis.testCore = {
           "AABB: touching edges do not overlap",
         );
         Log.info("[BENCH] builtin.touching rectangle_in_rectangle " + touch);
-        const fa = instance_create_layer(500.5, 500.5, ctx.layer, Puppet);
+        const fa = instance_create_depth(500.5, 500.5, 0, Puppet);
         ctx.insts.push(fa);
         Log.info("[BENCH] builtin.fractional x 500.5 -> bbox_left " + fa.bbox_left + " right " + fa.bbox_right);
 
@@ -2132,7 +2121,10 @@ globalThis.testCore = {
             ds_list_clear(list);
             const found = probe.collision_rectangle_list(q.x1, q.y1, q.x2, q.y2, Puppet, false, true, list, false);
             const set = new Set();
-            for (let j = 0; j < found; j++) set.add(ds_list_find_value(list, j).depth);
+            for (let j = 0; j < found; j++) {
+              const eid = ds_list_find_value(list, j).eid;
+              if (eid !== undefined) set.add(eid); // the fractional probe mirrors no entity
+            }
             gmSets.push(set);
             acc += found;
           }
@@ -2174,13 +2166,18 @@ globalThis.testCore = {
           bp.pairs(pairFn);
           return jsPairs;
         });
+        const bodySet = new Set(); // a Puppet query lists the Solids too: keep the bodies
+        for (let i = 0; i < n; i++) bodySet.add(ctx.bodyIds[i]);
         t.measure("builtin.instance_place_list.bodies", n, _testEmpty(n), () => {
           let acc = 0;
           for (let i = 0; i < n; i++) {
             const inst = bodyInst[i];
             ds_list_clear(list);
             const found = inst.instance_place_list(inst.x, inst.y, Puppet, list, false);
-            for (let j = 0; j < found; j++) acc += ds_list_find_value(list, j).depth > 0 ? 1 : 0;
+            for (let j = 0; j < found; j++) {
+              const eid = ds_list_find_value(list, j).eid;
+              if (eid !== undefined) acc += bodySet.has(eid) ? 1 : 0; // never an undefined key (docs/GMRT.md)
+            }
           }
           gmPairs = acc;
           return acc;
@@ -2228,7 +2225,7 @@ globalThis.testCore = {
           for (let i = 0; i < n; i++) {
             const inst = bodyInst[i];
             ds_list_clear(list);
-            const found = inst.instance_place_list(inst.x, inst.y, TestSolid, list, false);
+            const found = inst.instance_place_list(inst.x, inst.y, Solid, list, false);
             for (let j = 0; j < found; j++) {
               const h = ds_list_find_value(list, j);
               acc += h.bbox_left + h.bbox_top + h.bbox_right + h.bbox_bottom > 0 ? 1 : 0;
@@ -2244,7 +2241,7 @@ globalThis.testCore = {
         const ns = segs.length;
         const jsHits = new Array(ns);
         const gmHits = new Array(ns);
-        const targets = [TestSolid, Puppet];
+        const targets = Puppet; // a Solid is its child
         t.measure("raycast.cast", ns, _testEmpty(ns), () => {
           let acc = 0;
           for (let k = 0; k < ns; k++) {
@@ -2298,7 +2295,7 @@ globalThis.testCore = {
               if (r === null) continue;
               if (r.t < bestT) {
                 bestT = r.t;
-                bestId = h.depth;
+                bestId = h.eid;
               }
             }
             if (bestId !== -1) acc++;
@@ -2328,14 +2325,13 @@ globalThis.testCore = {
         });
         t.measure("builtin.move_and_collide", n, _testEmpty(n), () => {
           let acc = 0;
-          for (let i = 0; i < n; i++) acc += array_length(bodyInst[i].move_and_collide(1, 1, TestSolid));
+          for (let i = 0; i < n; i++) acc += array_length(bodyInst[i].move_and_collide(1, 1, Solid));
           return acc;
         });
       },
       teardown(ctx) {
         for (let i = 0; i < ctx.insts.length; i++) instance_destroy(ctx.insts[i]);
         ds_list_destroy(ctx.list);
-        layer_destroy(ctx.layer);
         ctx.level.destroy();
       },
     },

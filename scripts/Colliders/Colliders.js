@@ -4,12 +4,12 @@
  * records (`statics`) and bucketed by AABB span into a cell grid (`buckets` over `cols`×`rows`
  * cells of `cell` px, parallel-array buckets — GMRT: no object-keyed Map/Set — with `minX`/`minY`,
  * how far the statics overhang below the grid's origin: the border boxes sit at -cell..0, a
- * static there is clamped into the edge cell, and `walk`'s clip reaches down to it), so a body
- * or a cast tests only the cells it touches; `gen`, the count of bakes — the signal a mirror of
+ * static there is clamped into the edge cell), so a body tests only the cells it touches;
+ * `gen`, the count of bakes — the signal a mirror of
  * the kinematic solids (NavGrid) polls by number; and the dynamic solid bodies as of the last
  * refresh — parallel arrays of the component objects themselves, reused (a stale tail past
- * `bodyCount` is never read; `bodyVels` holds undefined for a body without Velocity, listed for
- * a cast, never moved) — the one body list the integrate loop, `eachBody` and its readers share.
+ * `bodyCount` is never read; `bodyVels` holds undefined for a body without Velocity, listed,
+ * never moved) — the one body list the integrate loop, `eachBody` and its readers share.
  *
  * Everything here is derived from the store's Collision carriers: `refresh` walks them once —
  * THE collider walk of a tick (every wall is a carrier, so a walk costs the level's collider
@@ -24,11 +24,8 @@
  * whole signal (a door's leaf or a trunk turning solid flips the flag in place and re-bakes like
  * a wall built). Give a solid a Velocity (MovementSystem's job) and this goes stale.
  *
- * The bake also serves segment queries: Raycast reads the statics through `statics`/`walk` and
- * the dynamic bodies through `eachBody`, so a cast costs the cells it crosses plus the movers,
- * not the map's collider count. Both are as of the last refresh — at most one tick stale, since
- * a tick's brains fire before SolidSystem.update (sceneColony.update's order), so a collider
- * removed this frame may linger with a freed id: a reader validates a hit's id.
+ * The lists are as of the last refresh — at most one tick stale, so a collider removed this
+ * frame may linger with a freed id: a reader validates an id.
  *
  * `box`/`boxes` mint THE bare static collider — the form every wall, water rect and level edge
  * takes.
@@ -126,97 +123,6 @@ globalThis.Colliders = class Colliders {
     flags.length = w;
     this.bodyCount = b;
     if (!this._fresh(ids, flags)) this._bake(entities, ids, flags);
-  }
-
-  /**
-   * Visit the bucket grid's cells along a segment in entry order — `fn(bucket, t)` gets a cell's
-   * static indexes and the segment parameter where it enters the cell; return false to stop early.
-   * The segment is clipped to the statics' extent — the grid rect plus the overhang below 0 the
-   * edge cells absorb (minX/minY), where the walk pins to the edge cell — so nothing is missed;
-   * a multi-cell static appears in every cell it spans (and an edge cell may be visited twice), so
-   * the caller dedupes.
-   */
-  walk(x0, y0, x1, y1, fn) {
-    const cell = this.cell;
-    const cols = this.cols;
-    const rows = this.rows;
-    const dx = x1 - x0;
-    const dy = y1 - y0;
-
-    // clip the segment's parameter range to the statics' extent
-    let t0 = 0;
-    let t1 = 1;
-    if (dx !== 0) {
-      let ta = (this.minX - x0) / dx;
-      let tb = (cols * cell - x0) / dx;
-      if (ta > tb) {
-        const s = ta;
-        ta = tb;
-        tb = s;
-      }
-      if (ta > t0) t0 = ta;
-      if (tb < t1) t1 = tb;
-    } else if (x0 < this.minX || x0 >= cols * cell) return;
-    if (dy !== 0) {
-      let ta = (this.minY - y0) / dy;
-      let tb = (rows * cell - y0) / dy;
-      if (ta > tb) {
-        const s = ta;
-        ta = tb;
-        tb = s;
-      }
-      if (ta > t0) t0 = ta;
-      if (tb < t1) t1 = tb;
-    } else if (y0 < this.minY || y0 >= rows * cell) return;
-    if (t0 > t1) return;
-
-    let gx = this.clampCol(Math.floor((x0 + dx * t0) / cell));
-    let gy = this.clampRow(Math.floor((y0 + dy * t0) / cell));
-    const stepX = dx > 0 ? 1 : dx < 0 ? -1 : 0;
-    const stepY = dy > 0 ? 1 : dy < 0 ? -1 : 0;
-    // parameter at the next x / y cell boundary, and the parameter width of one cell
-    let tMaxX =
-      dx > 0
-        ? ((gx + 1) * cell - x0) / dx
-        : dx < 0
-          ? (gx * cell - x0) / dx
-          : Infinity;
-    let tMaxY =
-      dy > 0
-        ? ((gy + 1) * cell - y0) / dy
-        : dy < 0
-          ? (gy * cell - y0) / dy
-          : Infinity;
-    const tDeltaX = dx !== 0 ? cell / Math.abs(dx) : Infinity;
-    const tDeltaY = dy !== 0 ? cell / Math.abs(dy) : Infinity;
-
-    let t = t0;
-    while (true) {
-      // (no `for (;;)` — an empty for initializer fails the build, GMRT.md #15566)
-      if (fn(this.buckets[gy * cols + gx], t) === false) return;
-      if (tMaxX < tMaxY) {
-        if (tMaxX > t1) return;
-        t = tMaxX;
-        tMaxX += tDeltaX;
-        gx += stepX;
-        if (gx >= cols) return;
-        if (gx < 0) {
-          // below the origin everything is the edge column's: pin, and step only in y from here
-          gx = 0;
-          tMaxX = Infinity;
-        }
-      } else {
-        if (tMaxY > t1) return;
-        t = tMaxY;
-        tMaxY += tDeltaY;
-        gy += stepY;
-        if (gy >= rows) return;
-        if (gy < 0) {
-          gy = 0;
-          tMaxY = Infinity;
-        }
-      }
-    }
   }
 
   /**

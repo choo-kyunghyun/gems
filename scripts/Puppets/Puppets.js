@@ -34,6 +34,20 @@ globalThis.Puppets = {
     return data;
   },
 
+  /**
+   * The parked instance a query runs in — a collision built-in needs an instance self — off
+   * every level with the empty mask, made on first use and kept for the run.
+   */
+  probe() {
+    if (Puppets._probe === null) {
+      const p = instance_create_depth(-4096, -4096, 0, Puppet);
+      p.mask_index = pixMaskNone;
+      Puppets._probe = p;
+    }
+    return Puppets._probe;
+  },
+  _probe: null,
+
   /** The release hook: the component left its slot, so the puppet goes with it — activated
    *  first, since a parked level's are deactivated (GMS2 would refuse the destroy otherwise). */
   _release(data) {
