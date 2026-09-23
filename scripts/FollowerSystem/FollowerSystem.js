@@ -11,10 +11,12 @@ globalThis.FollowerSystem = {
     const playerId = ColonyPlayer.id(entities);
     const pp = entities.get(playerId, Position);
     if (pp === undefined) return;
-    entities.forEach([Follower, Velocity], (id, f, vel) => {
+    const downed = entities.column(Downed);
+    const mask = Handle.INDEX_MASK;
+    entities.forEach([Follower, Velocity, Position], (id, f, vel, pos) => {
       if (id === playerId) return;
       // returns before the doll drive, which would stand a downed body back up
-      if (entities.has(id, Downed)) {
+      if (downed[id & mask] !== undefined) {
         vel.x = 0;
         vel.y = 0;
         return;
@@ -23,7 +25,6 @@ globalThis.FollowerSystem = {
         vel.x = 0;
         vel.y = 0;
       } else {
-        const pos = entities.get(id, Position);
         const dx = pp.x - pos.x;
         const dy = pp.y - pos.y;
         const dist = Math.sqrt(dx * dx + dy * dy);

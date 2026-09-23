@@ -13,8 +13,11 @@ globalThis.ParticleEmitterSystem = {
    */
   update(level) {
     const entities = level.entities;
+    const streams = entities.column(ParticleStream);
+    const emitters = entities.column(ParticleEmitter);
+    const mask = Handle.INDEX_MASK;
     entities.forEach([ParticleEmitter, Position], (id, em) => {
-      if (entities.has(id, ParticleStream)) return;
+      if (streams[id & mask] !== undefined) return;
       if (asset_get_type(em.asset) !== asset_particlesystem) {
         Log.warn(
           `ParticleEmitter: unknown particle system "${em.asset}" — detached`,
@@ -30,7 +33,7 @@ globalThis.ParticleEmitterSystem = {
       entities.mint(id, ParticleStream, { sys: s }, ParticleEmitterSystem._release);
     });
     entities.forEach([ParticleStream], (id, st) => {
-      if (!entities.has(id, ParticleEmitter)) {
+      if (emitters[id & mask] === undefined) {
         entities.detach(id, ParticleStream);
         return;
       }

@@ -52,8 +52,10 @@ globalThis.WorldOverlay = {
       matrix_set(matrix_world, matrix_build(0, 0, -lift, 0, 0, 0, 1, 1, 1));
     }
     draw_set_color(make_colour_rgb(255, 230, 90));
+    const fuse = entities.column(Fuse);
+    const mask = Handle.INDEX_MASK;
     entities.forEach([Projectile, Position], (id, _proj, p) => {
-      if (entities.has(id, Fuse))
+      if (fuse[id & mask] !== undefined)
         draw_sprite_ext(pixItemGrenade, 0, p.x, p.y, 1, 1, 0, c_white, 1);
       else draw_circle(p.x, p.y, 4, false);
     });
