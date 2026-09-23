@@ -46,6 +46,8 @@ globalThis.Handle = class Handle {
     if (this.freeIndices.length > 0) {
       index = this.freeIndices.pop();
     } else {
+      if (this.next === this.packed.length)
+        throw new Error(`Handle.alloc: all ${this.next} slots in use`);
       index = this.next++;
       this.generations[index] = 0;
       this.packed[index] = index; // generation 0

@@ -83,6 +83,35 @@ Test.register(Test.CHECK, [
     },
   },
   {
+    // an id past the capacity would name no slot, so the store refuses it
+    id: "entity.capacity",
+    setup(ctx) {
+      ctx.entities = new Table(2);
+    },
+    verify(ctx, t) {
+      const s = ctx.entities;
+      const a = s.create();
+      s.create();
+      let thrown = false;
+      try {
+        s.create();
+      } catch (e) {
+        thrown = true;
+      }
+      t.ok(thrown, "a create past capacity throws");
+      t.eq(s.count(), 2, "the refused create allocates nothing");
+      s.remove(a);
+      s.flush();
+      const b = s.create();
+      t.ok(s.isValid(b), "a freed slot is handed out again");
+      s.add(b, Position, { x: 0, y: 0, z: 0 });
+      t.eq(s.query(Position).length, 1, "the recycled id is walked");
+    },
+    teardown(ctx) {
+      ctx.entities.destroy();
+    },
+  },
+  {
     id: "entity.flush",
     setup(ctx) {
       ctx.entities = new Table(8);
