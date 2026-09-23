@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"testCollision",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"testCollision",
+  "parent":{
+    "name":"Test",
+    "path":"folders/Game/Dev/Test.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"testCollision.js",
+}

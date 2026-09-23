@@ -1,10 +1,7 @@
-// Game-side cases, handed to sceneTest's runner between testCore and testStress — the same case
-// contract, over the Game assets testCore may not touch (it must keep running with Game
-// deleted). A case here records what the PINNED runtime does with a Game asset where the doc
-// entry (docs/SPINE.md) names a defect and the code carries the workaround: it PASSES on the
-// pinned runtime and FLIPS on the one that fixes the defect, so a run on a candidate runtime
-// reads the workarounds to retire as `[CHECK] FAIL` lines, each naming its retirement
-// (TODO.md → Planned, the runtime upgrade). A flip is a change of runtime, never a regression.
+// Game-side cases (Test → GAME): what the PINNED runtime does with a Game asset where the doc
+// entry (docs/SPINE.md, docs/GMRT.md) names a defect and the code carries the workaround, each
+// FAIL line naming the workaround to retire when it flips. The Core tiers may not touch these
+// assets.
 
 const DOLL_X = 240; // in view, so the puppet draws and the runtime poses it
 const DOLL_Y = 360;

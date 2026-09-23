@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"testCore",
+  "%Name":"testRuntime",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"testCore",
+  "name":"testRuntime",
   "parent":{
     "name":"Test",
     "path":"folders/Game/Dev/Test.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"testCore.js",
+  "scriptSource":"testRuntime.js",
 }

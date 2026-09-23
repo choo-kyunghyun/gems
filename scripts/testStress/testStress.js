@@ -1,10 +1,9 @@
-// Stress scenarios, handed to sceneTest's runner after testCore — the same case contract, plus
-// the optional `draw(ctx, t)`: a scenario stands a level up in setup, runs its own sim step in
-// `frame` for `frames` REAL frames (Time.step comes from real frame time, so a slow frame takes
-// its bigger step), draws it through the Core debug passes (no sprite — Core only), samples what a
-// frame costs (`t.sample`, reported as a distribution) and asserts what must HOLD under load —
-// never a time: a time is a sample, an assertion is a fact (no starvation, no overlap, no NaN).
-// The one screenshot per scenario is for eyes; the log line is the record.
+// Stress scenarios (Test → STRESS): a scenario stands a level up in setup, runs its own sim step
+// in `frame` for `frames` REAL frames (Time.step comes from real frame time, so a slow frame
+// takes its bigger step), draws it through the Core debug passes (no sprite — Core only),
+// samples what a frame costs (`t.sample`, reported as a distribution) and asserts what must
+// HOLD under load (no starvation, no overlap, no NaN). The one screenshot per scenario is for
+// eyes; the log line is the record.
 
 const CELL = 32;
 const COLS = 64; // 2048 px square
