@@ -5,8 +5,8 @@
  * a face by its own tangential velocity (x blocked, y free), and its Velocity is rewritten as the
  * displacement it actually made, so a reader of speed (Doll.pace) sees a body pressed into a
  * wall stand still. Every displacement a body takes goes through the runtime (SeparationSystem's
- * push too), so no body is ever inside a solid. Bodies it moves must NOT also be in
- * MovementSystem. The bake NavGrid stamps and the bare static collider are Colliders'.
+ * push too), so no body is ever inside a solid. The bake NavGrid stamps and the bare static
+ * collider are Colliders'.
  */
 globalThis.SolidSystem = {
   maxStep: 8, // the runtime's sub-step (px): keep below the thinnest collider to prevent tunneling

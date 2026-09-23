@@ -330,7 +330,6 @@
     {"id":{"name":"Mesh","path":"scripts/Mesh/Mesh.yy",},},
     {"id":{"name":"Mortal","path":"scripts/Mortal/Mortal.yy",},},
     {"id":{"name":"MotionPlanner","path":"scripts/MotionPlanner/MotionPlanner.yy",},},
-    {"id":{"name":"MovementSystem","path":"scripts/MovementSystem/MovementSystem.yy",},},
     {"id":{"name":"Music","path":"scripts/Music/Music.yy",},},
     {"id":{"name":"Name","path":"scripts/Name/Name.yy",},},
     {"id":{"name":"NavGrid","path":"scripts/NavGrid/NavGrid.yy",},},

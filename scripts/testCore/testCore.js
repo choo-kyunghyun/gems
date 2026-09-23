@@ -789,28 +789,6 @@ globalThis.testCore = {
       },
     },
     {
-      id: "system.movement",
-      setup(ctx) {
-        ctx.level = new Level({ id: "test", capacity: 8 });
-        const s = ctx.level.entities;
-        ctx.entities = s;
-        ctx.id = s.create();
-        s.add(ctx.id, Position, { x: 0, y: 0, z: 0 });
-        s.add(ctx.id, Velocity, { x: 60, y: -30, z: 6 });
-      },
-      verify(ctx, t) {
-        for (let k = 0; k < 10; k++) MovementSystem.update(ctx.level);
-        const pos = ctx.entities.get(ctx.id, Position);
-        const d = Time.step * 10;
-        t.near(pos.x, 60 * d, 1e-6, "x integrates velocity per step");
-        t.near(pos.y, -30 * d, 1e-6, "y integrates velocity per step");
-        t.near(pos.z, 6 * d, 1e-6, "z integrates velocity per step");
-      },
-      teardown(ctx) {
-        ctx.level.destroy();
-      },
-    },
-    {
       id: "system.lifetime",
       setup(ctx) {
         ctx.level = new Level({ id: "test", capacity: 8 });
