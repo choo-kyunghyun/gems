@@ -2,11 +2,10 @@ const RELEASE_MODE = false;
 gml_release_mode(RELEASE_MODE);
 audio_throw_on_error(!RELEASE_MODE);
 globalThis.DEV_MODE = !RELEASE_MODE; // global mirror so other events (Step_0's dev lobby hotkey) can gate on it
-// `GEMS_TEST=1 gm-cli run gems.yyp` boots straight into the Core tests (sceneTest), which run
-// every case, log, and end the game — the agent's one-command verification. Dev only.
-globalThis.TEST_AUTORUN = DEV_MODE
-  ? environment_get_variable("GEMS_TEST") !== ""
-  : false;
+// `GEMS_TEST=1 gm-cli run gems.yyp` boots straight into the tests (sceneTest), which run every
+// case, log, and end the game — the agent's one-command verification; `GEMS_TEST=<id prefix>`
+// runs the cases under that prefix only (`GEMS_TEST=collision.`). "" is off. Dev only.
+globalThis.TEST_AUTORUN = DEV_MODE ? environment_get_variable("GEMS_TEST") : "";
 
 // release: clock-seed the global stream so uuid() mints run-unique ids; dev keeps the fixed
 // default seed so runs stay reproducible. randomize() takes NO seed arg (docs/GMRT.md).
@@ -182,7 +181,7 @@ GameOverlay.settingsFile = SETTINGS_FILE;
 GameOverlay.keymap = ColonyKeymap.rows(); // the Settings tab's key-binding list
 // lobby is the boot scene + dev launcher; F2 (Step_0) also returns here. Applied immediately —
 // nothing to fade out from, so the boot fades IN from black instead.
-this._apply(TEST_AUTORUN ? sceneTest : sceneLobby);
+this._apply(TEST_AUTORUN !== "" ? sceneTest : sceneLobby);
 SceneTransition.reveal();
 
 // Inject the Save/Load tab into the Core GameOverlay (the injection seam keeps GameOverlay free of

@@ -4,7 +4,8 @@
 // PASS/FAIL, `[BENCH]` a ns/op figure a case measured — so a run is read with a grep and never
 // written into the repo. Re-run in the same session for a before/after: a timing compares only
 // inside one window (docs/ARCHITECTURE.md → Hot-path idioms). Booted directly, with game_end after
-// the summary, when Game's Create_0 sets TEST_AUTORUN.
+// the summary, when Game's Create_0 sets TEST_AUTORUN — "1" for every case, else the id prefix
+// the run is narrowed to.
 
 /**
  * the scene's factory — the one ref the Game object boots, the catalogue labels and openScene takes (see Scene)
@@ -71,14 +72,20 @@ class _SceneTestClass {
 
   /** Queue every case and log the banner; update() drains one case per frame. */
   _start() {
-    this._cases = Test.cases("");
+    this._filter = TEST_AUTORUN === "1" ? "" : TEST_AUTORUN;
+    this._cases = Test.cases(this._filter);
     this._cursor = 0;
     this._frame = 0;
     this._pass = 0;
     this._fail = 0;
     this._running = true;
     // no runtime version in the banner: the GM_* build constants are not in JS scope (docs/GMRT.md)
-    Log.info("[TEST] run · " + this._cases.length + " cases");
+    Log.info(
+      "[TEST] run · " +
+        this._cases.length +
+        " cases" +
+        (this._filter === "" ? "" : " · " + this._filter + "*"),
+    );
   }
 
   update() {
@@ -101,7 +108,7 @@ class _SceneTestClass {
   _finish() {
     this._running = false;
     Log.info("[TEST] done · " + this._pass + " pass · " + this._fail + " fail");
-    if (TEST_AUTORUN) game_end();
+    if (TEST_AUTORUN !== "") game_end();
   }
 
   /**
