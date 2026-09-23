@@ -17,7 +17,8 @@
  * The built-ins are room-global, so a parked level's mirrors leave every query through `park`
  * (deactivated, still held) and come back through `thaw` — which activates EVERY instance, the
  * per-instance activate being inert (docs/GMRT.md), so the caller parks the other pooled levels
- * again after it (ColonyTravel.resume).
+ * again after it (ColonyTravel.resume); a puppet released while parked is destroyed there too
+ * (Puppets.reap).
  */
 globalThis.PuppetSystem = {
   MASK: 32, // the unit mask sprite's side (px)
@@ -76,5 +77,6 @@ globalThis.PuppetSystem = {
   /** Bring a parked level's mirrors back — and every other parked level's with them (above). */
   thaw(level) {
     instance_activate_all();
+    Puppets.reap();
   },
 };

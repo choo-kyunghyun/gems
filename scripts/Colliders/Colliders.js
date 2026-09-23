@@ -1,24 +1,18 @@
 /**
  * The level's colliders as kept between ticks — SolidSystem's entry in the level's cache
  * (`SolidSystem.colliders`): the kinematic solids baked into flat `{ id, x1, y1, x2, y2 }`
- * records (`statics`) and bucketed by AABB span into a cell grid (`buckets` over `cols`×`rows`
- * cells of `cell` px, parallel-array buckets — GMRT: no object-keyed Map/Set — with `minX`/`minY`,
- * how far the statics overhang below the grid's origin: the border boxes sit at -cell..0, a
- * static there is clamped into the edge cell), so a body tests only the cells it touches;
- * `gen`, the count of bakes — the signal a mirror of
+ * records (`statics`), what NavGrid stamps; `gen`, the count of bakes — the signal a mirror of
  * the kinematic solids (NavGrid) polls by number; and the dynamic solid bodies as of the last
  * refresh — parallel arrays of the component objects themselves, reused (a stale tail past
  * `bodyCount` is never read; `bodyVels` holds undefined for a body without Velocity, listed,
- * never moved) — the one body list the integrate loop, `eachBody` and its readers share.
+ * never moved) — the one body list the integrate loop, SeparationSystem, `eachBody` and its
+ * readers share. The collision itself is the runtime's, over the mirrors (PuppetSystem).
  *
  * Everything here is derived from the store's Collision carriers: `refresh` walks them once —
  * THE collider walk of a tick (every wall is a carrier, so a walk costs the level's collider
  * count) — fingerprints the KINEMATIC carriers as each id with its `solid` flag (a body coming
- * or going never touches the bake), and re-bakes only when the fingerprint moved. That is what
- * makes a whole map's worth of statics affordable: re-deriving
- * them costs with the LEVEL's size (every wall, water rect and boulder, plus a bucket per cell
- * they span), while the body loop that resolves collisions costs with the number of movers. The
- * bake holds a STATIC IS STATIC premise: a kinematic solid never moves or resizes in place —
+ * or going never touches the bake), and re-bakes only when the fingerprint moved. The bake
+ * holds a STATIC IS STATIC premise: a kinematic solid never moves or resizes in place —
  * every one in the project comes from a level build, a tile remesh or a prop spawn, each of
  * which replaces entities rather than moving them, so the id set plus the `solid` flags is the
  * whole signal (a door's leaf or a trunk turning solid flips the flag in place and re-bakes like
@@ -31,18 +25,11 @@
  * takes.
  */
 globalThis.Colliders = class Colliders {
-  /** @param {number} cell the bucket grid's cell (px) — a pure perf knob, see SolidSystem.cell */
-  constructor(cell) {
-    this.cell = cell;
+  constructor() {
     this.ids = null; // the fingerprint's ids: the walk's kinematic carriers in order; null = never
     this.solids = null; // the fingerprint's `solid` flag per id
     this.statics = [];
     this.gen = 0;
-    this.cols = 0;
-    this.rows = 0;
-    this.buckets = [];
-    this.minX = 0;
-    this.minY = 0;
     this.bodyIds = [];
     this.bodyCols = [];
     this.bodyPos = [];
@@ -142,19 +129,11 @@ globalThis.Colliders = class Colliders {
     for (let i = 0; i < n; i++) fn(ids[i], cols[i], pos[i], boxes[i]);
   }
 
-  clampCol(g) {
-    return g < 0 ? 0 : g >= this.cols ? this.cols - 1 : g;
-  }
-
-  clampRow(g) {
-    return g < 0 ? 0 : g >= this.rows ? this.rows - 1 : g;
-  }
-
   /**
    * Is the bake still the truth? The same kinematic ids with the same `solid` flags in the same
    * order — a walk's order only moves when the set does (Columns). A compare over the
-   * candidates is a few hundred tests; re-deriving them is that many component lookups, AABB
-   * allocations and bucket inserts.
+   * candidates is a few hundred tests; re-deriving them is that many component lookups and AABB
+   * allocations.
    */
   _fresh(ids, flags) {
     const prevIds = this.ids;
@@ -169,11 +148,9 @@ globalThis.Colliders = class Colliders {
   }
 
   /**
-   * Bake the kinematic solids into flat records: edges (plus the id, for a raycast's hit) so the
-   * body×static resolve loop reads plain fields — no AABB.of / entities.get per test. Those per-test
-   * Map lookups + edge allocs were ~70% of the colony's tick cost before the snapshot existed.
-   * The candidates are the kinematic carriers, so a moved fingerprint IS a moved static set: every
-   * bake counts and rebuilds the grid.
+   * Bake the kinematic solids into flat records: edges plus the id, the rects NavGrid stamps.
+   * The candidates are the kinematic carriers, so a moved fingerprint IS a moved static set:
+   * every bake counts.
    */
   _bake(entities, ids, flags) {
     const statics = [];
@@ -197,49 +174,5 @@ globalThis.Colliders = class Colliders {
     this._candSolids = prevSolids === null ? [] : prevSolids;
     this.statics = statics;
     this.gen++;
-    this._gridRebuild(statics);
-  }
-
-  /**
-   * Bucket the statics by AABB span (each static into every cell it overlaps), so a resolve
-   * scans only a body's local cells. Sized to the statics' extent (origin 0 — the level is
-   * anchored at cell 0 by the always-present border); buckets are reused, reallocated only when
-   * the extent resizes the grid. Runs with the bake, not per tick.
-   */
-  _gridRebuild(statics) {
-    let maxX = 0;
-    let maxY = 0;
-    let minX = 0;
-    let minY = 0;
-    for (let i = 0; i < statics.length; i++) {
-      if (statics[i].x2 > maxX) maxX = statics[i].x2;
-      if (statics[i].y2 > maxY) maxY = statics[i].y2;
-      if (statics[i].x1 < minX) minX = statics[i].x1;
-      if (statics[i].y1 < minY) minY = statics[i].y1;
-    }
-    this.minX = minX;
-    this.minY = minY;
-    const cell = this.cell;
-    const cols = Math.max(1, Math.ceil(maxX / cell));
-    const rows = Math.max(1, Math.ceil(maxY / cell));
-    if (cols !== this.cols || rows !== this.rows) {
-      this.cols = cols;
-      this.rows = rows;
-      this.buckets = [];
-      for (let i = 0; i < cols * rows; i++) this.buckets.push([]);
-    } else {
-      for (let i = 0; i < this.buckets.length; i++) this.buckets[i].length = 0;
-    }
-
-    const buckets = this.buckets;
-    for (let i = 0; i < statics.length; i++) {
-      const s = statics[i];
-      const gx0 = this.clampCol(Math.floor(s.x1 / cell));
-      const gy0 = this.clampRow(Math.floor(s.y1 / cell));
-      const gx1 = this.clampCol(Math.ceil(s.x2 / cell) - 1);
-      const gy1 = this.clampRow(Math.ceil(s.y2 / cell) - 1);
-      for (let gy = gy0; gy <= gy1; gy++)
-        for (let gx = gx0; gx <= gx1; gx++) buckets[gy * cols + gx].push(i);
-    }
   }
 };

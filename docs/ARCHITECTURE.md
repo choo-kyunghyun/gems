@@ -118,7 +118,7 @@ and are cited from here, never restated):
       two modules on one KEY share one entry, as two on one component token would — so an owner
       with both a record and a derived entry keys them apart (`ColonyMap.KEY`/`RUNTIME`,
       `RoomSystem.KEY`/`MIRROR`). An entry is a class of its own that owns the queries over it
-      (`Colliders`, `View`, `NavGrid`, `Rooms`, `Broadphase`); a mirror of another entry refreshes
+      (`Colliders`, `View`, `NavGrid`, `Rooms`); a mirror of another entry refreshes
       off a GENERATION it polls by number (`NavGrid.stamp` off `Colliders.gen`), never a hook the
       scene wires; and a writer of the data an entry derives from calls nothing — the entry's
       fingerprint sees the change (`Colliders` fingerprints each kinematic collider's `solid`).
@@ -206,8 +206,9 @@ and are cited from here, never restated):
 - AABB convention: every collision/geometry consumer derives world-space edges through
   `AABB.edges(pos, box)` / `AABB.of(entities, id)` — never inline `pos.x + box.x` (the non-uniform
   BBox anchor lives in one place). The overlap test is `AABB.overlap`, except in a per-candidate
-  loop (`SolidSystem._resolve`, `SeparationSystem._separate`), which inlines it — the call is
-  about twice the test (testCore perf.measured `aabb.overlap`).
+  loop, which inlines it — the call is about twice the test (testCore perf.measured
+  `aabb.overlap`). The collision itself is the runtime's, over each collider's mirror instance
+  (`PuppetSystem`): a query, a cast or a move goes through `Puppet`/`Solid`, never a JS sweep.
 - Injection idiom: a module stays model-agnostic by exposing a hook its consumer wires at scene
   setup — Core to Game (`RenderLighting`'s `ambient`, `UIQuestTracker`'s `source`) and, inside
   Game, a system to the scene that owns the stat model (`Combat.mitigate`,

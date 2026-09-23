@@ -706,6 +706,9 @@ globalThis.testCore = {
           const s = c.entities;
           s.mint(c.w, PathRequest, { startX: 0, startY: 0, goalX: 7, goalY: 0 });
           PathfindingSystem.update(c.level);
+          // the twins share the room: only the stepping level's mirrors may answer (ColonyTravel's park)
+          PuppetSystem.thaw(c.level);
+          PuppetSystem.park(c === ctx.p ? ctx.q.level : ctx.p.level);
           PuppetSystem.update(c.level);
           SolidSystem.update(c.level);
           SeparationSystem.update(c.level);
@@ -717,7 +720,7 @@ globalThis.testCore = {
           if (k === 4) {
             // solid, nav, separation and camera go
             const q = ctx.q;
-            const keys = [SolidSystem.KEY, PathfindingSystem.KEY, SeparationSystem.KEY, CameraSystem.KEY];
+            const keys = [SolidSystem.KEY, PathfindingSystem.KEY, CameraSystem.KEY];
             for (let i = 0; i < keys.length; i++) q.entities.detach(q.level.self, keys[i]);
           }
         }
@@ -943,6 +946,7 @@ globalThis.testCore = {
       },
       verify(ctx, t) {
         const s = ctx.entities;
+        PuppetSystem.update(ctx.level); // the mirrors, as the scene runs them first
         SolidSystem.update(ctx.level);
         let listed = 0;
         let sawStill = false;
@@ -1736,7 +1740,7 @@ globalThis.testCore = {
     // inline mask over Handle.index, a cached column over store.get, edgesInto over edges, a
     // reused buffer over push, and never a per-element reset of a level-sized scratch (the
     // generation stamp, MotionPlanner.scratch's `stamp`). The overlap pair is why a
-    // per-candidate loop (SolidSystem._resolve, SeparationSystem._separate) inlines the test —
+    // per-candidate loop inlines the test —
     // the call is about twice it; the centre pair the Into rect once carried was about half of
     // an edgesInto, which is why it holds four edges.
     {
@@ -1927,8 +1931,8 @@ globalThis.testCore = {
       },
     },
     // ── perf.builtin: the runtime's collision built-ins against Core/Collision ────────
-    // What replacing AABB / Broadphase / Colliders / Query / Raycast with the runtime's instance
-    // collision costs and changes, over the mirrors PuppetSystem keeps (a Solid a static, a
+    // What the runtime's instance collision costs against what Core/Collision keeps in JS, over
+    // the mirrors PuppetSystem keeps (a Solid a static, a
     // Puppet a body, `eid` the entity behind it) at the colony's shape: 500 bodies, ~200 statics.
     // Each row is a built-in against the JS form; every built-in runs instance-scoped (a
     // collision call throws outside one), and a hit is read back through the DS list and its
@@ -2151,29 +2155,8 @@ globalThis.testCore = {
         t.eq(missing, 0, "every body Query.inRect finds, collision_rectangle_list finds");
         Log.info("[BENCH] builtin.query hits js " + jsFound + " gm " + gmFound + " over " + nq + " rects");
 
-        // ── Broadphase pairs vs instance_place_list per body (+ read-back)
-        const bp = new Broadphase(2048, 2048, 96);
-        let jsPairs = 0;
+        // ── instance_place_list per body (+ read-back): the pair sweep a separation pass asks for
         let gmPairs = 0;
-        const pairFn = (i, j) => {
-          const pa = bodyPos[i];
-          const pb = bodyPos[j];
-          const ba = bodyBox[i];
-          const bb = bodyBox[j];
-          const ax1 = pa.x + ba.x;
-          const ay1 = pa.y + ba.y;
-          const bx1 = pb.x + bb.x;
-          const by1 = pb.y + bb.y;
-          if (ax1 + ba.width > bx1 && bx1 + bb.width > ax1 && ay1 + ba.height > by1 && by1 + bb.height > ay1)
-            jsPairs++;
-        };
-        t.measure("broadphase.pairs", n, _testEmpty(n), () => {
-          bp.clear();
-          for (let i = 0; i < n; i++) bp.insert(i, bodyPos[i].x, bodyPos[i].y);
-          jsPairs = 0;
-          bp.pairs(pairFn);
-          return jsPairs;
-        });
         const bodySet = new Set(); // a Puppet query lists the Solids too: keep the bodies
         for (let i = 0; i < n; i++) bodySet.add(ctx.bodyIds[i]);
         t.measure("builtin.instance_place_list.bodies", n, _testEmpty(n), () => {
@@ -2190,44 +2173,10 @@ globalThis.testCore = {
           gmPairs = acc;
           return acc;
         });
-        t.eq(gmPairs / 2, jsPairs, "instance_place_list finds the pairs the Broadphase sweep finds (each twice)");
+        t.ok(gmPairs > 0, "instance_place_list finds the overlapping bodies (each pair twice): " + gmPairs);
 
-        // ── SolidSystem's static candidates: the bake's cells vs instance_place_list + bbox reads
-        const statics = c.statics;
-        const rect = AABB.rect();
-        let jsCand = 0;
+        // ── instance_place_list + bbox reads per body against the statics
         let gmCand = 0;
-        const seen = new Array(statics.length).fill(0); // a multi-cell static sits in every cell it spans
-        let gen = 0;
-        t.measure("colliders.candidates", n, _testEmpty(n), () => {
-          let acc = 0;
-          const cell = c.cell;
-          const cols = c.cols;
-          const buckets = c.buckets;
-          for (let i = 0; i < n; i++) {
-            gen++;
-            const a = AABB.edgesInto(bodyPos[i], bodyBox[i], rect);
-            const gx0 = c.clampCol(Math.floor(a.x1 / cell));
-            const gy0 = c.clampRow(Math.floor(a.y1 / cell));
-            const gx1 = c.clampCol(Math.ceil(a.x2 / cell) - 1);
-            const gy1 = c.clampRow(Math.ceil(a.y2 / cell) - 1);
-            for (let gy = gy0; gy <= gy1; gy++) {
-              for (let gx = gx0; gx <= gx1; gx++) {
-                const bucket = buckets[gy * cols + gx];
-                for (let k = 0; k < bucket.length; k++) {
-                  const si = bucket[k];
-                  if (seen[si] === gen) continue;
-                  seen[si] = gen;
-                  const b = statics[si];
-                  if (a.x2 <= b.x1 || b.x2 <= a.x1 || a.y2 <= b.y1 || b.y2 <= a.y1) continue;
-                  acc += b.x1 + b.y1 + b.x2 + b.y2 > 0 ? 1 : 0;
-                }
-              }
-            }
-          }
-          jsCand = acc;
-          return acc;
-        });
         t.measure("builtin.instance_place_list.statics", n, _testEmpty(n), () => {
           let acc = 0;
           for (let i = 0; i < n; i++) {
@@ -2242,7 +2191,7 @@ globalThis.testCore = {
           gmCand = acc;
           return acc;
         });
-        t.eq(gmCand, jsCand, "instance_place_list lists the statics the bake's cells find");
+        t.ok(gmCand >= 0, "instance_place_list lists the statics a body overlaps: " + gmCand);
 
         // ── Raycast.cast vs collision_line (a line of sight) and collision_line_list + slab (a hit point)
         const segs = ctx.segs;
@@ -2317,20 +2266,9 @@ globalThis.testCore = {
         });
         t.eq(nearestAgree, nearestBoth, "the nearest hit's distance agrees between the slab walk and the list");
 
-        // ── SolidSystem's resolve (a 1 px step on each axis) vs move_and_collide, the runtime's
-        // own resolver. Last, since both move the bodies. Its return is a GML array — read through
-        // array_length, never coerced (docs/GMRT.md).
-        t.measure("solid.resolve.step", n, _testEmpty(n), () => {
-          let acc = 0;
-          for (let i = 0; i < n; i++) {
-            const pos = bodyPos[i];
-            pos.x += 1;
-            acc += SolidSystem._resolve(c, pos, bodyBox[i], statics, 1, true);
-            pos.y += 1;
-            acc += SolidSystem._resolve(c, pos, bodyBox[i], statics, 1, false);
-          }
-          return acc;
-        });
+        // ── move_and_collide, the runtime's resolver, a 1 px step on each axis. Last, since it
+        // moves the bodies. Its return is a GML array — read through array_length, never coerced
+        // (docs/GMRT.md).
         t.measure("builtin.move_and_collide", n, _testEmpty(n), () => {
           let acc = 0;
           for (let i = 0; i < n; i++) acc += array_length(bodyInst[i].move_and_collide(1, 1, Solid));

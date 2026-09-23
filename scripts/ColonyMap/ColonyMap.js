@@ -30,9 +30,8 @@
  * @property {RenderGrass|undefined} grassPass  the grass volume layer — likewise
  * @property {RenderDebugEntity} bboxPass  the lime BBox outlines — the `debugBBox` setting drives its `enabled`
  * The spatial mirrors sit on the same entity under their readers' keys: the NavGrid under
- * PathfindingSystem.KEY, the Rooms under RoomSystem.MIRROR, the Broadphase under
- * SeparationSystem.KEY; the camera is an ENTITY of the store (ColonyView) and its native view
- * sits under CameraSystem.KEY.
+ * PathfindingSystem.KEY, the Rooms under RoomSystem.MIRROR; the camera is an ENTITY of the
+ * store (ColonyView) and its native view sits under CameraSystem.KEY.
  */
 /**
  * Two ways a Level comes to be: build() is a map's FIRST visit — the site's seed, the generator,

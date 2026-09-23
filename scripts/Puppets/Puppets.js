@@ -48,10 +48,22 @@ globalThis.Puppets = {
   },
   _probe: null,
 
-  /** The release hook: the component left its slot, so the puppet goes with it — activated
-   *  first, since a parked level's are deactivated (GMS2 would refuse the destroy otherwise). */
+  /**
+   * The release hook: the component left its slot, so the puppet goes with it. A parked
+   * level's puppet is deactivated, which `instance_destroy` silently skips and no per-instance
+   * activate can undo (docs/GMRT.md), so it waits on the doomed list for the next `reap` — the
+   * thaw that activates everything (PuppetSystem.thaw).
+   */
   _release(data) {
-    instance_activate_object(data.inst);
-    instance_destroy(data.inst);
+    if (instance_exists(data.inst)) instance_destroy(data.inst);
+    else Puppets._doomed.push(data.inst);
+  },
+  _doomed: [],
+
+  /** Destroy the released puppets a park kept alive — right after an `instance_activate_all`. */
+  reap() {
+    const doomed = Puppets._doomed;
+    for (let i = 0; i < doomed.length; i++) instance_destroy(doomed[i]);
+    doomed.length = 0;
   },
 };

@@ -1,91 +1,88 @@
-// equal-mass MTV push-apart for unit crowding. Pure resolution, run after SolidSystem.update in
-// the SAME tick: the bodies come from the level's Colliders (that update's collider walk, so no
-// second walk here), read by INDEX off its body arrays — a pair costs field reads, no store
-// lookup — and a scene that drops this system costs SolidSystem nothing.
-// O(n) via the level's Broadphase — a derived entry of the level's own entity, seeded over the
-// grid's extent on the first update (a grid-less level has no extent to bucket and sweeps O(n²)).
+/**
+ * Equal-mass MTV push-apart for unit crowding, over the mirrors (PuppetSystem). Pure resolution,
+ * run after SolidSystem.update in the SAME tick: the bodies come from the level's Colliders
+ * (that update's collider walk, so no second walk here), and each solid body asks the runtime
+ * once — `instance_place_list` over `Puppet` at its own mask — for what it overlaps, sums half
+ * of every overlap's shallower axis against each other BODY (a Solid hit is the solid pass's,
+ * skipped), then — every push summed before any body moves, so a pair reads one overlap from
+ * both sides — moves that far through `move_and_collide` against `Solid`, so a push never lands
+ * a body inside a wall. Each side pushes itself, so a pair separates by its whole overlap; a
+ * solid-off body wears the empty mask, so it neither lists nor is pushed. Position is read back
+ * off the instance (the components stay the truth — PuppetSystem).
+ */
 globalThis.SeparationSystem = {
-  KEY: "separation", // its derived token on the level's own entity — the Broadphase
-  iterations: 1, // raise for dense clusters; broadphase re-buckets each pass
-  // the broadphase cell (px): the center-bucket contract wants it above the largest dynamic
-  // body's diameter (~27px at 16px cells); huge SOLID colliders (the border, water) never enter
-  // it — only dynamic bodies are bucketed. SolidSystem's asymmetric body-vs-static query keeps
-  // its OWN span-bucketed grid, a different query shape.
-  cellSize: 96,
-
-  // Scratch reused every tick — the solid bodies as indexes into the Colliders' body arrays, and
-  // the two pair rects (docs/ARCHITECTURE.md → Hot-path idioms).
-  _bodies: [],
-  _a: AABB.rect(),
-  _b: AABB.rect(),
+  iterations: 1, // raise for dense clusters; each pass re-asks the runtime
+  _list: -1, // the runtime's hit list, made on first use and kept for the run
+  // Scratch reused every tick: the summed push per body index (docs/ARCHITECTURE.md → Hot-path idioms).
+  _px: [],
+  _py: [],
 
   update(level) {
+    const entities = level.entities;
     const c = SolidSystem.colliders(level);
+    const ids = c.bodyIds;
     const cols = c.bodyCols;
     const poss = c.bodyPos;
-    const boxes = c.bodyBoxes;
-    // collect once; positions shift per pass but the body list is stable. The bodies are the
-    // non-kinematic colliders, `col` live — a corpse (solid flipped off) drops out this tick.
-    const bodies = SeparationSystem._bodies;
-    let w = 0;
-    for (let i = 0; i < c.bodyCount; i++) {
-      if (cols[i].solid) bodies[w++] = i;
-    }
-    bodies.length = w;
+    const n = c.bodyCount;
+    const held = entities.column(Instance);
+    const mask = Handle.INDEX_MASK;
+    if (SeparationSystem._list === -1) SeparationSystem._list = ds_list_create();
+    const list = SeparationSystem._list;
 
-    const grid = level.grid;
-    const bp =
-      grid !== null
-        ? level.entities.derive(
-            level.self,
-            SeparationSystem.KEY,
-            () =>
-              new Broadphase(
-                grid.cols * grid.cellWidth,
-                grid.rows * grid.cellHeight,
-                SeparationSystem.cellSize,
-              ),
-          )
-        : undefined;
-    const sep = (i, j) =>
-      SeparationSystem._separate(poss[i], boxes[i], poss[j], boxes[j]);
+    const pxs = SeparationSystem._px;
+    const pys = SeparationSystem._py;
     for (let it = 0; it < SeparationSystem.iterations; it++) {
-      if (bp !== undefined) {
-        bp.clear();
-        const r = SeparationSystem._a;
-        for (let k = 0; k < w; k++) {
-          const i = bodies[k];
-          AABB.edgesInto(poss[i], boxes[i], r);
-          bp.insert(i, (r.x1 + r.x2) * 0.5, (r.y1 + r.y2) * 0.5);
+      // the pushes, off this pass's positions
+      for (let i = 0; i < n; i++) {
+        pxs[i] = 0;
+        pys[i] = 0;
+        if (!cols[i].solid) continue;
+        const h = held[ids[i] & mask];
+        if (h === undefined) continue; // no mirror yet — PuppetSystem's next update mints it
+        if (!h.shaped) continue;
+        const inst = h.inst;
+        ds_list_clear(list);
+        const found = inst.instance_place_list(inst.x, inst.y, Puppet, list, false);
+        if (found === 0) continue;
+        const ax1 = inst.bbox_left;
+        const ay1 = inst.bbox_top;
+        const ax2 = inst.bbox_right;
+        const ay2 = inst.bbox_bottom;
+        let px = 0;
+        let py = 0;
+        for (let k = 0; k < found; k++) {
+          const o = ds_list_find_value(list, k);
+          const oid = o.eid;
+          if (oid === undefined) continue; // a Puppet that mirrors no entity
+          const oh = held[oid & mask];
+          if (oh === undefined) continue;
+          if (oh.still) continue; // a Solid: the solid pass keeps bodies out of those
+          const bx1 = o.bbox_left;
+          const by1 = o.bbox_top;
+          const bx2 = o.bbox_right;
+          const by2 = o.bbox_bottom;
+          const ox = Math.min(ax2, bx2) - Math.max(ax1, bx1);
+          const oy = Math.min(ay2, by2) - Math.max(ay1, by1);
+          if (ox < oy) px += (ax1 + ax2 < bx1 + bx2 ? -1 : 1) * ox * 0.5; // by centre
+          else py += (ay1 + ay2 < by1 + by2 ? -1 : 1) * oy * 0.5;
         }
-        bp.pairs(sep);
-      } else {
-        for (let a = 0; a < w; a++) {
-          for (let b = a + 1; b < w; b++) sep(bodies[a], bodies[b]);
-        }
+        pxs[i] = px;
+        pys[i] = py;
       }
-    }
-  },
-
-  /** Push the two bodies apart along the shallower axis — `pa`/`pb` are their Position components, moved in place. */
-  _separate(pa, boxA, pb, boxB) {
-    const a = AABB.edgesInto(pa, boxA, SeparationSystem._a);
-    const b = AABB.edgesInto(pb, boxB, SeparationSystem._b);
-
-    // AABB.overlap inlined: the call is ~2x the test per pair (perf.measured aabb.overlap)
-    if (a.x2 <= b.x1 || b.x2 <= a.x1 || a.y2 <= b.y1 || b.y2 <= a.y1) return;
-
-    const ox = Math.min(a.x2, b.x2) - Math.max(a.x1, b.x1);
-    const oy = Math.min(a.y2, b.y2) - Math.max(a.y1, b.y1);
-
-    if (ox < oy) {
-      const dir = a.x1 + a.x2 < b.x1 + b.x2 ? -1 : 1; // by centre
-      pa.x += dir * ox * 0.5;
-      pb.x -= dir * ox * 0.5;
-    } else {
-      const dir = a.y1 + a.y2 < b.y1 + b.y2 ? -1 : 1;
-      pa.y += dir * oy * 0.5;
-      pb.y -= dir * oy * 0.5;
+      // the moves
+      for (let i = 0; i < n; i++) {
+        const px = pxs[i];
+        const py = pys[i];
+        if (px === 0 && py === 0) continue;
+        const h = held[ids[i] & mask];
+        const inst = h.inst;
+        // one axis at a time with the other capped, as SolidSystem moves (no perpendicular creep)
+        if (px !== 0) inst.move_and_collide(px, 0, Solid, 1, 0, 0, -1, 0);
+        if (py !== 0) inst.move_and_collide(0, py, Solid, 1, 0, 0, 0, -1);
+        const pos = poss[i];
+        pos.x = inst.x - h.ox;
+        pos.y = inst.y - h.oy;
+      }
     }
   },
 };
