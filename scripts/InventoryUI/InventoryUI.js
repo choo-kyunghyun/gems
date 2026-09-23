@@ -905,7 +905,8 @@ globalThis.InventoryUI = {
         host.insertChild(
           statLine("MOD_DMG", Math.round(prof.damage * 10) / 10),
         );
-        host.insertChild(statLine("MOD_REACH", prof.reach));
+        if (prof.hitbox !== undefined)
+          host.insertChild(statLine("MOD_REACH", Melee.reach(prof.hitbox)));
         host.insertChild(statLine("MOD_FIRECD", Math.round(prof.fireCd * 100) / 100));
       }
     }

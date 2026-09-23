@@ -4,7 +4,8 @@ const SHOT_RANGE_SECS = 1.5; // hitscan reach = velocity × this (s) ≈ 1.5 s o
 const FIRE_CD = 0.13; // s between shots while held
 const ATTACK_ANIM = 0.3; // s the punch pose stays up after a shot/swing (3 frames @ 10fps)
 const KICK_ANIM = 0.38; // s the kick plays (5 frames @ 13fps — fits the fist's 0.37 s cadence)
-const MELEE_REACH = 34; // fallback reach (px) for a melee weapon without `reach`
+// fallback for a melee weapon without a `hitbox` (Melee's MeleeHitbox)
+const MELEE_HITBOX = { width: 46, height: 24, xoffset: 23, yoffset: 0 };
 const STICK_DEADZONE = 0.25; // analog stick magnitude below this reads as centered (drift guard)
 
 // grenade (G / LT): a fused charge lobbed at the cursor (Combat.lob)
@@ -18,7 +19,12 @@ const THROW_CD = 0.5; // s before the next shot/throw after a throw
 
 // unarmed fallback: a weak melee "fist" so unarmed never means "fire a free bullet". A
 // pre-composed melee profile (composeWeapon shape) for a fully unarmed wielder; read-only, shared.
-const PLAYER_FIST = { kind: "melee", damage: 1, fireCd: 0.37, reach: 22 };
+const PLAYER_FIST = {
+  kind: "melee",
+  damage: 1,
+  fireCd: 0.37,
+  hitbox: { width: 34, height: 24, xoffset: 17, yoffset: 0 },
+};
 
 // The player brain as an ECS system (the input counterpart of CombatAI): update(level) drives
 // every Playable entity once per frame — it runs at the HEAD of the scene's physics sequence, before
@@ -136,10 +142,13 @@ globalThis.PlayerSystem = {
       } else if (wpn.kind === "gun") {
         PlayerSystem._fireGun(level, id, pl, slot, wpn, dir, attack);
       } else {
-        const reach = wpn.reach !== undefined ? wpn.reach : MELEE_REACH;
+        const hitbox = wpn.hitbox !== undefined ? wpn.hitbox : MELEE_HITBOX;
         // round composed damage (a `mul` attachment can make it fractional) so HP stays integer
         const damage = Math.round(wpn.damage) + attack;
-        Melee.swing(entities, id, dir.x, dir.y, reach, damage);
+        // turn to the aim first so the swing lands on the side the doll then faces
+        Doll.face(entities, id, dir.x, 0.01);
+        const facing = entities.get(id, Skeleton).xscale;
+        Melee.swing(entities, id, facing, hitbox, damage);
         pl.fireCd = wpn.fireCd !== undefined ? wpn.fireCd : FIRE_CD;
         // the unarmed fist fallback alternates punch/kick; an armed swing stays the punch
         // thrust (the held-weapon overlay rides the hand through it)

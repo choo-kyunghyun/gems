@@ -4,7 +4,7 @@
  * Installing consumes one unit and records its itemId in the weapon instance's `mods` map under the
  * slot id. Two fold points:
  *   • composeWeapon applies `ops` as operators over the composed fields (gun: velocity/mass/power/
- *     penetration/fireCd/magazine; melee: damage/reach/fireCd).
+ *     penetration/fireCd/magazine; melee: damage/fireCd).
  *   • StatModel._foldInstanceMods adds `stat` onto the wearer's derived sheet.
  * `slot` is the category it fits (matched vs a weapon slot's `accepts`, or "*"). `ops` =
  * { field: { add?, mul? } }: final = (base + Σadd) * Πmul per field. `stat` is a plain additive delta.

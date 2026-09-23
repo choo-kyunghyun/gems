@@ -186,7 +186,10 @@ globalThis.WeaponModUI = {
           prof.fireCd,
         ),
       );
-      host.insertChild(WeaponModUI._statRow2("MOD_REACH", prof.reach, null, 0));
+      if (prof.hitbox !== undefined)
+        host.insertChild(
+          WeaponModUI._statRow2("MOD_REACH", Melee.reach(prof.hitbox), null, 0),
+        );
     }
     host.insertChild(facetDivider());
 

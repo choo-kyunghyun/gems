@@ -118,7 +118,7 @@ globalThis.Loadout = {
   /**
    * Fold a weapon slot into a FRESH composed profile (never mutates the item def). Gun branch:
    * ammo base → gun ops → attachment ops → kinetic power → { kind:"gun", ... }. Melee branch:
-   * damage/reach/fireCd → attachment ops → { kind:"melee", ... }.
+   * damage/fireCd → attachment ops, hitbox as authored → { kind:"melee", ... }.
    */
   composeWeapon(slot) {
     const item = Item.get(slot.itemId);
@@ -236,16 +236,16 @@ globalThis.Loadout = {
   },
 
   _composeMelee(slot, wpn) {
-    const base = { damage: wpn.damage, reach: wpn.reach, fireCd: wpn.fireCd };
+    const base = { damage: wpn.damage, fireCd: wpn.fireCd };
     const c = Loadout._applyOps(
       base,
       Loadout._modLayers(slot),
-      ["damage", "reach", "fireCd"],
+      ["damage", "fireCd"],
     );
     return {
       kind: "melee",
       damage: c.damage,
-      reach: c.reach,
+      hitbox: wpn.hitbox,
       fireCd: c.fireCd,
     };
   },

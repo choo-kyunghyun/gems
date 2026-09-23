@@ -1,42 +1,31 @@
-// Instant melee swing (no projectile): an AABB hitbox extends `reach` in the facing direction (snapped
-// to 4-way) and damages every Health whose MASK it overlaps — the runtime's rect query over the
-// mirrors (Query.maskRect), so a hit is as of this tick's PuppetSystem.update and a solid-off body
-// (a corpse, which carries no Health anyway) is never hit. Skips the attacker + faction allies.
-// Subtracts hp only.
+// Instant melee swing (no projectile): the weapon's hitbox rect, placed off the attacker's AABB centre
+// and mirrored left/right by its facing, damages every Health whose MASK it overlaps — the runtime's
+// rect query over the mirrors (Query.maskRect), so a hit is as of this tick's PuppetSystem.update and
+// a solid-off body (a corpse, which carries no Health anyway) is never hit. Skips the attacker +
+// faction allies. Subtracts hp only.
+/**
+ * @typedef {object} MeleeHitbox
+ * @property {number} width   px
+ * @property {number} height  px
+ * @property {number} xoffset px from the attacker's centre to the hitbox's centre, facing right
+ * @property {number} yoffset px, not mirrored
+ */
 globalThis.Melee = {
   /**
-   * dirX/dirY: facing (sign matters; the larger magnitude picks the axis). reach: hitbox length
-   * in px in front of the attacker. Returns the ids hit this swing.
+   * facing: the sign picks the side (< 0 left, else right). Returns the ids hit this swing.
+   * @param {MeleeHitbox} hitbox
    */
-  swing(entities, attackerId, dirX, dirY, reach, damage) {
+  swing(entities, attackerId, facing, hitbox, damage) {
     const a = AABB.of(entities, attackerId);
-    // hitbox spans the cross-axis, extends `reach` from the front edge; overlaps back to center
-    // to avoid a point-blank dead gap. snap to dominant axis → 4-way.
-    let x1, y1, x2, y2;
-    if (Math.abs(dirX) >= Math.abs(dirY)) {
-      y1 = a.y1;
-      y2 = a.y2;
-      if (dirX >= 0) {
-        x1 = a.cx;
-        x2 = a.x2 + reach;
-      } else {
-        x1 = a.x1 - reach;
-        x2 = a.cx;
-      }
-    } else {
-      x1 = a.x1;
-      x2 = a.x2;
-      if (dirY >= 0) {
-        y1 = a.cy;
-        y2 = a.y2 + reach;
-      } else {
-        y1 = a.y1 - reach;
-        y2 = a.cy;
-      }
-    }
+    const cx = a.cx + (facing < 0 ? -hitbox.xoffset : hitbox.xoffset);
+    const cy = a.cy + hitbox.yoffset;
+    const hw = hitbox.width * 0.5;
+    const hh = hitbox.height * 0.5;
 
     const hits = [];
-    const ids = Query.maskRect(entities, x1, y1, x2, y2, { has: Health });
+    const ids = Query.maskRect(entities, cx - hw, cy - hh, cx + hw, cy + hh, {
+      has: Health,
+    });
     for (let i = 0; i < ids.length; i++) {
       const id = ids[i];
       if (id === attackerId) continue;
@@ -46,5 +35,10 @@ globalThis.Melee = {
       hits.push(id);
     }
     return hits;
+  },
+
+  /** The hitbox's front edge, px from the attacker's centre — the "reach" a stat line shows. */
+  reach(hitbox) {
+    return hitbox.xoffset + hitbox.width * 0.5;
   },
 };

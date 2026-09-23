@@ -228,7 +228,7 @@ globalThis.contentItems = {
           new Weapon({
             damage: 3,
             fireCd: 0.3,
-            reach: 68,
+            hitbox: { width: 80, height: 24, xoffset: 40, yoffset: 0 },
             slots: [
               { id: "edge", accepts: "edge" },
               { id: "pommel", accepts: "pommel" },
@@ -624,7 +624,7 @@ globalThis.contentItems = {
           new Weapon({
             damage: 3,
             fireCd: 0.2,
-            reach: 60,
+            hitbox: { width: 72, height: 24, xoffset: 36, yoffset: 0 },
             slots: [
               { id: "edge", accepts: "edge" },
               { id: "pommel", accepts: "pommel" },
@@ -646,7 +646,7 @@ globalThis.contentItems = {
           new Weapon({
             damage: 5,
             fireCd: 0.4,
-            reach: 72,
+            hitbox: { width: 84, height: 24, xoffset: 42, yoffset: 0 },
             slots: [
               { id: "edge", accepts: "edge" },
               { id: "pommel", accepts: "pommel" },
