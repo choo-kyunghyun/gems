@@ -19,7 +19,11 @@ Test.register(Test.CHECK, [
       s.add(ctx.body, Position, { x: 50, y: 16, z: 0 });
       s.add(ctx.body, BBox, { x: 0, y: 0, width: 16, height: 16 });
       s.add(ctx.body, Collision, { solid: true });
-      s.add(ctx.body, Velocity, { x: 600, y: 0, z: 0 }); // 10 px per tick
+      s.add(ctx.body, Velocity, { x: 600, y: 0, z: 0 }); // 10 px per tick at the pinned step
+      // the sim integrates by Time.step, REAL frame time (a fast frame's is short): pinned so
+      // the 20 ticks are 200 px whatever the frame took, restored in teardown
+      ctx.step = Time.step;
+      Time.step = 1 / 60;
     },
     verify(ctx, t) {
       const s = ctx.entities;
@@ -41,6 +45,7 @@ Test.register(Test.CHECK, [
       );
     },
     teardown(ctx) {
+      Time.step = ctx.step;
       ctx.level.destroy();
     },
   },
@@ -58,6 +63,8 @@ Test.register(Test.CHECK, [
       s.add(ctx.body, BBox, { x: 0, y: 0, width: 16, height: 16 });
       s.add(ctx.body, Collision, { solid: true });
       s.add(ctx.body, Velocity, { x: 600, y: 0, z: 0 });
+      ctx.step = Time.step; // pinned as system.solid's: the walk through the leaf is 20 ticks of it
+      Time.step = 1 / 60;
     },
     verify(ctx, t) {
       const s = ctx.entities;
@@ -84,6 +91,7 @@ Test.register(Test.CHECK, [
       t.eq(c.gen, 3, "an unchanged set holds the generation");
     },
     teardown(ctx) {
+      Time.step = ctx.step;
       ctx.level.destroy();
     },
   },
