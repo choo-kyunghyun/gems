@@ -222,7 +222,6 @@
     {"id":{"name":"ColonyTravel","path":"scripts/ColonyTravel/ColonyTravel.yy",},},
     {"id":{"name":"ColonyView","path":"scripts/ColonyView/ColonyView.yy",},},
     {"id":{"name":"Color","path":"scripts/Color/Color.yy",},},
-    {"id":{"name":"Columns","path":"scripts/Columns/Columns.yy",},},
     {"id":{"name":"Combat","path":"scripts/Combat/Combat.yy",},},
     {"id":{"name":"CombatAI","path":"scripts/CombatAI/CombatAI.yy",},},
     {"id":{"name":"Companions","path":"scripts/Companions/Companions.yy",},},

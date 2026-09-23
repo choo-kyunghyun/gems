@@ -43,7 +43,7 @@ Two top-level pillars (project folders), Core reusable without Game:
 Placement rule for new code:
 
 - References only engine concepts (space/time/presentation/entity lifecycle) → Core. A data
-  structure that knows no layer — the id-keyed store (`Table`, `Columns`, `Handle`, `Row`), the
+  structure that knows no layer — the id-keyed store (`Table`, `Handle`, `Row`), the
   1-D `Grid`, the def `Registry`, the asset-keyed `AssetMeta` — or the serialization of one
   (`Json`, `File`, `Snapshot`) → `Core/Data`.
 - States a gameplay rule — damage, needs, economy, progression — or names specific
@@ -76,7 +76,7 @@ and are cited from here, never restated):
       an affix-less namespace beside the ticker (NAMING.md), never on it: the two share a
       component, not a module, so a component write never needs a system call to be seen.
     - Each `Level` owns its `Table`, one sparse set per token, whose walks run down the LEAD
-      token's carriers in an order that is never by index (contract at `Columns`). A
+      token's carriers in an order that is never by index (contract at `Table`). A
       component the caller's contract requires is read with `entities.require`, which throws on a
       miss; `entities.get` and its `undefined` guard are for a component whose absence is a state
       (an opt-in `Skeleton`, a lazily seeded `StatusEffects`, a window target that may have gone).

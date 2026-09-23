@@ -208,6 +208,39 @@ Test.register(Test.CHECK, [
     },
   },
   {
+    // a callback that walks again leaves the outer walk's join columns in place
+    id: "entity.walk.nested",
+    setup(ctx) {
+      const s = new Table(8);
+      ctx.entities = s;
+      for (let k = 0; k < 3; k++) {
+        const id = s.create();
+        s.add(id, Velocity, { x: k, y: 0, z: 0 });
+        s.add(id, Position, { x: 10 + k, y: 0, z: 0 });
+        s.add(id, "TestTag", { k });
+      }
+      s.add(s.create(), "TestOther", { k: 9 });
+    },
+    verify(ctx, t) {
+      const s = ctx.entities;
+      let sum = 0;
+      let inner = 0;
+      s.forEach([Velocity, Position, "TestTag"], (id, vel, pos, tag) => {
+        inner += s.query("TestOther", "TestOther").length;
+        inner += s.first("TestOther") !== -1 ? 1 : 0;
+        s.forEach(["TestOther", "TestOther"], () => {
+          inner += 1;
+        });
+        sum += pos.x + tag.k;
+      });
+      t.eq(inner, 9, "every inner walk ran");
+      t.eq(sum, 36, "the outer walk still joins its own columns");
+    },
+    teardown(ctx) {
+      ctx.entities.destroy();
+    },
+  },
+  {
     // a walk with no lead, or an undefined token, is refused before it reaches the token map
     id: "entity.tokens",
     setup(ctx) {
@@ -248,7 +281,7 @@ Test.register(Test.CHECK, [
     verify(ctx, t) {
       const s = ctx.entities;
       const ids = ctx.ids;
-      const set = s.components._byToken.get("TestWalk");
+      const set = s._byToken.get("TestWalk");
       // self-detach of the lead: every carrier visited once, the list compacted at the end
       let visits = 0;
       let seen = 0;

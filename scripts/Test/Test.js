@@ -68,7 +68,7 @@ globalThis.Test = {
       ctx.objs[i] = s.get(id, Position);
     }
     // what a walk hoists once per tick, read off the store's private set
-    const set = s.components._byToken.get(Position);
+    const set = s._byToken.get(Position);
     ctx.col = set.column;
     ctx.dense = set.dense;
   },
