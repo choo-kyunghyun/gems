@@ -1,11 +1,11 @@
 // HUD + overlay panels for the colony scene — free functions taking the scene (mirrors ColonyCombat/ColonyMap).
 // Panels read scene.level.entities/playerId LIVE via facetLabel callbacks, surviving the map-change store swap.
 /**
- * build() returns the HUD HANDLE — the three panels this module keeps TOGGLING (`bar` the hotbar,
- * `dialogue` the NPC card, `sleep` the veil) beside the hotbar's own timing (`timer`/`slide`) — and
- * the scene keeps that one field, handing it back to update(), the shape a `*UI` page already
- * takes (see Window). The top-right card isn't in it: nothing touches it after it is built.
- * update() is the panels' whole frame job, so no scene field mirrors what a panel shows.
+ * build() returns the HUD HANDLE — the four panels this module keeps TOGGLING (`card` the top-right
+ * card, `bar` the hotbar, `dialogue` the NPC card, `sleep` the veil) beside the hotbar's own timing
+ * (`timer`/`slide`) — and the scene keeps that one field, handing it back to update(), the shape a
+ * `*UI` page already takes (see Window). update() is the panels' whole frame job, so no scene
+ * field mirrors what a panel shows; an open scene.window hides all but the sleep veil.
  */
 const HOTBAR_HUD_SECS = 3; // wall-clock seconds the hotbar HUD stays up after a hotbar keypress
 const HOTBAR_SLIDE = 150; // GUI px the hotbar bar slides DOWN (off the bottom edge) when hidden
@@ -17,13 +17,14 @@ globalThis.Hud = {
    */
   build(scene) {
     const hud = {
+      card: null, // the top-right HP/quest card
       bar: null, // the hotbar row
       dialogue: null, // the bottom-center NPC card
       sleep: null, // the "Sleeping..." veil
       timer: HOTBAR_HUD_SECS, // counts down on Time.raw; the bar shows while > 0
       slide: 0, // 0 = tucked below the screen, 1 = fully up; eased toward show/hide
     };
-    Hud._hud(scene);
+    hud.card = Hud._hud(scene);
     hud.bar = Hud._hotbar(scene);
     hud.dialogue = Hud._dialogue(scene);
     hud.sleep = Hud._sleepOverlay(scene);
@@ -37,12 +38,15 @@ globalThis.Hud = {
    */
   update(scene, hud) {
     if (hud.timer > 0) hud.timer -= Time.raw;
+    // the window's translucent card would show the panels through it
+    const open = scene.window.isOpen();
+    hud.card.enabled = !open;
     // build mode owns the bottom-center HUD, so the bar tucks away for it whatever the timer says
     const show = !scene.build.armed && hud.timer > 0;
     hud.slide = approach(hud.slide, show ? 1 : 0, HOTBAR_SLIDE_SPD);
     hud.bar.dragY = (1 - hud.slide) * HOTBAR_SLIDE; // offset, not mutation (see UIElement.getLayoutPosition)
-    hud.bar.enabled = hud.slide > 0.001; // skip drawing once fully tucked away
-    hud.dialogue.enabled = scene.nearNpc;
+    hud.bar.enabled = !open && hud.slide > 0.001; // skip drawing once fully tucked away
+    hud.dialogue.enabled = !open && scene.nearNpc;
     hud.sleep.enabled = scene.sleeping;
   },
 
@@ -293,6 +297,7 @@ globalThis.Hud = {
     );
     hud.insertChild(card);
     scene.ui.insertChild(hud);
+    return hud;
   },
 
   /**
