@@ -358,6 +358,35 @@ Test.register(Test.CHECK, [
     },
   },
   {
+    // one record stamped twice: every stamp owns its data, apart from the source and each other
+    id: "row.stamp",
+    setup(ctx) {
+      const s = new Table(8);
+      ctx.entities = s;
+      ctx.src = s.create();
+      s.add(ctx.src, Position, { x: 1, y: 2, z: 0 });
+      s.add(ctx.src, "TestBag", { slots: [{ itemId: "a", qty: 1 }] });
+      s.mint(ctx.src, "TestRuntime", { n: 0 });
+    },
+    verify(ctx, t) {
+      const s = ctx.entities;
+      const rec = Row.capture(s, ctx.src);
+      t.eq(rec.components.TestRuntime, undefined, "a minted component stays behind");
+      const a = Row.restore(s, rec);
+      const b = Row.restore(s, rec, { [Position]: { x: 9, y: 9, z: 0 } });
+      s.get(a, Position).x = 5;
+      s.get(a, "TestBag").slots[0].qty = 7;
+      t.eq(s.get(ctx.src, Position).x, 1, "a stamp's edit leaves the source");
+      t.eq(s.get(ctx.src, "TestBag").slots[0].qty, 1, "a nested edit leaves the source");
+      t.eq(s.get(b, "TestBag").slots[0].qty, 1, "a stamp's edit leaves its sibling");
+      t.eq(s.get(b, Position).x, 9, "an override lands after the record");
+      t.eq(rec.components.TestBag.slots[0].qty, 1, "the record itself is untouched");
+    },
+    teardown(ctx) {
+      ctx.entities.destroy();
+    },
+  },
+  {
     id: "entity.mint",
     setup(ctx) {
       const s = new Table(8);
