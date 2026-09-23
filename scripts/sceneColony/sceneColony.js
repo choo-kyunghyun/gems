@@ -621,9 +621,7 @@ class _SceneColonyClass {
   _checkReach() {
     const map = ColonyMap.of(this.level);
     if (map.reachDone || map.reachZone === undefined) return;
-    const p = AABB.of(this.level.entities, this.playerId);
-    const z = map.reachZone;
-    if (p.x2 > z.x1 && p.x1 < z.x2 && p.y2 > z.y1 && p.y1 < z.y2) {
+    if (AABB.overlap(AABB.of(this.level.entities, this.playerId), map.reachZone)) {
       map.reachDone = true;
       this.track("reach", "ruins", 1);
       Log.info("reached the ruins");

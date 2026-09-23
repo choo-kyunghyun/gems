@@ -84,36 +84,23 @@ globalThis.Diplomacy = {
     return Diplomacy.isAlly(fa, fb);
   },
 
-  /** nearest hostile within `range` px of (x,y), or -1. opt.needsHealth (default true) limits to
-   *  attackable bodies, so AI targets combatants not props/beacons. CombatAI's aggro acquisition.
+  /**
+   * The nearest hostile Health carrier whose mask reaches within `range` px of (x,y), or -1 —
+   * the runtime's ordered circle query (Query.maskRadius), so a body whose box crosses the ring
+   * counts, nearness is its box centre's, and a solid-off body never answers. CombatAI's aggro
+   * acquisition.
    */
-  nearestHostile(entities, id, x, y, range, opt = {}) {
+  nearestHostile(entities, id, x, y, range) {
     const fa = Diplomacy.factionOf(entities, id);
     if (fa === undefined) return -1;
-    const needsHealth = opt.needsHealth !== false;
-    let bestId = -1;
-    let bestD = range * range;
-    // Faction LEADS the query: a factionless candidate was never a match, and the lead's carriers
-    // are what the walk visits (Columns). This scan is per idle actor (throttled by
-    // Brain.aggroRate), so it is the crowd's dominant cost.
-    const consider = (oid, pos, fac) => {
-      if (oid === id) return;
-      if (!Diplomacy.isHostile(fa, fac.id)) return;
-      const d = (pos.x - x) ** 2 + (pos.y - y) ** 2;
-      if (d < bestD) {
-        bestD = d;
-        bestId = oid;
-      }
-    };
-    if (needsHealth) {
-      entities.forEach([Faction, Health, Position], (oid, fac, hp, pos) => {
-        consider(oid, pos, fac);
-      });
-    } else {
-      entities.forEach([Faction, Position], (oid, fac, pos) => {
-        consider(oid, pos, fac);
-      });
+    const ids = Query.maskRadius(entities, x, y, range, { has: Health, ordered: true });
+    for (let i = 0; i < ids.length; i++) {
+      const oid = ids[i];
+      if (oid === id) continue;
+      const fb = Diplomacy.factionOf(entities, oid);
+      if (fb === undefined) continue;
+      if (Diplomacy.isHostile(fa, fb)) return oid;
     }
-    return bestId;
+    return -1;
   },
 };

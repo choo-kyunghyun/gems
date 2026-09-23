@@ -14,6 +14,8 @@
  * { id, x, y, nx, ny, t }, nx/ny the surface normal pointing back along the ray, t the segment
  * parameter (0 = start, clamped to 0 when the start is inside).
  * @typedef {Object} QueryOpts @property {string} [has] require this component (its token)
+ *   @property {boolean} [ordered] maskRadius only: nearest first, by the distance from the
+ *   centre to each mirror's origin — its box centre (PuppetSystem)
  * @typedef {Object} CastOpts @property {number} [ignore] skip this entity (the shooter)
  */
 globalThis.Query = {
@@ -45,10 +47,11 @@ globalThis.Query = {
     return Query._ids(entities, list, found, opts.has);
   },
 
-  /** The solid colliders whose mask overlaps the circle. */
+  /** The solid colliders whose mask overlaps the circle, nearest first when `ordered`. */
   maskRadius(entities, x, y, radius, opts = {}) {
     const list = PuppetSystem.list();
-    const found = PuppetSystem.probe().collision_circle_list(x, y, radius, Puppet, false, true, list, false);
+    const ordered = opts.ordered === true;
+    const found = PuppetSystem.probe().collision_circle_list(x, y, radius, Puppet, false, true, list, ordered);
     return Query._ids(entities, list, found, opts.has);
   },
 

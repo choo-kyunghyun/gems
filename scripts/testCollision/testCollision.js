@@ -7,6 +7,7 @@
 const N = 4000; // the perf.builtin loop length
 const BENCH_STATICS = 200; // perf.builtin's statics
 const BENCH_BODIES = 500; // perf.builtin's bodies, the colony's count
+const BENCH_RADIUS = 160; // perf.builtin's nearest-body ring, an aggro scan's size
 
 Test.register(Test.CHECK, [
   {
@@ -293,6 +294,12 @@ Test.register(Test.CHECK, [
       t.eq(Query.maskRadius(s, 60, 40, 20).length, 1, "a circle reaches a box");
       t.eq(Query.maskRadius(s, 0, 0, 1000, { has: "TestMarker" }).length, 1, "has: narrows to the marker's carrier");
       t.eq(Query.maskRadius(s, 40, 100, 4).length, 0, "a solid-off body wears no mask");
+      const order = Query.maskRadius(s, 0, 40, 1000, { ordered: true });
+      t.eq(order.length, 3, "ordered: every solid mask in reach");
+      t.ok(
+        order[0] === ctx.near && order[1] === ctx.wall && order[2] === ctx.marked,
+        "ordered: nearest box centre first",
+      );
     },
     teardown(ctx) {
       ctx.level.destroy();
@@ -561,6 +568,52 @@ Test.register(Test.CHECK, [
       }
       t.eq(missing, 0, "every body Query.inRect finds, Query.maskRect finds");
       Log.info("[BENCH] builtin.query hits js " + jsFound + " gm " + gmFound + " over " + nq + " rects");
+
+      // ── the nearest body in a ring: a Position walk keeping the least distance vs
+      // Query.maskRadius ordered, whose first body is the answer
+      const ring = BENCH_RADIUS;
+      const jsNear = new Array(nq);
+      const gmNear = new Array(nq);
+      t.measure("query.nearest.walk", nq, Test.empty(nq), () => {
+        let acc = 0;
+        const rSq = ring * ring;
+        for (let k = 0; k < nq; k++) {
+          const q = queries[k];
+          const cx = (q.x1 + q.x2) * 0.5;
+          const cy = (q.y1 + q.y2) * 0.5;
+          let best = -1;
+          let bestD = rSq;
+          s.forEach([Velocity, Position], (id, _v, pos) => {
+            const d = (pos.x - cx) ** 2 + (pos.y - cy) ** 2;
+            if (d < bestD) {
+              bestD = d;
+              best = id;
+            }
+          });
+          jsNear[k] = best;
+          if (best !== -1) acc++;
+        }
+        return acc;
+      });
+      t.measure("query.maskRadius.ordered", nq, Test.empty(nq), () => {
+        let acc = 0;
+        for (let k = 0; k < nq; k++) {
+          const q = queries[k];
+          const ids = Query.maskRadius(s, (q.x1 + q.x2) * 0.5, (q.y1 + q.y2) * 0.5, ring, {
+            has: Velocity,
+            ordered: true,
+          });
+          gmNear[k] = ids.length === 0 ? -1 : ids[0];
+          if (ids.length !== 0) acc++;
+        }
+        return acc;
+      });
+      let nearMiss = 0;
+      for (let k = 0; k < nq; k++) {
+        // a box crossing the ring with its centre outside is the mask's alone
+        if (jsNear[k] !== -1 && jsNear[k] !== gmNear[k]) nearMiss++;
+      }
+      t.eq(nearMiss, 0, "the ordered mask list's first body is the walk's nearest");
 
       // ── instance_place_list per body (+ read-back): the pair sweep a separation pass asks for
       let gmPairs = 0;

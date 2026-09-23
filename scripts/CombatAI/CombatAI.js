@@ -27,7 +27,7 @@ globalThis.Brain = "Brain";
  * @property {number} bulletSpeed muzzle velocity (px/s) scaling the hitscan reach; 0 for melee
  * @property {number} pathCd      A* replan throttle countdown (s) while a chase is wall-blocked
  * @property {number} pathRate    seconds between A* replans during a blocked chase
- * @property {number} aggroRate   seconds between idle target-acquisition scans (nearestHostile is O(n))
+ * @property {number} aggroRate   seconds between idle target-acquisition scans (a runtime circle query per scan)
  * @property {number} aggroCd     acquisition throttle countdown (s)
  * @property {number} losRate     seconds between chase LOS raycasts (a cast walks cells + scans bodies)
  * @property {number} losCd       LOS throttle countdown (s)
@@ -70,10 +70,10 @@ globalThis.CombatAI = {
             else CombatAI._stop(entities, id);
           }
 
-          // acquire nearest hostile in aggro range (by faction). THROTTLED: nearestHostile scans
-          // every combatant (O(n)), so an idle actor rescans only every aggroRate seconds — a 0.25 s
-          // acquisition delay is imperceptible, and this is the dominant idle-crowd cost at a wide
-          // SIM window (a swarm of idle enemies each scanning every frame).
+          // acquire nearest hostile in aggro range (by faction). THROTTLED: nearestHostile asks the
+          // runtime for every mask in the ring, so an idle actor rescans only every aggroRate seconds
+          // — a 0.25 s acquisition delay is imperceptible, and this is the dominant idle-crowd cost
+          // at a wide SIM window (a swarm of idle enemies each scanning every frame).
           if (brain.aggroCd > 0) {
             brain.aggroCd -= Time.step;
           } else {
@@ -231,7 +231,7 @@ globalThis.CombatAI = {
       bulletSpeed: opt.bulletSpeed ?? 0,
       pathCd: 0, // replan throttle (s) — counts down while a chase is wall-blocked
       pathRate: opt.pathRate ?? 0.2,
-      // acquisition + LOS throttles: both scans are O(entities/colliders), so idle actors re-scan
+      // acquisition + LOS throttles: both are runtime queries over the colliders, so idle actors re-scan
       // for targets every aggroRate seconds and chasers re-raycast LOS every losRate seconds. aggroCd is
       // staggered by id so a freshly-streamed crowd doesn't scan all on the same frame (a load spike).
       aggroRate: opt.aggroRate ?? 0.25,
