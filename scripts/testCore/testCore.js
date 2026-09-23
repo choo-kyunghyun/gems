@@ -1859,8 +1859,9 @@ globalThis.testCore = {
     // built-in against the JS form over the colony's shape: 500 bodies, ~200 statics. Every
     // built-in runs instance-scoped (a collision call throws outside one), and a hit is read
     // back through the DS list and its `eid` — the price a replacement pays, not a benchmark
-    // shortcut. The checks record where the two disagree: an instance bbox is integer pixels,
-    // and a body sits at fractional positions.
+    // shortcut. The checks record where the two agree and differ: the runtime keeps a fractional
+    // bbox (docs/GMRT.md), and rectangle_in_rectangle counts a touching edge where AABB.overlap
+    // is strict.
     {
       id: "perf.builtin",
       frames: 2, // the masks land on the instances after their first step
