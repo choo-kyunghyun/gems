@@ -12,10 +12,11 @@ Project guidelines for Claude Code.
 
 - Plan before implementing.
 - After changing code, run the game and verify the behavior. Verification is reported in conversation, never written into the repo — no run output or "verified <date>" stamps in code, docs, or commit messages.
-- A comment states only what the code cannot, briefly.
+- A comment states only the intent the code cannot — abstract and short, never the details the code already shows.
+    - A file has at most one header.
     - A known runtime quirk is cited from `docs/GMRT.md`, never re-explained.
     - Runtime quirks and future work carry a conventional tag such as `TODO` or `BUG`.
-- Commit messages are `type(scope): what changed` — one line, imperative, pitched at the module or rule that changed.
+- A commit message is `type(scope): summary` — a short imperative line naming the change in the abstract, never its details.
 - Don't hide errors; an object never handles an error that is not its responsibility.
 - Never cite or mention other GitHub repositories or external projects directly.
     - An external link only as a required license attribution or with the user's permission.
