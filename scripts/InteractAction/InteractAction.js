@@ -1,21 +1,17 @@
 /**
  * Registry of interaction behaviors.
  *
- * An entity's `Interaction.kind` names a def here; the Game/UI `Interactable` engine looks it up on E
- * and calls def.run(ctx). This holds only the registry — adding an interaction is a data entry, not an
- * engine edit.
+ * An entity's `Interaction.kind` names a def here, so adding an interaction is a data entry, not
+ * an engine edit.
  *
  * A def: { id, prompt, run(ctx), priority? }
- *   id        unique action key (matches Interaction.kind)
- *   prompt    proximity-pill label — an I18n key, or "" for no pill (the target prompts through
- *             its own UI: an NPC's dialogue panel); or a function of ctx returning either,
- *             resolved each frame (a companion's wait/follow flip)
- *   priority  proximity-pick rank, default 0: among the entities in reach the highest wins, then
- *             the nearest; the cursor overrides both (Interactable._choose). A companion is -1.
- *   run     invoked on E. ctx = { scene, entities, id, comp, playerId } (id = the station entity, comp
- *           = its Interaction data, playerId = the interacting player). An INSTANT action acts and
- *           returns; a WINDOW action opens its page through the scene's Window with the target
- *           (`scene.window.open(id, { target: ctx.id })`) so the engine range-closes it.
+ *   id        matches Interaction.kind
+ *   prompt    an I18n key, "" for no prompt pill, or a function of ctx returning either,
+ *             resolved each frame
+ *   priority  rank among the entities in reach, default 0; ties go to the nearest
+ *   run       ctx = { scene, entities, id, comp, playerId }, `id` the target entity and `comp` its
+ *             Interaction data. A window action opens its page with `{ target: ctx.id }` so the
+ *             window closes when the player leaves range.
  */
 globalThis.InteractAction = {
   register(list) {

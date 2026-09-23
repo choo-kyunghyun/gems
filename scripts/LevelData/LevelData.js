@@ -1,47 +1,43 @@
 /**
  * @typedef {Object} LevelTiles
- * @property {string} layer       tile-layer KEY, resolved through paint()'s `opts.layers` bag
- * @property {string} [material]  material key on a materials-bearing layer (default: the layer's own)
- * @property {number[][]} rects   [[x,y,w,h]...] cell rects in the data's LOCAL coords
+ * @property {string} layer       tile-layer key, resolved through paint()'s `opts.layers` bag
+ * @property {string} [material]  material key on a materials-bearing layer
+ * @property {number[][]} rects   [[x,y,w,h]...] cell rects in the data's local coords
  */
 /**
  * @typedef {Object} LevelData
- * @property {number} cols        footprint width in cells
- * @property {number} rows        footprint height in cells
+ * @property {number} cols        cells
+ * @property {number} rows        cells
  * @property {number} [cell]      cell size in px — whole levels only (a fragment inherits its host's)
  * @property {LevelTiles[]} [tiles]
  * @property {Object[]} [spawns]  entity descriptors at gx/gy; the shape is consumer-defined and Core
  *                                never reads past those two keys
- * @property {Object} [meta]      whole levels only — spawn entries, climate, settlement, seed
+ * @property {Object} [meta]      whole levels only
  */
 /**
  * @typedef {Object} LevelPaintOpts
  * @property {Object<string, *>} layers      handles bag keyed `<key>Layer` / `<key>Type` /
- *                                           `<key>Types` (ColonyLevel._makeLayers builds it)
- * @property {number} [ox]                   cell offset of the data's ORIGIN (default 0)
+ *                                           `<key>Types`
+ * @property {number} [ox]                   cell offset of the data's origin
  * @property {number} [oy]
  */
 /**
- * THE ONE SHAPE authored map content takes: a cols×rows footprint plus two optional channels —
- * `tiles` into named tile layers, `spawns` as opaque entity descriptors. Every coordinate is LOCAL
- * to the data's own origin, which is what makes the shape scale-free: a whole level (a generator's
- * output) is a LevelData whose origin is (0,0), a Prefab one whose origin is wherever it gets
- * stamped. There is no separate fragment type.
+ * The one shape authored map content takes: a cols×rows footprint plus two optional channels —
+ * `tiles` into named tile layers, `spawns` as opaque entity descriptors. Every coordinate is local
+ * to the data's own origin, so the shape is scale-free: a whole level and a stamped fragment are
+ * the same type.
  *
- * Two ops, and between them every consumer: translate() moves data to another coordinate space
- * (data → data, for a generator accumulating content it paints later), paint() writes the one
- * Core-expressible channel into a level's layers (data → level). Spawns are never spawned — paint
- * returns them translated and the caller feeds its own descriptor adapter (ColonySpawn.spawnEntity),
- * since only the consumer knows the descriptor shape.
+ * translate() moves data to another coordinate space; paint() writes the tiles into a level's
+ * layers. Spawns are never spawned here — only the consumer knows the descriptor shape, so paint
+ * returns them translated.
  *
- * Both ops copy spawn records SHALLOWLY: a record's nested arrays are still SHARED with the source,
- * so a consumer deep-copies what it mutates (a stamping pass clones loot/items). Tiles entries
- * carry fresh translated `rects`.
+ * Both ops copy spawn records shallowly: nested arrays stay shared with the source, so a consumer
+ * deep-copies what it mutates.
  */
 globalThis.LevelData = {
   /**
-   * Move every channel to a coordinate space offset by (ox, oy). Returns a fresh LevelData; the
-   * source is untouched. `cell`/`meta` are level-scope, not content, so they are not carried.
+   * A fresh LevelData offset by (ox, oy); the source is untouched. `cell`/`meta` are level-scope,
+   * not content, so they are not carried.
    */
   translate(data, ox, oy) {
     const srcTiles = data.tiles ?? [];
@@ -63,9 +59,8 @@ globalThis.LevelData = {
   },
 
   /**
-   * Write the tiles into a level at cell offset (opts.ox, opts.oy) — TileEdit.set into the named
-   * layer's TileType (the caller remeshes a SOLID layer's colliders ONCE after all its writes —
-   * TileEdit's contract). Returns `{ spawns }` — translated but NOT spawned (see the header).
+   * Write the tiles into a level at the cell offset; the caller remeshes a solid layer's colliders
+   * once after all its writes. Returns `{ spawns }`, translated but not spawned.
    */
   paint(data, opts) {
     const ox = opts.ox ?? 0;
@@ -94,9 +89,8 @@ globalThis.LevelData = {
   },
 
   /**
-   * A tiles entry's TileType out of the handles bag: `material` picks from the layer's `<key>Types`
-   * table, its absence takes the layer's default `<key>Type`. Fails loud — a typo'd material would
-   * otherwise paint the default and read as a palette bug much later.
+   * A tiles entry's TileType out of the handles bag. Fails loud — a typo'd material would otherwise
+   * paint the default and read as a palette bug much later.
    */
   _type(layers, t) {
     if (t.material === undefined) return layers[t.layer + "Type"];
@@ -122,7 +116,7 @@ globalThis.LevelData = {
     return out;
   },
 
-  /** Shallow record copies with gx/gy shifted — nested arrays stay shared (see the header). */
+  /** Shallow record copies — nested arrays stay shared. */
   _shiftSpawns(spawns, ox, oy) {
     const out = [];
     for (let i = 0; i < spawns.length; i++) {

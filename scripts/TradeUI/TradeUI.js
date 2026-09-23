@@ -1,29 +1,18 @@
 /**
- * Merchant trade page of the scene's Window.
+ * Merchant trade page of the scene's Window, for the merchant at `scene.window.target`.
  *
- * This file is presentation + the deal gesture, plus the sell-side worn/favorited guard (it reads
- * the player's Equipment/Favorites). ONE row is selected across both tables — picking in one clears
- * the other — and the deal column prices it: unit price, availability, an amount slider with -/+
- * steps, the total, and a SINGLE context button reading Buy or Sell for the side the selection came
- * from. A click only ever selects; there is no amount modal. A sale the guard blocks states its
- * reason in the panel and greys the button, while every economic refusal stays TradeSystem's (its
- * `reason` key, toasted). Opened by the `trade` InteractAction (a merchant NPC's Interaction)
- * through the shell — `scene.window.open("trade", { target })`, the merchant read live off
- * scene.window.target — and driven like every station page: the shell refreshes it when
- * scene.window.dirty is set, Interactable range-closes it. State on the page: buyTable / sellTable
- * (UITable), side + sel (the one selection, re-mapped by InvTable.rowId on every refresh — row
- * models are fresh objects), slider (the amount, its max re-bound to the selection) and nameText;
- * its titleExtra is the player's balance.
+ * Owns presentation, the deal gesture and the sell-side guard against selling a worn or favorited
+ * item. One row is selected across both tables, and a click only selects; the deal column prices
+ * it and a single button commits it as a buy or a sell. Economic refusals are not decided here:
+ * they come back from the transaction as a reason key and are toasted.
  */
 globalThis.TradeUI = {
-  DEAL_W: 280, // deal column width (px); the two tables split what is left
-  WRAP: 244, // text wrap inside that column
-  STEP_W: 34, // -/+ step button size
+  DEAL_W: 280, // px; the two tables split what is left
+  WRAP: 244,
+  STEP_W: 34,
 
-  /** build the page once; the scene adds it to its Window under "trade" */
   build(scene) {
     const page = {
-      // the ACTIVE merchant's name, live
       title: () => {
         const npc = scene.level.entities.get(scene.window.target, NPC);
         return npc !== undefined
@@ -36,7 +25,6 @@ globalThis.TradeUI = {
         flexBasis: 0,
         gap: FacetTheme.gapSm,
       }),
-      // player credits, live, in the title row before the close button
       titleExtra: facetLabel(() => TradeUI._balanceText(scene), {
         font: "header",
         color: "warn",
@@ -44,14 +32,13 @@ globalThis.TradeUI = {
       buyTable: null,
       sellTable: null,
       side: "", // "buy" | "sell" | "" — the table the selection came from
-      sel: null, // the selected row model, else null
-      slider: null, // the amount UISlider
-      nameText: null, // the deal column's name UIText (its color tracks the selection's rarity)
+      sel: null,
+      slider: null,
+      nameText: null,
       refresh: () => TradeUI.refresh(scene, page),
-      onOpen: () => TradeUI._select(page, "", null), // a fresh shop opens unselected
+      onOpen: () => TradeUI._select(page, "", null),
     };
 
-    // BUY (merchant stock) | SELL (player bag) | DEAL — the tables grow, the deal column is fixed.
     const cols = new UIElement({
       width: "100%",
       flexGrow: 1,
@@ -65,7 +52,6 @@ globalThis.TradeUI = {
     page.sellTable = sellTable.getComponent(UITable);
     cols.insertChild(
       facetColumn(I18n.textRef("TRADE_BUY"), buyTable, {
-        // BUY column sub-label = the finite merchant's till (empty for an infinite one).
         trailing: facetLabel(
           () => {
             const m = scene.level.entities.get(scene.window.target, Merchant);
@@ -89,9 +75,7 @@ globalThis.TradeUI = {
     return page;
   },
 
-  /**
-   * player's balance in the active merchant's currencyId (else "coin").
-   */
+  /** The player's balance in the active merchant's currency. */
   _coins(scene) {
     const inv = scene.level.entities.require(scene.playerId, Inventory);
     const m = scene.level.entities.get(scene.window.target, Merchant);
@@ -99,9 +83,6 @@ globalThis.TradeUI = {
     return Bag.count(inv, cur);
   },
 
-  /**
-   * "<currency name>: <balance>" — reads the currency item's own display name, not a hardcoded word.
-   */
   _balanceText(scene) {
     const m = scene.level.entities.get(scene.window.target, Merchant);
     const cur = m !== undefined ? m.currencyId : "coin";
@@ -111,9 +92,8 @@ globalThis.TradeUI = {
   },
 
   /**
-   * DEAL column: the selection's name and prices over the amount row and the one context button, in
-   * the well the tables wear. Built ONCE — every readout is a live closure over `page`, so a pick
-   * or a transaction moves page state and never rebuilds the panel.
+   * Built once: every readout is a live closure over `page`, so a pick or a transaction never
+   * rebuilds the column.
    */
   _deal(scene, page) {
     const well = new UIElement({
@@ -147,7 +127,6 @@ globalThis.TradeUI = {
         { valueColor: "warn" },
       ),
     );
-    // availability names what it counts: the merchant's stock, or what the bag holds
     well.insertChild(
       facetKeyValueRow(
         () => I18n.text(page.side === "sell" ? "TRADE_OWNED" : "TRADE_STOCK"),
@@ -156,7 +135,7 @@ globalThis.TradeUI = {
     );
     well.insertChild(facetDivider());
 
-    // the amount reads in the value column with the prices, so the slider keeps its whole width
+    // the amount reads beside the prices, so the slider keeps its whole width
     well.insertChild(
       facetKeyValueRow(I18n.textRef("TRADE_AMOUNT"), () =>
         string(page.slider.value),
@@ -172,7 +151,6 @@ globalThis.TradeUI = {
       ),
     );
 
-    // the guard's reason, stated where the refusal is (the button below greys out with it)
     well.insertChild(
       facetLabel(
         () => {
@@ -183,7 +161,6 @@ globalThis.TradeUI = {
       ),
     );
 
-    // spacer pushes the action button to the bottom of the column
     well.insertChild(
       new UIElement({ width: "100%", flexGrow: 1, flexBasis: 0 }),
     );
@@ -203,17 +180,14 @@ globalThis.TradeUI = {
     });
   },
 
-  /**
-   * amount row: -/+ step buttons around the slider. Both drive the same UISlider, so a drag and a
-   * step can never disagree; the slider's own readout is the amount.
-   */
+  /** The -/+ steps drive the slider itself, so a drag and a step never disagree. */
   _amount(page) {
     const sliderEl = facetSlider({
       value: 1,
       min: 1,
       max: 1,
       step: 1,
-      showValue: false, // the Amount row above is the readout
+      showValue: false,
     });
     page.slider = sliderEl.getComponent(UISlider);
     const row = new UIElement({
@@ -232,9 +206,6 @@ globalThis.TradeUI = {
     return row;
   },
 
-  /**
-   * one step button, dimmed at the end of the range it steps toward.
-   */
   _step(page, dir) {
     return facetButton(
       dir < 0 ? "-" : "+",
@@ -250,10 +221,7 @@ globalThis.TradeUI = {
     );
   },
 
-  /**
-   * per-side table. `side` ("buy"/"sell") routes the transaction direction. A click selects and
-   * nothing more — the deal column commits.
-   */
+  /** A click only selects; the deal column commits. */
   _table(scene, page, side) {
     return InvTable.table(TradeUI._columns(side), {
       emptyText: I18n.text(
@@ -263,9 +231,6 @@ globalThis.TradeUI = {
     });
   },
 
-  /**
-   * Columns: icon+Name (rarity color) · Price (gold) · Qty. Price reads the buy or sell price.
-   */
   _columns(side) {
     const gold = facetColor("warn");
     return [
@@ -303,9 +268,7 @@ globalThis.TradeUI = {
   },
 
   /**
-   * row models for one side over InvTable.rows: BUY = merchant stock, SELL = player bag minus
-   * the currency item. Each adds `price`, `qtyText` and, on the sell side, `worn` — with `fav`
-   * the no-sell guard in _blocked.
+   * Fresh row models for one side: the merchant's stock, or the player's bag minus the currency.
    */
   _rows(scene, side) {
     const entities = scene.level.entities;
@@ -324,12 +287,12 @@ globalThis.TradeUI = {
     const rows = [];
     for (let i = 0; i < base.length; i++) {
       const r = base[i];
-      if (side === "sell" && r.itemId === m.currencyId) continue; // money isn't sellable
+      if (side === "sell" && r.itemId === m.currencyId) continue;
       r.price =
         side === "buy"
           ? Trade.buyPrice(m, r.itemId)
           : Trade.sellPrice(m, r.itemId);
-      // infinite merchant BUY qty shows "-" (SDF fonts are Latin-1, no ∞ glyph).
+      // "-" for infinite stock: the fonts are Latin-1, with no ∞ glyph
       r.qtyText = side === "buy" && m.infinite ? "-" : string(r.qty);
       r.worn = false;
       if (eq !== undefined && r.uid !== undefined) {
@@ -353,35 +316,29 @@ globalThis.TradeUI = {
     TradeUI._bindAmount(scene, page);
   },
 
-  /**
-   * a click (or a browse step) picks the row the deal column prices. Re-picking the SAME row is a
-   * no-op, so it never resets an amount already dialled in.
-   */
+  /** Re-picking the same row is a no-op, so it never resets an amount already dialled in. */
   _pick(scene, page, side, row) {
     if (row === null || row === undefined || row === page.sel) return;
     TradeUI._select(page, side, row);
     TradeUI._bindAmount(scene, page);
-    page.slider.setValue(1); // a new pick starts at one
+    page.slider.setValue(1);
   },
 
-  /**
-   * THE one selection across both tables: adopt `row` on `side` (a null row clears it) and mirror
-   * it into the tables so only the picked one highlights.
-   */
+  /** The one selection across both tables; a null row clears it. */
   _select(page, side, row) {
     page.side = row === null ? "" : side;
     page.sel = row;
     page.buyTable.selectRow(page.side === "buy" ? row : null);
     page.sellTable.selectRow(page.side === "sell" ? row : null);
-    // the rarity tint is per-selection, so it can't be baked at build — UIText reads color at draw
+    // the rarity tint is per selection, so it cannot be baked at build
     page.nameText.color = facetColor(
       row !== null ? row.color : FacetTheme.textDim,
     );
   },
 
   /**
-   * Re-point the selection at the fresh row model for the same item (row models are rebuilt every
-   * refresh), dropping it when the item left the side it was picked from.
+   * Re-points the selection at the rebuilt row model for the same item, dropping it when the item
+   * left its side.
    */
   _remap(page) {
     if (page.sel === null) return;
@@ -399,19 +356,13 @@ globalThis.TradeUI = {
     TradeUI._select(page, page.side, next);
   },
 
-  /**
-   * Re-bind the slider to the selection's ceiling; setValue clamps the held amount into the new
-   * range (a no-op only while it still fits).
-   */
+  /** setValue clamps the held amount into the new range. */
   _bindAmount(scene, page) {
     page.slider.max = TradeUI._max(scene, page);
     page.slider.setValue(page.slider.value);
   },
 
-  /**
-   * amount ceiling for the selection: 1 for an instance, the whole stack on the sell side, and on
-   * the buy side what the player can afford (bounded by finite stock).
-   */
+  /** Amount ceiling: the whole stack when selling, what the player can afford when buying. */
   _max(scene, page) {
     const row = page.sel;
     if (row === null) return 1;
@@ -424,12 +375,12 @@ globalThis.TradeUI = {
     const byCoins =
       price > 0 ? Math.floor(TradeUI._coins(scene) / price) : row.qty;
     const max = m.infinite ? byCoins : Math.min(row.qty, byCoins);
-    return Math.max(1, max); // can't afford even one → let the Buy report NO_FUNDS
+    return Math.max(1, max); // at least one, so an unaffordable buy reports its refusal
   },
 
   /**
-   * i18n key for why the selection can't be sold ("" = it can): a worn instance or a favorited item.
-   * The buy side is never blocked here — an unaffordable buy is TradeSystem's refusal to report.
+   * i18n key for why the selection cannot be sold, "" when it can. The buy side is never blocked
+   * here; its refusals come from the transaction.
    */
   _blocked(page) {
     const row = page.sel;
@@ -439,9 +390,6 @@ globalThis.TradeUI = {
     return "";
   },
 
-  /**
-   * commit the dialled amount on the selection's side (the button gates the guard + empty selection).
-   */
   _act(scene, page) {
     const row = page.sel;
     if (row === null) return;
@@ -472,7 +420,6 @@ globalThis.TradeUI = {
     TradeUI._after(scene, res, "sold", row.itemId);
   },
 
-  /** post-transaction: coin cue + refresh on success, else a toast of the refusal reason. */
   _after(scene, res, verb, itemId) {
     if (res.amount > 0) {
       Audio.play({ sound: sndCoin });

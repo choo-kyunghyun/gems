@@ -1,13 +1,9 @@
 /**
- * THE id-keyed key-value store — a table of ROWS (generational handles — Handle) by COLUMNS
- * (string tokens, one sparse set each — Columns), the one shape every layer's data takes: a
- * Level's entities (`level.entities`, its row 0 the level itself — `Level.self`), the World's
- * records and map roster (`World.table`, row 0 `World.self`). A row's datum under a token is pure
- * data the caller owns the shape of; the table holds, walks and serializes it and never reads
- * it. The facade: row lifecycle (create/remove/flush — removal is deferred to a flush), the
- * per-row accessors, the seeders (`of` a record, `derive` a minted derived entry), `mint` and
- * `codec` (a token's persistence — Columns' header), the walks, and export/import. Neutral: it
- * knows no level, no world, no scene.
+ * The id-keyed store: a table of rows (generational handles) by columns (string tokens, one
+ * sparse set each), the one shape every layer's data takes, its row 0 the layer itself. A row's
+ * datum under a token is pure data the caller shapes; the table holds, walks and serializes it
+ * and never reads it. Removal is deferred to a flush. Neutral: it knows no level, world or
+ * scene.
  */
 globalThis.Table = class Table {
   constructor(maxEntities) {
@@ -41,11 +37,9 @@ globalThis.Table = class Table {
   }
 
   /**
-   * Commit all queued removals: clear each entity's component slots, then free its id.
-   * Removal is DEFERRED so a system can remove while iterating a query result — the caller
-   * flushes at a safe point, canonically as the last step of a sim tick, never mid-iteration.
-   * A stale queued id (double-removed, or freed+recycled since queuing) is skipped with a warn —
-   * clearing by raw index would wipe the recycled slot's new owner.
+   * Removal is deferred so a system can remove while iterating; flush at a safe point, the last
+   * step of a sim tick, never mid-iteration. A stale queued id is skipped with a warning, since
+   * clearing by raw index would wipe a recycled slot's new owner.
    */
   flush() {
     for (const id of this._pending) {
@@ -64,21 +58,19 @@ globalThis.Table = class Table {
     return this;
   }
 
-  /** Per-entity accessors are ENTITY-FIRST (add/get/detach): a swapped pair would read
-   *  as a miss, not an error — get() returns undefined for an unregistered component. */
+  /** Per-entity accessors are entity-first: a swapped pair reads as a miss, not an error. */
   add(id, token, data) {
     this.components.add(id, token, data);
   }
 
   /** `add` for a runtime-rebuilt component: no export or whole-entity snapshot carries a minted
-   *  token, so the system that rebuilds one declares it here and nowhere else. `destroy(data)`,
-   *  when given, releases a datum as it leaves its slot — a component holding a native handle
-   *  frees it there, with no roster (Columns's header). */
+   *  token. `destroy(data)`, when given, releases a datum as it leaves its slot, so a component
+   *  holding a native handle frees it there. */
   mint(id, token, data, destroy) {
     this.components.mint(id, token, data, destroy);
   }
 
-  /** The token's raw column for a per-tick reader — contract at Columns.column. */
+  /** The token's raw column, for a per-tick reader. */
   column(token) {
     return this.components.column(token);
   }
@@ -87,9 +79,9 @@ globalThis.Table = class Table {
     return this.components.get(id, token);
   }
 
-  /** The component under `token`, seeded by `make()` when absent — how a consumer reads the
-   *  record it owns on a layer's own entity (`Level.self`, `World.self`): a miss seeds, so a fresh
-   *  level or world starts every record blank. Persistent — a save carries it like any `add`. */
+  /** The component under `token`, seeded by `make()` when absent: how a consumer reads the
+   *  record it owns on a layer's own row, so a fresh layer starts every record blank.
+   *  Persistent, like any `add`. */
   of(id, token, make) {
     let data = this.components.get(id, token);
     if (data === undefined) {
@@ -99,10 +91,9 @@ globalThis.Table = class Table {
     return data;
   }
 
-  /** `of` for what a consumer DERIVES from the layer's data and keeps between frames — a
-   *  collider generation, a nav grid, a camera's native view: seeded through `mint`, so no export
-   *  carries it, and freed as it leaves its slot through its own `destroy()` when it has one (a
-   *  detach, the level's teardown). Never a source of truth — a miss is never an error. */
+  /** `of` for what a consumer derives from the layer's data and keeps between frames: minted,
+   *  so no export carries it, and freed through its own `destroy()` when it has one as it leaves
+   *  its slot. Never a source of truth; a miss is never an error. */
   derive(id, token, make) {
     let data = this.components.get(id, token);
     if (data === undefined) {
@@ -118,19 +109,17 @@ globalThis.Table = class Table {
     if (typeof data.destroy === "function") data.destroy();
   }
 
-  /** Give a token its binary codec — `{ pack(data) → buffer, unpack(buffer) → data }` — so its
-   *  entries cross `export`/`import` as blobs (contract at Columns's header). */
+  /** `c` is `{ pack(data) → buffer, unpack(buffer) → data }`; the token's entries cross
+   *  export/import as blobs. */
   codec(token, c) {
     this.components.codec(token, c);
   }
 
-  /** `get` for a component the caller's contract requires — throws on a miss (contract at
-   *  Columns.require). */
+  /** `get` that throws on a miss. */
   require(id, token) {
     return this.components.require(id, token);
   }
 
-  /** Presence test — what a marker component is queried with, since it carries no data to read. */
   has(id, token) {
     return this.components.has(id, token);
   }
@@ -148,44 +137,37 @@ globalThis.Table = class Table {
     return this.components.persistentOf(id);
   }
 
-  /** Ids carrying every token — contract at Columns.query. No tokens → every live id. */
+  /** Ids carrying every token; no tokens means every live id. */
   query(...tokens) {
     if (tokens.length === 0) return this.ids.live();
     return this.components.query(tokens);
   }
 
-  /** First matching id, or -1 — contract at Columns.first. */
+  /** First matching id, or -1. */
   first(...tokens) {
     return this.components.first(tokens);
   }
 
-  /** Allocation-free iteration, data handed to the callback — contract at Columns.forEach. */
+  /** Allocation-free iteration, data handed to the callback. */
   forEach(tokens, fn) {
     this.components.forEach(tokens, fn);
   }
 
-  /** The store whole — `sink(token, index, buffer)` takes each codec entry's buffer and returns
-   *  what the export holds for it (contract at Columns.export). */
+  /** `sink(token, index, buffer)` returns what the export holds for each codec entry. */
   export(sink) {
     return { ids: this.ids.export(), components: this.components.export(sink) };
   }
 
-  /** The store becomes the snapshot — `source(value)` hands each codec entry its buffer back
-   *  (contract at Columns.import). */
+  /** `source(value)` hands each codec entry its buffer back. */
   import(snapshot, source) {
     this.ids.import(snapshot.ids);
     this.components.import(snapshot.components, source);
   }
 
   /**
-   * Agent state dump: component data of `idOrIds` as JSON, written to `file`
-   * in the save dir AND returned. A single id → a `{id, components}` record;
-   * an id array → an array of records (whole store via `dump(this.query())`, the
-   * token-less query being every live id).
-   * On-demand — call from a temp harness when needed. Uses the Json codec:
-   * native JSON.stringify faults on nested data (GMRT.md #15565), and Json's
-   * cycle/ref guards make dumping raw runtime state safe.
-   * Returns undefined when the encode aborted (nothing written).
+   * Debug dump of `idOrIds` as JSON, written to `file` in the save dir and returned; an id array
+   * gives an array of records. BUG: native JSON.stringify faults on nested data (docs/GMRT.md),
+   * so it goes through the guarded codec. Returns undefined when the encode aborted.
    */
   dump(idOrIds, file = "entity.json") {
     const ids = Array.isArray(idOrIds) ? idOrIds : [idOrIds];
@@ -199,7 +181,7 @@ globalThis.Table = class Table {
       );
     }
     const json = Json.encode(Array.isArray(idOrIds) ? records : records[0]);
-    if (json === undefined) return undefined; // encode aborted (already Log.error'd)
+    if (json === undefined) return undefined; // encode aborted, already logged
     File.write(file, json);
     return json;
   }

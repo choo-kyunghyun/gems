@@ -1,6 +1,6 @@
 /**
- * The popup is built by an injected onOpen(dropdown, field) so this Core widget stays theme-agnostic
- * (facetDropdown supplies the UIModal one), which calls notifyClosed() on dismiss. items: [{ name, value }].
+ * A dropdown field. The popup is built by an injected onOpen(dropdown, field), so this Core widget
+ * stays theme-agnostic; the popup must call notifyClosed() on dismiss.
  * @implements {UIComponent}
  */
 globalThis.UIDropdown = class UIDropdown {
@@ -9,7 +9,7 @@ globalThis.UIDropdown = class UIDropdown {
     this.items = dd.items ?? [];
     this._index = dd.index ?? 0;
     this.onChange = dd.onChange ?? noop;
-    // (dropdown, fieldElement) => void — opens the popup list. Supplied by the factory.
+    // (dropdown, fieldElement) => void
     this.onOpen = dd.onOpen ?? noop;
 
     this.color = dd.color ?? c_white;
@@ -20,16 +20,13 @@ globalThis.UIDropdown = class UIDropdown {
     this.halign = dd.halign ?? fa_left;
     this.padX = dd.padX ?? 12;
 
-    this._open = false; // popup currently shown — drives the chevron direction
-    this._el = null; // host element, stashed each onUpdate for the onClick closure
-    // internal FSM delegate (UITrigger) — commit on release-inside opens the popup.
+    this._open = false;
+    this._el = null; // stashed each onUpdate for the onClick closure
     this._fsm = new UITrigger({
       onClick: () => this._toggle(this._el),
     });
   }
 
-  // METHOD not `get index()` — house style; the old "getter shadowing a GM name faults"
-  // report was dismissed (2026-07 re-audit). Pairs with setIndex().
   getIndex() {
     return this._index;
   }
@@ -44,16 +41,14 @@ globalThis.UIDropdown = class UIDropdown {
     return uiItemName(this.items, this._index);
   }
 
-  /**
-   * Select index `i` (clamped).
-   */
+  /** Clamps `i`; fires onChange. */
   setIndex(i) {
     this._index = clamp(i, 0, this.items.length - 1);
     this.onChange(this._index, this.getValue());
     return this;
   }
 
-  /** opener calls this on dismiss — flips the chevron back and re-allows opening. */
+  /** The popup calls this on dismiss, re-allowing opening. */
   notifyClosed() {
     this._open = false;
   }
@@ -78,7 +73,6 @@ globalThis.UIDropdown = class UIDropdown {
     draw_set_valign(fa_middle);
     const cy = pos.top + pos.height * 0.5;
 
-    // current value, or placeholder when nothing is selected / list is empty.
     const label = this.getName();
     const has = label !== "";
     draw_set_halign(this.halign);
@@ -91,7 +85,6 @@ globalThis.UIDropdown = class UIDropdown {
           : pos.left + this.padX;
     draw_text(tx, cy, has ? label : this.placeholder);
 
-    // chevron: down when closed, up when open.
     const ah = 4;
     drawUIArrow(
       pos.left + pos.width - this.padX - ah,
@@ -104,8 +97,7 @@ globalThis.UIDropdown = class UIDropdown {
     uiDrawRestore(st);
   }
 
-  // UINav: confirm opens the list; presence marks the field focusable. No navAxis — use
-  // UISelect for a left/right cycler.
+  // its presence marks the field focusable
   navActivate(element) {
     this._toggle(element);
   }

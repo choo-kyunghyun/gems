@@ -1,25 +1,18 @@
 /**
- * The level-sized ROOM grid every enclosure consumer shares, one cell per LevelGrid cell — the
- * derived mirror of where the map's walls close. A cell is OUTSIDE (0) when the map border reaches
- * it through non-wall cells, a ROOM (≥ 1) when the walls cut it off from the border, WALL (-1) when
- * a bounding layer occupies it or a stamped footprint covers it. `grid` is the plain Grid a
- * consumer reads (`at`/`atWorld`); `rooms[id]` — `{ id, first, cells }` — describes each region,
- * `first` its lowest cell index in scan order: the stable handle a per-room record keys by (a
- * wall edit that leaves a room's top-left cell in place keeps its record; anything else is a new
- * room). `rooms[0]` is the outside. `rects()` is the rooms as world rects — the roofs a sky
- * overlay is cut out over.
+ * The level-sized room grid, one cell per level cell, derived from where the walls close. A cell
+ * is OUTSIDE (0) when the map border reaches it through open cells, a room (≥ 1) when the walls
+ * cut it off, WALL (-1) when a bounding layer occupies it or a stamped footprint covers it.
+ * `rooms[id]` is `{ id, first, cells }`; `first`, the room's lowest cell index, is the stable
+ * handle a per-room record keys by, surviving any wall edit that leaves that cell in place.
  *
- * Two sources, each with its own refresh signal, like NavGrid: the bounding tile layers (their
- * `edits` counters — `sync` re-derives when one moves) and the stamped footprints (`stamp` — the
- * cells a door stands in, so a doorway closes a room whether the leaf is open or shut; which
- * entities those are is the consumer's call). A derivation is one whole-level flood fill, paid on
- * a change only, never per frame.
+ * Two sources, each with its own refresh: the bounding layers' edit counters (`sync`) and the
+ * stamped footprints (`stamp`), so a doorway closes a room whether its leaf is open or shut.
+ * A derivation is one whole-level flood fill, paid on a change only, never per frame.
  */
 globalThis.Rooms = class Rooms {
   /**
-   * @param {LevelGrid} tiles the level this grid mirrors (dims, cell size)
-   * @param {LevelLayer[]} layers the layers whose occupied cells bound a room (the wall layer —
-   *   a fence bounds nothing, it has no roof)
+   * @param {LevelGrid} tiles
+   * @param {LevelLayer[]} layers the layers whose occupied cells bound a room
    */
   constructor(tiles, layers) {
     this.tiles = tiles;
@@ -31,9 +24,9 @@ globalThis.Rooms = class Rooms {
     this.grid = new Grid(this.cols, this.rows);
     this.rooms = [{ id: 0, first: -1, cells: 0 }];
     this._edits = -1; // the layers' summed edits the grid was derived at; -1 = never
-    this._stamps = []; // the stamped footprints ({x1,y1,x2,y2} world px, x2/y2 exclusive), own copies
+    this._stamps = []; // own copies, world px, x2/y2 exclusive
     this._roofs = null; // rects() cache, dropped by a derivation
-    this._queue = []; // flood-fill scratch, kept across derivations
+    this._queue = [];
   }
 
   destroy() {
@@ -43,7 +36,7 @@ globalThis.Rooms = class Rooms {
     this.layers = undefined;
   }
 
-  /** Re-derive when a bounding layer has been edited since the last derivation. Returns whether it did. */
+  /** Returns whether it re-derived. */
   sync() {
     let edits = 0;
     for (let i = 0; i < this.layers.length; i++) edits += this.layers[i].edits;
@@ -54,8 +47,8 @@ globalThis.Rooms = class Rooms {
   }
 
   /**
-   * Take `rects` as the stamped footprints and re-derive — only when they differ from the held set
-   * (compared by value, so a caller may hand the same scratch every frame). Returns whether it did.
+   * Compared by value, so a caller may hand the same scratch every frame. Returns whether it
+   * re-derived.
    */
   stamp(rects) {
     const held = this._stamps;
@@ -80,7 +73,7 @@ globalThis.Rooms = class Rooms {
     return true;
   }
 
-  /** Room id of a cell — 0 outside, ≥ 1 a room, -1 a wall; off-grid reads outside. */
+  /** Off-grid reads outside. */
   at(gx, gy) {
     if (gx < 0 || gy < 0 || gx >= this.cols || gy >= this.rows) return 0;
     return this.grid.data[gy * this.cols + gx];
@@ -90,10 +83,7 @@ globalThis.Rooms = class Rooms {
     return this.at(Math.floor(wx / this.cellW), Math.floor(wy / this.cellH));
   }
 
-  /**
-   * The rooms' cells greedy-meshed into the fewest world-px rects ({x1,y1,x2,y2}, x2/y2
-   * exclusive), cached until the next derivation — the roofs a sky overlay is cut out over.
-   */
+  /** The rooms as the fewest world-px rects (x2/y2 exclusive), cached until the next derivation. */
   rects() {
     if (this._roofs !== null) return this._roofs;
     const d = this.grid.data;
@@ -115,10 +105,6 @@ globalThis.Rooms = class Rooms {
     return out;
   }
 
-  /**
-   * Walls from the layers and the stamped rects, then the outside flooded from every border
-   * cell, then each pocket left over as a room in scan order.
-   */
   _derive() {
     this._roofs = null;
     const cols = this.cols;
@@ -130,7 +116,7 @@ globalThis.Rooms = class Rooms {
       for (let x = 0; x < cols; x++) {
         let wall = false;
         for (let i = 0; i < layers.length; i++)
-          if (layers[i].get(x, y)) wall = true; // occupancy, as TileEdit reads it (0 = empty)
+          if (layers[i].get(x, y)) wall = true; // 0 = empty
         d[y * cols + x] = wall ? -1 : -2;
       }
     const rects = this._stamps;
@@ -138,7 +124,7 @@ globalThis.Rooms = class Rooms {
     const ch = this.cellH;
     for (let i = 0; i < rects.length; i++) {
       const r = rects[i];
-      // inclusive cell range (x2/y2 are exclusive edges, so -1), clipped to the level
+      // inclusive cell range: x2/y2 are exclusive edges
       let gx0 = Math.floor(r.x1 / cw);
       let gy0 = Math.floor(r.y1 / ch);
       let gx1 = Math.floor((r.x2 - 1) / cw);
@@ -154,7 +140,6 @@ globalThis.Rooms = class Rooms {
     const rooms = this.rooms;
     rooms.length = 1;
     rooms[0].cells = 0;
-    // the outside: everything the border reaches
     for (let x = 0; x < cols; x++) {
       this._flood(x, 0);
       this._flood(x, rows - 1);
@@ -163,7 +148,6 @@ globalThis.Rooms = class Rooms {
       this._flood(0, y);
       this._flood(cols - 1, y);
     }
-    // the rooms: every open pocket left, in scan order
     for (let i = 0; i < d.length; i++) {
       if (d[i] !== -2) continue;
       rooms.push({ id: rooms.length, first: i, cells: 0 });
@@ -171,7 +155,7 @@ globalThis.Rooms = class Rooms {
     }
   }
 
-  /** Flood the unvisited region at a cell with the id of the room being laid down (the last one). */
+  /** Floods with the id of the last room pushed. */
   _flood(gx, gy) {
     const cols = this.cols;
     const rows = this.rows;

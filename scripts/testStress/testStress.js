@@ -1,30 +1,26 @@
-// Stress scenarios (Test → STRESS): a scenario stands a level up in setup, runs its own sim step
-// in `frame` for `frames` REAL frames (Time.step comes from real frame time, so a slow frame
-// takes its bigger step), draws it through the Core debug passes (no sprite — Core only),
-// samples what a frame costs (`t.sample`, reported as a distribution) and asserts what must
-// HOLD under load (no starvation, no overlap, no NaN). The one screenshot per scenario is for
-// eyes; the log line is the record.
+// Stress scenarios: each runs its own sim step for real frames, so a slow frame takes its bigger
+// step, draws through the Core debug passes only, samples what a frame costs and asserts what
+// must hold under load. The screenshot is for eyes; the log line is the record.
 
 const CELL = 32;
-const COLS = 64; // 2048 px square
+const COLS = 64;
 const ROWS = 64;
 const AGENTS = 500; // the colony's entity count, all of them movers
-const WALLS = 60; // random rects of 1-6 cells
-const HALF = 6; // agent half-size (12 px bodies, under the broadphase's 64 px cell)
+const WALLS = 60;
+const HALF = 6; // px, bodies under the broadphase cell
 const SPEED = 96; // px/s
-const ARRIVE = 8; // px from the goal that counts as arrived
-const REPLAN = 4; // s between an agent's replans — ~2 requests a frame over 500 agents, under the budget
-const FRAMES = 300; // ~5 s at 60 fps, longer past the cliff
+const ARRIVE = 8; // px
+const REPLAN = 4; // s — ~2 requests a frame over all agents, under the budget
+const FRAMES = 300;
 const SHOT_FRAME = 150;
-const OVERLAP_EVERY = 60; // frames between the body-vs-wall sweeps (500 × ~80 rect tests each)
+const OVERLAP_EVERY = 60; // frames
 
 /**
- * Bodies overlapping a static past half a pixel — the runtime's collision test rounds a mask's
- * edges to whole pixels (docs/GMRT.md), so a body may rest that deep in a face. Read after the
- * solid pass and before the separation push — the one point where zero must hold.
+ * Overlaps past half a pixel only: mask edges round to whole pixels (docs/GMRT.md), so a body may
+ * rest that deep in a face.
  */
 function _stressOverlaps(level) {
-  const statics = PathfindingSystem.nav(level).statics; // the walls as last stamped
+  const statics = PathfindingSystem.nav(level).statics;
   const rect = AABB.rect();
   let overlaps = 0;
   level.entities.forEach(["StressAgent", Position, BBox], (id, ag, pos, box) => {
@@ -43,7 +39,7 @@ function _stressOverlaps(level) {
   return overlaps;
 }
 
-/** Park–Miller LCG: reproducible layouts without the shared GML stream (docs/GMRT.md → Math.random). */
+/** Park–Miller LCG: reproducible layouts without the shared random stream (docs/GMRT.md). */
 function _stressRand(seed) {
   let s = seed;
   return () => {
@@ -71,7 +67,6 @@ Test.register(Test.STRESS, [
       ctx.grid = grid;
       ctx.entities = s;
 
-      // the maze: random wall rects, remeshed into kinematic colliders, stamped into the nav grid
       const rand = _stressRand(12345);
       const rock = new TileType({ id: "stress_rock", pathCost: null });
       for (let w = 0; w < WALLS; w++) {
@@ -84,11 +79,8 @@ Test.register(Test.STRESS, [
       }
       ctx.colliders = [];
       TileEdit.remesh(s, grid, layer, ctx.colliders);
-      // the level's nav grid, seeded by its owner; update() syncs and stamps it (the walls
-      // never change, so the stamp lands once)
       ctx.nav = PathfindingSystem.nav(level);
 
-      // the agents, each on a free cell with a free-cell goal
       const free = [];
       for (let y = 0; y < ROWS; y++)
         for (let x = 0; x < COLS; x++)
@@ -112,7 +104,6 @@ Test.register(Test.STRESS, [
         });
         s.add(id, Collision, { solid: true });
         s.add(id, Velocity, { x: 0, y: 0, z: 0 });
-        // the walker's bag: PathFollow.target's pathCd/pathRate throttle plus the goal + tallies
         s.add(id, "StressAgent", {
           tx: goal.x,
           ty: goal.y,
@@ -123,8 +114,7 @@ Test.register(Test.STRESS, [
         });
       }
 
-      // a top-down ortho camera entity framing the whole level (its height = the level's, so
-      // the zoom is the surface height over it), and the debug passes over its view
+      // a top-down camera framing the whole level.
       const sh = surface_get_height(application_surface);
       Cameras.create(s, {
         x: (COLS * CELL) / 2,
@@ -138,8 +128,8 @@ Test.register(Test.STRESS, [
       ctx.renderer.insert(
         new RenderGrid(grid, { camera: ctx.camera, color: c_dkgray }),
       );
-      // the path overlay draws 500 paths of draw_line (~16 ms a frame), so it is on for the
-      // screenshot frame only — a scenario's draw must stay cheap or it inflates the tick count
+      // the path overlay is costly, so it is on for the screenshot frame only — a scenario's
+      // draw must stay cheap or it inflates the tick count.
       ctx.paths = new RenderDebugPath(grid);
       ctx.paths.enabled = false;
       ctx.renderer.insert(ctx.paths);
@@ -156,10 +146,9 @@ Test.register(Test.STRESS, [
       let solidUs = 0;
       let sepUs = 0;
       let t1 = get_timer();
-      PuppetSystem.update(ctx.level); // the mirrors, as the colony's sim head runs them
+      PuppetSystem.update(ctx.level);
       const puppetUs = get_timer() - t1;
       t1 = get_timer();
-      // the walkers: arrive → new goal; else steer at PathFollow's movement point
       s.forEach(["StressAgent", Position, Velocity], (id, ag, pos, vel) => {
         const gx = ag.tx - pos.x;
         const gy = ag.ty - pos.y;
@@ -196,19 +185,19 @@ Test.register(Test.STRESS, [
       SolidSystem.update(ctx.level);
       t2 = get_timer();
       solidUs += t2 - t1;
-      // THE invariant under load, read where it must hold: after the solid pass and before
-      // the separation push (which the next solid pass undoes), no body is inside a wall
+      // the invariant under load, read where it must hold: after the solid pass and before the
+      // separation push, which the next solid pass undoes.
       if (i % OVERLAP_EVERY === 0) ctx.overlaps += _stressOverlaps(ctx.level);
       SeparationSystem.update(ctx.level);
       sepUs += get_timer() - t2;
       s.flush();
-      t.sample("stress.pathfind.update", get_timer() - t0); // us per frame, the phases below inside it
+      t.sample("stress.pathfind.update", get_timer() - t0); // us, the phases below inside it
       t.sample("stress.pathfind.puppet", puppetUs);
       t.sample("stress.pathfind.steer", steerUs);
       t.sample("stress.pathfind.path", pathUs);
       t.sample("stress.pathfind.solid", solidUs);
       t.sample("stress.pathfind.separation", sepUs);
-      t.sample("stress.pathfind.pending", s.query(PathRequest).length); // the planner's backlog
+      t.sample("stress.pathfind.pending", s.query(PathRequest).length);
       ctx.paths.enabled = i === SHOT_FRAME;
       if (i === SHOT_FRAME) Screenshot.take("stress-pathfind.png");
     },
@@ -246,8 +235,6 @@ Test.register(Test.STRESS, [
     },
     teardown(ctx) {
       ctx.renderer.destroy();
-      // frees the nav grid and the camera's view (unassigning it restores default room
-      // rendering) with the rest of its cache
       ctx.level.destroy();
     },
   },

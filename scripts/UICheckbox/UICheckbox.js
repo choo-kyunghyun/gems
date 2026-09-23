@@ -4,7 +4,7 @@
  */
 globalThis.UICheckbox = class UICheckbox {
   constructor(box = {}) {
-    this._get = box.getValue ?? (() => box.value ?? false); // static or live source
+    this._get = box.getValue ?? (() => box.value ?? false);
     this.onToggle = box.onToggle ?? noop;
     this.readOnly = box.readOnly ?? false;
     this.style = box.style ?? "check"; // "check" | "switch"
@@ -15,13 +15,12 @@ globalThis.UICheckbox = class UICheckbox {
     this.colorKnob = box.colorKnob ?? c_white; // knob / tick
     this.colorBorder = box.colorBorder ?? c_black;
 
-    // internal FSM delegate (UITrigger) — runs hover/press/commit and writes element.state; it
-    // owns readOnly (no press latch, no onClick), so this field only gates the nav path below.
+    // The trigger enforces readOnly for pointer input; this field only gates nav activation.
     this._fsm = new UITrigger({
       readOnly: this.readOnly,
       onClick: () => this.onToggle(),
     });
-    this._t = undefined; // eased 0..1 toward the current on/off state
+    this._t = undefined; // eased 0..1 toward the on/off state
   }
 
   onUpdate(element, block) {
@@ -31,7 +30,6 @@ globalThis.UICheckbox = class UICheckbox {
   onDraw(element) {
     const pos = element.getLayoutPosition();
     const on = !!this._get();
-    // approach() runs on Time.raw (the clock split).
     const target = on ? 1 : 0;
     this._t =
       this._t === undefined
@@ -46,7 +44,6 @@ globalThis.UICheckbox = class UICheckbox {
     const bg = merge_color(this.colorOff, this.colorOn, t);
 
     if (this.style === "switch") {
-      // pill track; knob travels between cap centers so roundness matches.
       const h = Math.max(16, pos.height * 0.58);
       const w = h * 1.85;
       const x2 = right;
@@ -68,7 +65,7 @@ globalThis.UICheckbox = class UICheckbox {
       );
       const margin = Math.max(2, h * 0.14);
       const kr = rad - margin;
-      const kx = x1 + rad + t * (w - 2 * rad); // between the cap centers
+      const kx = x1 + rad + t * (w - 2 * rad); // between the cap centers, so roundness matches
       const knobCol = element.state.hover
         ? merge_color(this.colorKnob, c_white, 0.35)
         : this.colorKnob;
@@ -101,7 +98,7 @@ globalThis.UICheckbox = class UICheckbox {
     draw_set_alpha(a0);
   }
 
-  // UINav: confirm toggles; presence marks element focusable.
+  // its presence makes the element focusable
   navActivate(element) {
     if (!this.readOnly) this.onToggle();
   }

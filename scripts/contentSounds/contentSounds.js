@@ -1,8 +1,5 @@
 /**
- * Sound metadata declarations.
- *
- * One idempotent register into AssetMeta, called from Game's Create (beside contentSprites).
- * Def shape at the AssetMeta declaration.
+ * Sound metadata declarations, registered once and idempotently.
  */
 globalThis.contentSounds = {
   registered: false,
@@ -11,11 +8,11 @@ globalThis.contentSounds = {
     if (contentSounds.registered) return;
     contentSounds.registered = true;
     AssetMeta.register([
-      // the timed pieces first — the dial's tempo choices, slowest to fastest
+      // the timed pieces first: the tempo choices, slowest to fastest
       { asset: musHibernation, kind: "music", bpm: 60, name: "MUS_HIBERNATION" },
       { asset: musOutpost, kind: "music", bpm: 90, name: "MUS_OUTPOST" },
       { asset: musRaid, kind: "music", bpm: 120, name: "MUS_RAID" },
-      // the ambient beds — the map cues (cozy indoors, tense outdoors) and the rest
+      // the ambient beds
       { asset: musAmbientCozy, kind: "music", name: "MUS_AMBIENT_COZY" },
       { asset: musAmbientTense, kind: "music", name: "MUS_AMBIENT_TENSE" },
       { asset: musAmbientDanger, kind: "music", name: "MUS_AMBIENT_DANGER" },

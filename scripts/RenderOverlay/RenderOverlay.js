@@ -1,33 +1,24 @@
 /**
- * A screen-space OVERLAY over the world: the passes it hosts (`layers` — the sky's
- * RenderCloudShadow and RenderWeather) draw in surface pixels onto one transparent surface the
- * size of the application surface, the injected `cutout` rects are erased from it, and it
- * composites once. That is what lets an overlay spare a region: a roof. `cutout()` returns world
- * rects ({x1,y1,x2,y2}, x2/y2 exclusive) standing `height` world px tall (up = -z, the wall
- * convention); under the fixed-yaw pitched ortho camera a box projects to ONE screen rect — the
- * ceiling is the floor shifted up-screen, the side faces the strip between — so the erase is a
- * draw_rectangle per rect, no geometry. A yawing camera would break that (the Vox contract
- * RenderWalls rests on, too).
+ * A screen-space OVERLAY over the world: its `layers` draw in surface pixels onto one transparent
+ * surface, the `cutout` rects are erased from it, and it composites once — which lets an overlay
+ * spare a region, such as a roof. `cutout()` returns world rects ({x1,y1,x2,y2}, x2/y2 exclusive)
+ * standing `height` world px tall (up = -z); under the fixed-yaw pitched ortho camera such a box
+ * projects to ONE screen rect, so the erase is a rectangle per box. A yawing camera breaks that.
  *
- * Inside the surface the blend is normal colour with SEPARATE alpha (src + dst·(1−a) on both),
- * so the surface holds premultiplied colour under its true coverage — a layer darkens with a
- * black quad at alpha, tints with a coloured one — and the erase is (bm_zero, bm_inv_src_alpha):
- * an opaque draw zeroes colour and alpha. The composite is premultiplied (bm_one,
- * bm_inv_src_alpha) under the screen-space overlay orientation contract (RenderLighting). A layer
- * draws in surface pixels with no matrix or blend changes of its own (View.project for anything
- * world-anchored); the depth test is off for the whole bracket.
- *
- * The level passes its view record (CameraSystem.view) as `camera` at construction.
+ * The surface holds premultiplied colour under its true coverage (separate-alpha blend), so a
+ * layer darkens with a black quad at alpha and tints with a coloured one; the composite is
+ * premultiplied. A layer draws in surface pixels with no matrix or blend changes of its own; the
+ * depth test is off for the whole bracket.
  * @implements {RenderPass}
  */
 globalThis.RenderOverlay = class RenderOverlay {
   constructor(opt = {}) {
     this.enabled = true;
-    this.camera = opt.camera; // the level's view record (CameraSystem.view)
-    this.layers = opt.layers ?? []; // RenderPass[], drawn in order into the surface; destroyed with this
+    this.camera = opt.camera; // {View}
+    this.layers = opt.layers ?? []; // RenderPass[], owned: destroyed with this
     this.cutout = opt.cutout; // () => world rects to erase, or undefined for none
-    this.height = opt.height ?? 0; // how tall a cutout stands (world px, up = -z)
-    this._surf = -1; // the overlay surface, (re)created lazily (surface_exists(-1) is false)
+    this.height = opt.height ?? 0;
+    this._surf = -1; // created lazily
   }
 
   destroy() {
@@ -42,7 +33,7 @@ globalThis.RenderOverlay = class RenderOverlay {
     const h = Math.floor(surface_get_height(application_surface));
     if (!(w > 0) || !(h > 0)) return; // NaN-safe (NaN > 0 is false)
 
-    // (re)create when missing (surfaces are volatile — lost on resize/focus) or size changed
+    // surfaces are volatile — lost on resize/focus
     if (
       !surface_exists(this._surf) ||
       surface_get_width(this._surf) !== w ||
@@ -74,7 +65,6 @@ globalThis.RenderOverlay = class RenderOverlay {
     gpu_set_blendmode(bm_normal);
     surface_reset_target();
 
-    // composite, premultiplied, under the screen-space overlay orientation contract
     matrix_set(
       matrix_view,
       matrix_build_lookat(w / 2, h / 2, -1, w / 2, h / 2, 0, 0, 1, 0),
@@ -92,7 +82,7 @@ globalThis.RenderOverlay = class RenderOverlay {
     draw_set_alpha(prevAlpha);
   }
 
-  /** Erase every on-screen cutout box's screen rect from the surface (the target is set). */
+  /** An opaque draw under this blend zeroes colour and alpha. Expects the surface as target. */
   _erase(rects, w, h) {
     if (rects.length === 0) return;
     const cam = this.camera;

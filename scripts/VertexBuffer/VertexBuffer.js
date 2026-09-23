@@ -1,12 +1,8 @@
 /**
- * vertex-buffer wrapper, fixed position_3d+texcoord+colour format (quads at z=0). build via
- * begin → addQuad → end, submit(texture) each frame. Sprite-blind: every quad's UVs must lie on
- * the one texture handed to submit, and pairing the two is the caller's — VertexBatch is that
- * pairing for sprite frames; RenderCloudShadow pairs its own surface directly.
- * owns a native handle — destroy it.
- * 3D positions so a ground VBO can submit under shMeshlit (which reads v_worldPos from a
- * 3-component position; the z stays 0 — ground passes remain coplanar painter-order with
- * z-write off, so depth behavior is unchanged).
+ * Vertex-buffer wrapper with one fixed format. Sprite-blind: every quad's UVs must lie on the
+ * one texture handed to submit, and pairing the two is the caller's. Positions are 3D so a ground
+ * buffer can submit under the lit shader; flat quads keep z 0, so ground passes stay coplanar
+ * painter-order. Owns a native handle; destroy it.
  */
 globalThis.VertexBuffer = class VertexBuffer {
   static _fmt = undefined;
@@ -55,9 +51,8 @@ globalThis.VertexBuffer = class VertexBuffer {
   }
 
   /**
-   * An UPRIGHT quad standing on the ground line y: its top edge at z0 (up = -z), rising h px
-   * down to z0 + h — the STANDING category's static form (RenderGrass), which the pitched
-   * camera foreshortens like a billboard. Same winding as addQuad.
+   * An upright quad standing on the ground line y, its top edge at z0 (up = -z) and its bottom
+   * at z0 + h. Same winding as addQuad.
    */
   addUpright(x, y, z0, w, h, u0, v0, u1, v1, color = c_white, alpha = 1) {
     const b = this._buf;

@@ -1,119 +1,98 @@
 /**
- * The app's pause overlay: a side sheet filling the RIGHT half of the screen (edge to edge, sliding
- * in from the right) over a dimmed, still-visible scene.
- * Pause is global: the Game object skips scene.update() while isOpen(), and the overlay forces
- * Time.scale=0 each frame (the overlay itself runs on Time.raw).
- * UIModal blocks the underlying UI. Open triggers: F1 anywhere, gamepad Start during gameplay; Esc
- * during gameplay is context-aware (scene.handleEscape() gets first refusal). A scene opts into
- * gameplay pause/nav via this.gameplay.
+ * The app's pause overlay: a side sheet over the right half of a dimmed, still-visible scene.
+ * Pause is global: while it is open the scene does not update and the time scale is forced to 0
+ * each frame. F1 opens it anywhere; during gameplay (a scene's `gameplay` flag) gamepad Start
+ * does too, and Esc opens it only when the scene's `handleEscape` declines the press.
  */
 globalThis.GameOverlay = {
-  _modal: null, // open UIModal handle, or null
-  _root: null, // the open overlay's UIElement root (for a synchronous reopen on a theme swap)
-  _game: null, // the Game object, re-latched each update() — owner of the scene pointer + backdrop
-  _scale: 1, // Time.scale to restore on resume
-  // Boot-injected extra tabs { label, short, build } appended after the built-ins — the seam that
-  // keeps this overlay free of scene/save concerns (SaveGame/sceneColony). Wired once at boot via
-  // addTab().
+  _modal: null,
+  _root: null,
+  _game: null, // re-latched each update()
+  _scale: 1, // the time scale to restore on resume
+  // extra tabs { label, short, build } injected at boot, keeping the overlay free of scene/save
+  // concerns
   _extraTabs: [],
-  // Boot-wired quit-target scene factory (the app's lobby) — null hides the Quit button, so the
-  // menu names no specific scene.
+  // boot-wired quit-target scene factory; null hides the Quit button
   quitTo: null,
-  // Boot-wired filename the Settings tab's Save passes to Settings.save — null hides the button,
-  // so the kit names no app file.
+  // boot-wired settings filename for Save; null hides the button
   settingsFile: null,
-  // Boot-wired rebindable keymap the Settings tab lists — `{ action, label }` rows in display
-  // order (ColonyKeymap.rows) — null hides the section, so the kit names no action.
+  // boot-wired rebindable `{ action, label }` rows in display order; null hides the section
   keymap: null,
 
   /**
-   * Register an extra tab. `short` is the abbreviation the vertical strip draws (`label` is its
-   * tooltip); `build` is called each open (so it reads live state).
+   * Register an extra tab. `short` is the abbreviation the strip draws (`label` is its tooltip);
+   * `build` runs on each open, so it reads live state.
    */
   addTab(label, short, build) {
     GameOverlay._extraTabs.push({ label, short, build });
   },
 
-  /**
-   * Per-frame pause/open driver; a scene opts in with `this.gameplay = true` in create().
-   * game: the Game controller (its `background` re-themes)
-   */
+  /** Per-frame pause/open driver. */
   update(game) {
     GameOverlay._game = game;
     const scene = game.scene;
 
     if (GameOverlay._modal !== null) {
-      // open: F1 / Start toggle closed (Esc-close handled by the UIModal)
       if (Input.keyPressed(vk_f1) || Input.padPressed(gp_start)) {
         GameOverlay.close();
       }
       UINav.suspended = false; // overlay must stay nav-reachable over any scene
-      Time.scale = 0; // freeze Time.delta consumers behind the overlay
+      Time.scale = 0;
       Time.delta = 0;
       Time.step = 0;
       return;
     }
 
-    // closed. F1 opens anywhere (even a non-gameplay scene)
     if (Input.keyPressed(vk_f1)) {
       GameOverlay.open();
       return;
     }
 
-    // gameplay-only below. read scene.gameplay LIVE — never cache into a local bool (the &&-clobber
-    // quirk, #15549).
+    // BUG: scene.gameplay is read live, never cached in a local bool — GMRT #15549 (docs/GMRT.md)
     if (scene === null || scene.gameplay !== true) return;
 
-    // gamepad Start opens the pause menu directly
     if (Input.padPressed(gp_start)) {
       GameOverlay.open();
       return;
     }
 
-    // Esc during gameplay: scene.handleEscape() gets first refusal (close window / exit build);
-    // opens the menu only if unconsumed (so F1/Start stay the always-on pause). Input.keyPressed,
-    // not the raw edge — this runs after UI.update, so a widget's own Esc (a field blur, a modal
-    // close) is spent; a press the scene takes is spent here in turn (the distribution contract).
+    // the scene gets first refusal of Esc; the consumed-aware press lets a widget's own Esc win
     if (Input.keyPressed(vk_escape)) {
       if (scene.handleEscape !== undefined && scene.handleEscape()) {
         Input.consumeKey(vk_escape);
-        UINav.suspended = true; // consumed; menu stays closed
+        UINav.suspended = true;
       } else {
         GameOverlay.open();
       }
       return;
     }
 
-    // gamepad B = back: same handleEscape hook as Esc but never opens the menu
+    // gamepad B is back: the same escape hook, but it never opens the menu
     if (Input.padPressed(gp_face2)) {
       if (scene.handleEscape !== undefined && scene.handleEscape()) {
         Input.consumePad(gp_face2);
-        UINav.suspended = true; // consumed
+        UINav.suspended = true;
         return;
       }
     }
 
-    // gameplay owns the gamepad unless a window is open: suspend menu nav during free-roam/build (left
-    // stick moves the player), un-suspend when a window is open so the controller can navigate it
-    // (a live UINav claims the pad — Input).
+    // gameplay owns the gamepad unless a window is open
     UINav.suspended = !InputContext.is("window");
   },
 
   isOpen() {
-    // METHOD not a getter — house style, not a runtime dodge.
     return GameOverlay._modal !== null;
   },
 
   /** Open + pause (idempotent). tabIndex: 0 System, 1 Settings, 2 About. */
   open(tabIndex = 0) {
     if (GameOverlay._modal !== null) return;
-    GameOverlay._scale = Time.scale; // remember live speed to restore on resume
+    GameOverlay._scale = Time.scale;
     Time.scale = 0;
     Time.delta = 0;
     Time.step = 0;
 
-    // percentages throughout (not a snapshot of display_get_gui_*()) so the sheet reflows on a
-    // live uiScale resize. The root is the dim backdrop; the sheet is its right-aligned child.
+    // percentages, not a GUI-size snapshot, so the sheet reflows on a live UI-scale change
     const root = new UIElement({
       width: "100%",
       height: "100%",
@@ -125,17 +104,17 @@ globalThis.GameOverlay = {
     );
     const modal = new UIModal({
       root,
-      slide: 0, // no vertical rise —
-      slideX: 48, // — the sheet enters from the right edge
+      slide: 0,
+      slideX: 48, // enters from the right edge
       onClose: () => {
         GameOverlay._modal = null;
-        Time.scale = GameOverlay._scale; // resume at the chosen speed
+        Time.scale = GameOverlay._scale;
       },
     });
     root.addComponent(modal);
 
-    // the sheet: the right half, full height, square (it meets three screen edges). Opaque — it
-    // fronts the scene's own UI (lobby / kit), whose text would ghost through a translucent card.
+    // square, as it meets three screen edges; opaque, as the scene's own UI text would ghost
+    // through a translucent card
     const card = facetCard({
       width: "50%",
       padding: FacetTheme.pad,
@@ -145,7 +124,6 @@ globalThis.GameOverlay = {
     });
     card.addComponent(new UITrigger({})); // swallow clicks so they're not a backdrop dismiss
 
-    // title row: name left, "Paused" badge right
     const titleRow = new UIElement({
       width: "100%",
       height: 40,
@@ -166,7 +144,6 @@ globalThis.GameOverlay = {
     card.insertChild(titleRow);
     card.insertChild(facetDivider());
 
-    // icon-less activity bar: each tab draws its abbreviation, the full label is its tooltip
     const tabDefs = [
       {
         label: I18n.textRef("SYS_TAB_SYSTEM"),
@@ -184,7 +161,6 @@ globalThis.GameOverlay = {
         content: GameOverlay._aboutTab(),
       },
     ];
-    // Boot-injected tabs (Save/Load) after the built-ins; built fresh each open so they read live state
     for (let i = 0; i < GameOverlay._extraTabs.length; i++)
       tabDefs.push({
         label: GameOverlay._extraTabs[i].label,
@@ -194,7 +170,6 @@ globalThis.GameOverlay = {
     const tabsRoot = facetTabs(tabDefs, { grow: true, vertical: true });
     card.insertChild(tabsRoot);
 
-    // footer: a universal Close (Esc / backdrop also close)
     const footer = new UIElement({
       width: "100%",
       height: FacetTheme.rowH,
@@ -212,22 +187,21 @@ globalThis.GameOverlay = {
     card.insertChild(footer);
 
     root.insertChild(card);
-    UI.insert(root); // top of the stack → blocks lower roots, draws last
+    UI.insert(root); // top of the stack, so it blocks lower roots
     GameOverlay._modal = modal;
     GameOverlay._root = root;
     UINav.suspended = false;
-    if (tabIndex > 0) tabsRoot.tabs.select(tabIndex); // e.g. Credits → About (index 2)
+    if (tabIndex > 0) tabsRoot.tabs.select(tabIndex);
   },
 
-  /** UIModal animates out, then restores Time.scale via onClose. */
+  /** Animates out, restoring the time scale once closed. */
   close() {
     if (GameOverlay._modal !== null) GameOverlay._modal.close();
   },
 
   /**
-   * Drop the open sheet + restore the time scale on a scene swap. Synchronous (UIModal.remove),
-   * not the animated close: its deferred onClose would re-restore the outgoing scene's scale
-   * onto the next scene.
+   * Drop the open sheet and restore the time scale on a scene swap. Synchronous, not the animated
+   * close, whose deferred callback would restore the outgoing scene's scale onto the next scene.
    */
   reset() {
     if (GameOverlay._modal !== null) {
@@ -238,26 +212,24 @@ globalThis.GameOverlay = {
     GameOverlay._root = null;
   },
 
-  // Rebuild the overlay in place (after a live theme swap) so it bakes the new palette. Removes the
-  // current root SYNCHRONOUSLY — not the animated close(), whose deferred onClose would null the
-  // fresh modal + recapture the (frozen) time scale — then reopens on the same tab, staying paused.
+  // Rebuild in place, staying paused, so the overlay bakes a new palette. The removal is
+  // synchronous: the animated close's deferred callback would null the fresh modal.
   reopen(tabIndex = 0) {
     if (GameOverlay._modal === null) {
       GameOverlay.open(tabIndex);
       return;
     }
-    const resume = GameOverlay._scale; // preserve the real resume speed across the rebuild
+    const resume = GameOverlay._scale;
     GameOverlay._modal.remove();
     GameOverlay._modal = null;
     GameOverlay._root = null;
-    GameOverlay.open(tabIndex); // re-captures _scale from the now-frozen live scale…
-    GameOverlay._scale = resume; // …so restore the pre-open value
+    GameOverlay.open(tabIndex); // captures the frozen scale
+    GameOverlay._scale = resume;
   },
 
   /**
-   * Live theme swap from the Settings tab: fade to full cover, then under it swap the palette,
-   * re-seed the Core focus-ring + scene backdrop, rebuild the active scene's UI (colors bake at
-   * build time) and this overlay, and fade back. No-op when the mode is unchanged.
+   * Live theme swap under a full-cover fade: colors bake at build time, so the scene UI and this
+   * overlay are rebuilt. No-op when the mode is unchanged.
    */
   _applyTheme(mode) {
     if (mode === FacetTheme.mode) return;
@@ -266,17 +238,14 @@ globalThis.GameOverlay = {
       UINav.color = Color.parse(FacetTheme.accent);
       const game = GameOverlay._game;
       if (game !== null) {
-        game.background = Color.parse(FacetTheme.bg); // themed draw_clear backdrop
-        game.retheme(); // rebuild active scene UI in place
+        game.background = Color.parse(FacetTheme.bg);
+        game.retheme();
       }
       UINav.reset(); // focus was on now-destroyed elements
-      GameOverlay.reopen(1); // reopen on the Settings tab, recolored
+      GameOverlay.reopen(1);
     });
   },
 
-  // tabs
-
-  /** System controls: Resume + Quit to Lobby */
   _systemTab() {
     const scroll = facetScroll({ grow: true });
 
@@ -305,12 +274,11 @@ globalThis.GameOverlay = {
     return scroll;
   },
 
-  /** Settings form: audio / display / UI scale / language */
   _settingsTab() {
     const scroll = facetScroll({ grow: true });
 
     const volSection = facetSection(I18n.textRef("SETTINGS_VOL_TITLE"));
-    // volumes shown as %. `apply` updates live audio as the slider drags; Save persists.
+    // `apply` updates live audio as the slider drags; only Save persists
     const volFmt = (v) => string_format(v * 100, 0, 0) + "%";
     const volSlider = (key, apply) =>
       facetSlider({ key, min: 0, max: 1, format: volFmt, onChange: apply });
@@ -370,7 +338,7 @@ globalThis.GameOverlay = {
     dispSection.insertChild(
       facetRow(
         I18n.textRef("SETTINGS_DISP_RESOLUTION"),
-        // dropdown not a < > cycler — scales as more presets are added
+        // a dropdown, not a cycler, scales as presets are added
         facetDropdown(resItems, {
           index: resIdx,
           onChange: (_i, res) => {
@@ -397,7 +365,6 @@ globalThis.GameOverlay = {
         { key: "fpsLimit" },
       ),
     );
-    // V-Sync + AA go through display_reset (Display.applyVideo), which re-imposes the reset window/fps
     dispSection.insertChild(
       facetToggle(
         I18n.textRef("SETTINGS_DISP_VSYNC"),
@@ -413,7 +380,6 @@ globalThis.GameOverlay = {
         },
       ),
     );
-    // only AA levels the GPU reports it can do
     const aaItems = Display.aaLevels().map((lvl) => ({
       name: lvl === 0 ? I18n.text("COMMON_OFF") : lvl + "x",
       value: lvl,
@@ -434,7 +400,6 @@ globalThis.GameOverlay = {
     uiSection.insertChild(
       facetRow(
         I18n.textRef("SETTINGS_UI_SCALE"),
-        // live: resize the GUI layer + reflow all roots (this menu included) as it moves
         facetSlider({
           key: "uiScale",
           min: 0.5,
@@ -445,7 +410,7 @@ globalThis.GameOverlay = {
         { key: "uiScale" },
       ),
     );
-    // world chroma strength — read live by the colony's shader provider every frame, so no onChange
+    // world chroma is read live every frame, so it needs no onChange
     uiSection.insertChild(
       facetRow(
         I18n.textRef("SETTINGS_WORLD_CHROMA"),
@@ -455,8 +420,6 @@ globalThis.GameOverlay = {
     );
     scroll.scrollBody.insertChild(uiSection);
 
-    // color theme (dark/light) — applies LIVE: _applyTheme fades, swaps the palette, and rebuilds
-    // the scene UI + this menu under cover (colors are baked at build, so a rebuild is required)
     const themeSection = facetSection(I18n.textRef("SETTINGS_THEME_TITLE"));
     const themeItems = [
       { name: I18n.text("SETTINGS_THEME_DARK"), value: "dark" },
@@ -482,7 +445,7 @@ globalThis.GameOverlay = {
     langSection.insertChild(
       facetRow(
         I18n.textRef("SETTINGS_LANG_LABEL"),
-        // language switch reloads I18n + re-adopts the locale font; live-textRef UI updates in place
+        // live text refs update in place; only the locale font is re-adopted
         facetSelect(langItems, {
           key: "language",
           onChange: (_i, value) => {
@@ -495,8 +458,7 @@ globalThis.GameOverlay = {
     );
     scroll.scrollBody.insertChild(langSection);
 
-    // key bindings: a rebind row per keymap action, applied live through Input.rebind (the
-    // key-hint bar reads the same binding); Save persists them with the rest (InputPreset)
+    // bindings apply live; Save persists them with the rest
     if (GameOverlay.keymap !== null) {
       const keySection = facetSection(I18n.textRef("SETTINGS_KEYS_TITLE"));
       const prompt = I18n.textRef("SETTINGS_KEYS_PROMPT");
@@ -525,8 +487,7 @@ globalThis.GameOverlay = {
       scroll.scrollBody.insertChild(keySection);
     }
 
-    // dev only: the debug draw passes read their key live each frame (sceneColony.draw), so a
-    // row here only flips the setting — the overlay reaches no scene and no pass.
+    // debug passes read their setting live, so a row only flips it and reaches no scene
     if (DEV_MODE) {
       const debugSection = facetSection(I18n.textRef("SETTINGS_DEBUG_TITLE"));
       debugSection.insertChild(
@@ -544,7 +505,7 @@ globalThis.GameOverlay = {
       scroll.scrollBody.insertChild(debugSection);
     }
 
-    // settings persist only on explicit Save (Settings.set updates live in memory)
+    // settings persist only on an explicit Save
     if (GameOverlay.settingsFile !== null) {
       const saveRow = new UIElement({
         width: "100%",
@@ -569,10 +530,10 @@ globalThis.GameOverlay = {
     return scroll;
   },
 
-  /** About — static project + engine info (reuses the credits strings) */
   _aboutTab() {
     const scroll = facetScroll({ grow: true });
-    const card = facetSection(null); // inside the sheet — no card of its own
+    const card = facetSection(null); // inside the sheet, so no card of its own
+
     const lines = [
       [I18n.textRef("CREDITS_NAME"), FacetTheme.text],
       [I18n.textRef("CREDITS_TAGLINE"), FacetTheme.textMuted],

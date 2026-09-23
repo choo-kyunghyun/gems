@@ -1,18 +1,13 @@
 /**
- * Manufacturer registry.
- *
- * A def may carry a signature `ops` layer (same operator shape as WeaponMod.ops); Loadout
- * folds it into every weapon the company makes, so brand identity is mechanical, not just cosmetic.
+ * Manufacturer registry. A def may carry a signature weapon `ops` layer folded into every weapon
+ * the company makes, so brand identity is mechanical, not just cosmetic.
  */
 globalThis.Manufacturer = {
   register(defs) {
     Registry.register(Manufacturer, defs, Manufacturer.make);
   },
 
-  /**
-   * Manufacturer def, keyed by `id`: name/lore (i18n keys), color (colour int or "#rrggbb" hex), ops
-   * (signature weapon ops layer — see the contract above).
-   */
+  /** `name`/`lore` are i18n keys; `color` a colour int or "#rrggbb" hex. */
   make(def) {
     return {
       id: def.id,
@@ -30,7 +25,7 @@ globalThis.Manufacturer = {
     return Registry.get(Manufacturer, id);
   },
 
-  /** registration index, -1 when unknown — the inventory sort key. */
+  /** Registration index, -1 when unknown. */
   rank(id) {
     return Registry.rank(Manufacturer, id);
   },

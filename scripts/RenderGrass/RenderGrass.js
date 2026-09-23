@@ -1,40 +1,18 @@
 /**
- * GRASS pass — the grass ground's VOLUME layer, the way a 3D game scatters grass meshes
- * over green terrain: the flat terrain pass under it keeps the distant color mass, this
- * pass stands HD clump sprites (denser sheet than the world — AssetMeta density) on every
- * cell of its material. With enough clumps per cell (the sheet's MAT variants near-solid at
- * the root) the field carries the color mass itself and needs no grass tileset under it —
- * `edge` then stands clumps on transition cells too, so the field's border is the organic
- * feather of the scatter, not a dual-grid outline. Placement is DETERMINISTIC: a position
- * hash decides each cell's clump count, anchors, frames and mirror, so a regenerated or
- * reloaded layer strews the same field with no entity and no save state — the terrain it
- * stands on regenerates from its seed the same way. One VertexBatch per def, whole-layer, rebuilt
- * on markDirty(); clumps are depth-written alpha-cut uprights under the billboards' bent
- * normal and pitch compensation (RenderBillboard's rules); a `flat` def LIES on the ground
- * plane instead — a decal the pitch foreshortens like the terrain under it (a lotus pad on
- * water), lit as flat ground and still in the wind (the sway is proportional to height).
- * Insert right after the terrain passes, so the clumps are in the depth pool before the
- * entities draw.
- * The sheet is a white TINT MASK: a def's `tint` (a GM color) is baked into the vertices,
- * so one sheet colors every biome's grass — vertex color x white texel = exactly the tint.
- * Sway hooks in later as a shMeshlit vertex animation on the sim clock, wave-mode style.
+ * Grass volume pass: stands clump sprites on every cell of a material, over the flat terrain.
+ * Placement is deterministic — a position hash decides each cell's clumps — so a regenerated or
+ * reloaded layer strews the same field with no entity and no save state. Clumps are depth-written
+ * alpha-cut uprights with billboard pitch compensation; a `flat` def lies on the ground plane
+ * instead. The sheet is a white tint mask, so one sheet colors every biome. Insert right after the
+ * terrain passes, so the clumps are in the depth pool before the entities draw.
  * @implements {RenderPass}
  */
 globalThis.RenderGrass = class RenderGrass {
   /**
-   * `layer.get(gx, gy)` must answer a TileType (or nothing). defs: [{ id, sprite, min?,
-   * max?, chance?, edge?, flat? }] — `id` the TileType id the field grows on, `sprite` a GMSprite of clump
-   * VARIANTS (origin at the foot; half are mirrored), `min`..`max` the per-cell count the
-   * hash rolls (default 1..2), `chance` the share of eligible cells that carry any at all
-   * (default 1 — sparse clutter gates here), `scaleMin`..`scaleMax` the per-clump size the hash rolls
-   * (default 1..1, about the foot — a stretched clump resamples its texels, invisible on
-   * one-tone art), `tint` the vertex color the white sheet is multiplied by (default
-   * c_white), `edge` true to include transition cells (tileset-free fields), `flat` true to
-   * lay the variants on the ground plane instead of standing them (the origin still at the
-   * anchor, sprite-up = map north). opt: `lights` the host RenderMesh pass, `camera` the level's view record (CameraSystem.view) whose pitch the
-   * clumps compensate, `seed` the placement hash seed, `alphaRef` the cutout (default 0.5),
-   * `wind` the level's sway strength (0 = rigid — shMeshlit.vsh's u_sway) and `time` the sim
-   * clock closure its phase runs on (the wave crests' clock, frozen on pause).
+   * `layer.get(gx, gy)` answers a TileType or nothing. A def grows on TileType `id` from a sheet
+   * of clump variants (origin at the foot); `chance` is the share of eligible cells carrying any,
+   * `edge` includes transition cells, and `flat` lays variants with sprite-up as map north.
+   * `opt.wind` is the sway strength (0 = rigid), phased on the sim clock `opt.time`.
    */
   constructor(layer, grid, defs, opt = {}) {
     this.enabled = true;
@@ -47,7 +25,7 @@ globalThis.RenderGrass = class RenderGrass {
     this.alphaRef = opt.alphaRef ?? 0.5;
     this.wind = opt.wind ?? 0;
     this.time = opt.time;
-    this._batches = []; // parallel to defs: a VertexBatch, or undefined when a def placed nothing
+    this._batches = []; // parallel to defs; undefined where a def placed nothing
     this._dirty = true;
     this._lit = shMeshlit;
     this._litOk = shaders_are_supported() && shader_is_compiled(this._lit);
@@ -75,7 +53,7 @@ globalThis.RenderGrass = class RenderGrass {
     this._batches = [];
   }
 
-  /** the TileType id at a cell, or -1 off the layer / on an empty cell */
+  /** The TileType id at a cell, or -1 off the layer or on an empty cell. */
   _idAt(gx, gy) {
     const { cols, rows } = this.grid;
     if (gx < 0 || gy < 0 || gx >= cols || gy >= rows) return -1;
@@ -83,7 +61,7 @@ globalThis.RenderGrass = class RenderGrass {
     return t ? t.id : -1;
   }
 
-  /** a cell of `id` whose 4-neighbours are `id` too — clear of every transition */
+  /** A cell of `id` whose 4-neighbours are `id` too, clear of every transition. */
   _interior(gx, gy, id) {
     if (this._idAt(gx, gy) !== id) return false;
     if (this._idAt(gx - 1, gy) !== id) return false;
@@ -92,7 +70,6 @@ globalThis.RenderGrass = class RenderGrass {
     return this._idAt(gx, gy + 1) === id;
   }
 
-  /** one batch per def: every interior cell rolls its clumps off the position hash */
   _rebuild() {
     this._dirty = false;
     this._free();
@@ -104,7 +81,7 @@ globalThis.RenderGrass = class RenderGrass {
       const def = this.defs[k];
       const spr = def.sprite;
       const frames = sprite_get_number(spr);
-      const dens = AssetMeta.density(spr); // source px per world px — divides every extent
+      const dens = AssetMeta.density(spr); // source px per world px
       const sw = sprite_get_width(spr);
       const sh = sprite_get_height(spr);
       const xoff = sprite_get_xoffset(spr);
@@ -130,8 +107,7 @@ globalThis.RenderGrass = class RenderGrass {
             minC + Math.floor(hash2(gx, gy, salt) * (maxC - minC + 1));
           for (let c = 0; c < count; c++) {
             const s2 = salt + 7 + c * 53;
-            // the clump's foot inside the cell, 2 px in from its edges, snapped to the
-            // sheet's texel grid so the denser art still samples whole
+            // snapped to the sheet's texel grid so the denser art still samples whole
             const px =
               Math.round((gx * cw + 2 + hash2(gx, gy, s2) * (cw - 4)) * dens) / dens;
             const py =
@@ -140,8 +116,8 @@ globalThis.RenderGrass = class RenderGrass {
               frames - 1,
               Math.floor(hash2(gx, gy, s2 + 2) * frames),
             );
-            // the packer-trimmed rect over the sheet density, foot on the anchor; a
-            // mirrored clump swaps u and anchors from its right edge
+            // the packer-trimmed rect, foot on the anchor; a mirrored clump anchors from its
+            // right edge
             const sc = sMin + hash2(gx, gy, s2 + 4) * (sMax - sMin);
             const uv = batch.uvs(spr, frame);
             const w = (sw * uv[6] * sc) / dens;
@@ -152,7 +128,6 @@ globalThis.RenderGrass = class RenderGrass {
             const x0 = mirror ? px - (w - a) : px - a;
             const u0 = mirror ? uv[2] : uv[0];
             const u1 = mirror ? uv[0] : uv[2];
-            // a flat variant lies on the ground: its up (-z) becomes map north (-y)
             if (flat) batch.addQuad(x0, py + z0, w, h, u0, uv[1], u1, uv[3], tint);
             else batch.addUpright(x0, py, z0, w, h, u0, uv[1], u1, uv[3], tint);
           }
@@ -168,9 +143,8 @@ globalThis.RenderGrass = class RenderGrass {
 
   draw(entities) {
     if (this._dirty) this._rebuild();
-    // in the depth pool, cut on the texel alpha, the billboards' bent normal, and the
-    // billboards' pitch compensation — a z-scale about the ground plane, so every clump
-    // grows from its own foot (a flat def's z = 0 is untouched by it)
+    // pitch compensation is a z-scale about the ground plane, so every clump grows from its own
+    // foot and a flat def is untouched
     const lit = this.lights !== undefined && this.lights.litOk && this._litOk;
     const pitch = this.camera !== undefined ? this.camera.pitch : 0;
     const tall = pitch > 0 ? 1 / Math.sin(pitch) : 1;
@@ -183,8 +157,8 @@ globalThis.RenderGrass = class RenderGrass {
       if (lit) {
         this.lights.setupLights(entities);
         shader_set_uniform_f(this.lights.uUseTex, 1);
-        // a flat def is lit as ground (straight up), a standing one as a billboard
-        if (this.defs[k].flat === true)
+        if
+ (this.defs[k].flat === true)
           shader_set_uniform_f(this.lights.uNormal, 0, 0, -1);
         else shader_set_uniform_f(this.lights.uNormal, 0, 0.5, -0.866);
         shader_set_uniform_f(this._uAlphaRef, this.alphaRef);

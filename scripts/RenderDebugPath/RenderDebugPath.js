@@ -1,5 +1,5 @@
 /**
- * pathfinding overlay: PathResponse routes (yellow + orange leader), PathRequest goals (red cross).
+ * Pathfinding overlay: PathResponse routes and PathRequest goals.
  * @implements {RenderPass}
  */
 globalThis.RenderDebugPath = class RenderDebugPath {

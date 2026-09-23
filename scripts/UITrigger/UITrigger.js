@@ -1,14 +1,11 @@
 /**
- * Mirrors hover/held/clicked into `element.state` (see the UIState typedef in UIElement) so sibling
- * components can react without knowing who computed it. Used two ways: standalone as a component (a
- * bare `new UITrigger({})` is a click swallower), and as the internal delegate every clickable widget
- * (UIButton/UICheckbox/UISelect/…) runs instead of cloning this logic. UIButton is the themed variant
- * (adds easing + disabled/selected).
+ * Mirrors hover/held/clicked into `element.state` ({UIState}) so sibling components can react
+ * without knowing who computed it. Standalone, a bare trigger is a click swallower; as a
+ * delegate, it is the one click FSM every clickable widget runs.
  *
- * READ-ONLY MODE (`readOnly`) — a widget that shows its state but must not act on a press
- * (UICheckbox/UISlider). Hover still fires and still CAPTURES (so the display swallows clicks meant
- * for whatever sits under it), but a press never latches `hold`: no onDown/onUp/onClick, and no
- * capture that would survive dragging off the element.
+ * `readOnly` is for a widget that shows its state but must not act on a press: hover still
+ * fires and still captures, so it swallows clicks meant for what lies under it, but a press never
+ * latches `hold`: no onDown/onUp/onClick, and no capture that survives dragging off.
  * @implements {UIComponent}
  */
 globalThis.UITrigger = class UITrigger {
@@ -61,8 +58,7 @@ globalThis.UITrigger = class UITrigger {
     return (this.block && (this.hold || this.enter)) || block;
   }
 
-  /** force-release: fire onUp/onLeave for any latched state, then clear it — used by
-   *  teardown and by a delegating widget entering its disabled state. */
+  /** Force-release: fires onUp/onLeave for any latched state, so none is stranded. */
   release() {
     if (this.hold) this.onUp();
     if (this.enter) this.onLeave();
@@ -70,9 +66,6 @@ globalThis.UITrigger = class UITrigger {
     this.enter = false;
   }
 
-  /**
-   * fire onUp/onLeave on teardown so held/hovered state isn't stranded.
-   */
   onDestroy(element) {
     this.release();
   }

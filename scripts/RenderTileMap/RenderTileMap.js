@@ -1,6 +1,6 @@
 // blob8 autotile table (256 → 0-46 frame). N=1 E=2 S=4 W=8 NE=16 SE=32 SW=64 NW=128.
 // corner bits only count when both adjacent cardinals are set.
-// precomputed literal — GMRT can't bind closures nested in a top-level IIFE.
+// BUG: a precomputed literal, as GMRT can't bind closures nested in a top-level IIFE.
 const _BLOB8 = [
    0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15,
    0,  1,  2, 16,  4,  5,  6, 17,  8,  9, 10, 18, 12, 13, 14, 19,
@@ -23,20 +23,15 @@ const _BLOB8 = [
 /**
  * @typedef {Object} RenderTileMapOptions
  * @property {0|16|47|"dual"} [autotile] - 0: TileType.id as frame, 16: blob4, 47: blob8.
- *   "dual": half-cell-offset grid; samples 4 cells per display corner (TL=1 TR=2 BR=4 BL=8 →
- *   frame); transparent corners let lower terrain show through — stack dual passes per terrain
- *   for RPG-Maker-style A-over-B transitions.
+ *   "dual": a half-cell-offset grid whose transparent corners let lower terrain show through.
  * @property {number} [alpha]
  * @property {number} [color]
  * @property {number} [minId] - "dual" only: a cell counts as filled iff its TileType id is at least
- *   this. Ordered ids make ONE layer render as a cumulative material stack — pass m takes
- *   minId = m + 1 — instead of one layer per material (the terrain palette, see ColonyLevel).
- * @property {number} [skipAbove] - "dual" only: skip a display tile the NEXT material covers whole
- *   (its mask at this threshold is 15). Without it every lower material draws its full extent
- *   under the ones above it; with it a stack costs about one grid's quads, not one per material.
- * @property {{r: number, g: number, b: number, time: function(): number}} [wave] - a FLOWING
- *   material (water): shMeshlit's wave mode paints crest bands in this tone (0..1 floats) over
- *   the sheet, drifting on `time()` — a SIM clock, so they freeze on pause. Lit maps only.
+ *   this, so ordered ids let one layer render as a cumulative material stack.
+ * @property {number} [skipAbove] - "dual" only: skip a display tile the next material covers
+ *   whole, so a stack costs about one grid's quads, not one per material.
+ * @property {{r: number, g: number, b: number, time: function(): number}} [wave] - a flowing
+ *   material's crest tone (0..1 floats), drifting on a sim clock so it freezes on pause. Lit only.
  */
 
 /** @implements {RenderPass} */
@@ -51,12 +46,9 @@ globalThis.RenderTileMap = class RenderTileMap {
     this.color = opt.color ?? c_white;
     this.dirty = true;
     this._batch = new VertexBatch();
-    this.lights = opt.lights; // host RenderMesh pass → lit ground (see draw); unset = unlit
-    // a flowing material: { r, g, b, time } — crest tone (0..1 floats) + the clock the crests
-    // drift on (a SIM clock, so they freeze on pause); lit maps only, unset = still ground
+    this.lights = opt.lights; // unset = unlit
     this.wave = opt.wave;
-    // "dual" material-stack options (see the typedef); minId 0 accepts any TileType, so an
-    // ordinary single-material dual layer behaves exactly as plain occupancy.
+    // 0 accepts any TileType, so a single-material dual layer is plain occupancy
     this.minId = opt.minId ?? 0;
     this.skipAbove = opt.skipAbove;
 
@@ -67,7 +59,7 @@ globalThis.RenderTileMap = class RenderTileMap {
     } else if (mode === 47) {
       this._frameOf = (x, y) => this._blob8(x, y);
     } else if (mode === "dual") {
-      this._frameOf = undefined; // dual uses its own rebuild path, not _frameOf
+      this._frameOf = undefined; // dual has its own rebuild path
     } else {
       this._frameOf = (x, y) => {
         const t = layer.get(x, y);
@@ -97,8 +89,8 @@ globalThis.RenderTileMap = class RenderTileMap {
   }
 
   _blob8(x, y) {
-    // BUG: [#15549] test _isSolid inline (no cached bool locals) and read
-    // cardinals back off the mask bits for diagonal checks (N=1 E=2 S=4 W=8).
+    // BUG: #15549 — no cached bool locals, so diagonals read the cardinals back off the mask
+    // bits (docs/GMRT.md)
     let mask = 0;
     if (this._isSolid(x, y - 1)) mask |= 1;
     if (this._isSolid(x + 1, y)) mask |= 2;
@@ -141,10 +133,7 @@ globalThis.RenderTileMap = class RenderTileMap {
     this.dirty = false;
   }
 
-  /**
-   * dual-grid: display tile centered on each data-grid corner, sampling 4 touching cells.
-   * TL=1 TR=2 BR=4 BL=8 → frame = mask. transparent corners let lower terrain show through.
-   */
+  /** Dual grid: a display tile centered on each data-grid corner, its frame the corner mask. */
   _rebuildDual() {
     const { grid, sprite } = this;
     const { cols, rows, cellWidth, cellHeight } = grid;
@@ -154,12 +143,10 @@ globalThis.RenderTileMap = class RenderTileMap {
     this._batch.destroy();
     const batch = new VertexBatch().begin();
     this._batch = batch;
-    // one extra row/col of corner points (0..cols and 0..rows inclusive)
     for (let j = 0; j <= rows; j++) {
       for (let i = 0; i <= cols; i++) {
         const mask = this._dualMask(i, j, this.minId);
         if (mask === 0) continue;
-        // fully hidden by the material stacked above → no quad at all
         if (this.skipAbove !== undefined && this._dualMask(i, j, this.skipAbove) === 15)
           continue;
         batch.addFrame(
@@ -179,7 +166,7 @@ globalThis.RenderTileMap = class RenderTileMap {
   }
 
   /**
-   * dual corner mask at corner point (i, j) for a material threshold: TL=1 TR=2 BR=4 BL=8. OOB
+   * Corner mask at corner point (i, j) for a material threshold: TL=1 TR=2 BR=4 BL=8. Off-grid
    * reads as empty, so a level edge fades out rather than tiling past itself.
    */
   _dualMask(i, j, minId) {
@@ -194,16 +181,14 @@ globalThis.RenderTileMap = class RenderTileMap {
   _atLeast(x, y, minId) {
     const { cols, rows } = this.grid;
     if (x < 0 || y < 0 || x >= cols || y >= rows) return false;
-    const t = this.layer.get(x, y); // Grid.get returns 0 for empty, not undefined
+    const t = this.layer.get(x, y); // 0 when empty, not undefined
     return t ? t.id >= minId : false;
   }
 
   draw(entities) {
     if (this.dirty) this._rebuild();
-    // GROUND under the one lit shader: `lights` (the host RenderMesh pass, assigned by the
-    // level on pitched maps) supplies the shared sun/point gather; the normal is straight up
-    // — flat ground. z-write stays off (painter order), so only the shading changes; unset
-    // (flat maps / editor) submits fixed-function unlit exactly as before.
+    // lit as flat ground (normal straight up); z-write stays off, so only the shading changes
+
     const lit = this.lights !== undefined && this.lights.litOk;
     if (lit) {
       this.lights.setupLights(entities);

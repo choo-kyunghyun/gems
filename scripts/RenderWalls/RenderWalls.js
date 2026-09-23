@@ -1,54 +1,31 @@
 /**
- * WALLS pass of the art projection contract (RenderBillboard): draws a solid tile
- * layer as lit boxes. Per wall cell it emits a plan-view TOP quad (at -height) plus a
- * vertical SOUTH face only where the south neighbor is empty — the two orientations the
- * fixed-yaw pitched camera can ever see (the Vox contract). Hidden-face removal happens
- * HERE at build time; no emitted face can backface a fixed-yaw camera, so GPU cull modes
- * would have nothing left to remove.
+ * Draws a solid tile layer as lit boxes: per wall cell a top quad at -height, plus a south face
+ * only where the south neighbour is empty — the only two orientations a fixed-yaw pitched camera
+ * sees, so hidden faces are removed at build time rather than by GPU culling.
  *
- * Vertices are the Vox 24 B/vertex format (position_3d + colour + texcoord), in one of
- * two shMeshlit modes (both share the sun + view-culled point lights supplied by the host
- * RenderMesh pass, `opt.lights`, whose setupLights runs before the submits — walls join the
- * same depth pool as furniture and billboards, z-write on for the submit):
- * - TEXTURED (sprite set): texcoord = real frame UVs, colour = the material tint
- *   (texture × tint × light — grayscale-ish pattern textures let one texture serve every
- *   material color), and the face normal rides the u_normal UNIFORM — constant per
- *   orientation, so the pass keeps tops and souths in separate buffers and submits each
- *   under its own normal (u_useTex = 1). Faces must stay opaque (depth-writing geometry).
- * - FLAT TINT (no sprite): texcoord = the PACKED face normal (top (0,0), south (0,1)),
- *   colour = the tint — the vox mode, u_useTex = 0. Also the sprite-missing fallback.
- * Without the shader (or no host pass) both modes submit fixed-function: textured × colour
- * or flat colour, unlit — same degradation as RenderMesh.
+ * A textured material carries real frame UVs and a tint, with the face normal as a uniform, so
+ * tops and souths live in separate buffers; a flat material packs the face normal into the
+ * texcoord. Faces stay opaque (depth-writing). Without the lit shader both draw unlit.
  *
- * PER-CELL MATERIALS (opt.materials): cells are bucketed by their TileType id, each bucket
- * a { sprite, frame, color } of its own — one solid layer renders brick/concrete/metal/plank
- * side by side while colliders/nav stay occupancy-based (one TileEdit layer). A cell whose
- * id matches no material — including a bare-occupancy view whose get() returns booleans/1s
- * without a TileType — falls to the DEFAULT bucket (opt.sprite/opt.color). Without
- * opt.materials everything is the default bucket (the original single-material behavior).
- *
- * VBO-cached like RenderTileMap: call markDirty() after any tile edit — BuildMode's
- * _markTileDirty reaches it through the map's tilePasses. Coords are absolute world px, so the
- * draw needs no world matrix and a whole-layer rebuild is one pass over the grid.
+ * Cells are bucketed into materials by TileType id; an unmatched or id-less cell takes the
+ * default material. The layer is VBO-cached in absolute world px: call markDirty() after any
+ * tile edit.
  * @implements {RenderPass}
  */
 globalThis.RenderWalls = class RenderWalls {
   /**
    * `layer`: only `get(gx, gy)` is read (truthy cell = wall), so any occupancy view satisfies
-   * it, not just a TileLayer. opt: `sprite` is an asset REF (validated via sprite_exists);
-   * `frame` picks the subimage (default 0);
-   * `materials` buckets cells by TileType id (see the class doc), id-less/unmatched cells
-   * using the top-level defaults.
+   * it. opt: `sprite` is an asset ref; `materials` buckets cells by TileType id, the top-level
+   * sprite/frame/color being the default bucket.
    */
   constructor(grid, layer, opt) {
     opt = opt ?? {};
     this.enabled = true;
     this.grid = grid;
     this.layer = layer;
-    this.height = opt.height ?? 32; // wall height in world px (visual only — colliders are TileEdit's)
-    this.lights = opt.lights; // host RenderMesh pass (shares shMeshlit + its light gather)
-    // normalized material buckets: [0] = the default/catch-all, then each opt.materials entry.
-    // texOk resolved per bucket (a bucket with a missing sprite degrades to flat tint alone).
+    this.height = opt.height ?? 32; // world px, visual only
+    this.lights = opt.lights; // the lit host pass, whose shader and light gather the walls share
+    // [0] is the catch-all; a bucket with a missing sprite degrades to flat tint alone
     this._mats = [
       {
         sprite: opt.sprite,
@@ -69,7 +46,7 @@ globalThis.RenderWalls = class RenderWalls {
         texOk: m.sprite !== undefined && sprite_exists(m.sprite),
       });
     }
-    // same 24 B/vertex declaration as RenderMesh._format — the lockstep Vox layout
+    // 24 B/vertex, in lockstep with the mesh vertex layout
     vertex_format_begin();
     vertex_format_add_position_3d();
     vertex_format_add_colour();
@@ -102,10 +79,7 @@ globalThis.RenderWalls = class RenderWalls {
     }
   }
 
-  /**
-   * material bucket for a cell value: a TileType keys by id, a bare-occupancy truthy (1/true)
-   * has none — both fall to bucket 0 (the default) on a miss.
-   */
+  /** A cell's material bucket; a bare truthy cell has no id and takes the default. */
   _bucketOf(t) {
     const tid = typeof t === "object" ? t.id : t;
     const mi = this._matIndex["" + tid];
@@ -113,8 +87,8 @@ globalThis.RenderWalls = class RenderWalls {
   }
 
   /**
-   * rebuild the per-bucket whole-layer VBOs: count quads per bucket for exact fixed buffers,
-   * then write vertices (byte order per Vox: 3×f32 pos, R,G,B,A u8, 2×f32 texcoord).
+   * Rebuild the per-bucket VBOs, counted first for exact fixed buffers (byte order: 3×f32 pos,
+   * R,G,B,A u8, 2×f32 texcoord).
    * An empty bucket stays -1 (vertex_create_buffer_from_buffer can't take a 0-byte buffer).
    */
   _rebuild() {
@@ -142,9 +116,8 @@ globalThis.RenderWalls = class RenderWalls {
     }
     if (total === 0) return;
 
-    // per-bucket write state: buffers + UVs + tint (textured mode: the frame's texture-page
-    // UV rect stretched over each face, trim insets [4..7] ignored — a full-bleed tile
-    // texture is never trimmed; flat mode: packed face normals shMeshlit's vox path decodes)
+    // textured mode stretches the frame's UV rect over each face, trim ignored (a full-bleed
+    // tile texture is never trimmed); flat mode packs the face normals instead
     const bufT = [];
     const bufS = [];
     const U0 = [];
@@ -261,7 +234,7 @@ globalThis.RenderWalls = class RenderWalls {
     for (let i = 0; i < this._mats.length; i++)
       if (this._vbTops[i] !== -1) any = true;
     if (!any) return;
-    // depth-writing like RenderMesh/RenderBillboard (global default is off)
+    // depth-writing; the global default is off
     gpu_set_zwriteenable(true);
     const lit = this.lights !== undefined && this.lights.litOk;
     if (lit) this.lights.setupLights(entities); // sets shMeshlit + sun/point uniforms (u_useTex 0)

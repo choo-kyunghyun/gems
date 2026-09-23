@@ -6,8 +6,8 @@ globalThis.INPUT_SOURCE = Object.freeze({
 
 /**
  * One physical button binding: a keyboard key, mouse button, or gamepad button. Reads through
- * the Input queries, never a device built-in, so a binding sees exactly what the frame's
- * claims leave it (the distribution contract — Input).
+ * the input queries, never a device built-in, so a binding sees exactly what the frame's claims
+ * leave it.
  */
 globalThis.InputButton = class InputButton {
   constructor(source, button, device = 0) {
@@ -55,7 +55,7 @@ globalThis.InputButton = class InputButton {
     }
   }
 
-  // single source of truth for binding→UI text (UIRebind + facetKeyHints), so a remap reads the same everywhere.
+  // the one binding → UI text, so a remap reads the same everywhere
   label() {
     switch (this.source) {
       case INPUT_SOURCE.KEYBOARD:
@@ -72,7 +72,6 @@ globalThis.InputButton = class InputButton {
     }
   }
 
-  // keycode → display string: named keys, F1–F12, letters/digits → char, else raw code.
   static keyName(code) {
     if (code === 0) return "—";
     if (code === vk_space) return "Space";

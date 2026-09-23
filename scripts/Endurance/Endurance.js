@@ -1,9 +1,9 @@
-// drains Stamina while sprinting, regenerates otherwise — at the rates the component carries.
-// driven once per tick by PlayerSystem. Stats.maxStamina caps the pool.
+// Drains stamina while sprinting and regenerates it otherwise, at the rates the component
+// carries; the max-stamina stat caps the pool.
 globalThis.Endurance = {
   /**
-   * `wantSprint` = intent; gates on stamina/exhaustion here. returns true when actually sprinting.
-   * reads component fields live (no cached boolean — GMRT boolean-local clobber, see CLAUDE.md).
+   * `wantSprint` is the intent; returns whether the entity actually sprints. Fields are read live,
+   * never cached in a bool local (docs/GMRT.md).
    */
   sprint(entities, id, wantSprint) {
     const sta = entities.get(id, Stamina);
@@ -16,7 +16,7 @@ globalThis.Endurance = {
       sta.value -= sta.drain * dt;
       if (sta.value <= 0) {
         sta.value = 0;
-        sta.exhausted = true; // lock out sprint until recovered to `recover` * max
+        sta.exhausted = true; // locked out until recovered to `recover` * max
       }
       return true;
     }

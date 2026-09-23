@@ -1,13 +1,12 @@
 /**
  * THE bare static collider and its grid-rect batch — the form every wall, water rect and level
- * edge takes. A kinematic solid is made by replacement, never moved or resized (PuppetSystem's
- * static-is-static premise).
+ * edge takes. A kinematic solid is made by replacement, never moved or resized: static stays static.
  */
 globalThis.Colliders = {
   /**
    * The collider (world px): Position at the box's TOP-LEFT, BBox anchored (0,0) spanning w×h,
    * and nothing else — no Visual, so the caller either draws it as tiles or leaves it invisible
-   * (water, the border). Kinematic, so bodies collide against it and NavGrid stamps it as blocked.
+   * (water, the border). Kinematic, so bodies collide against it and nav stamps it as blocked.
    */
   box(entities, x, y, w, h) {
     const id = entities.create();
@@ -20,7 +19,7 @@ globalThis.Colliders = {
     return id;
   },
 
-  /** One box() per [gx, gy, wCells, hCells] grid rect (Grid.meshRects' form), ids pushed onto `out`. */
+  /** One box() per [gx, gy, wCells, hCells] grid rect, ids pushed onto `out`. */
   boxes(entities, rects, cellW, cellH, out) {
     for (let i = 0; i < rects.length; i++) {
       const r = rects[i];

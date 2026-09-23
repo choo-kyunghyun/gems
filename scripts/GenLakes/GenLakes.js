@@ -1,13 +1,11 @@
 /**
- * The LAKES stage: water bodies carved into the ground. An independent noise channel below a band's
- * threshold turns the cell into that band's material — ascending, so deep water → water → shore —
- * and past the last threshold the cell keeps its ground. `lattice` sets the body size (bigger =
- * broader lakes). Claimed cells are skipped, so a structure placed before this pass stays dry.
- * Pure in (ctx.seed, cell); draws no rng.
- * GMRT-safe: index loops, class on globalThis.
+ * The lakes stage: water bodies carved into the ground. Noise below a band's threshold turns the
+ * cell into that band's material, and past the last threshold the cell keeps its ground; a
+ * bigger `lattice` makes broader lakes. Claimed cells are skipped, so a structure placed before
+ * this pass stays dry. Pure in (ctx.seed, cell); draws no rng.
  */
 globalThis.GenLakes = class GenLakes {
-  /** opts: bands (required — [[materialId, threshold]...] ascending), lattice? (default 10), salt? */
+  /** opts: bands ([[materialId, threshold]...] ascending), lattice?, salt? */
   constructor(opts = {}) {
     if (!Array.isArray(opts.bands) || opts.bands.length === 0)
       throw new Error("GenLakes needs a band table");

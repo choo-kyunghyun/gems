@@ -1,44 +1,35 @@
 /**
- * A save is built by an ordered list of PASSES, each owning one aspect of the world (metadata,
- * world-sim, per-map entities, tile grids, …); the same pass captures AND restores its
- * slice, so the two directions can never drift. Composition, not a monolith — a scene inserts exactly
- * the passes its content needs, which is why different levels can carry different component/system
- * sets in one save.
+ * A save is built by an ordered list of passes, each owning one aspect of the world; the same
+ * pass captures and restores its slice, so the two directions can never drift. A scene inserts
+ * exactly the passes its content needs, so levels with different component sets share one save.
  *
- * A pass is `{ id, capture(ctx), restore(ctx) }` (a bare fn is wrapped as a capture-only pass).
- * insert/remove mirror Renderer/LevelGen.
+ * A pass is `{ id, capture(ctx), restore(ctx) }`; a bare fn is a capture-only pass.
  *
- * THE BUNDLE is HYBRID by design: passes write structured, variable-shape data (metadata, the per-map
- * component set — self-describing, differs per level) into a JSON manifest, and dense fixed-shape data
- * (tile grids) into named binary blobs. SaveGame owns the disk side (manifest.json +
- * <name>.bin under saves/<slot>/); Snapshot only builds/consumes the bundle in memory, so it stays
- * engine-generic. The ctx handed to each pass:
+ * The bundle is hybrid: variable-shape data goes into a JSON manifest, dense fixed-shape data into
+ * named binary blobs. This builds and consumes the bundle in memory only; the disk side is the
+ * caller's. The ctx handed to each pass:
  *   ctx.mode      "capture" | "restore"
- *   ctx.scene     the live scene (read live state on capture; write it on restore)
- *   ctx.manifest  the JSON tree — write on capture, read on restore
- *   ctx.putBlob(name, buffer)  capture: hand a binary blob to the bundle (buffer ownership moves to the bundle)
- *   ctx.getBlob(name)          restore: the loaded buffer for `name`, or undefined (the caller still owns it)
- *   ctx.takeBlob(name)         restore: the same buffer, OWNERSHIP MOVED to the pass — for a blob applied
- *                              later than the restore itself (a parked map's grid, unpacked on first visit);
- *                              the caller frees only what was never taken
+ *   ctx.scene     the live scene
+ *   ctx.manifest  the JSON tree
+ *   ctx.putBlob(name, buffer)  capture: buffer ownership moves to the bundle
+ *   ctx.getBlob(name)          restore: the loaded buffer, or undefined; the caller still owns it
+ *   ctx.takeBlob(name)         restore: ownership moves to the pass, for a blob applied after the
+ *                              restore itself; the caller frees only what was never taken
  */
 globalThis.Snapshot = class Snapshot {
-  static VERSION = 14; // bump when the manifest/blob layout changes incompatibly (14: the grid rides the store as a blob, the map roster the world's store)
+  static VERSION = 14; // bump when the manifest/blob layout changes incompatibly
 
   constructor() {
     this.passes = [];
   }
 
-  /**
-   * Wrap a bare fn as a capture-only pass; pass an object through. Mirrors Renderer/LevelGen.
-   */
   _wrap(pass) {
     if (typeof pass === "function")
       return { id: "", capture: pass, restore: () => {} };
     return pass;
   }
 
-  /** Insert a pass (append by default; order IS the capture/restore order). */
+  /** Order is the capture and restore order. */
   insert(pass, index = this.passes.length) {
     this.passes.splice(index, 0, this._wrap(pass));
     return this;
@@ -51,9 +42,8 @@ globalThis.Snapshot = class Snapshot {
   }
 
   /**
-   * CAPTURE: run each pass in order, accumulating the hybrid bundle. Returns
-   * `{ manifest, blobs }` — manifest a JSON-encodable tree, blobs an array of { name, buffer }
-   * the caller owns (SaveGame writes them, then buffer_deletes).
+   * Returns `{ manifest, blobs }`: a JSON-encodable tree and an array of { name, buffer } the
+   * caller owns and frees.
    */
   capture(scene) {
     const manifest = { version: Snapshot.VERSION };
@@ -73,11 +63,9 @@ globalThis.Snapshot = class Snapshot {
   }
 
   /**
-   * RESTORE: run each pass in order against a loaded bundle. `manifest` is the parsed JSON
-   * manifest (already ref-revived by Json.decode); `blobs` maps name -> buffer (owned by the
-   * caller; a pass reads through getBlob, or takes ownership through takeBlob — a taken name is
-   * deleted from `blobs`, so the caller's sweep afterwards frees only what no pass claimed).
-   * Passes reconstruct scene state in place.
+   * `manifest` is the parsed, ref-revived manifest; `blobs` maps name -> buffer, owned by the
+   * caller. A taken name is deleted from `blobs`, so the caller's sweep afterwards frees only
+   * what no pass claimed. Passes rebuild scene state in place.
    */
   restore(scene, manifest, blobs) {
     const ctx = {

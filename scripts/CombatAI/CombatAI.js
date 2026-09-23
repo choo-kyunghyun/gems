@@ -1,52 +1,44 @@
-// Combat AI for all non-player combatants (enemies + turrets) — defines the Brain component and
-// registers the "combat.*" StateSystem states. System contract on the CombatAI declaration below.
-
-// turret reach = bulletSpeed × this ≈ 1.5 s of bullet flight
+// turret reach in seconds of bullet flight
 const SHOT_RANGE_SECS = 1.5;
 
 /**
- * per-actor AI memory + tuning; `target` is the chased entity id (-1 = none).
- * MUST survive a snapshot round-trip, which re-creates the actor under a NEW id (a save restore, a
- * map transfer): so a Brain never
- * stores its OWN id (only `target`, re-acquired anyway), State holds pool-id STRINGS rather than
- * callbacks, and state callbacks receive (entities, id) instead of closing over either.
+ * Per-actor AI memory and tuning. It must survive a snapshot round-trip, which re-creates the
+ * actor under a new id: a Brain never stores its own id, State holds pool-id strings rather than
+ * callbacks, and state callbacks receive the id instead of closing over it.
  */
 globalThis.Brain = "Brain";
 /**
  * @typedef {Object} Brain
- * @property {{x:number,y:number}} home  spawn point a MOBILE actor drifts back to when idle
- * @property {number} target      entity id this actor is chasing/attacking (-1 = none)
- * @property {boolean} mobile     true = chase the target (enemy); false = stationary (turret)
- * @property {boolean} ranged     true = fire a hitscan shot (turret); false = melee contact (enemy)
+ * @property {{x:number,y:number}} home  point a mobile actor drifts back to when idle
+ * @property {number} target      chased entity id (-1 = none)
+ * @property {boolean} mobile     false = stationary
+ * @property {boolean} ranged     true = hitscan shot; false = melee contact
  * @property {number} aggro       distance at which an idle actor acquires a hostile target
- * @property {number} deAggro     distance at which a chasing (mobile) actor gives up
- * @property {number} attackRange distance at which it stops to attack (= fire range when ranged)
- * @property {number} speed       chase/return move speed (px/s); 0 for a stationary actor
+ * @property {number} deAggro     distance at which a chasing actor gives up
+ * @property {number} attackRange distance at which it stops to attack
+ * @property {number} speed       px/s
  * @property {number} cdMax       seconds between attacks
- * @property {number} cd          attack cooldown countdown (s)
- * @property {number} bulletSpeed muzzle velocity (px/s) scaling the hitscan reach; 0 for melee
- * @property {number} pathCd      A* replan throttle countdown (s) while a chase is wall-blocked
- * @property {number} pathRate    seconds between A* replans during a blocked chase
- * @property {number} aggroRate   seconds between idle target-acquisition scans (a runtime circle query per scan)
- * @property {number} aggroCd     acquisition throttle countdown (s)
- * @property {number} losRate     seconds between chase LOS raycasts (a cast walks cells + scans bodies)
- * @property {number} losCd       LOS throttle countdown (s)
- * @property {boolean} losBlocked cached "a wall blocks the shot" decision between LOS raycasts
+ * @property {number} cd          seconds
+ * @property {number} bulletSpeed px/s, scaling the hitscan reach; 0 for melee
+ * @property {number} pathCd      seconds
+ * @property {number} pathRate    seconds between replans during a wall-blocked chase
+ * @property {number} aggroRate   seconds between idle target scans
+ * @property {number} aggroCd     seconds
+ * @property {number} losRate     seconds between chase LOS casts
+ * @property {number} losCd       seconds
+ * @property {boolean} losBlocked cached LOS decision between casts
  */
 
 /**
- * Registers "combat.idle" / "combat.chase" / "combat.attack" into the StateSystem pool by NAME (not a
- * hardcoded bundle), so an entity kind can compose a different state set (the EntityPreset seam).
- * Mobile melee and stationary ranged actors share the same states, differing only by Brain data
- * (`mobile`/`ranged`). Targeting is by faction, not a hardcoded id — add a hostile faction and actors
- * fight it with no change here.
+ * Combat AI for every non-player combatant: the Brain component and the "combat.*" states,
+ * registered by name so an entity kind can compose a different state set. Mobile melee and
+ * stationary ranged actors share the same states, differing only by Brain data. Targeting is by
+ * faction — a new hostile faction is fought with no change here.
  */
 globalThis.CombatAI = {
-  // State callbacks receive (level, id) from StateSystem: the level in hand is the store AND the
-  // grid (grid<->world conversion for pathfinding around walls), so there is no per-map static to
-  // re-point on a map activate — a resumed map's actors keep their Brain/State and run as they are.
+  // State callbacks take the level, so no per-map static needs re-pointing on a map activate.
 
-  /** Register the combat states into the StateSystem pool (idempotent; called by content). */
+  /** Idempotent. */
   register() {
     StateSystem.register([
       {
@@ -70,10 +62,8 @@ globalThis.CombatAI = {
             else CombatAI._stop(entities, id);
           }
 
-          // acquire nearest hostile in aggro range (by faction). THROTTLED: nearestHostile asks the
-          // runtime for every mask in the ring, so an idle actor rescans only every aggroRate seconds
-          // — a 0.25 s acquisition delay is imperceptible, and this is the dominant idle-crowd cost
-          // at a wide SIM window (a swarm of idle enemies each scanning every frame).
+          // Throttled: the scan is the dominant idle-crowd cost, and a short acquisition delay
+          // is imperceptible.
           if (brain.aggroCd > 0) {
             brain.aggroCd -= Time.step;
           } else {
@@ -87,7 +77,6 @@ globalThis.CombatAI = {
             );
             if (t !== -1) {
               brain.target = t;
-              // mobile actor closes the distance; turret attacks in place
               StateSystem.change(
                 entities,
                 id,
@@ -95,7 +84,7 @@ globalThis.CombatAI = {
               );
             }
           }
-          CombatAI._animate(entities, id, false, false); // rigged actors: idle/walk (drift-home) + facing
+          CombatAI._animate(entities, id, false, false);
         },
       },
 
@@ -103,7 +92,7 @@ globalThis.CombatAI = {
       {
         id: "combat.chase",
         enter(level, id) {
-          level.entities.get(id, Brain).losCd = 0; // raycast LOS immediately on entering the chase
+          level.entities.get(id, Brain).losCd = 0;
         },
         update(level, id) {
           const entities = level.entities;
@@ -127,11 +116,8 @@ globalThis.CombatAI = {
           const sp = entities.get(id, Position);
           const tp = entities.get(brain.target, Position);
 
-          // LOS: only a wall (kinematic solid) forces an A* detour; a clear shot is a straight
-          // seek. Dynamic bodies (target/other actors, hit at t≈1) don't count as blockers.
-          // THROTTLED: a cast still walks the cells to the target and scans the bodies; re-cast
-          // every losRate seconds and cache the decision (a moving target's occlusion shifts slowly —
-          // 0.13 s of staleness is imperceptible).
+          // Only a wall (kinematic solid) forces a path detour; other bodies don't block. The
+          // decision is cached between throttled casts — occlusion shifts slowly.
           if (brain.losCd > 0) {
             brain.losCd -= Time.step;
           } else {
@@ -150,8 +136,6 @@ globalThis.CombatAI = {
             CombatAI._animate(entities, id, false, true);
             return;
           }
-          // wall in the way: steer at the path walker's movement point (waypoint, or straight
-          // while the throttled replan is still resolving)
           const mp = PathFollow.target(
             entities,
             level.grid,
@@ -184,7 +168,7 @@ globalThis.CombatAI = {
           }
           CombatAI._stop(entities, id);
 
-          // cooldown read/written live off the component (no cached primitive — GMRT bool-local clobber)
+          // read live off the component, never a cached local (docs/GMRT.md)
           if (brain.cd > 0) brain.cd -= Time.step;
           if (brain.cd <= 0) {
             if (brain.ranged) CombatAI._fireAt(level, id, brain);
@@ -192,15 +176,13 @@ globalThis.CombatAI = {
             brain.cd = brain.cdMax;
           }
 
-          // out of range: a mobile actor resumes the chase; a turret can't pursue, so it idles to re-acquire
           if (CombatAI._distTo(entities, id) > brain.attackRange)
             StateSystem.change(
               entities,
               id,
               brain.mobile ? "combat.chase" : "combat.idle",
             );
-          // strike pose from the swing (cd just reset to cdMax) until the rig's one-shot attack
-          // set has played out — its own length, so a punch and a bite each finish
+          // hold the strike until the rig's one-shot attack has played out
           CombatAI._animate(
             entities,
             id,
@@ -212,8 +194,7 @@ globalThis.CombatAI = {
     ]);
   },
 
-  // Attach the AI. `opt` overrides the Brain defaults (a mobile melee enemy); a turret passes
-  // { mobile:false, ranged:true, ... }. Damage is the actor's Stats.attack (see _attackPower).
+  // `opt` overrides the Brain defaults, which describe a mobile melee enemy.
   attach(entities, id, opt = {}) {
     const pos = entities.get(id, Position);
     entities.add(id, Velocity, { x: 0, y: 0, z: 0 });
@@ -229,11 +210,9 @@ globalThis.CombatAI = {
       cdMax: opt.cdMax ?? 0.75,
       cd: 0,
       bulletSpeed: opt.bulletSpeed ?? 0,
-      pathCd: 0, // replan throttle (s) — counts down while a chase is wall-blocked
+      pathCd: 0,
       pathRate: opt.pathRate ?? 0.2,
-      // acquisition + LOS throttles: both are runtime queries over the colliders, so idle actors re-scan
-      // for targets every aggroRate seconds and chasers re-raycast LOS every losRate seconds. aggroCd is
-      // staggered by id so a freshly-streamed crowd doesn't scan all on the same frame (a load spike).
+      // staggered by id so a freshly-streamed crowd doesn't scan on one frame
       aggroRate: opt.aggroRate ?? 0.25,
       aggroCd: ((id % 16) / 16) * (opt.aggroRate ?? 0.25),
       losRate: opt.losRate ?? 0.13,
@@ -243,9 +222,7 @@ globalThis.CombatAI = {
     entities.add(id, State, { current: "", next: "combat.idle" });
   },
 
-  /**
-   * distance to Brain.target; Infinity if none / gone
-   */
+  /** Infinity when the target is gone. */
   _distTo(entities, id) {
     const t = entities.get(id, Brain).target;
     if (!entities.isValid(t)) return Infinity;
@@ -256,10 +233,7 @@ globalThis.CombatAI = {
     return Math.sqrt(dx * dx + dy * dy);
   },
 
-  /**
-   * aim velocity at (tx, ty) at `speed`, consuming movement points by the terrain underfoot
-   * (PathFollow.speedScale — full speed on easy ground, slower on rough, slowest wading)
-   */
+  /** Aim velocity at (tx, ty), scaled by the terrain underfoot. */
   _seek(level, id, tx, ty, speed) {
     const entities = level.entities;
     const pos = entities.get(id, Position);
@@ -278,11 +252,7 @@ globalThis.CombatAI = {
     vel.y = 0;
   },
 
-  /**
-   * Drive the optional rig animation + facing from the actor's motion: `attacking` holds the
-   * strike, `running` plays motion as the run set instead of the walk (a chase, not the drift
-   * home). An actor without a Skeleton (a turret) no-ops both calls.
-   */
+  /** Rig animation and facing from the actor's motion; a no-op for an actor without a rig. */
   _animate(entities, id, attacking, running) {
     const vel = entities.get(id, Velocity);
     let st = "idle";
@@ -293,28 +263,19 @@ globalThis.CombatAI = {
     if (vel !== undefined) Doll.face(entities, id, vel.x);
   },
 
-  /**
-   * outgoing damage for a non-player attacker: its Stats.attack (no weapon), 0 if it has no Stats
-   */
+  /** Outgoing damage for a non-player attacker; 0 without Stats. */
   _attackPower(entities, id) {
     const stats = entities.get(id, Stats);
     return stats !== undefined ? stats.attack : 0;
   },
 
-  /**
-   * one melee hit on the target through the shared Combat applier (defense + floor via mitigate hook)
-   */
   _hitTarget(entities, id) {
     const t = entities.get(id, Brain).target;
     if (!entities.isValid(t)) return;
     Combat.applyDamage(entities, t, CombatAI._attackPower(entities, id));
   },
 
-  /**
-   * Fire an instant hitscan shot at Brain.target through the shared Combat.hitscan (same as a player
-   * gun). hitscan stops at a wall or ally before the target, so no pre-LOS check is needed. A fading
-   * tracer shows the shot.
-   */
+  /** A hitscan shot at the target; it stops at a wall or ally, so no LOS check is needed. */
   _fireAt(level, id, brain) {
     const entities = level.entities;
     const t = brain.target;
@@ -326,7 +287,6 @@ globalThis.CombatAI = {
     const d = Math.sqrt(dx * dx + dy * dy) || 1;
     const nx = dx / d;
     const ny = dy / d;
-    // cast along the aim to the muzzle-velocity-scaled reach; owner=id skips self + spares allies
     const range = brain.bulletSpeed * SHOT_RANGE_SECS;
     const shot = Combat.hitscan(
       level,

@@ -1,25 +1,16 @@
 /**
- * A plan is a LevelData — Core's one authored-content shape: `tiles` per (layer, material) as
- * origin-local rects, `spawns` as descriptors — so a captured plan IS a prefab body.
+ * A plan is a LevelData, so a captured plan is a prefab body.
  *
- * capture() reads a plan off a cell rect of the LIVE map: every tile layer but the terrain,
- * greedy-meshed per material (the generator's walls and the player's alike — what stands there),
- * plus the built entities inside the rect as their catalog descriptors, each carrying `item` (its
- * contentBuild id, which is what stamp() rebuilds it from) and, with opts.withState, its exact
- * Row as `snapshot` (a chest keeps its contents, a turret its damage). export() writes
- * a plan as the pretty literal contentPrefabs takes — the DEV capture tool's exit (BuildMode).
+ * capture() reads a plan off a cell rect of the live map — every tile layer but the terrain, plus
+ * the built entities as catalog descriptors carrying the `item` id stamp() rebuilds them from, and
+ * optionally each one's exact snapshot. export() writes a plan as a pretty prefab literal.
  *
- * stamp() puts a plan down at (ox, oy) through BuildMode.applyItem, so a stamped build is
- * identical to a hand-placed one (colliders, built / builtEnts tracking, render dirty), the
- * solid layers remeshed once at the end. The build path only knows the catalog: a tiles entry no
- * catalog item paints, or a spawn without `item`, is skipped with a warning. Ungated — the caller
- * decides validity/cost.
+ * stamp() places a plan through the build path, so a stamped build is identical to a hand-placed
+ * one. Only catalog content survives: a tiles entry no catalog item paints, or a spawn without
+ * `item`, is skipped with a warning. Ungated — the caller decides validity and cost.
  */
 globalThis.Blueprint = {
-  /**
-   * Capture the cell rect (x1,y1)-(x2,y2) inclusive into a plan (coords relative to x1,y1);
-   * opts.withState → include each built entity's exact snapshot.
-   */
+  /** The cell rect (x1,y1)-(x2,y2) inclusive, as a plan local to (x1,y1). */
   capture(scene, x1, y1, x2, y2, opts = {}) {
     const cols = x2 - x1 + 1;
     const rows = y2 - y1 + 1;
@@ -30,7 +21,7 @@ globalThis.Blueprint = {
       if (cfg.key === "terrain") continue; // the biome ground is the generator's, never content
       const layer = rt[cfg.key + "Layer"];
       if (cfg.materials !== undefined) {
-        // one entry per material present, so the rects carry the material key
+        // one entry per material present
         const types = rt[cfg.key + "Types"];
         for (let m = 0; m < cfg.materials.length; m++) {
           const key = cfg.materials[m].key;
@@ -62,8 +53,8 @@ globalThis.Blueprint = {
       if (gx < x1 || gx > x2 || gy < y1 || gy > y2) continue;
       const e = builtEnts[ek[i]];
       const item = contentBuild.item(e.itemId);
-      if (item === undefined) continue; // stale/removed catalog id
-      // the descriptor at the LIVE cell (a door orients off its neighbours), then localise
+      if (item === undefined) continue; // stale catalog id
+      // described at the live cell (a door orients off its neighbours), then localised
       const s = BuildMode.descriptor(scene, item, gx, gy);
       s.gx = gx - x1;
       s.gy = gy - y1;
@@ -76,13 +67,13 @@ globalThis.Blueprint = {
   },
 
   /**
-   * Stamp a plan with its origin at cell (ox, oy). Tiles go down first (so a door reads its
-   * finished neighbouring walls), then entities. Returns the number of placements made.
+   * Tiles go down first, so a door reads its finished neighbouring walls. Returns the number of
+   * placements made.
    */
   stamp(scene, ox, oy, plan) {
     if (plan === null || plan === undefined) return 0;
     let n = 0;
-    const remesh = {}; // solid layer key -> true (remeshed once at the end)
+    const remesh = {}; // solid layer key -> true, remeshed once at the end
     const tiles = plan.tiles ?? [];
     for (let i = 0; i < tiles.length; i++) {
       const t = tiles[i];
@@ -113,8 +104,7 @@ globalThis.Blueprint = {
         Log.warn(`Blueprint: spawn "${s.preset}" is no catalog item — skipped`);
         continue;
       }
-      // an id that has since become a TILE item (the fence) lands as that tile — applyItem's tile
-      // branch ignores the snapshot, which is how an old plan's fence entities migrate
+      // an id that is now a tile item lands as that tile, its snapshot ignored
       BuildMode.applyItem(scene, ox + s.gx, oy + s.gy, item, {
         snapshot: s.snapshot,
       });
@@ -124,10 +114,10 @@ globalThis.Blueprint = {
     return n;
   },
 
-  /** the pretty literal form (Json.encode pretty), written to `name` in the save dir */
+  /** Written to `name` in the save dir. */
   export(plan, name) {
     const text = Json.encode(plan, { pretty: true });
-    if (text === undefined) return false; // codec already Log.error'd — never write a truncated plan
+    if (text === undefined) return false; // never write a truncated plan
     File.write(name, text);
     return true;
   },

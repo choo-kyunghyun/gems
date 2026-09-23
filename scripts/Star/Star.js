@@ -1,13 +1,10 @@
-// Stateless operations on a Favorites component (no world tick) — the star list is view-only, so
-// nothing here touches gameplay state.
+// Stateless operations on a Favorites component; the star list is view-only, never gameplay state.
 globalThis.Star = {
   has(fav, itemId) {
     return fav.ids.indexOf(itemId) >= 0;
   },
 
-  /**
-   * toggle star; returns new state (true = now favorited)
-   */
+  /** Returns true when now favorited. */
   toggle(fav, itemId) {
     const i = fav.ids.indexOf(itemId);
     if (i >= 0) {

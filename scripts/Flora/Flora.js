@@ -1,21 +1,17 @@
 /**
- * The on-demand verbs over a plant (Growth) and the contentFlora species table — the one call an
- * interaction, a spawn or a builder makes: `species` the def by id, `attach` a freshly spawned
- * plant's stage, `canRoot` the placement test a seedling and a built crop share, `plant` a wild
- * seedling, `harvest` the ripe plant's yield, and `stage`/`ripen`, what a stage change and
- * ripeness do to the entity (the sheet's FRAME — one sheet per species, a frame per stage —
- * Visual.subimg; a trunk turning solid from `solidFrom`; the species' Interaction at progress ≥
- * 1). The growth and spread over in-game hours are FloraSystem's.
+ * The on-demand verbs over a plant (Growth) and its species def: what a stage change and ripeness
+ * do to the entity, the placement test a seedling and a built crop share, and the harvest. One
+ * sheet per species, a frame per stage. Growth over time is not here.
  */
 globalThis.Flora = {
-  /** Species def by id; an unknown id throws (content is code — a retired id is a migration). */
+  /** An unknown id throws: content is code, so a retired id is a migration. */
   species(id) {
     const def = contentFlora.get(id);
     if (def === undefined) throw new Error(`Flora: unknown species "${id}"`);
     return def;
   },
 
-  /** Apply the stage progress implies: the sheet's frame, and a trunk turning solid from `solidFrom`. */
+  /** Apply the stage progress implies: the frame, and a trunk turning solid from `solidFrom`. */
   stage(entities, id, g, vis, def) {
     const last = def.stages - 1;
     let stage = Math.floor(g.progress * last);
@@ -29,17 +25,14 @@ globalThis.Flora = {
     col.solid = stage >= def.solidFrom;
   },
 
-  /** A ripe plant carries its species' Interaction (harvest/chop — contentInteractions). */
+  /** A ripe plant carries its species' Interaction. */
   ripen(entities, id) {
     if (entities.has(id, Interaction)) return;
     const def = Flora.species(entities.get(id, Growth).species);
     entities.add(id, Interaction, { kind: def.action });
   },
 
-  /**
-   * A freshly spawned plant (ColonySpawn, for any `species` descriptor): its stage frame and, if
-   * already ripe, its Interaction.
-   */
+  /** Set up a freshly spawned plant: its stage frame and, if already ripe, its Interaction. */
   attach(entities, id) {
     const g = entities.get(id, Growth);
     const def = Flora.species(g.species);
@@ -47,11 +40,7 @@ globalThis.Flora = {
     if (g.progress >= 1) Flora.ripen(entities, id);
   },
 
-  /**
-   * The terrain material id under a cell (contentBiomes.MATERIALS), read off the map's material
-   * table (the runtime's terrainMats — ColonyLevel._terrainTypes); undefined off-grid, or on a
-   * map whose saved rows predate the material column.
-   */
+  /** The terrain material id under a cell; undefined off-grid or on a map with no material table. */
   materialAt(level, gx, gy) {
     const rt = ColonyMap.runtime(level);
     const mats = rt.terrainMats;
@@ -94,7 +83,7 @@ globalThis.Flora = {
     return stand.length === 0;
   },
 
-  /** Put a wild seedling of `species` down at a cell (no root test — that is the caller's). */
+  /** A wild seedling at a cell; the root test is the caller's. */
   plant(level, species, gx, gy) {
     const def = Flora.species(species);
     return ColonySpawn.spawnEntity(level.entities, level.grid, {
@@ -105,15 +94,14 @@ globalThis.Flora = {
       wild: true,
       progress: 0,
       yaw: Math.floor(Math.random() * 4) * 90,
-      size: 0.8 + Math.floor(Math.random() * 5) * 0.15, // the generator's specimen range
+      size: 0.8 + Math.floor(Math.random() * 5) * 0.15, // matches the generated specimen range
     });
   },
 
   /**
-   * The harvest/chop action: a ripe plant's yield to `playerId`'s bag — all or nothing, so a full
-   * bag refuses rather than losing the rest — then the plant regrows or goes. Returns
-   * `{ itemId, qty, reason }`: `qty` 0 with `reason` "" for an unripe plant, "INV_FULL" for a
-   * refused bag — the view's to show (contentInteractions).
+   * A ripe plant's yield to `playerId`'s bag — all or nothing, so a full bag refuses rather than
+   * losing the rest — then the plant regrows or goes. `qty` 0 with `reason` "" for an unripe
+   * plant, "INV_FULL" for a refused bag.
    */
   harvest(entities, id, playerId) {
     const g = entities.require(id, Growth);

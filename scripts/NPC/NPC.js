@@ -1,6 +1,6 @@
 /**
- * Non-player entity: the dialogue panel's name/lines and its quest. Its E behaviour is its Interaction
- * (`talk` / `trade`, set by ColonySpawn), picked by Interactable beside every station.
+ * Non-player entity: the dialogue panel's name/lines and its quest. Its interact behaviour is its
+ * Interaction, not this.
  *
  * @typedef {Object} NPC
  * @property {string} name        i18n key for the display name

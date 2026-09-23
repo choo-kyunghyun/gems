@@ -1,22 +1,15 @@
 /**
- * Marks an entity as interactable: walk near + press E to run a registered InteractAction. `kind`
- * names the action (looked up in the InteractAction registry — the colony registers its set in
- * contentInteractions); the extra flat fields are per-instance params the action's run() reads (each
- * with its own default), so one component drives everything from opening a UI window to feeding /
- * hydrating / buffing the player. The generic pick/prompt/dispatch engine is the Game/UI
- * `Interactable` module. Replaces the old Core `Station` component.
+ * Marks an entity as interactable: walk near and press E to run the registered action `kind`.
+ * The extra flat fields are per-instance params the action reads, each with its own default, so
+ * one component drives everything from opening a window to feeding the player.
  * @typedef {Object} Interaction
- * @property {string} kind      registered InteractAction id. The colony's set: "storage" |
- *   "workbench" | "corpse" (a stripped body, looted over its own Inventory) | "pickup" (a
- *   ground drop — its ItemDrop to the bag) | "door" | "rehire"
- *   (recruit an unhired companion) | "claim" | "bed" | "hydrate" | "feed" | "buff" | "harvest" |
- *   "chop" (a ripe plant — FloraSystem) | "talk" (a quest NPC: offer / turn-in) | "trade" (a
- *   merchant NPC: its shop) — the NPC pair is ColonySpawn's, so an NPC is picked beside a station |
- *   "companion" (a squad member: the wait/follow flip — Companions.hire sets it over "rehire")
- * @property {string} [module]  workbench only: slotted WorkbenchModule itemId ("" / absent = empty)
+ * @property {string} kind      registered action id: "storage" | "workbench" | "corpse" |
+ *   "pickup" | "door" | "rehire" | "claim" | "bed" | "hydrate" | "feed" | "buff" | "harvest" |
+ *   "chop" | "talk" | "trade" | "companion"
+ * @property {string} [module]  workbench only: slotted module itemId ("" / absent = empty)
  * @property {boolean} [open]   door only: current leaf state
  * @property {number} [yaw] door facing
- * @property {string} [status]  buff only: Status id to apply (default set by the action def)
- * @property {number} [amount]  hydrate/feed only: restore magnitude (default set by the action def)
+ * @property {string} [status]  buff only: Status id to apply
+ * @property {number} [amount]  hydrate/feed only: restore magnitude
  */
 globalThis.Interaction = "Interaction";

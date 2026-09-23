@@ -1,12 +1,9 @@
-const START_CREDITS = 1000; // coins the player starts with (carried across maps via the inventory snapshot)
+const START_CREDITS = 1000; // starting coins, carried across maps with the inventory
 const SLEEP_SCALE_MAX = 50; // Time.scale ceiling while sleeping
 const SLEEP_ACCEL = 0.5; // ramp growth per wall-second (multiplicative, on Time.raw)
 const SLEEP_RECOVER = 40; // Drowsiness drained per sim-second while sleeping, over its clock rise
 const TEMPO_BPM = 60; // the BPM a timed BGM runs the sim at 1x (120 BPM = 2x)
 
-/**
- * the scene's factory — the one ref the Game object boots, the catalogue labels and openScene takes (see Scene)
- */
 globalThis.sceneColony = () => new _SceneColonyClass();
 Scene.register(sceneColony, {
   label: I18n.textRef("COLONY_NAME"),
@@ -14,19 +11,18 @@ Scene.register(sceneColony, {
 });
 
 /**
- * standalone SCREEN class satisfying the duck-typed screen contract the Game object drives (see Scene).
+ * The colony game scene: wires the colony's rules into the rule-free Core areas, owns the
+ * persistent UI, and states the order of every system in a frame.
  */
 class _SceneColonyClass {
   label = "Colony";
 
   create(openScene) {
     contentQuests.register();
-    contentAchievements.register(); // achievement defs + trigger rules (separate from quest data)
-    // inject the colony's rules into the rule-free Tracker: which counter an event kind feeds, and
-    // which thresholds that counter's new total meets (the same seam as Combat.mitigate below)
+    contentAchievements.register();
     Tracker.rules = contentAchievements;
 
-    // inject stat-driven mitigation into the stat-agnostic Combat applier (static hook, survives map reloads)
+    // static hooks: they survive map reloads
     Combat.mitigate = function (entities, targetId, amount, penetration = 0) {
       const s = entities.get(targetId, Stats);
       const defense = s !== undefined ? s.defense : 0;
@@ -34,7 +30,7 @@ class _SceneColonyClass {
       const effDef = Math.max(0, defense - penetration);
       return Math.max(1, amount - effDef);
     };
-    // inject how a *_serum consumable raises an attribute; false → use() refuses (no waste)
+    // false refuses the use, so the consumable is not wasted
     Consumption.grantAttr = function (entities, id, attr, amount) {
       const a = entities.get(id, Attributes);
       if (a === undefined || a[attr] === undefined) return false;
@@ -42,48 +38,41 @@ class _SceneColonyClass {
       StatModel.recompute(entities, id);
       return true;
     };
-    // inject re-derive into Effects so mods-bearing status buffs fold in/out on apply/expire;
-    // dot/hot + live `mult` (encumbrance/speed) need no recompute — read directly / live
+    // status mods fold into the stats on apply and expire
     Effects.onStatsChanged = function (entities, id) {
       StatModel.recompute(entities, id);
     };
-    // the world — its level pool is the map pool (every visited map stays alive there for the
-    // whole session, see ColonyTravel.go) and its records the world's data (the clock, the sky, the
-    // progression, the events, the traders, the radio dial) — starts blank per scene create, so a
-    // fresh colony session can't inherit the previous one's; a LOAD imports the saved records
-    // wholesale further down. The wandering traders' event handlers re-wire after the reset.
+    // a fresh session starts from a blank world; a load imports its records below
     World.reset();
     Trader.install();
-    // the player's BGM dial's fall-back bed is the ACTIVE map's own (indoor ⇄ overworld) — read
-    // live through `this`, so the one hook serves every map the scene activates
+    // the BGM fallback is the active map's bed, read live so one hook serves every map
     Radio.reset();
     Radio.ambient = () => ColonyTravel.bed(this.level);
 
-    // quests that close themselves the instant their objectives are met — what the report seam's
-    // `ready` is filtered through. td_humans is absent: its giver turns it in (see _interactNpc).
+    // quests that close themselves once their objectives are met; a quest with a giver is
+    // turned in by that giver instead
     this._passiveQuests = [
       contentQuests.QUEST_GATHER,
       contentQuests.QUEST_REACH,
     ];
 
-    this.sleeping = false; // true while resting in a bed (Time.scale fast-forwarded — see sleep); read by Hud
-    this._sleepPeaked = false; // this sleep session already hit the Time.scale ceiling (td_time_skip)
+    this.sleeping = false; // resting in a bed, time fast-forwarded
+    this._sleepPeaked = false; // this sleep already hit the Time.scale ceiling
     this.nearNpc = false;
     this.dialogueName = "";
     this.dialogueLine = "";
     this.dialogueAction = "";
 
-    // flag gameplay so GameOverlay suspends nav while playing; can't be a field initializer (GMRT)
+    // marks a gameplay scene, which suspends menu navigation while playing
     this.gameplay = true;
 
-    // RadarArrows component→color rules (first match wins); built here (not top level) so Color is
-    // loaded; read live so it survives a store swap. `has` is a component token — presence = a blip.
-    // Both enemy species share the enemy color; allies/props with none of these get no arrow.
+    // radar blip colors, first match wins; built here, not at top level, so Color is loaded.
+    // An entity matching none gets no arrow.
     this._radarRules = [
       { has: Raider, color: Color.parse("#e0584f") },
       { has: Rat, color: Color.parse("#e0584f") },
       { has: NPC, color: facetColor("warn") },
-      // the site's travel beacon (the extraction point) — one kind of the shared Interaction
+      // the travel beacon
       {
         has: Interaction,
         where: (c) => c.kind === "travel",
@@ -91,9 +80,7 @@ class _SceneColonyClass {
       },
       { has: Follower, color: Color.parse("#6fd0a0") },
     ];
-    // THE colony's death rules, minted ONCE here rather than written into the call: resolveHealth
-    // runs every tick, and update() is a schedule — it names WHEN a rule fires, these name what it
-    // does. Which one fires per entity is the entity's own `Mortal` kind (see ColonyCombat).
+    // death rules minted once rather than per tick; each entity's Mortal kind picks the one that fires
     this._mortalRules = {
       spill: { yBase: 0, ySpread: 28 }, // loot scatter for a "despawn" kill
       onKill: (id) => this._onKill(id),
@@ -101,8 +88,7 @@ class _SceneColonyClass {
       onDown: (id) => this._onDown(id),
     };
     this._downedRules = {
-      // revive at the map's spawn (inside the settlement when the map is one) — read live, so the
-      // one rule set serves every map the scene activates
+      // revive at the map's spawn, read live so one rule set serves every map
       downSpot: () => {
         const sp = ColonyMap.of(this.level).spawn;
         return { x: sp.x, y: sp.y };
@@ -110,42 +96,32 @@ class _SceneColonyClass {
       onRecover: (id) => this._onRecover(id),
     };
 
-    // persistent UI (key-hints bar + HUD, the window shell with its pages, the pick prompt, the
-    // build HUD) — extracted to _buildUI() so retheme() can rebuild it in place on a live theme
-    // swap, no world regen.
     this._buildUI();
 
-    const bootMap = ColonyLevel.START; // the colony's home site
-    // LOAD vs NEW GAME: a parked SaveGame bundle rebuilds the saved active map + character +
-    // world-sim in place of the fresh map + starting-loadout + companion seeding below.
+    const bootMap = ColonyLevel.START;
+    // a pending save replaces the fresh map, loadout and seeding below
     const loaded = SaveGame.pending();
     if (loaded)
-      SaveGame.restore(this); // restore() drives the map build + squad arrival itself
+      SaveGame.restore(this); // builds the map and the squad's arrival itself
     else {
-      // the starting quests — NEW GAME only; a load brings back its own accepted set + progress
-      Tracker.accept(contentQuests.QUEST_GATHER); // collect — tracked passively
-      Tracker.accept(contentQuests.QUEST_REACH); // reach — tracked passively
+      Tracker.accept(contentQuests.QUEST_GATHER);
+      Tracker.accept(contentQuests.QUEST_REACH);
       ColonyTravel.go(this, bootMap, "default");
     }
-    // the restored dial's station, else the map's bed — carries across map changes (only
-    // _apply's reset stops it)
+    // the restored station, else the map's bed; it carries across map changes
     const station = Radio.station();
     Music.play(station !== -1 ? station : ColonyTravel.bed(this.level));
 
-    // starting loadout + companion — NEW GAME only (a load restores the saved character instead).
     if (!loaded) {
-      // equipped so the attack is item-driven from frame one; travels with the carried inventory
+      // equipped so the attack is item-driven from frame one
       const startInv = this.level.entities.get(this.playerId, Inventory);
-      Bag.add(startInv, "lead_pipe", 1); // mints a uid instance (equippable gear)
+      Bag.add(startInv, "lead_pipe", 1);
       Loadout.equipFirst(this.level.entities, this.playerId, "lead_pipe");
-      // the thin air's filter, worn from frame one (its seal slows Exposure under the open sky)
       Bag.add(startInv, "filter_mask", 1);
       Loadout.equipFirst(this.level.entities, this.playerId, "filter_mask");
-      Bag.add(startInv, "coin", START_CREDITS); // starting credits (coin stacks high → 1 slot)
+      Bag.add(startInv, "coin", START_CREDITS);
 
-      // seed one companion programmatically (not file-authored, so a persistent-map reload won't
-      // dup it). Spawns unhired (a "rehire" resident) → hire() joins it to the squad: membership +
-      // follow + carry bonus in one call, balanced thereafter by its companion Interaction / kick.
+      // seeded in code, not the map file, so a persistent-map reload can't duplicate it
       const pp = this.level.entities.get(this.playerId, Position);
       const companion = ColonySpawn.spawnFollower(
         this.level.entities,
@@ -160,14 +136,12 @@ class _SceneColonyClass {
       Companions.hire(this.level.entities, this.playerId, companion);
     }
 
-    // a wandering trader (Trader/WorldEvents/Universe): crosses hub <-> cave off-focus on the
-    // WorldClock timeline, embodied as a real Merchant NPC only in whatever map the player is in.
-    // NEW GAME only — a load brings back its records + schedule (and its embodied entity with the
-    // active map's store), so registering again would land a second peddler.
+    // a wandering trader, embodied only in the player's map; a load restores its records, so
+    // registering again would land a second one
     if (!loaded)
       Trader.register(this.level, {
         id: "peddler",
-        name: "NPC_TRADER_NAME", // reused shop name (a dedicated i18n key is polish, not needed for demo)
+        name: "NPC_TRADER_NAME",
         travelH: 2, // in-game hours in transit between stops
         route: [
           { map: "hub", dwellH: 6 },
@@ -189,7 +163,7 @@ class _SceneColonyClass {
         },
       });
 
-    // push the base gameplay context; step() replaces it each frame, the switch resets to "default"
+    // the base context; _resolveContext sets each frame's own
     InputContext.push("play");
 
     Log.info(
@@ -199,8 +173,8 @@ class _SceneColonyClass {
   }
 
   /**
-   * Build the persistent UI tree. Reads entities/playerId LIVE (survives ColonyTravel.go's store swap) and
-   * holds no gameplay state, so retheme() can tear it down + rebuild it to re-bake the palette.
+   * Build the persistent UI tree. It reads the entities and the player live and holds no gameplay
+   * state, so retheme() can tear it down and rebuild it.
    */
   _buildUI() {
     this.ui = facetRoot();
@@ -257,10 +231,8 @@ class _SceneColonyClass {
         { color: "#888888" },
       ),
     );
-    this.hud = Hud.build(this); // HP/quest card + hotbar + dialogue box + sleep veil (its handle)
-    // the gameplay window: ONE shell after the HUD (its veil covers it) holding every page the
-    // scene can show, each under the id that opens it — the bag's key toggle (update), a
-    // station's InteractAction (contentInteractions). See Window.
+    this.hud = Hud.build(this);
+    // one window after the HUD, whose veil covers it, holding every page under the id that opens it
     this.window = new Window(this.ui);
     this.window.add(
       "bag",
@@ -271,9 +243,6 @@ class _SceneColonyClass {
           { slot: "trinket", labelKey: "SLOT_TRINKET" },
           { slot: "backpack", labelKey: "SLOT_BACKPACK" },
         ],
-        /**
-         * genre extraRows hook: a kills/items/quests records line below the stats
-         */
         extraRows: (scene, body) => {
           const rec = new UIElement({ width: "100%", height: 22 });
           rec.insertChild(
@@ -298,18 +267,16 @@ class _SceneColonyClass {
       }),
     );
     this.window.add("storage", StorageUI.build(this)); // a chest, or a corpse's loot
-    this.window.add("workbench", CraftingUI.build(this)); // also hosts the weapon-mod panel (Toolkit module)
-    this.window.add("travel", WorldMapUI.build(this)); // the travel beacon's site picker
-    this.window.add("trade", TradeUI.build(this)); // a merchant NPC's shop
-    // the pick's prompt + this frame's pick (its update range-closes the station pages)
+    this.window.add("workbench", CraftingUI.build(this));
+    this.window.add("travel", WorldMapUI.build(this));
+    this.window.add("trade", TradeUI.build(this));
     this.interact = Interactable.build(this);
-    this.build = BuildMode.build(this); // grid build mode (its HUD + brush handle)
+    this.build = BuildMode.build(this);
   }
 
   /**
-   * Live theme swap (the Game object's retheme): close what is transient — the window (its
-   * modal too), build mode, a sleep — rather than re-applying their state onto fresh elements,
-   * then rebuild this.ui so it bakes the new palette. World/gameplay state is untouched.
+   * Live theme swap: close what is transient rather than carry its state onto fresh elements,
+   * then rebuild the UI so it bakes the new palette. World state is untouched.
    */
   retheme() {
     if (this.sleeping) {
@@ -325,67 +292,51 @@ class _SceneColonyClass {
   }
 
   /**
-   * THE reference orchestration for a genre scene — the shape, not just this game's order:
-   *   before the sim   window edge-toggles, input context, sleep check, the nav + room mirrors
-   *   the sim          the physics sequence (headed by the player brain) -> damage, death,
-   *                    drops, quest/achievement checks -> flush, one Time.step a frame
-   *   after the sim    animation, dialogue/interaction, build mode, camera, dirty UI rebuilds
-   * Nothing here is a rule: a gameplay reaction is a named member (`_on*`, passed in as a rule set
-   * minted at create) and the panels' own timing is Hud.update's, so this body states ORDER alone.
-   * Sim work integrates Time.step, edge/input/UI work reads the frame (Time owns that split). A
-   * map swap (a world-map trip) never runs in here — it fires at SceneTransition's cover, between
-   * frames, so nothing in this frame touches a swapped-out map.
+   * The frame's order: input, context and the world mirrors before the sim, the sim on
+   * Time.step, then presentation and dirty UI rebuilds. Gameplay reactions are named `_on*`
+   * members passed in as rule sets, so this body states order alone. A map swap never runs in
+   * here — it lands between frames, so nothing in a frame touches a swapped-out map.
    */
   update() {
-    // no pause gate — Game skips scene.update() while the GameOverlay is open
+    // no pause gate: a paused scene is not updated
 
-    // re-latch the player id from the live Playable query (derived, not stored — ColonyTravel.go's
-    // boot/arrival also set it, so this is the per-frame self-heal, never the only source)
+    // derived each frame, the self-heal after a store swap
     this.playerId = ColonyPlayer.id(this.level.entities);
 
-    // sleeping (bed): checked BEFORE the sim so the waking press wakes instead of moving
-    // this frame
+    // before the sim, so the waking press wakes instead of moving this frame
     this._updateSleep();
 
-    // the sim tempo: a timed BGM runs the whole world at its beat (the player's Radio is the
-    // dial). Lands on the next frame's Time.update (which precedes this update).
+    // a timed track runs the whole world at its beat, from the next frame on
     Time.tempo = this.tempo(Music.track());
 
-    // world cursor: latch ONCE per frame (GMRT samples mouse live) via the pitch-aware ground-plane
-    // unprojection (see View.unproject). Read by BuildMode and Interactable — both name a CELL
-    // or a footprint, which is what the ground plane holds.
+    // latched once per frame, as the mouse is sampled live; on the ground plane, since cells
+    // and footprints are what it names
     const view = CameraSystem.view(this.level);
     this.mouseWorld = view.cursorWorld();
-    // the AIM point: the same cursor resolved against what it visibly covers, so a shot at a
-    // body reaches the footprint the sim tests (ColonyPlayer.aim). Read by PlayerSystem through
-    // Playable.
+    // the aim: the same cursor resolved against what it visibly covers, so a shot at a body
+    // reaches the footprint the sim tests
     const aim = ColonyPlayer.aim(this.level.entities, this.playerId, view);
     const pl = this.level.entities.get(this.playerId, Playable);
     pl.cursorX = aim.x;
     pl.cursorY = aim.y;
 
-    // edge toggle — once per frame, before the sim: the bag closes on its own key, and
-    // opens over (replacing) whatever page shows
+    // the bag closes on its own key, and opens over whatever page shows
     if (Input.get("inventory").pressed()) {
       if (this.window.is("bag")) this.window.close();
       else this.window.open("bag");
     }
 
-    // resolve input context BEFORE the sim so its movement/fire reads see it.
-    // window > build > play (see InputContext + PlayerSystem tags).
+    // before the sim, so its input reads see the context
     this._resolveContext();
 
-    // hotbar number keys — after the context is set ("play"-only, so inert with a window/building)
+    // after the context, so it is inert under a window or in build mode
     this._useHotbar();
 
-    // the room mirror (the doors + any wall edit) BEFORE the needs read it for shelter, then
-    // every room's temperature over the in-game hours since its last step
+    // before the needs read shelter
     RoomSystem.update(this.level);
 
-    StatusSystem.update(this.level); // tick buffs/debuffs (dot/hot + duration), then ↓
-    EncumbranceSystem.update(this.level); // refresh the "encumbered" status from carried weight
-    // every need moves (the clock ones rise; exposure/cold by where the body stands), then
-    // sleep drains the player's drowsiness over that rise
+    StatusSystem.update(this.level);
+    EncumbranceSystem.update(this.level);
     NeedSystem.update(this.level);
     if (this.sleeping)
       Needs.restore(
@@ -394,87 +345,77 @@ class _SceneColonyClass {
         Drowsiness,
         SLEEP_RECOVER * Time.step,
       );
-    PuppetSystem.update(this.level); // the mirrors: every collider's instance at this tick's Position, mask and solid
-    FollowerSystem.update(this.level); // seek, by live Follower query (before physics)
-    // physics: brains decide velocity (player input, then AI) → resolve paths → collide → push
-    // crowders apart → projectiles → fuses → expire.
-    PlayerSystem.update(this.level); // the player brain: input → Velocity/fire
-    StateSystem.update(this.level); // CombatAI Idle/Chase/Attack schemas (enemies AND turrets)
-    PathfindingSystem.update(this.level); // enemy PathRequest → PathResponse over the level's nav grid
+    PuppetSystem.update(this.level);
+    FollowerSystem.update(this.level);
+    PlayerSystem.update(this.level);
+    StateSystem.update(this.level);
+    PathfindingSystem.update(this.level);
     SolidSystem.update(this.level);
-    SeparationSystem.update(this.level); // unstack dynamic bodies (crowding), after SolidSystem
+    SeparationSystem.update(this.level);
     ProjectileSystem.update(this.level);
-    FuseSystem.update(this.level); // fused charges count down and detonate where they lie
+    FuseSystem.update(this.level);
     LifetimeSystem.update(this.level);
 
-    ColonyCombat.trackDamage(this, 14); // floating numbers for any hp change this tick
-    // hp-0 reactions by each entity's Mortal kind: corpse / respawn / down (recovers below)
+    ColonyCombat.trackDamage(this, 14);
     ColonyCombat.resolveHealth(this, this._mortalRules);
-    ColonyCombat.updateDowned(this, this._downedRules); // a downed companion's revive timer
-    ColonyCombat.reapCorpses(this); // looted-empty corpses vanish (lootless kills reap at once)
-    this._checkReach(); // reach-quest zone
+    ColonyCombat.updateDowned(this, this._downedRules);
+    ColonyCombat.reapCorpses(this);
+    this._checkReach();
 
     this.level.entities.flush();
 
-    Doll.pace(this.level.entities); // stride-match locomotion playback to actual speed
-    SkeletonSystem.update(this.level); // mint the puppets new skeletal bodies lack; retime them on a clock change
-    AppearanceSystem.update(this.level); // dress the puppets SkeletonSystem just minted
-    Interactable.update(this, this.interact); // THE pick (stations + NPCs) + window range-close/refresh (no E here)
-    this._updateNpc(); // the dialogue panel's text when the pick is an NPC (no input here)
-    this._dispatchInteract(); // single E press → close an open window, else activate the pick
-    BuildMode.update(this, this.build); // build-mode toggle + place/deconstruct (after the sim)
-    BuildMode.reapDestroyed(this); // remove built entities enemies destroyed (e.g. turrets at 0 HP)
-    Hud.update(this, this.hud); // the panels' own timing — after the pick + build mode they report
-    WorldClock.update(Time.delta); // advance in-game time (sim time → pauses with the game)
-    WorldEvents.update(WorldClock.absHours()); // fire due world events (trader travel) on the clock timeline
-    Weather.update(Time.delta); // advance weather transition (sim time, like the clock)
-    FloraSystem.update(this.level); // grow + spread the map's plants over the in-game hours since its last tick
-    GrassSystem.update(this.level); // creep of the grass ground itself (tile-state, no entities)
-    TradeSystem.update(this.level); // finite merchants restock toward their template (sim time)
-    ParticleFx.update(); // advance the live bursts (once per frame; freezes when paused)
-    // the sim-clock camera policies (follow) run here; the Time.raw one (the debug free-fly)
-    // runs from draw() instead, so it keeps moving while the sim is paused (CameraSystem)
+    Doll.pace(this.level.entities);
+    SkeletonSystem.update(this.level);
+    AppearanceSystem.update(this.level);
+    Interactable.update(this, this.interact);
+    this._updateNpc();
+    this._dispatchInteract();
+    BuildMode.update(this, this.build);
+    BuildMode.reapDestroyed(this);
+    Hud.update(this, this.hud); // after the pick and build mode it reports
+    WorldClock.update(Time.delta); // sim time, so it pauses with the game
+    WorldEvents.update(WorldClock.absHours());
+    Weather.update(Time.delta);
+    FloraSystem.update(this.level);
+    GrassSystem.update(this.level);
+    TradeSystem.update(this.level);
+    ParticleFx.update();
+    // the sim-clock camera policies; the wall-clock one runs from draw() so it keeps moving
+    // while the sim is paused
     CameraSystem.update(this.level);
-    // ears on the body of the entity the camera TRACKS (the CameraFocus marker, live-queried),
-    // not the view: the follow policy clamps its look-at at map edges (and debug free-cam flies
-    // away entirely), parking the view center off the tracked body — spatial SFX pan/attenuate
-    // from where it stands; the view's look-at is the no-marker fallback
+    // hear from the tracked body, not the view: the view clamps at map edges and a free camera
+    // flies away from it; the view's look-at is the fallback without a tracked body
     const ep = this.level.entities.get(
       this.level.entities.first(CameraFocus),
       Position,
     );
     if (ep !== undefined) AudioListener.position(ep.x, ep.y);
     else AudioListener.position(view.toX, view.toY);
-    SoundEmitterSystem.update(this.level); // timed world cues (the radio prop) re-fire their spatial SFX
-    ParticleEmitterSystem.update(this.level); // mint/step the attached particle streams (drops, beacons)
+    SoundEmitterSystem.update(this.level);
+    ParticleEmitterSystem.update(this.level);
 
-    // refresh the open window page when dirty — last, so every write above lands this frame
-    // (UI.update already ran, so a rebuild never lands inside the click that requested it)
+    // last, so every write above lands this frame; after the UI update, so a rebuild never
+    // lands inside the click that requested it
     this.window.update();
   }
 
-  /**
-   * number-key hotbar: use the item bound to each pressed slot (useItem handles use/equip toggle)
-   */
   _useHotbar() {
     const hb = this.level.entities.require(this.playerId, Hotbar);
     for (let i = 0; i < hb.size; i++) {
       if (!Input.get("hotbar" + (i + 1)).pressed()) continue;
-      this.showHotbar(); // any hotbar keypress reveals the bar (even an empty slot)
+      this.showHotbar(); // even an empty slot reveals the bar
       const itemId = hb.slots[i];
       if (itemId === "") continue;
       InventoryUI.useItem(this, itemId, this._itemWorn(itemId));
     }
   }
 
-  /** reveal the hotbar HUD and refresh its auto-hide countdown (InventoryUI calls it on a rebind) */
+  /** Reveal the hotbar HUD and restart its auto-hide countdown. */
   showHotbar() {
     Hud.showHotbar(this.hud);
   }
 
-  /**
-   * is an instance of itemId equipped? (drives useItem's equip/unequip toggle; resolves the worn uid back to itemId)
-   */
+  /** Whether an instance of itemId is equipped. */
   _itemWorn(itemId) {
     const it = Item.get(itemId);
     if (it === undefined || !it.hasComponent(Equippable)) return false;
@@ -488,14 +429,10 @@ class _SceneColonyClass {
     return inst !== undefined && inst.itemId === itemId;
   }
 
-  /**
-   * pickup credit — a ground drop's E (the "pickup" InteractAction) AND corpse looting
-   * (StorageUI's take hook, set by the "corpse" one) land here so collect quests/achievements
-   * can't diverge by loot path
-   */
+  /** The one pickup credit for every loot path, so collect quests can't diverge by path. */
   onCollect(itemId, got) {
     const pp = this.level.entities.require(this.playerId, Position);
-    Audio.play({ sound: sndCoin, position: { x: pp.x, y: pp.y } }); // pickup blip
+    Audio.play({ sound: sndCoin, position: { x: pp.x, y: pp.y } });
     this.track("collect", itemId, got);
     Log.info(
       `picked up ${got}x ${itemId} — items=${Tracker.count("itemsCollected")}`,
@@ -503,31 +440,27 @@ class _SceneColonyClass {
   }
 
   /**
-   * Kick a companion out of the squad PERMANENTLY, in place — it stays a resident of this map
-   * with a "rehire" prompt (walk up + talk to re-hire). Downed members finish recovering first.
+   * Kick a companion out of the squad permanently; it stays a resident of this map and can be
+   * re-hired. A downed member is not kicked.
    */
   kickFollower(fid) {
-    if (!this.level.entities.has(fid, Squad)) return; // not a member
-    if (this.level.entities.has(fid, Downed)) return; // recovering — can't kick mid-revive
+    if (!this.level.entities.has(fid, Squad)) return;
+    if (this.level.entities.has(fid, Downed)) return;
     Companions.kick(this.level.entities, this.playerId, fid);
-    this.window.dirty = true; // squad roster changed
+    this.window.dirty = true;
     Toast.push(I18n.text("SQUAD_KICKED"), { type: "info" });
   }
 
-  /**
-   * start sleeping (the "bed" InteractAction's E routes here); _updateSleep ramps the fast-forward
-   * until _wakeInput. costs water/food (those needs keep rising at the accelerated rate).
-   */
+  /** Start sleeping until any input; the other needs keep rising at the fast-forwarded rate. */
   sleep() {
     this.sleeping = true;
-    this._sleepPeaked = false; // each sleep session may peak (and trigger td_time_skip) once
+    this._sleepPeaked = false;
   }
 
   /**
-   * The bed's fast-forward: ramp Time.scale while Drowsiness drains, until any input wakes.
-   * WHY THIS SKIPS TIME CHEAPLY: the world-sim clocks (WorldClock/Weather, updated once per frame
-   * off Time.delta) consume the whole scaled delta, while the entity sim integrates Time.step,
-   * that delta capped at Time.maxStep. Hours pass; a body moves one bounded step a frame.
+   * The bed's fast-forward: ramp Time.scale until any input wakes. It skips time cheaply because
+   * the world clocks consume the whole scaled delta while the entity sim integrates the capped
+   * Time.step, so hours pass while a body moves one bounded step a frame.
    */
   _updateSleep() {
     if (!this.sleeping) return;
@@ -544,48 +477,39 @@ class _SceneColonyClass {
       return;
     }
     Time.scale = SLEEP_SCALE_MAX;
-    // hitting the ceiling IS the td_time_skip trigger — once per sleep session
+    // hitting the ceiling is the time-skip trigger, once per sleep
     if (this._sleepPeaked) return;
     this._sleepPeaked = true;
     this.track("sleepSkip", "", 1);
   }
 
-  /** any input wakes the sleeper — the claim-blind "press anything" read, not an action (Input.anyPressed) */
+  /** Any press wakes, claimed or not — not an action. */
   _wakeInput() {
     return Input.anyPressed();
   }
 
-  /**
-   * Display name of a companion (for the down/recover toasts).
-   */
   _followerName(id) {
     const nm = this.level.entities.get(id, Name);
     return nm !== undefined ? nm.name : I18n.text("FOLLOWER_DEFAULT");
   }
 
-  /**
-   * A kill (a "despawn" or a "corpse", fired while the body's components are still readable): the
-   * death pop, the species-scoped quest credit, and the radar markers off whatever stays behind.
-   */
+  /** A kill, fired while the body's components are still readable. */
   _onKill(id) {
     const dp = this.level.entities.get(id, Position);
-    // death pop (spatial)
     if (dp !== undefined)
       Audio.play({ sound: sndExplosionSmall, position: { x: dp.x, y: dp.y } });
-    // by species so only raiders advance the "Raider Cull" quest (rats have no target); the kill
-    // counter behind the Slayer rules doesn't discriminate (contentAchievements.COUNTERS)
+    // by species, so only raiders advance the cull quest; the kill counter takes both
     const kind = this.level.entities.has(id, Rat) ? "rat" : "raider";
     this.track("kill", kind, 1);
-    // the "corpse" kind leaves the body in the world — drop its species marker so the radar
-    // stops blipping it as an enemy ("despawn" removes the id anyway; harmless)
+    // a corpse stays in the world; drop its species so the radar stops marking it an enemy
     this.level.entities.detach(id, Raider);
     this.level.entities.detach(id, Rat);
     Log.info(`${kind} killed — kills=${Tracker.count("enemiesKilled")}`);
   }
 
   /**
-   * A "respawn" mortal (the player) once ColonyCombat has refilled its hp: back to the map's
-   * spawn, stopped, every need at mid-meter so the death clears the critical debuff that caused it.
+   * A "respawn" mortal once its hp is refilled: back to the map's spawn, stopped, every need at
+   * mid-meter so the death clears the critical debuff that caused it.
    */
   _onRespawn(id) {
     const pos = this.level.entities.get(id, Position);
@@ -599,19 +523,17 @@ class _SceneColonyClass {
     for (let i = 0; i < needs.length; i++) {
       const need = this.level.entities.get(id, needs[i].id);
       if (need === undefined) continue; // a save from before the need
-      Needs.set(this.level.entities, id, needs[i].id, need.max * 0.5); // the debuff lifts with the refill
+      Needs.set(this.level.entities, id, needs[i].id, need.max * 0.5);
     }
     Log.info("player died — respawned at spawn");
   }
 
-  /** a companion goes down (it revives itself on _downedRules.downSpot — see ColonyCombat) */
   _onDown(id) {
     Toast.push(I18n.text("FOLLOWER_DOWN", this._followerName(id)), {
       type: "warn",
     });
   }
 
-  /** a downed companion is back on its feet */
   _onRecover(id) {
     Toast.push(I18n.text("FOLLOWER_RECOVERED", this._followerName(id)), {
       type: "success",
@@ -629,9 +551,8 @@ class _SceneColonyClass {
   }
 
   /**
-   * THE turn-in ceremony — reward, counter, achievement report, log — for both paths that can
-   * close a quest (the passive auto turn-in below and the NPC dispatch), so they can't drift.
-   * Caller checks isReady first; complete() is what marks it done.
+   * The one turn-in ceremony for every path that closes a quest, so they can't drift. The caller
+   * checks readiness first.
    */
   completeQuest(qid) {
     Progression.applyReward(this, Tracker.complete(qid));
@@ -642,14 +563,12 @@ class _SceneColonyClass {
   }
 
   /**
-   * THE report seam: every gameplay chokepoint tells the Tracker what happened ONCE, and the
-   * counter/achievement/quest fan-out follows from that single call — no site can bump a tally and
-   * forget a consumer. Handles what comes back: toast each unlock, close each passive quest that
-   * just became ready.
+   * The report seam: every gameplay chokepoint reports what happened once, and the counter,
+   * achievement and quest fan-out follows, so no site can bump a tally and forget a consumer.
+   * Toasts each unlock and closes each passive quest that just became ready.
    *
-   * Turn-in re-enters here (the reward items report as collects, the completion reports as a
-   * quest); that terminates because Tracker.complete marks a quest done BEFORE handing over its
-   * rewards, so a quest can never re-fire itself.
+   * A turn-in re-enters here; that terminates because a quest is done before its rewards
+   * report, so a quest never re-fires itself.
    */
   track(kind, target, n = 1) {
     const r = Tracker.report(kind, target, n);
@@ -667,9 +586,8 @@ class _SceneColonyClass {
   }
 
   /**
-   * the dialogue panel's text (name / line / this press's E action) when the frame's pick is an
-   * NPC — the panel IS an NPC's prompt (its `talk`/`trade` defs draw no pill). Reads the pick,
-   * never a proximity query of its own, so the panel can only describe the entity E activates.
+   * The dialogue panel's text when the frame's pick is an NPC. It reads the pick, never a
+   * proximity query of its own, so the panel only describes the entity E activates.
    */
   _updateNpc() {
     this.nearNpc = false;
@@ -679,7 +597,6 @@ class _SceneColonyClass {
     this.nearNpc = true;
 
     this.dialogueName = npc.name;
-    // a merchant NPC shows a shop greeting + Trade action instead of the quest flow
     if (this.level.entities.has(id, Merchant)) {
       this.dialogueLine = "TRADE_GREET";
       this.dialogueAction = "TRADE_ACTION";
@@ -701,17 +618,13 @@ class _SceneColonyClass {
     }
   }
 
-  /**
-   * The sim tempo a track sets while it plays: its declared BPM (AssetMeta) over TEMPO_BPM, 1 for
-   * an untimed bed or no track. update() writes it to Time.tempo each frame; RadioUI previews it
-   * per station.
-   */
+  /** The sim tempo a track sets while it plays: 1 for an untimed track or none. */
   tempo(sound) {
     const bpm = AssetMeta.bpm(sound);
     return bpm > 0 ? bpm / TEMPO_BPM : 1;
   }
 
-  /** derive this frame's input context: window > build > play (a window pauses build) */
+  /** A window outranks build mode, which it pauses. */
   _resolveContext() {
     let ctx = "play";
     if (this.window.isOpen()) ctx = "window";
@@ -720,10 +633,9 @@ class _SceneColonyClass {
   }
 
   /**
-   * single E dispatch: a station page open (one standing over a target entity) → E closes it;
-   * else activate the frame's pick — the one Interactable made, so E can only ever act on what
-   * is highlighted. The bag stands over nothing, so E under it activates the pick, whose page
-   * replaces the bag. interact is muted in "build", so this runs only in play/window.
+   * One E press closes a page standing over a target, else activates the frame's pick, so E only
+   * acts on what is highlighted. The bag stands over nothing, so E under it opens the pick's page
+   * in its place. Interact is muted in build mode.
    */
   _dispatchInteract() {
     if (!Input.get("interact").pressed()) return;
@@ -732,59 +644,55 @@ class _SceneColonyClass {
   }
 
   /**
-   * Esc back-out (GameOverlay calls this before pausing): close the active context — the window
-   * (its amount picker first, then the page), then build. Returns true if consumed; false falls
-   * through to the pause menu. window > build priority.
+   * Esc back-out before the pause menu: wake, else back out of the window, else leave build mode.
+   * Returns whether the press was consumed.
    */
   handleEscape() {
     if (this.sleeping) {
-      this.sleeping = false; // Esc wakes from a bed (don't fall through to the pause menu)
+      this.sleeping = false;
       Time.scale = 1;
       return true;
     }
     if (this.window.back()) return true;
     if (this.build.armed) {
-      this.build.armed = false; // _resolveContext drops to "play" next frame; HUD hides
+      this.build.armed = false;
       return true;
     }
     return false;
   }
 
   draw() {
-    // the camera's frame: its Time.raw policy (so a debug free-fly keeps moving while the sim is
-    // paused and update() is skipped), then this frame's matrices — before the renderer reads
-    // the view
+    // the camera's wall-clock policy, so a free camera keeps moving while the sim is paused,
+    // then this frame's matrices — before the renderer reads the view
     const rt = ColonyMap.runtime(this.level);
     CameraSystem.apply(this.level);
     const camera = CameraSystem.view(this.level);
-    // dev BBox outlines (Settings toggle, default off) — read each frame like hudRadar below
     rt.bboxPass.enabled = Settings.get("debugBBox");
-    rt.renderer.draw(this.level.entities); // tilemap + player / enemies / elder: boxes + labels
-    // overlay AFTER the renderer: the ground passes paint an OPAQUE fill that would cover it if drawn first
-    WorldOverlay.drawWorld(this); // drops, bullets, reach zone (world space)
+    rt.renderer.draw(this.level.entities);
+    // after the renderer: the ground passes paint an opaque fill that would cover it
+    WorldOverlay.drawWorld(this);
     if (Settings.get("hudRadar"))
-      // directional radar (Settings toggle, default off). 2.5D: lift to ~body height under a pitched camera
+      // lifted to body height under a pitched camera
       RadarArrows.draw(this.level.entities, this.playerId, this._radarRules, {
         lift: camera.pitch !== 0 ? 32 : 0,
       });
-    Interactable.drawTarget(this, this.interact); // highlight the pick (world space)
-    BuildMode.drawWorld(this, this.build); // build-cursor cell highlight (world space)
-    // attached streams then bursts (world space, additive — bright over the day/night tint)
+    Interactable.drawTarget(this, this.interact);
+    BuildMode.drawWorld(this, this.build);
+    // additive, so bright over the day/night tint
     ParticleEmitterSystem.draw(
       this.level.entities,
       (camera.pitch * 180) / Math.PI,
     );
     ParticleFx.draw();
-    // damage/heal numbers (world space); pass the camera pitch (rad→deg) so they stand up under 2.5D
+    // pitch in degrees, so the numbers stand up under a pitched camera
     FloatingText.draw((camera.pitch * 180) / Math.PI);
-    // HUD/dialogue/inventory are manager-drawn UI panels — nothing more here
   }
 
-  /** Only what this scene wired: its hooks, its world, its UI root (the Game object's switch sweeps the rest). */
+  /** Release only what this scene wired. */
   destroy() {
-    Radio.reset(); // drop the bed hook — the next colony session starts on its map's bed
+    Radio.reset();
     ColonyTravel.suspend(this); // release the view before its camera is freed with the level
-    World.reset(); // free every pooled level (its runtime with it), the world's records and the event wiring
+    World.reset();
     if (this.ui) {
       UI.remove(this.ui);
       this.ui.destroy();

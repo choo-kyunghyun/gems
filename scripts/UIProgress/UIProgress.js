@@ -3,9 +3,9 @@
  * @implements {UIComponent}
  */
 globalThis.UIProgress = class UIProgress {
-  /** progress: { getValue|value, label, track, fill, color, font } */
+  /** progress: { getValue|value (0..1), label, track, fill, color, font } */
   constructor(progress = {}) {
-    this._get = progress.getValue ?? (() => progress.value ?? 0); // static or live, 0..1
+    this._get = progress.getValue ?? (() => progress.value ?? 0);
     this.label = progress.label != null ? uiTextRef(progress.label) : null;
 
     this._trackStyle = progress.track ?? {};
@@ -25,8 +25,7 @@ globalThis.UIProgress = class UIProgress {
     const y2 = pos.top + pos.height;
     const rad = this._trackStyle.rad ?? Math.min(pos.height, pos.width) * 0.5;
 
-    // fill right edge held >= x1 + 2*rad so the rounded caps can't invert at tiny values;
-    // t = 0 passes x1 (no fill). Border strokes OVER the fill so it frames the whole track.
+    // The fill is held at least a cap wide so the rounded caps can't invert at tiny values.
     const t = clamp(this._get(), 0, 1);
     const fx = t > 0 ? clamp(x1 + pos.width * t, x1 + rad * 2, x2) : x1;
     drawUIBar(x1, y1, x2, y2, rad, fx, this._trackStyle, this._fillStyle, true);

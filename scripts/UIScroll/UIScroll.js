@@ -1,26 +1,21 @@
 /**
  * @implements {UIComponent}
- * Vertical scroll controller for a clip viewport. Drives scrolling by draw-time offset
- * (sets viewport scrollY, which getLayoutPosition subtracts for the subtree) — never flex
- * mutation. The scrollbar itself (geometry/drag/draw) is the shared UIScrollbar model;
- * it sits in a right gutter reserved via clipInsetRight (outside the clipped content),
- * and the gutter collapses to 0 when nothing overflows. Wheel + drag-thumb input.
- * GMRT: pointer read live each frame (no cached primitive to clobber).
+ * Vertical scroll controller for a clip viewport: scrolls by draw-time offset, never by layout
+ * mutation. The scrollbar sits in a right gutter outside the clipped content, collapsed when
+ * nothing overflows.
  */
 globalThis.UIScroll = class UIScroll {
   /** scroll: { content: UIElement, barW, barPad, minThumb, wheelStep, trackColor, trackAlpha, thumbColor, thumbHover } */
   constructor(scroll = {}) {
-    this.content = scroll.content; // body element to measure + scroll
-    this.scroll = 0; // scrollY in px
+    this.content = scroll.content;
+    this.scroll = 0; // px
     this.barPad = scroll.barPad ?? 4;
     this.wheelStep = scroll.wheelStep ?? 48;
-    // shared track/thumb model — bar style opts (barW/minThumb/colors) pass through.
     this._bar = new UIScrollbar(scroll);
-    this._track = null; // geometry cached in onUpdate for onDraw (same frame)
+    this._track = null; // cached in onUpdate for the same frame's onDraw
     this._max = 0; // px of overflow at the last update
   }
 
-  /**   */
   onUpdate(element, block) {
     const pos = element.getLayoutPosition();
     const contentH = this.content ? this.content.getLayoutPosition().height : 0;
@@ -36,20 +31,19 @@ globalThis.UIScroll = class UIScroll {
       max > 0 ? this.scroll / max : 0,
     );
 
-    // reserve the gutter only when scrollable, so a short list uses full width.
+    // only when scrollable, so a short list uses the full width
     element.clipInsetRight = max > 0 ? barW + this.barPad * 2 : 0;
 
     const mx = Input.pointer.x;
     const my = Input.pointer.y;
 
-    // positionMeeting read live each use, never cached in a local (the &&-clobber quirk, #15549).
+    // BUG: positionMeeting is read live, never cached in a local (docs/GMRT.md #15549)
     if (max > 0) {
       const wheel = Input.pointer.wheel;
       if (wheel !== 0 && element.positionMeeting(mx, my))
         this.scroll += wheel * this.wheelStep;
     }
-    // input() runs even at max <= 0 so a drag latched before the content shrank still
-    // releases; the hover gate goes false so no new drag can start.
+    // runs even without overflow so a drag latched before the content shrank still releases
     const t = this._bar.input(
       m,
       mx,
@@ -58,19 +52,18 @@ globalThis.UIScroll = class UIScroll {
     );
     if (t >= 0 && max > 0) this.scroll = t * max;
 
-    // positive test: max can be NaN in the residual mid-pass-insert window — never let
-    // NaN into the persistent scroll (it would poison scrollY for the whole subtree).
+    // a positive test: max can be NaN mid-insert, which must never reach the persistent scroll
     this.scroll = max > 0 ? clamp(this.scroll, 0, max) : 0;
-    element.scrollY = this.scroll; // offsets subtree via getLayoutPosition
+    element.scrollY = this.scroll;
     this._track = m;
     this._max = max;
 
-    // capture the pointer over the viewport (or dragging) so wheel/drag don't leak behind.
+    // capture the pointer so wheel and drag don't leak behind
     return this._bar.dragging || element.positionMeeting(mx, my) || block;
   }
 
   onDraw(element) {
-    if (this._track === null || !(this._max > 0)) return; // nothing overflowing → no scrollbar
+    if (this._track === null || !(this._max > 0)) return;
     this._bar.draw(this._track);
   }
 };

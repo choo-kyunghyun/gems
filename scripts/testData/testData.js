@@ -1,9 +1,8 @@
-// Core/Data cases: the id-keyed store (Table, Columns, Handle, Row) — entity lifecycle, walks,
-// the codecs and the snapshot — the round trips of File and Json, the def Registry and AssetMeta,
-// and perf.layout, a walk's cost per lead carrier. Every case here references Core only; the
-// case contract and the perf.* rule are Test's.
+// Core/Data cases: the id-keyed store — entity lifecycle, walks, the codecs and the snapshot —
+// the file and JSON round trips, the def and asset registries, and perf.layout, a walk's cost per
+// lead carrier. Every case here references Core only.
 
-const ENTITIES = 500; // the perf.layout store (the colony's size)
+const ENTITIES = 500; // the perf.layout store, at a colony's size
 
 Test.register(Test.CHECK, [
   {
@@ -316,8 +315,7 @@ Test.register(Test.CHECK, [
   },
   {
     id: "entity.codec",
-    // the binary channel: a codec token's entries cross export/import as buffers through the
-    // sink and the source, unpacked after the plain components
+    // a codec token's entries cross export/import as buffers, unpacked after the plain components
     setup(ctx) {
       ctx.src = new Table(8);
       ctx.dst = new Table(8);
@@ -545,9 +543,8 @@ Test.register(Test.CHECK, [
     },
   },
   {
-    // a facade is a plain object with no storage of its own: Registry seeds it on first use,
-    // `make` normalizes each def, and a re-registered id keeps its position (docs/ARCHITECTURE.md
-    // → Registry pattern)
+    // a facade is a plain object with no storage of its own: it is seeded on first use, `make`
+    // normalizes each def, and a re-registered id keeps its position (docs/ARCHITECTURE.md)
     id: "registry.facade",
     setup(ctx) {
       const Tier = {
@@ -611,15 +608,11 @@ Test.register(Test.CHECK, [
       AssetMeta._defs.length = ctx.before;
     },
   },
-  // ── perf.layout: a walk costs per lead carrier, never per index ────────────
-  // A walk runs down the lead token's dense list (Columns), so its cost is the lead's
-  // carrier count: at 100% (`forEach.full`) it is the column scan plus an indirection, below
-  // that it is the slots never visited — `forEach.sparse` against `forEach.trail` is the same
-  // four matches led by the rare token and by Position, the lead-order rule measured (both gross
-  // per store entity — the loop they would net out IS the walk). forEach
-  // hands the walk's data to the callback where query + get pays a hash lookup per entity;
-  // `store.churn` is the upkeep a detach + add pair costs over two column writes. No ratio here
-  // retires an idiom on a runtime upgrade: the lead-order rule is a property of the layout.
+  // perf.layout: a walk costs per lead carrier, never per index. `forEach.sparse` against
+  // `forEach.trail` is the same four matches led by the rare token and by Position — the
+  // lead-order rule measured, gross per store entity. No ratio here retires an idiom on a runtime
+  // upgrade: the lead-order rule is a property of the layout.
+
   {
     id: "perf.layout",
     setup(ctx) {

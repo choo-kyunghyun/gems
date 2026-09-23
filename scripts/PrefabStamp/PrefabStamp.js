@@ -1,21 +1,18 @@
 /**
- * The STRUCTURES stage: prefabs scattered across the whole level at a per-area DENSITY, rejecting
- * any placement that overlaps an existing claim (the anchor, a wall, an earlier stamp) and claiming
- * its own footprint so nothing lands on top of it. Policy enters via two hooks (the colony's policy
- * lives in OverworldGen.create):
+ * The structures stage: prefabs scattered across the level at a per-area density, rejecting any
+ * placement that overlaps an existing claim and claiming its own footprint so nothing lands on
+ * top of it. Policy enters via two hooks:
  *   spawnFilter(s, ctx) -> keep this stamped spawn? (default: keep all)
  *   defaultLoot(s, rng) -> loot array for a spawn that authored none, or undefined to leave it.
- *     Drawn BEFORE the spawnFilter verdict so a filtered-out spawn consumes the same rng draws — the
- *     level's remaining placements must not shift.
- * A prefab is a LevelData, so every channel it carries reaches the level unchanged — the stamp
- * translates it to the placement offset and merges it into the generator's own LevelData.
+ *     Drawn before the filter verdict, so a filtered-out spawn consumes the same rng draws and
+ *     the level's remaining placements don't shift.
+ * A prefab is level data, so every channel it carries reaches the level unchanged.
  */
 globalThis.PrefabStamp = class PrefabStamp {
   /**
-   * opts: tag (required prefab scope tag — only Prefab.byTag(tag) is eligible), salt? (per-pass
-   * stream salt, see LevelGen), density? (prefabs per 1000 cells, default 1.76), margin? (level
-   * border kept clear in cells, default 1), tries? (placement attempts before a prefab is skipped,
-   * default 8), spawnFilter?/defaultLoot? (the two policy hooks — see the header).
+   * opts: tag (required prefab scope tag), salt? (per-pass stream salt), density? (prefabs per
+   * 1000 cells), margin? (level border kept clear, in cells), tries? (placement attempts before
+   * a prefab is skipped), spawnFilter?, defaultLoot?.
    */
   constructor(opts = {}) {
     if (typeof opts.tag !== "string")
@@ -24,7 +21,7 @@ globalThis.PrefabStamp = class PrefabStamp {
     this.density = opts.density ?? 1.76;
     this.margin = opts.margin ?? 1;
     this.tries = opts.tries ?? 8;
-    // resolved once — register prefabs BEFORE composing the generator (like OverworldGen's note)
+    // resolved once: prefabs must be registered before the generator is composed
     this.prefabs = Prefab.byTag(opts.tag);
     this.spawnFilter = opts.spawnFilter ?? ((s, ctx) => true);
     this.defaultLoot = opts.defaultLoot ?? ((s, rng) => undefined);
@@ -39,8 +36,8 @@ globalThis.PrefabStamp = class PrefabStamp {
       const m = this.margin;
       const maxOx = ctx.cols - 2 * m - p.cols;
       const maxOy = ctx.rows - 2 * m - p.rows;
-      if (maxOx < 0 || maxOy < 0) continue; // larger than the level interior — skip
-      // reject-and-retry against the claims; a prefab that can't find room this seed is dropped
+      if (maxOx < 0 || maxOy < 0) continue; // larger than the level interior
+      // a prefab that can't find room this seed is dropped
       let ox = -1;
       let oy = -1;
       for (let t = 0; t < this.tries; t++) {
@@ -59,11 +56,11 @@ globalThis.PrefabStamp = class PrefabStamp {
       const kept = [];
       for (let i = 0; i < st.spawns.length; i++) {
         const s = st.spawns[i];
-        // translate's spawn copy is shallow — deep-copy item arrays so stamped instances never
-        // share (and mutate on pickup) the registry def's arrays
+        // the translated spawn is a shallow copy: item arrays are cloned so stamped instances
+        // never mutate the prefab def's
         if (s.loot !== undefined) s.loot = this._cloneItems(s.loot);
         if (s.items !== undefined) s.items = this._cloneItems(s.items);
-        const extra = this.defaultLoot(s, rng); // before the filter verdict — see header
+        const extra = this.defaultLoot(s, rng); // before the filter verdict
         if (extra !== undefined) s.loot = extra;
         if (!this.spawnFilter(s, ctx)) continue;
         kept.push(s);

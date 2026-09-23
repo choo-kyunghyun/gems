@@ -1,31 +1,27 @@
-// Test harness. Runs the cases the `test*` modules registered with Test, tier by tier, one per
-// Step so the window stays live (a scenario spans `frames` Steps and draws its level), and reports
-// through game.log lines under a prefix — `[TEST]` the run's banner + summary, `[CHECK]` a case's
-// PASS/FAIL, `[BENCH]` a ns/op figure a case measured — so a run is read with a grep and never
-// written into the repo. Re-run in the same session for a before/after: a timing compares only
-// inside one window (docs/ARCHITECTURE.md → Hot-path idioms). Booted directly, with game_end after
-// the summary, when Game's Create_0 sets TEST_AUTORUN — "1" for every case, else the id prefix
-// the run is narrowed to.
-
 /**
- * the scene's factory — the one ref the Game object boots, the catalogue labels and openScene takes (see Scene)
+ * The test harness: runs every registered case, one per Step so the window stays live, and
+ * reports through prefixed log lines — `[TEST]` the banner and summary, `[CHECK]` a case's
+ * PASS/FAIL, `[BENCH]` a measured figure — so a run is read with a grep and never written into
+ * the repo. A timing compares only inside one window, so a before/after re-runs in the same
+ * session (docs/ARCHITECTURE.md). Under TEST_AUTORUN — "1" for every case, else the id prefix the
+ * run is narrowed to — the game ends after the summary.
  */
+
 globalThis.sceneTest = () => new _SceneTestClass();
 Scene.register(sceneTest, {
   label: I18n.textRef("TEST_NAME"),
   category: "SCENE_CAT_DEV",
 });
 
-/** standalone SCREEN class — duck-typed contract, see Scene. */
 class _SceneTestClass {
   label = "Test";
 
   create(openScene) {
-    this._openScene = openScene; // stashed so retheme() can rebuild the button callbacks
-    this._cases = []; // the run
-    this._cursor = 0; // index of the case the next update() serves
+    this._openScene = openScene; // for retheme() to rebuild the button callbacks
+    this._cases = [];
+    this._cursor = 0; // the case the next update() serves
     this._frame = 0; // frames the current case has been given
-    this._ctx = null; // the current case's context (setup fills it, teardown frees it)
+    this._ctx = null; // setup fills it, teardown frees it
     this._t = null; // the current case's collector
     this._pass = 0;
     this._fail = 0;
@@ -34,7 +30,7 @@ class _SceneTestClass {
     this._start();
   }
 
-  /** Live theme swap (the Game object's retheme): a plain UI rebuild, the run keeps going. */
+  /** Live theme swap: a plain UI rebuild, the run keeps going. */
   retheme() {
     UI.remove(this.ui);
     this.ui.destroy();
@@ -112,8 +108,8 @@ class _SceneTestClass {
   }
 
   /**
-   * Run a phase of the current case; an exception is that case's failure (recorded, the run goes
-   * on — reporting every case in one run IS the runner's job), never the run's.
+   * An exception is the current case's failure, never the run's — reporting every case in one run
+   * is the runner's job.
    */
   _guard(phase, fn) {
     try {

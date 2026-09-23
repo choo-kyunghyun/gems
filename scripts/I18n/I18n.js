@@ -1,14 +1,13 @@
-// Localization registry — load(manifest) reads a locale's manifest.json (text masks + fonts/images/
-// sounds by role) into the Maps below; text()/textRef() resolve strings (textRef is a live () => string).
-// The text mask is one file per area (text/<area>.json), merged into ONE flat map — a key is unique
-// across the locale, and its prefix names the area's file (the key rule: docs/NAMING.md).
+// Localization registry: a locale's manifest loads its texts and its fonts, images and sounds by
+// role. The per-area text files merge into one flat map, so a key is unique across the locale
+// (docs/NAMING.md).
 globalThis.I18n = {
   texts: new Map(),
   fonts: new Map(),
   images: new Map(),
   sounds: new Map(),
 
-  /** Free all loaded assets + clear every registry (runs before each load). */
+  /** Free all loaded assets and clear every registry. */
   destroy() {
     I18n.texts = new Map();
 
@@ -100,9 +99,7 @@ globalThis.I18n = {
     }
   },
 
-  /**
-   * Resolve a key now (falls back to the key). Extra args fill `{0}`/`{1}`… placeholders.
-   */
+  /** Resolve a key now, falling back to the key. Extra args fill `{0}`/`{1}`… placeholders. */
   text(key, ...params) {
     if (params.length === 0) {
       return I18n.texts.get(key) ?? key;
@@ -112,9 +109,10 @@ globalThis.I18n = {
   },
 
   /**
-   * Live `() => string` for UI labels that re-resolve (language swap / changing params).
-   * `params` may be values or `() => value` getters.
+   * Live `() => string` that re-resolves on a language swap or changing params. `params` are all
+   * values or all `() => value` getters; the first decides.
    */
+
   textRef(key, ...params) {
     if (params.length === 0) {
       return () => {

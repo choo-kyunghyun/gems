@@ -1,24 +1,15 @@
 /**
- * The colony's biome data.
- *
- * Pure data, no registration step (a plain top-level literal, like the design tables on FacetTheme).
- * A site names its profile in `biome` (ColonyLevel._siteData carries it as meta.biome), so a
- * site's character is one entry below — the generator machinery never changes for a new biome.
+ * The colony's biome data: pure data, no registration step. A site names its profile in
+ * `biome`, so a site's character is one entry below and the generator never changes for a new
+ * biome.
  */
 globalThis.contentBiomes = {
-  // Terrain MATERIALS by id — a generator palette entry minus its band position (a biome profile
-  // supplies that). `sprite` is the untinted dual-grid tileset the material's pass renders with —
-  // the one-tone `*Flat` sets (the textured pixTerrain<Material> sets stay in the project as
-  // spares); `color` is the design-reference tint (not drawn — real colored art now). `pathCost` is the
-  // WEIGHTED movement cost (TileType convention: null → impassable): it prices both pathfinding
-  // (NavGrid samples it, MotionPlanner multiplies step distance by it) and movement-point
-  // consumption (PathFollow.speedScale — a mover's speed × 1/cost). Easy ground 1, loose 1.5,
-  // rough 2; shallow water is WADEABLE at 3 (slow, and A* only wades when it beats walking around)
-  // but `spawnable: false` (travel yes, homes no); only deep water is null → collide-only colliders
-  // greedy-meshed by LevelGen into the level's `solid` rects.
+  // Terrain materials by id; a biome profile supplies each one's band position. `sprite` is the
+  // untinted dual-grid tileset; `color` is a design-reference tint, not drawn. `pathCost` is the
+  // weighted movement cost for both pathfinding and movement speed (null = impassable).
+  // Shallow water wades at 3 but is not `spawnable`.
   MATERIALS: {
-    // `wave` marks a FLOWING material: the crest tone shMeshlit's wave mode paints over the
-    // flat sheet, drifting on the sim clock (ColonyMap wires it into the material's pass)
+    // `wave` marks a flowing material: the crest tone drifted over the flat sheet.
     deepwater: {
       name: "Deep Water",
       color: "#3e5870",
@@ -53,7 +44,7 @@ globalThis.contentBiomes = {
       clutter: [
         {
           sprite: pixGrassWeeds,
-          tint: "#a08662", // ochre 3 — dry scrub, apart from the living field's green
+          tint: "#a08662", // dry scrub, apart from the living field's green
           chance: 0.1,
           min: 1,
           max: 1,
@@ -69,21 +60,17 @@ globalThis.contentBiomes = {
       sprite: pixTerrainRichSoil,
       pathCost: 1,
     },
-    // `clump` grows a material's VOLUME layer (RenderGrass): HD clump variants stood on
-    // every cell, dense enough to carry the green itself — the ground underneath is the
-    // soil sheet, and the field's border is the scatter's own feather (edge), so grass
-    // needs no tileset of its own (the old flat sheet is `lawn`'s now)
-    // `clutter` rides the same pass as sparse standing accents: clump's def shape plus
-    // `chance` (share of cells that carry any), each entry its own `tint` — a white-mask
-    // sheet takes one, a colored sheet (flowers) goes untinted — and `flat` lays an entry
-    // on the ground plane instead of standing it (a pad afloat on water)
+    // `clump` grows a volume layer dense enough to carry the green itself over the soil sheet,
+    // so grass needs no tileset of its own. `clutter` entries are sparse accents of the same
+    // shape plus `chance` (share of cells that carry any); a white-mask sheet takes a `tint`,
+    // and `flat` lays an entry on the ground plane instead of standing it.
     grass: {
       name: "Grass",
       color: "#5d8a46",
       sprite: pixTerrainSoil,
       clump: {
         sprite: pixGrass,
-        tint: "#328464", // bio 1 — the sheet is a white mask, this IS the field's green
+        tint: "#328464", // the sheet is a white mask, so this is the field's green
         min: 4,
         max: 6,
         scaleMin: 0.7,
@@ -102,9 +89,8 @@ globalThis.contentBiomes = {
       ],
       pathCost: 1,
     },
-    // grass's MAINTAINED counterpart — the solid one-tone sheet reads as artificial ground
-    // (Union-standard lawn), so it takes no clumps: flat = designed, volume = alive.
-    // Never a biome band; a prefab stamps it (palette `extras`), later a buildable floor
+    // Maintained grass: flat reads as designed ground, so it takes no clumps. Never a biome
+    // band; only stamped.
     lawn: {
       name: "Lawn",
       color: "#328464",
@@ -125,45 +111,29 @@ globalThis.contentBiomes = {
     },
   },
 
-  // Generator PROFILES by biome id — one section per stage OverworldGen composes, present exactly
-  // when the stage is:
-  //   name       i18n key (the world map's terrain readout)
-  //   indoor?    true for a sealed map — no sky passes, the interior BGM (meta.indoor)
-  //   extras?    [material] — palette-only additions painted ABOVE the bands: materials no band
-  //              paints but a prefab stamps onto the terrain layer (lawn)
-  //   clumpTint? "#hex" (an AAP-64 entry) — the biome's grass color: overrides the grass
-  //              material's clump.tint on the white clump mask (one sheet, every biome)
-  //   clutter?   { <material>: [entry] } — the biome's OWN accents on a material's cells, appended
-  //              to that material's `clutter` (the same entry shape): an accent one biome grows
-  //              and the others don't (the marsh's lotus pads on its shallows)
-  //   wind?      0..1 — the level's CONSTANT wind strength (a whole-map record), the grass sway
-  //              amplitude (shMeshlit.vsh u_sway); absent = still (an indoor map)
-  //   ground     { lattice, bands } — GenGround: [material, threshold] pairs ascending over the
-  //              ground noise (the last one Infinity) splitting the land into patchy features;
-  //              lattice = value-noise blob spacing in cells (smaller = smaller patches). The
-  //              FIRST band is also what a drained anchor footprint fills with (GenAnchor `fill`)
-  //   lakes?     { lattice, bands } — GenLakes: pairs ascending over an independent noise — deep
-  //              water → water → shore; past the last threshold the cell keeps its ground. The
-  //              band order is also the painter order (the terrain's dual-grid passes stack
-  //              cumulatively, lake bands under ground bands, so each upper material's border
-  //              reveals the one below)
-  //   walls?     { lattice, threshold, border?, material? } — GenWalls: noise ≥ threshold is a wall
-  //              cell; border rings the level
-  //   prefabs?   { tag, density, tries? } — PrefabStamp: the Prefab scope tag stamped + its per-1000
-  //              density (+ placement tries per stamp, for a level where open room is scarce)
-  //   scatter?   { rock?, rat? } — one GenScatter per key (OverworldGen.SCATTER) at that
-  //              per-1000-cell density
-  //   flora?     { density, pool } — OverworldGen.flora: the plant species (contentFlora) strewn
-  //              at that per-1000 density, `pool` the [species, weight] roll; FloraSystem keeps
-  //              spreading the same pool afterwards, season-weighted, up to its cap
-  //   climate?   { weather, tempMod } — the whole-map sky the site's level carries as its
-  //              meta.climate (ColonyLevel._siteData)
+  // Generator profiles by biome id; a section is present exactly when its stage runs:
+  //   name       i18n key
+  //   indoor?    true for a sealed map with no sky
+  //   extras?    [material] — materials no band paints but a stamp may, painted above the bands
+  //   clumpTint? "#hex" — the biome's grass color over the white clump mask
+  //   clutter?   { <material>: [entry] } — this biome's own accents, appended to the material's
+  //   wind?      0..1 — constant whole-map wind strength; absent = still
+  //   ground     { lattice, bands } — [material, threshold] pairs ascending over the ground noise,
+  //              the last one Infinity; lattice is the blob spacing in cells. The first band
+  //              also fills a drained anchor footprint
+  //   lakes?     { lattice, bands } — pairs over an independent noise; past the last threshold
+  //              the cell keeps its ground. Band order is also the painter order
+  //   walls?     { lattice, threshold, border?, material? } — noise ≥ threshold is a wall cell
+  //   prefabs?   { tag, density, tries? } — stamp tag at a per-1000 density
+  //   scatter?   { rock?, rat? } — per-1000-cell density per key
+  //   flora?     { density, pool } — per-1000 density and the [species, weight] roll
+  //   climate?   { weather, tempMod } — the whole-map sky
   BIOMES: {
-    // the colony's home ground: temperate steppe, lakes and wet depressions, pine scatter
+    // temperate steppe, lakes and wet depressions, pine scatter
     steppe: {
       name: "BIOME_STEPPE",
       wind: 0.6,
-      extras: ["lawn"], // stamped by the colony compound's yards, no band paints it
+      extras: ["lawn"],
       ground: {
         lattice: 6,
         bands: [
@@ -198,7 +168,7 @@ globalThis.contentBiomes = {
     // trees, little game — under constant snow
     frost: {
       name: "BIOME_FROST",
-      clumpTint: "#477d85", // slate 0 — grass gone cold
+      clumpTint: "#477d85", // grass gone cold
       wind: 0.9,
       ground: {
         lattice: 5,
@@ -233,7 +203,7 @@ globalThis.contentBiomes = {
     marsh: {
       name: "BIOME_MARSH",
       wind: 0.35,
-      // lotus pads afloat on the shallows — flat on the water, and never on the deep
+      // lotus pads on the shallows only, never the deep
       clutter: {
         water: [
           {
@@ -326,17 +296,15 @@ globalThis.contentBiomes = {
       prefabs: { tag: "cave", density: 1.6, tries: 32 },
       scatter: { rat: 6 },
     },
-    // DEV: the scratch pad's canvas — one flat material and nothing else, so what stands on it
-    // is only what was built there (contentSites `scratch`)
+    // DEV: a blank canvas — one flat material and nothing else, so what stands on it is only
+    // what was built there
     flat: {
       name: "BIOME_FLAT",
       ground: { lattice: 8, bands: [["grass", Infinity]] },
     },
   },
 
-  // Design-reference material palette (full set by id + name + intended tint). MATERIALS above is
-  // the currently-WIRED subset; the remaining entries (thinice/ice — climate variants;
-  // barren/jungle) await promotion into a profile.
+  // Design-reference material palette; MATERIALS is the wired subset, the rest await a profile.
   PALETTE: [
     { id: "water", name: "Water", color: "#639bff" },
     { id: "deepwater", name: "Deep Water", color: "#5b6ee1" },

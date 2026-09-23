@@ -1,33 +1,25 @@
 /**
- * A layer of the sky overlay (RenderOverlay hosts it under RenderWeather, outdoor maps only; the
- * overlay cuts it out over every roof — no cloud on a floor under one).
- * Coverage follows the current Weather condition (each _COND carries a `cloud` fraction, cross-faded
- * by Weather.blend()) scaled by daylight (WorldClock.tint alpha — no sun, no shadows). A seamless
- * value-noise texture (baked ONCE into a surface from hash2 on a PERIODIC lattice, so it tiles)
- * is drawn as ONE quad over the visible ground: the ground AABB the camera sees, projected to
- * surface pixels (View.project — the pitched ortho is affine, so a world rect is a screen rect
- * and the field still foreshortens with the 2.5D camera). UVs come from world position + wind*time
- * drift, wrapped (gpu_set_tex_repeat); drift runs on Weather.time() (cumulative SIM seconds), so
- * clouds freeze on pause and race under Time.scale.
+ * Drifting cloud shadows: a sky-overlay layer whose coverage follows the weather, scaled by
+ * daylight. A seamless noise tile, baked once, is drawn as one quad over the visible ground and
+ * drifts on sim time, so clouds freeze on pause.
  *
- * Darkening: the field bakes density into ALPHA (colour white) and the quad draws BLACK at alpha =
- * strength, so under the host's normal blend a texel darkens what is under it by density ×
- * strength — the dst×(1−src) a multiply gave, in a form that composes on the overlay's transparent
- * surface and erases under a roof; at density 0 or strength 0 nothing lands.
+ * The field bakes density into alpha and the quad draws black, so under normal blend a texel
+ * darkens by density × strength; unlike a multiply, that composes on a transparent overlay
+ * surface.
  * @implements {RenderPass}
  */
 globalThis.RenderCloudShadow = class RenderCloudShadow {
   constructor(opt = {}) {
     this.enabled = true;
-    this.camera = opt.camera; // the level's view record (CameraSystem.view); ColonyView._renderer passes it
-    this.darkness = opt.darkness ?? 0.38; // core darkening at full coverage + full sun
-    this.windX = opt.windX ?? -22; // drift, world px/s — leftward like the rain's slant
+    this.camera = opt.camera;
+    this.darkness = opt.darkness ?? 0.38; // at full coverage and full sun
+    this.windX = opt.windX ?? -22; // world px/s
     this.windY = opt.windY ?? 8;
-    this.seed = opt.seed ?? 1337; // noise-field layout seed (fixed — the DRIFT animates, not the field)
-    this.texWorld = opt.texWorld ?? 1800; // world px one noise tile spans (soft-patch scale)
-    this._n = 256; // noise texture resolution (px, power of two so every octave wraps)
+    this.seed = opt.seed ?? 1337;
+    this.texWorld = opt.texWorld ?? 1800; // world px one noise tile spans
+    this._n = 256; // power of two so every octave wraps
     this._vb = new VertexBuffer();
-    this._buf = -1; // baked RGBA density (persistent; re-uploaded if the volatile surface is lost)
+    this._buf = -1; // outlives the volatile surface, to re-upload it
     this._surf = -1;
   }
 
@@ -40,9 +32,7 @@ globalThis.RenderCloudShadow = class RenderCloudShadow {
   draw(_entities) {
     if (this.camera === undefined) return;
 
-    // strength: weather coverage (cross-faded) × daylight, folded into one grey the blend darkens
-    // by. tint alpha is 0 in full daylight and ≥ 0.5 from nightfall, so shadows fade out before
-    // the night tint lands.
+    // Tint alpha reaches 0.5 by nightfall, so shadows fade out before the night tint lands.
     const blend = Weather.blend();
     const cover =
       Weather.previous().cloud * (1 - blend) + Weather.current().cloud * blend;
@@ -56,9 +46,8 @@ globalThis.RenderCloudShadow = class RenderCloudShadow {
 
     const tex = this._texture();
 
-    // Visible ground AABB: unproject the four screen corners (pitched ORTHO is affine, so the
-    // ground plane has no horizon singularity). Pad by a fraction of a tile so drift never
-    // uncovers an edge.
+    // The pitched ortho is affine, so the ground has no horizon singularity. The pad keeps
+    // drift from uncovering an edge.
     const c0 = this.camera.unproject(0, 0);
     const c1 = this.camera.unproject(sw, 0);
     const c2 = this.camera.unproject(0, sh);
@@ -69,7 +58,6 @@ globalThis.RenderCloudShadow = class RenderCloudShadow {
     const y0 = Math.min(c0.y, c1.y, c2.y, c3.y) - pad;
     const y1 = Math.max(c0.y, c1.y, c2.y, c3.y) + pad;
 
-    // world → texture UVs (+ drift); tex_repeat wraps the [0,1] tile across the whole rect
     const t = Weather.time();
     const s = this.texWorld;
     const u0 = (x0 + this.windX * t) / s;
@@ -77,12 +65,12 @@ globalThis.RenderCloudShadow = class RenderCloudShadow {
     const v0 = (y0 + this.windY * t) / s;
     const v1 = (y1 + this.windY * t) / s;
 
-    // the ground rect on the overlay surface (two corners suffice under the pitch-only ortho)
+    // two corners suffice under the pitch-only ortho
     const p0 = this.camera.project(x0, y0, 0);
     const p1 = this.camera.project(x1, y1, 0);
 
     gpu_set_tex_repeat(true);
-    gpu_set_tex_filter(true); // bilinear: the field is soft, so magnified texels must interpolate
+    gpu_set_tex_filter(true); // magnified texels of a soft field must interpolate
     this._vb
       .begin()
       .addQuad(p0.x, p0.y, p1.x - p0.x, p1.y - p0.y, u0, v0, u1, v1, c_black, eff)
@@ -92,10 +80,7 @@ globalThis.RenderCloudShadow = class RenderCloudShadow {
     gpu_set_tex_repeat(false);
   }
 
-  /**
-   * The density texture, baked once; recreate the surface (not the buffer) if the volatile surface
-   * was lost. Returns the texture handle for the quad submit.
-   */
+  /** The density texture, baked once; a lost surface is recreated from the buffer. */
   _texture() {
     if (this._buf === -1) this._buf = this._bake();
     if (!surface_exists(this._surf)) {
@@ -105,11 +90,7 @@ globalThis.RenderCloudShadow = class RenderCloudShadow {
     return surface_get_texture(this._surf);
   }
 
-  /**
-   * Bake the seamless cloud-density field into an RGBA buffer (white, alpha = density). fbm of
-   * periodic value noise (each octave wraps at its own frequency → the tile is seamless), then a
-   * smooth threshold so the field is soft PATCHES with clear gaps, not uniform dapple.
-   */
+  /** A smooth threshold makes the field soft patches with clear gaps, not uniform dapple. */
   _bake() {
     const n = this._n;
     const buf = buffer_create(n * n * 4, buffer_fixed, 1);
@@ -134,7 +115,7 @@ globalThis.RenderCloudShadow = class RenderCloudShadow {
             this._pnoise((px / n) * f, (py / n) * f, f, this.seed + o * 97);
         }
         v = v / amax;
-        let d = (v - 0.52) / 0.3; // threshold → soft patches (gaps stay clear)
+        let d = (v - 0.52) / 0.3;
         d = d < 0 ? 0 : d > 1 ? 1 : d;
         d = d * d * (3 - 2 * d);
         const g = Math.floor(d * 255);
@@ -146,10 +127,7 @@ globalThis.RenderCloudShadow = class RenderCloudShadow {
     return buf;
   }
 
-  /**
-   * periodic value noise in [0,1): smoothstep-interpolated over a hashed lattice whose corners WRAP
-   * at `period` (= this octave's frequency), so the tile is seamless. Pure in (fx, fy, seed).
-   */
+  /** Value noise in [0,1) whose lattice wraps at `period`, so the tile is seamless. */
   _pnoise(fx, fy, period, seed) {
     const ix = Math.floor(fx);
     const iy = Math.floor(fy);

@@ -1,19 +1,14 @@
 /**
- * The ENTITIES stage: descriptors strewn across the level at a per-1000-cell DENSITY — the
- * placement half of a scatter. Each try draws a footprint (`size(rng)` → { w, h }, default 1×1)
- * and a corner `margin` cells in from the border, requires the footprint to be open (spawnable
- * ground free of claims), then asks `spawn(ctx, gx, gy, w, h)` for the descriptor — undefined
- * skips the try — and pushes it; with `claim` set the footprint is claimed, so nothing later
- * stands inside it (a boulder). A try that fails the placement test is dropped, not retried: the
- * count is a density, not a quota, so a level that is mostly water simply carries fewer. What a
- * scatter places is the consumer's (a LevelData spawn is opaque — OverworldGen's tree/rock/rat);
- * where it lands is decided here.
- * GMRT-safe: index loops, class on globalThis.
+ * The placement half of a scatter: spawn descriptors strewn at a per-1000-cell density, each on
+ * an open footprint `margin` cells in from the border. What is placed is the `spawn` hook's;
+ * where it lands is decided here. A failed try is dropped, not retried: the count is a density,
+ * not a quota, so a level that is mostly water simply carries fewer. With `claim`, nothing later
+ * stands inside a placed footprint.
  */
 globalThis.GenScatter = class GenScatter {
   /**
-   * opts: spawn (required — the descriptor hook), density? (per 1000 cells, default 1), size?
-   * (footprint hook, rng → { w, h }), claim? (default false), margin? (default 1), salt?
+   * opts: spawn(ctx, gx, gy, w, h) (required; undefined skips the try), density?, size?
+   * (rng → { w, h }), claim?, margin?, salt?
    */
   constructor(opts = {}) {
     if (typeof opts.spawn !== "function")
@@ -40,7 +35,7 @@ globalThis.GenScatter = class GenScatter {
       }
       const maxX = ctx.cols - 2 * m - w;
       const maxY = ctx.rows - 2 * m - h;
-      if (maxX < 0 || maxY < 0) continue; // wider than the interior — the stream still advances
+      if (maxX < 0 || maxY < 0) continue;
       const gx = m + Math.floor(rng() * (maxX + 1));
       const gy = m + Math.floor(rng() * (maxY + 1));
       if (!ctx.open(gx, gy, w, h)) continue;

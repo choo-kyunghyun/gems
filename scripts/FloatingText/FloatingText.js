@@ -1,23 +1,23 @@
-// World-space floating combat numbers (rise + fade) — standalone singleton, drawn in WORLD space from
-// a scene's draw() (in camera view), not Draw_75. Ages by Time.delta (sim time) not Time.raw (clock split).
+// Floating combat numbers, drawn in world space under the camera. They age by sim time, so a
+// paused sim holds them (docs/ARCHITECTURE.md → clock split).
 globalThis.FloatingText = {
   _items: [], // { x, y, text, color, age, life, rise, scale }
 
-  life: 0.9, // seconds on screen (incl. fades)
-  rise: 60, // world px risen over life (32px-cell scale)
-  fadeIn: 0.12, // pop / fade-in time (seconds)
+  life: 0.9, // seconds on screen, fades included
+  rise: 60, // world px risen over life
+  fadeIn: 0.12, // seconds
 
   font: -1,
   shadowColor: Color.parse("#0a0c10"),
 
-  // type → color; `info` is the unknown-type fallback. These are only the pre-theme defaults —
-  // FacetTheme._applyCore overwrites all but `info` from the active palette on every mode switch.
+  // type → color; `info` is the unknown-type fallback. Only pre-theme defaults: a theme may
+  // overwrite them on a mode switch.
   colors: {
-    damage: Color.parse("#f1f4fa"), // enemy hit — white
-    hurt: Color.parse("#e0584f"), // player hit — red
-    heal: Color.parse("#54c98a"), // restore — green
-    crit: Color.parse("#ffd166"), // big/critical — gold
-    mana: Color.parse("#4a9eff"), // resource — blue
+    damage: Color.parse("#f1f4fa"), // enemy hit
+    hurt: Color.parse("#e0584f"), // player hit
+    heal: Color.parse("#54c98a"),
+    crit: Color.parse("#ffd166"),
+    mana: Color.parse("#4a9eff"),
     info: Color.parse("#cfd6e4"),
   },
 
@@ -33,26 +33,22 @@ globalThis.FloatingText = {
       age: 0,
       life: opts.life ?? FloatingText.life,
       rise: opts.rise ?? FloatingText.rise,
-      scale: opts.scale ?? 2, // world-space text under a half-zoom camera — ×2 keeps screen size
+      scale: opts.scale ?? 2, // keeps screen size under a half-zoom camera
     });
   },
 
-  /** called on every scene swap. */
   clear() {
     FloatingText._items = [];
   },
 
   /**
-   * age + cull + draw in WORLD space (from a scene's draw(), after entities). Under a 2.5D pitched
-   * camera, pitchDeg tilts each number to face the camera head-on (text readability — unlike the
-   * entity sprites, which draw UPRIGHT via RenderBillboard) instead of splayed flat; 0 = flat
-   * top-down. sceneColony passes the LIVE camera pitch, so the pitch-by-zoom curve is tracked.
+   * Ages, culls and draws, in world space after the entities. `pitchDeg` tilts each number to
+   * face a pitched camera head-on for readability; 0 is flat top-down.
    */
   draw(pitchDeg = 0) {
     const items = FloatingText._items;
     if (items.length === 0) return;
 
-    // cull expired; build survivors array to avoid mutation mid-iterate
     const dt = Time.delta;
     const live = [];
     for (let i = 0; i < items.length; i++) {
@@ -70,9 +66,7 @@ globalThis.FloatingText = {
     draw_set_halign(fa_center);
     draw_set_valign(fa_middle);
 
-    // 2.5D: tilt each number to face the pitched camera head-on (readability; entity sprites
-    // themselves are upright — RenderBillboard).
-    // depth test OFF so a number is never occluded by the entity it reports on (always-on-top feedback).
+    // depth test off, so a number is never occluded by the entity it reports on
     const billboard = pitchDeg !== 0;
     const tilt = -pitchDeg;
     const ident = matrix_build_identity();
@@ -81,16 +75,15 @@ globalThis.FloatingText = {
     const sh = FloatingText.shadowColor;
     for (let i = 0; i < live.length; i++) {
       const t = live[i];
-      const p = t.age / t.life; // 0..1 progress
+      const p = t.age / t.life;
 
-      const riseAmt = curve(acEaseOutCubic, p) * t.rise; // decelerating rise
-      // fade in fast, fade out over the last 35% of life
+      const riseAmt = curve(acEaseOutCubic, p) * t.rise;
       const fadeIn = clamp(t.age / FloatingText.fadeIn, 0, 1);
       const fadeOut = clamp((t.life - t.age) / (t.life * 0.35), 0, 1);
       const a = Math.min(fadeIn, fadeOut);
       const sc = t.scale * (0.6 + 0.4 * curve(acEaseOutBack, fadeIn)); // entry pop overshoot
 
-      // billboarded numbers sit at foot via the stood-up matrix, glyph origin local (0,0)
+      // a billboarded number draws at the local origin of its stood-up matrix
       let ox, oy;
       if (billboard) {
         matrix_set(
@@ -105,7 +98,6 @@ globalThis.FloatingText = {
       }
 
       const c = t.color;
-      // shadow first (1px offset), then the glyph
       draw_set_alpha(a * 0.7);
       draw_text_transformed_color(
         ox + 1,
@@ -125,7 +117,7 @@ globalThis.FloatingText = {
       if (billboard) matrix_set(matrix_world, ident);
     }
 
-    gpu_set_ztestenable(true); // restore the global default (depth test on)
+    gpu_set_ztestenable(true); // the global default
     if (FloatingText.font !== -1) draw_set_font(font);
     draw_set_halign(halign);
     draw_set_valign(valign);

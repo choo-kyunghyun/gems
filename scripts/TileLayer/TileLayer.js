@@ -1,13 +1,10 @@
 const DIRTY_CAP = 256; // cell writes tracked individually before a mirror just resamples everything
 
 /**
- * LevelLayer: a Grid of TileType cells. `emptyCost` controls empty-cell nav:
- * undefined passes through to lower layers; Infinity makes a blocking base.
- * `edits` counts every cell write (set/import) — the signal NavGrid resamples its cost mirror on —
- * and `dirty`/`dirtyAll` say WHICH cells, so a single build-mode paint is one resample, not the
- * level's: the indexes written since the mirror last drained them, or everything once a bulk
- * paint (a level build, an import) passes DIRTY_CAP. One mirror drains it (NavGrid.sync); a
- * second would need its own cursor.
+ * A level layer of TileType cells. `emptyCost` controls empty-cell nav: undefined passes through
+ * to lower layers; Infinity makes a blocking base. `edits` counts every cell write, and
+ * `dirty`/`dirtyAll` say which cells, so a single paint costs a mirror one resample, not the
+ * level's. Only one mirror may drain them; a second would need its own cursor.
  * @implements {LevelLayer}
  */
 globalThis.TileLayer = class TileLayer {

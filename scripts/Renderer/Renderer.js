@@ -1,11 +1,11 @@
 /**
  * @typedef {Object} RenderPass
- * @property {boolean} enabled - drawn only while true; toggled in place (e.g. debug overlays)
+ * @property {boolean} enabled - drawn only while true
  * @property {function(): void} destroy
  * @property {function(): void} draw
  */
 
-/** Ordered back-to-front pass list; a scene owns one, calls draw(entities) each frame. */
+/** Ordered back-to-front pass list; owns its passes and destroys them with itself. */
 globalThis.Renderer = class Renderer {
   constructor() {
     this.passes = [];

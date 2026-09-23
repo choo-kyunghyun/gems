@@ -1,24 +1,16 @@
 /**
- * Screenshot — screen capture into `screenshots/` under the save dir
- * (game_save_id-rooted: a relative path lands in the build tree — docs/GMRT.md
- * → working_directory). take() queues; update() saves the queue and must run
- * LAST in Game/Draw_75 — Draw GUI End is the only event screen_save
- * permits, and a shot captures only what was drawn before the call — so a
- * take() anywhere up to that point lands the same frame. `hotkey` takes a
- * timestamped shot. Agent harness: a temp Time.frame timeline in Step_0
- * (CLAUDE.md → Screenshots). Autonames read the GML date built-ins: JS Date
- * is UTC-pinned and second-granular on GMRT (docs/GMRT.md), so current_time
- * (ms since boot) de-dupes same-second shots.
+ * Screen capture into `screenshots/` under the save dir (rooted at game_save_id: a relative path
+ * lands in the build tree — docs/GMRT.md). take() queues; update() saves the queue and must run
+ * LAST in Draw GUI End — the only event screen_save permits — so a take() anywhere earlier lands
+ * the same frame. Autonames use the GML date built-ins (JS Date is UTC-pinned and second-granular
+ * — docs/GMRT.md), with current_time de-duping same-second shots.
  */
 globalThis.Screenshot = {
-  /** Key polled through Input.keyPressed for a manual shot. */
   hotkey: vk_f5,
   /** Filenames to save this frame; null = autoname. */
   _pending: [],
 
-  /**
-   * save a shot this frame; name is a filename ("shot.png"), default timestamped
-   */
+  /** `name` is a filename ("shot.png"); omitted, the shot is timestamped. */
   take(name) {
     Screenshot._pending.push(name ?? null);
   },

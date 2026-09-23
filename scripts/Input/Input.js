@@ -1,67 +1,48 @@
 /**
- * THE input manager: the one frame poll over every device, the frame-scoped claims that
- * distribute it, and the registry of named InputActions with the player profile over them
- * (sensitivity, deadzone, the keyboard rebinds — what InputPreset persists).
+ * The input manager: the one frame poll over every device, the frame-scoped claims that
+ * distribute it, and the registry of named actions with the player profile over them
+ * (sensitivity, deadzone, keyboard rebinds).
  *
- * THE DISTRIBUTION CONTRACT — no consumer reads a device built-in (`mouse_*`, `keyboard_*`,
- * `gamepad_*`, `device_mouse_*`, `window_mouse_get_*`); every read goes through this object,
- * so one place decides who gets an input:
- *   1. poll() runs first in the frame (Game Step_0): it latches the pointer once (GMRT samples
- *      the mouse LIVE, so a re-query mid-frame can diverge — the poll-once rule), takes the
- *      typed text, clears the frame's claims, and settles which layer owns each pressed mouse
- *      button.
- *   2. Consumers run in the app's fixed order — the UI tree, SlotDrag, GameOverlay, UINav,
- *      Dialogue, then the scene — and that order IS the priority: a consumer that takes an
- *      input CLAIMS it (claimPointer/claimKeys/claimPad for a whole device, consumeKey/
- *      consumePad for one button) and every reader after it sees the device idle. Inside one
- *      consumer the order is read, act, then claim — a claim never precedes its owner's reads.
- *   3. The queries (keyPressed/pointerPressed/padPressed/wheel/…, and through them the
- *      InputButton/InputAxis bindings an InputAction reads) answer minus the claims. `pointer`
- *      and `typed` are the raw latched records: the cursor position (`x`/`y`/`moved`, the room
- *      and window mirrors) is anyone's — a position is not contended — but the button edges
- *      and the typed text are the UI tree's ONLY: the tree arbitrates its own z-order (UIElement
- *      `block`) and claims at the end of UI.update; nothing after the tree reads an edge raw.
+ * No consumer reads a device built-in; every read goes through this object, so one place
+ * decides who gets an input:
+ *   1. poll() runs first in the frame: it latches the pointer once (GMRT samples the mouse
+ *      live, so a mid-frame re-query can diverge), takes the typed text, clears the frame's
+ *      claims, and settles which layer owns each pressed mouse button.
+ *   2. Consumers run in a fixed order and that order is the priority: a consumer that takes an
+ *      input claims it, and every reader after it sees the device idle. Within one consumer
+ *      the order is read, act, then claim.
+ *   3. The queries answer minus the claims. `pointer` and `typed` are the raw latched records:
+ *      the cursor position is anyone's, but the button edges and the typed text belong to the
+ *      UI tree alone, which arbitrates its own z-order.
  *
- * Pointer ownership: the layer a mouse press went to keeps that button until its release — a
- * press over a widget stays the UI's while dragged off it, a press on the world stays the
- * world's while dragged over the HUD. Settled in poll() from the previous frame's claim, read
- * through _pointerFree.
+ * Pointer ownership: the layer a mouse press went to keeps that button until its release.
  *
  * A whole-device claim lasts the frame and is re-asserted by its owner every frame it holds
- * the device (a focused UIInput, a live UINav), so a stale claim self-heals the moment the
- * owner stops updating. InputContext is the orthogonal scene-level gate (play/build/window)
- * over actions.
+ * the device, so a stale claim self-heals the moment the owner stops updating.
  */
 globalThis.Input = {
   /**
-   * Mouse-look multiplier over a consumer's own base radians-per-pixel (CameraFly's `sens`),
-   * so 1.0 is that base and the shipped 2.5 is the tuned default. Read live, per frame.
-   * Unitless and never Time-scaled — a mouse delta is a distance already, not a rate.
+   * Mouse-look multiplier over a consumer's own base radians-per-pixel; 1.0 is that base.
+   * Never Time-scaled — a mouse delta is a distance already, not a rate.
    */
   sensitivity: 2.5,
   /**
-   * Gamepad stick deadzone, 0-1, pushed to the hardware by applyDeadzone().
-   * gamepad_axis_value RENORMALIZES above it (at deadzone 0.2, raw 0.5 reads 0.375), so a consumer
-   * threshold (PlayerSystem's STICK_DEADZONE, UINav's stick edges) stacks on top of this
-   * instead of replacing it — raising both compounds.
+   * Gamepad stick deadzone, 0-1, applied in hardware. Axis values renormalize above it, so a
+   * consumer's own threshold stacks on top of this instead of replacing it.
    */
   deadzone: 0,
   actions: {},
   /**
-   * The keyboard rebinds, action key → keycode: applied over an action's default keyboard button
-   * as it registers, so a rebind outlives the scene binding the keymap and reaches an action
-   * registered after it was made. Edited through rebind()/restore(), never directly.
+   * Action key → keycode, applied over an action's default keyboard button as it registers, so
+   * a rebind outlives the scene that bound the keymap. Edited through rebind()/restore() only.
    */
   rebinds: {},
-  _defaults: {}, // action key → the keyboard keycode it registered with (0 = none); restore() returns to it
+  _defaults: {}, // action key → the keycode it registered with (0 = none)
 
   /**
-   * The frame's latched pointer, GUI-space: `x`/`y` (+ `moved` since the previous frame),
-   * `wheel` (-1 up / +1 down / 0), `roomX`/`roomY` (mouse_x/mouse_y — right under a flat
-   * camera only, see View.cursorWorld), `winX`/`winY` (window pixels, for a cursor-warping
-   * look), and per button (`left`/`right`/`middle`) the `pressed`/`released`/`down` edges plus
-   * `owner` ("" / "ui" / "world", the ownership contract). The UI tree's view of the pointer;
-   * every other consumer reads the pointer* queries.
+   * The frame's latched pointer, GUI-space. `roomX`/`roomY` are right under a flat camera only;
+   * `winX`/`winY` are window pixels; a button's `owner` is "" / "ui" / "world". The UI tree's
+   * view of the pointer; every other consumer reads the pointer* queries.
    */
   pointer: {
     x: 0,
@@ -76,19 +57,19 @@ globalThis.Input = {
     right: { pressed: false, released: false, down: false, owner: "" },
     middle: { pressed: false, released: false, down: false, owner: "" },
   },
-  /** The text typed this frame (keyboard_string, latched then cleared) — the focused UIInput's stream. */
+  /** The text typed this frame, latched then cleared. */
   typed: "",
 
-  _pointerClaimed: false, // a UI layer holds the pointer this frame (hover/held widget, a modal)
-  _keysClaimed: false, // a UI layer holds the keyboard this frame (a focused text field)
-  _padClaimed: false, // a UI layer holds the gamepad this frame (live menu nav)
-  _consumedKeys: [], // keycodes a consumer acted on this frame (consumeKey)
-  _consumedPad: [], // gamepad buttons a consumer acted on this frame (consumePad)
+  _pointerClaimed: false,
+  _keysClaimed: false,
+  _padClaimed: false,
+  _consumedKeys: [],
+  _consumedPad: [],
 
   /**
-   * Latch this frame's devices and clear the previous frame's claims — first thing in Game
-   * Step_0, before any consumer reads. The ownership of each pressed button settles here from
-   * the claim that stood when the press landed (last frame's), before that claim is cleared.
+   * Latch this frame's devices and clear the previous frame's claims; runs before any consumer
+   * reads. Each press's owner settles from the claim that stood when it landed, before that
+   * claim is cleared.
    */
   poll() {
     const p = Input.pointer;
@@ -125,32 +106,27 @@ globalThis.Input = {
     b.down = mouse_check_button(mb);
   },
 
-  /** a press edge went to whoever held the pointer that frame; a release frees the button */
   _settle(b) {
     if (b.pressed) b.owner = Input._pointerClaimed ? "ui" : "world";
     if (b.released) b.owner = "";
   },
 
-  // ── claims ──────────────────────────────────────────────────────────────────────────────
-
-  /** The pointer is a UI layer's this frame — UI.update (a hovered/held widget), a dialogue box click. */
+  /** Claims hold for this frame only; the owner re-asserts them every frame it holds the device. */
   claimPointer() {
     Input._pointerClaimed = true;
   },
 
-  /** The keyboard is a text field's this frame (re-asserted per frame while focused). */
   claimKeys() {
     Input._keysClaimed = true;
   },
 
-  /** The gamepad is menu navigation's this frame (re-asserted per frame while UINav is live). */
   claimPad() {
     Input._padClaimed = true;
   },
 
   /**
-   * A consumer acted on this key's press; later readers see it idle. The frame-scoped record
-   * keyboard_clear cannot be (docs/GMRT.md — it leaves the pressed edge standing).
+   * A consumer acted on this key's press; later readers see it idle. A frame-scoped record,
+   * since keyboard_clear cannot consume a press (docs/GMRT.md).
    */
   consumeKey(code) {
     Input._consumedKeys.push(code);
@@ -160,8 +136,6 @@ globalThis.Input = {
   consumePad(button) {
     Input._consumedPad.push(button);
   },
-
-  // ── queries (claim-aware; the only reads outside the UI tree) ──────────────────────────
 
   _button(mb) {
     if (mb === mb_left) return Input.pointer.left;
@@ -191,7 +165,7 @@ globalThis.Input = {
     return b.down ? Input._pointerFree(b) : false;
   },
 
-  /** -1 up / +1 down / 0 — 0 while the pointer is claimed (a wheel over a list scrolls it, never the world) */
+  /** -1 up / +1 down; 0 while the pointer is claimed. */
   wheel() {
     return Input._pointerClaimed ? 0 : Input.pointer.wheel;
   },
@@ -226,20 +200,16 @@ globalThis.Input = {
     return Input._padClaimed ? false : gamepad_button_check(device, button);
   },
 
-  /** raw stick axis (hardware-deadzoned — see `deadzone`); 0 while the pad is claimed */
+  /** Hardware-deadzoned stick axis; 0 while the pad is claimed. */
   padAxis(axis, device = 0) {
     return Input._padClaimed ? 0 : gamepad_axis_value(device, axis);
   },
 
-  /** analog trigger value; 0 while the pad is claimed */
   padValue(button, device = 0) {
     return Input._padClaimed ? 0 : gamepad_button_value(device, button);
   },
 
-  /**
-   * Any press at all this frame — a key, a mouse button, a pad face button — regardless of
-   * claims: a "press anything" prompt (waking a sleeper), never a gameplay read.
-   */
+  /** Any press this frame regardless of claims: for a "press anything" prompt, never gameplay. */
   anyPressed() {
     return (
       keyboard_check_pressed(vk_anykey) ||
@@ -250,17 +220,12 @@ globalThis.Input = {
     );
   },
 
-  // ── registry + profile ─────────────────────────────────────────────────────────────────
-
   destroy() {
     Input.actions = {};
     Input._defaults = {};
   },
 
-  /**
-   * Apply a saved profile (the export() shape) over whatever is registered: the rebinds REPLACE
-   * the current set, the deadzone is pushed to the pads.
-   */
+  /** Apply a saved export() profile; its rebinds replace the current set. */
   import(data) {
     Input.sensitivity = data.sensitivity;
     Input.deadzone = data.deadzone;
@@ -271,7 +236,6 @@ globalThis.Input = {
       Input.rebind(keys[i], data.rebinds[keys[i]]);
   },
 
-  /** Serializable profile: { sensitivity, deadzone, rebinds }. */
   export() {
     return {
       sensitivity: Input.sensitivity,
@@ -281,16 +245,10 @@ globalThis.Input = {
   },
 
   /**
-   * Push Input.deadzone to the gamepad hardware; a slot omitted from `device` means every slot.
-   *
-   * The built-in sets one SLOT (all of its axes at once), and the value neither follows a pad
-   * across a reconnect nor exists before a pad does — no pad is connected yet when Game's
-   * Create runs, so the seeding sweep alone reaches nothing and the async system event re-pushes
-   * per slot on "gamepad discovered". That event is the load-bearing call site.
-   *
-   * Slots are whatever gamepad_get_device_count() reports (4 on GMRT 0.20 Windows, against the
-   * manual's 11-12 with DirectInput on 4-11); a set to a slot past that is silently DROPPED —
-   * it reads back 0, with no error. Never assume a fixed slot map.
+   * Push the deadzone to the gamepad hardware; an omitted `device` means every slot. The value
+   * is per slot and does not survive a reconnect, so it must be re-pushed whenever a pad is
+   * discovered. A set past gamepad_get_device_count() is silently dropped, so never assume a
+   * fixed slot map.
    */
   applyDeadzone(device) {
     if (device !== undefined) {
@@ -321,9 +279,8 @@ globalThis.Input = {
   },
 
   /**
-   * Rebind an action's keyboard key (see _setKey), recorded so it survives re-registration and
-   * persists; the default keycode clears the record instead. An unregistered key is recorded
-   * only, and applies when its action registers.
+   * Rebind an action's keyboard key, recorded so it survives re-registration and persists; the
+   * default keycode clears the record. An unregistered key applies when its action registers.
    */
   rebind(key, code) {
     if (code === Input._defaults[key]) delete Input.rebinds[key];
@@ -332,7 +289,6 @@ globalThis.Input = {
     if (action !== undefined) Input._setKey(action, code);
   },
 
-  /** Drop an action's rebind, returning it to the keyboard key it registered with. */
   restore(key) {
     if (!(key in Input.rebinds)) return;
     delete Input.rebinds[key];
@@ -346,9 +302,8 @@ globalThis.Input = {
   },
 
   /**
-   * Set an action's keyboard binding: its first keyboard button takes `code`; an action without
-   * one gains it at the FRONT (the label() slot — its mouse/pad buttons stay as alternates); 0
-   * removes it.
+   * An action without a keyboard button gains one at the front, the label slot, keeping its
+   * other buttons as alternates; code 0 removes it.
    */
   _setKey(action, code) {
     const i = action.keyIndex();
@@ -365,11 +320,7 @@ globalThis.Input = {
     }
   },
 
-  /**
-   * Register many single-button actions at once.
-   * `spec`: key → [source, button, contexts?].
-   *   3rd element is the InputContext list (see InputAction.inContext); omit for everywhere.
-   */
+  /** `spec`: key → [source, button, contexts?]; omitted contexts means everywhere. */
   bindAll(spec) {
     for (const key in spec) {
       const b = spec[key];
@@ -380,7 +331,6 @@ globalThis.Input = {
     return Input;
   },
 
-  /** `keys`: action keys from a bindAll spec. */
   unbindAll(keys) {
     for (let i = 0; i < keys.length; i++) Input.unregister(keys[i]);
   },

@@ -1,10 +1,8 @@
 /**
- * Item component marking an item as a buildable material.
- *
- * A built entity resolves Material.color → Visual.color. Color-only for now; no speculative fields.
+ * Item component marking an item as a buildable material; a built entity takes its color.
  */
 globalThis.Material = class Material {
-  /** d: color — colour int or "#rrggbb" hex (default white, no tint). */
+  /** d: color, a colour int or "#rrggbb" hex. */
   constructor(d) {
     this.color =
       typeof d.color === "string" ? Color.parse(d.color) : (d.color ?? c_white);

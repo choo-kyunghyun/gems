@@ -2,14 +2,10 @@
  * Item component marking an item as a weapon attachment.
  *
  * Installing consumes one unit and records its itemId in the weapon instance's `mods` map under the
- * slot id. Two fold points:
- *   • composeWeapon applies `ops` as operators over the composed fields (gun: velocity/mass/power/
- *     penetration/fireCd/magazine; melee: damage/fireCd).
- *   • StatModel._foldInstanceMods adds `stat` onto the wearer's derived sheet.
- * `slot` is the category it fits (matched vs a weapon slot's `accepts`, or "*"). `ops` =
- * { field: { add?, mul? } }: final = (base + Σadd) * Πmul per field. `stat` is a plain additive delta.
- * The consumed item IS the definition (no parallel registry) — resolved via
- * Item.get(modItemId).getComponent(WeaponMod).
+ * slot id. `slot` is the category it fits (matched vs a weapon slot's `accepts`, or "*"). `ops` =
+ * { field: { add?, mul? } } over the composed weapon fields: final = (base + Σadd) * Πmul per
+ * field. `stat` is a plain additive delta onto the wearer's derived sheet. The consumed item IS
+ * the definition — no parallel registry.
  */
 globalThis.WeaponMod = class WeaponMod {
   constructor(d = {}) {

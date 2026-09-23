@@ -1,7 +1,5 @@
-// Cold need driver — the warmth rule over the shared NeedSystem core: under `comfort` the meter rises with
-// the shortfall (full rate at `span` below), in warmth it recovers. The temperature is the one where the
-// body stands — its room's, or the outside's (Shelter.tempAt). update() runs in the sim. Takes the
-// level (its room mirror and their temperatures).
+// Cold need driver: below `comfort` the meter rises with the shortfall, at full rate `span`
+// below; in warmth it recovers. The temperature is the one where the body stands.
 globalThis.ColdSystem = {
   update(level) {
     const entities = level.entities;

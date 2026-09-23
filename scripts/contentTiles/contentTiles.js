@@ -1,18 +1,11 @@
 /**
- * The colony's tile material data.
+ * The colony's tile material data: pure data plus its by-key lookup, no registration step.
  *
- * Pure data plus its by-key lookup, no registration step (a plain top-level literal, like
- * contentBiomes' palette); a sibling stack authors its own table and the builder never changes.
- *
- * LAYERS is the layer stack, bottom→top — one material each. RenderTileMap autotiles by
- * OCCUPANCY (not tile-type), so materials with different autotile modes (floor=raw,
- * fence=blob16) CAN'T share a TileLayer — each gets its own layer + pass. `type`: "dual"
- * corner-grid, 0 raw single-frame, 16 blob4, 47 blob8. For a
- * type-0 layer RenderTileMap uses TileType.id as the frame index, so `floor.id` MUST be a real
- * frame. `pathCost: null` → blocking; `solid` layers are greedy-meshed; the terrain layer is
- * painted per cell from the biome palette (ColonyLevel._generate). Order = nav priority (top wins).
- * `name` is an I18n key (resolved at build in ColonyLevel._makeLayers — top level runs before the
- * locale loads).
+ * LAYERS is the layer stack, bottom→top, one material each: autotiling reads occupancy, not
+ * tile type, so materials with different autotile modes can't share a layer. `type`: "dual"
+ * corner-grid, 0 raw single-frame, 16 blob4, 47 blob8; a type-0 layer's id is its frame index.
+ * `pathCost: null` blocks; order is nav priority (top wins). `name` is an I18n key, resolved at
+ * build since top level runs before the locale loads.
  */
 globalThis.contentTiles = {
   LAYERS: [
@@ -22,7 +15,7 @@ globalThis.contentTiles = {
       name: "TILE_TERRAIN",
       type: "dual",
       sprite: pixTileDual,
-      // desaturated olive matching the streamed grass base (style-spec GROUND band)
+      // desaturated olive matching the grass base
       color: "#79825a",
       solid: false,
       pathCost: 1,
@@ -30,9 +23,7 @@ globalThis.contentTiles = {
     },
     {
       key: "floor",
-      // pixTexPlaid = near-white checker weave (pixTexBrick is the WALL texture — see
-      // ColonyView._renderer); wood-tan tint -> parquet flooring. For a type-0 layer the
-      // id IS the frame index (and must be non-zero: 0 reads as empty occupancy).
+      // a type-0 id is the frame index, and must be non-zero: 0 reads as empty
       id: 1,
       name: "BUILD_FLOOR",
       type: 0,
@@ -41,9 +32,8 @@ globalThis.contentTiles = {
       solid: false,
       pathCost: 1,
     },
-    // Floor VARIANTS — one type-0 layer per material (the LAYERS design rule: one material
-    // per layer + pass; the spare near-white pixTex* sheets each get their own tint).
-    // Build-Mode-only surfaces: a generated map holds them empty until the player builds.
+    // Floor variants, one layer per material; a generated map holds them empty until the
+    // player builds.
     {
       key: "floorTile",
       id: 1,
@@ -75,19 +65,15 @@ globalThis.contentTiles = {
       pathCost: 1,
     },
     {
-      // drawn ONLY by RenderWalls (lit boxes, pitched maps — ColonyMap skips the tile-pass
-      // loop for this layer), so no `type`/`sprite`: there is no flat tilemap fallback
+      // drawn only as lit boxes, so no `type`/`sprite`: there is no flat tilemap fallback
       key: "wall",
       id: 1,
       name: "BUILD_WALL",
       color: "#707888",
       solid: true,
       pathCost: null,
-      // Wall MATERIALS — per-cell TileTypes within this ONE solid layer (unlike the floor
-      // variants above, walls stay a single layer so colliders/remesh/nav are untouched —
-      // TileEdit meshes by occupancy). Each material = a near-white face texture + tint;
-      // RenderWalls buckets cells by TileType id and submits per material (ColonyMap wires it).
-      // materials[0] is the default (generated walls, streamed occupancy views).
+      // Wall materials are per-cell tile types within this one solid layer, so colliders and
+      // nav stay untouched by a material swap. materials[0] is the default.
       materials: [
         {
           key: "brick",
@@ -120,8 +106,7 @@ globalThis.contentTiles = {
       ],
     },
     {
-      // a pitched map draws this layer as lit post-and-rail boxes (RenderFence — the same
-      // occupancy read blob4 keys a frame by); the sheet + tint stay the flat-map fallback
+      // a pitched map draws lit post-and-rail boxes; the sheet and tint are the flat fallback
       key: "fence",
       id: 1,
       name: "BUILD_FENCE",
@@ -133,7 +118,6 @@ globalThis.contentTiles = {
     },
   ],
 
-  /** LAYERS entry by key (BuildMode reads `solid`/`materials` off it). */
   get(key) {
     for (let i = 0; i < contentTiles.LAYERS.length; i++)
       if (contentTiles.LAYERS[i].key === key) return contentTiles.LAYERS[i];

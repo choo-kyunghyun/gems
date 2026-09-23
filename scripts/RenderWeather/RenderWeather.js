@@ -1,26 +1,21 @@
 /**
- * A layer of the sky overlay (RenderOverlay hosts it under the day/night tint, so night darkens the
- * rain, and cuts it out over every roof). Draws in surface pixels: the condition's screen tint, then
- * its particles, which scroll on Weather.time() — a cumulative SIM-second clock (advanced by
- * Weather.update on Time.delta), so the fall FREEZES when the game pauses and dilates with
- * Time.scale (bed fast-forward). It must be a cumulative CLOCK, not a per-frame delta × fall speed
- * (which pins every particle near a constant offset). Snow sways via Math.sin; streaks use draw_line,
- * snow uses draw_rectangle.
- *
- * The level passes its view record (CameraSystem.view) as `camera` at construction.
+ * A sky-overlay layer in surface pixels: the weather condition's screen tint, then its particles,
+ * cross-faded between the previous and current conditions. Particles scroll on a cumulative
+ * sim-second clock, so the fall freezes on pause and dilates with the time scale; it must be a
+ * clock, not a per-frame delta × fall speed, which pins every particle near a constant offset.
  * @implements {RenderPass}
  */
 globalThis.RenderWeather = class RenderWeather {
   constructor(opt = {}) {
     this.enabled = true;
-    this.camera = opt.camera; // the level's view record (CameraSystem.view); ColonyView._renderer passes it
+    this.camera = opt.camera; // the level's view record
     this._maxN = opt.maxParticles ?? 320; // particle budget at density 1
 
     this._rainColor = Color.parse("#aebfd4");
     this._snowColor = Color.parse("#eef4fb");
 
-    // fixed normalized base positions generated once (so particles don't re-randomize each frame);
-    // scaled to view + scrolled by time below. _pr adds per-particle length jitter.
+    // normalized base positions generated once, so particles don't re-randomize each frame;
+    // _pr is per-particle jitter
     this._px = [];
     this._py = [];
     this._pr = [];
@@ -37,11 +32,11 @@ globalThis.RenderWeather = class RenderWeather {
 
   draw(_entities) {
     if (this.camera === undefined) return;
-    // Surface pixels: the host's surface is the application surface's size, so the tint covers the
-    // screen regardless of camera pitch (a world-rect draw would foreshorten under a 2.5D pitched camera).
+    // surface pixels, so the tint covers the screen at any pitch where a world rect would
+    // foreshorten
     const w = surface_get_width(application_surface);
     const h = surface_get_height(application_surface);
-    if (!(w > 0)) return; // NaN-safe (NaN > 0 is false)
+    if (!(w > 0)) return; // NaN-safe
 
     const blend = Weather.blend();
     const color = draw_get_color();
@@ -70,15 +65,15 @@ globalThis.RenderWeather = class RenderWeather {
   _rain(cond, intensity, x1, y1, w, h) {
     const n = Math.floor(this._maxN * cond.density);
     if (n <= 0) return;
-    const t = Weather.time(); // cumulative SIM seconds (a clock, not a per-frame delta)
+    const t = Weather.time();
     const fall = 850; // px/s
-    const slant = -5; // streak lean + wind direction
+    const slant = -5; // streak lean and wind direction
     draw_set_color(this._rainColor);
     draw_set_alpha(0.45 * intensity);
     let i = 0;
     while (i < n) {
-      const len = 10 + this._pr[i] * 8; // 10..18px streak
-      let px = (this._px[i] * w + slant * 4 * t) % w; // wind drift
+      const len = 10 + this._pr[i] * 8;
+      let px = (this._px[i] * w + slant * 4 * t) % w;
       if (px < 0) px += w;
       let py = (this._py[i] * h + fall * t) % h;
       const sx = x1 + px;
@@ -91,16 +86,16 @@ globalThis.RenderWeather = class RenderWeather {
   _snow(cond, intensity, x1, y1, w, h) {
     const n = Math.floor(this._maxN * cond.density);
     if (n <= 0) return;
-    const t = Weather.time(); // cumulative SIM seconds (a clock, not a per-frame delta)
-    const fall = 70; // px/s — gentle
+    const t = Weather.time();
+    const fall = 70; // px/s
     const wind = 18;
     draw_set_color(this._snowColor);
     draw_set_alpha(0.8 * intensity);
     let i = 0;
     while (i < n) {
-      const sz = 2 + Math.floor(this._pr[i] * 2); // 2..3px flakes
-      // Horizontal weave: a gentle per-flake sine sway over the steady wind drift (trig, 0.20).
-      const sway = 12 * Math.sin(t * 1.2 + this._pr[i] * 6.2832);
+      const sz = 2 + Math.floor(this._pr[i] * 2);
+      const sway
+ = 12 * Math.sin(t * 1.2 + this._pr[i] * 6.2832);
       let px = (this._px[i] * w + wind * t + sway) % w;
       if (px < 0) px += w;
       let py = (this._py[i] * h + fall * t) % h;

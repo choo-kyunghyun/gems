@@ -1,14 +1,13 @@
 /**
- * Strip playback for a FREE-RUNNING Visual — one looping its own sheet at `Visual.speed`
- * frames/sec. The draw passes (RenderEntity/RenderBillboard) call `advance` instead of
- * each stepping the component themselves, so a sprite can never animate at two rates depending
- * on which pass a scene installed. On Time.delta: free-run sprites are world motion, so they
- * pause and dilate with the sim. Skeletal actors are SkeletonSystem's.
+ * Strip playback for a free-running Visual, looping its own sheet at `speed` frames/sec. The one
+ * stepper every draw pass calls, so a sprite can never animate at two rates depending on which
+ * pass drew it. On sim time: free-run sprites are world motion, so they pause and dilate with the
+ * sim. Skeletal actors are not played here.
  */
 globalThis.Animation = {
   /**
-   * `sprite` is the sheet actually being drawn (the placeholder substitute, when the authored one
-   * is missing); returns the subimage to draw.
+   * `sprite` is the sheet actually drawn (a placeholder when the authored one is missing);
+   * returns the subimage to draw.
    */
   advance(visual, sprite) {
     if (visual.speed !== 0) {

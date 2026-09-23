@@ -1,12 +1,11 @@
 /**
  * Key-rebind row.
  *
- * Keyboard only; mouse/gamepad bindings show read-only via label(). GMRT: capture state is an instance
- * field read live (no cached bool — clobber, see docs/GMRT.md).
+ * Keyboard only; mouse/gamepad bindings show read-only. BUG: capture state is an instance field
+ * read live, never a cached bool (docs/GMRT.md #15549).
  * @implements {UIComponent}
  */
 globalThis.UIRebind = class UIRebind {
-  /** s: { actionKey, prompt: string | () => string, onRebind, color, captureColor, font, rad } */
   constructor(s = {}) {
     this.actionKey = s.actionKey ?? "";
     this.promptRef = uiTextRef(s.prompt ?? "Press a key…");
@@ -16,8 +15,8 @@ globalThis.UIRebind = class UIRebind {
     this.font = s.font ?? -1;
     this.rad = s.rad ?? 6;
 
-    this._capturing = false; // waiting for the next key
-    // internal FSM delegate (UITrigger) — release-inside arms capture mode.
+    this._capturing = false;
+    // release-inside arms capture mode
     this._fsm = new UITrigger({
       onClick: () => {
         this._capturing = true;
@@ -30,12 +29,12 @@ globalThis.UIRebind = class UIRebind {
       // Esc checked first — the scan below would otherwise pick it up.
       if (Input.keyPressed(vk_escape)) {
         this._capturing = false;
-        Input.consumeKey(vk_escape); // an enclosing UIModal reads Esc after its children
+        Input.consumeKey(vk_escape); // an enclosing modal reads Esc after its children
       } else if (Input.pointer.left.pressed) {
         this._capturing = false;
       } else {
-        // scan for the live pressed-edge keycode, NOT keyboard_lastkey — on GMRT lastkey
-        // lags vk_anykey by a frame, so the first press would rebind the stale key ("rebind twice" bug).
+        // BUG: scan for the live pressed edge, not keyboard_lastkey, which lags vk_anykey by a
+        // frame and would rebind the stale key
         const code = this._scanKey();
         if (code > 0) {
           this._rebind(code);
@@ -43,7 +42,7 @@ globalThis.UIRebind = class UIRebind {
           this._capturing = false;
         }
       }
-      // no stale hover/held flags in the bag while armed — the FSM isn't running.
+      // no stale hover/held flags while armed — the FSM isn't running
       element.state.hover = false;
       element.state.held = false;
       return true; // swallow input from the rest of the tree while capturing
@@ -65,7 +64,6 @@ globalThis.UIRebind = class UIRebind {
     const cy = pos.top + pos.height * 0.5;
 
     if (this._capturing) {
-      // 2px accent outline — "armed, waiting for a key".
       drawUIOutline(
         pos.left,
         pos.top,
@@ -86,8 +84,7 @@ globalThis.UIRebind = class UIRebind {
   }
 
   /**
-   * current binding as text, read live so a rebind updates the label with no wiring.
-   * binding → text mapping lives on InputAction/InputButton (shared with the key-hint bar).
+   * The current binding as text, read live so a rebind updates the label with no wiring.
    */
   _label() {
     const action = Input.get(this.actionKey);
@@ -95,7 +92,7 @@ globalThis.UIRebind = class UIRebind {
   }
 
   /**
-   * first keycode with a live pressed-edge this frame (0 = none). Only runs while capturing,
+   * The first keycode with a live pressed edge this frame (0 = none). Only runs while capturing,
    * so scanning the whole range is negligible.
    */
   _scanKey() {

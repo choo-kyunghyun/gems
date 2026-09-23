@@ -21,12 +21,10 @@
  */
 
 /**
- * Audio — the cue player over GameMaker's audio engine, and the boot of the audio family
- * (AudioListener, Music). Volume is three gains the settings sliders drive live: the master
- * (listener 0), the SFX group and the track group — a group's gain multiplies every sound in
- * it, playing or not, so a slider never has to find the instances. Cues live in audiogroup_sfx
- * and tracks in audiogroup_track; only audiogroup_default loads on its own, so init loads both
- * and a play from a group still landing answers -1 (`loaded`).
+ * The cue player over GameMaker's audio engine, and the boot of the audio family. Volume is
+ * three live gains — master, SFX group, track group — and a group's gain covers every sound in
+ * it, playing or not, so a slider never has to find the instances. Only the default group loads
+ * on its own, so init loads the others, and a play before its group lands answers -1.
  */
 globalThis.Audio = {
   falloff_ref: 128,
@@ -43,29 +41,20 @@ globalThis.Audio = {
     Music.setGain(Settings.get("volMusic"));
   },
 
-  /**
-   * Whether a sound's audio group is in memory — the group load is asynchronous, and a play
-   * before it lands answers -1.
-   */
+  /** The group load is asynchronous. */
   loaded(sound) {
     return audio_group_is_loaded(audio_sound_get_audio_group(sound));
   },
 
-  /**
-   * Stop everything on a scene swap (cues + BGM) — clean slate. NOT across a guest push / map
-   * change (Music carries over); the Game object's destroying swap only.
-   */
+  /** A clean slate for a destroying scene swap only; music carries over any other change. */
   restart() {
     audio_stop_all();
     Music.reset();
   },
 
   /**
-   * Play a cue. A `position` makes the cue spatial (attenuated + panned by the listener,
-   * defaulting to the 32px-world falloff window above); omit it for 2D (UI/global). Both paths
-   * honor every field — audio_play_sound_ext, the one call that takes the whole struct, drops
-   * its `position` (docs/GMRT.md), so neither path goes through it.
-   * Returns the sound instance handle, or -1.
+   * A `position` makes the cue spatial; without one it is 2D. Neither path uses
+   * audio_play_sound_ext, which drops `position` (docs/GMRT.md). Returns the sound instance, or -1.
    */
   play(params) {
     if (!audio_exists(params.sound) || !Audio.loaded(params.sound)) return -1;
@@ -99,12 +88,12 @@ globalThis.Audio = {
     return h;
   },
 
-  /** Master volume (0..1): listener 0's gain, over every group. */
+  /** 0..1, over every group. */
   setMasterGain(gain) {
     audio_set_master_gain(0, clamp(gain, 0, 1));
   },
 
-  /** SFX volume (0..1): audiogroup_sfx's gain, so a cue already playing follows the slider too. */
+  /** 0..1; a group gain, so a cue already playing follows it too. */
   setSfxGain(gain) {
     audio_group_set_gain(audiogroup_sfx, clamp(gain, 0, 1), 0);
   },

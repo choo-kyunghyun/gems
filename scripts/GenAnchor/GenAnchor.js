@@ -1,20 +1,14 @@
 /**
- * The level's one FIXED structure — a prefab (the colony compound, a site's landing pad, a cave
- * mouth) placed once at the open spot nearest `at` (default the level centre): the footprint's
- * top-left corner is ring-scanned outward from the centring corner until the whole footprint is
- * open (spawnable ground free of claims), kept `edge` cells in from the level border. No such spot
- * → the centring corner, and with `fill` set the footprint's wet cells are first drained to that
- * material (a built site stands on dry ground), else Log.warn. The footprint plus `margin` is
- * claimed, so every later pass keeps off it; the prefab's entry marker is what the level builder
- * reads its arrival point from. Draws no rng — its salt is unused. Register the prefab before
- * composing (Prefab.get).
- * GMRT-safe: index loops, class on globalThis.
+ * The level's one fixed structure: a prefab placed once at the open spot nearest `at` (default
+ * the level centre), kept `edge` cells in from the border. With no open spot it falls back to the
+ * centred placement, draining the footprint's wet cells to `fill` when set (a built site stands
+ * on dry ground), else warning. The footprint plus `margin` is claimed, so every later pass keeps
+ * off it. Draws no rng — its salt is unused.
  */
 globalThis.GenAnchor = class GenAnchor {
   /**
-   * opts: prefab (required — a registered Prefab id), margin? (cells claimed around the footprint,
-   * default 0), edge? (cells kept from the level border, default 1), fill? (the material wet
-   * footprint cells drain to on the fallback placement), at? ({ gx, gy } target centre), salt?
+   * opts: prefab (required, registered before composing), margin?, edge?, fill?, at? ({ gx, gy }),
+   * salt?
    */
   constructor(opts = {}) {
     if (typeof opts.prefab !== "string")
@@ -59,14 +53,13 @@ globalThis.GenAnchor = class GenAnchor {
     const m = this.margin;
     ctx.claim(spot.x - m, spot.y - m, p.cols + 2 * m, p.rows + 2 * m);
     const st = LevelData.translate(p, spot.x, spot.y);
-    // translate's spawn copy is shallow — deep-copy the records so the level's instances never
-    // share (and mutate) the registry def's nested data across builds
+    // deep-copy so the level's instances never mutate the registry def's nested data
     for (let i = 0; i < st.spawns.length; i++)
       st.spawns[i] = GenAnchor._clone(st.spawns[i]);
     ctx.merge(st);
   }
 
-  /** plain-data deep copy; anything that isn't a plain object/array passes by reference */
+  /** Plain-data deep copy; anything not a plain object or array passes by reference. */
   static _clone(v) {
     if (Array.isArray(v)) {
       const out = [];
@@ -85,8 +78,7 @@ globalThis.GenAnchor = class GenAnchor {
 
   /**
    * Nearest corner to (tx, ty) with an open footprint inside the edge, or null. A footprint is
-   * tested in O(1) off a summed-area table of the not-open cells (built once — a 45×30 compound
-   * over a 128² level asks thousands of candidates, and a per-cell test made that seconds).
+   * tested in O(1) off a summed-area table — a large prefab asks thousands of candidates.
    */
   _scan(ctx, p, tx, ty) {
     const cols = ctx.cols;
@@ -113,7 +105,6 @@ globalThis.GenAnchor = class GenAnchor {
     const fits = (x, y) =>
       x >= x1 && y >= y1 && x <= x2 && y <= y2 && blocked(x, y) === 0;
     if (fits(tx, ty)) return { x: tx, y: ty };
-    // ring r: walk the square's perimeter only (its top/bottom rows, then its side columns)
     const rMax = Math.max(cols, rows);
     for (let r = 1; r < rMax; r++) {
       for (let dx = -r; dx <= r; dx++) {
@@ -128,7 +119,6 @@ globalThis.GenAnchor = class GenAnchor {
     return null;
   }
 
-  /** drain the footprint's wet cells to the fill material */
   _drain(ctx, p, spot) {
     const m = ctx.material(this.fill);
     for (let y = spot.y; y < spot.y + p.rows; y++)

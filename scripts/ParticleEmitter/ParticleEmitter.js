@@ -1,20 +1,16 @@
 /**
- * Attached particle STREAM — a `ps*` system that runs for as long as the entity stands (an item
- * drop's sparkle, a site beacon's rise). ParticleEmitterSystem owns the live instance and draws
- * it on a camera-facing plane at the entity's Position; a one-shot effect is ParticleFx.burst
- * instead, which outlives no entity.
+ * Attached particle STREAM — a `ps*` system that runs for as long as the entity stands, drawn
+ * camera-facing at its Position.
  *
- * `asset` is the system's NAME, resolved at mint time, never a ref: the data snapshot-round-trips
- * as-is that way (an asset ref reflects as `{}` through a save — docs/GMRT.md), and a prop
- * descriptor can author one. The live handle is NOT here — it is the ParticleStream the system
- * mints beside this, transient with its release hook.
+ * `asset` is the system's NAME, never a ref, so the data round-trips through a save (an asset ref
+ * reflects as `{}` — docs/GMRT.md). The live handle is not here: it is minted beside this,
+ * transient.
  *
  * usage: entities.add(id, ParticleEmitter, { asset: "psDrop", color: c_orange })
  *
  * @typedef {Object} ParticleEmitter
  * @property {string} asset    particle system asset name ("ps*")
- * @property {number} [scale]  world scale of the stream (default 1) — an emitter region authored
- *                             over a wider frame than the body it rises from divides here
- * @property {number} [color]  GM color blend over the asset's own colors (omitted = untinted)
+ * @property {number} [scale]  world scale of the stream (default 1)
+ * @property {number} [color]  color blend over the asset's own colors (omitted = untinted)
  */
 globalThis.ParticleEmitter = "ParticleEmitter";

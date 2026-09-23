@@ -1,20 +1,12 @@
 /**
- * Bag–chest transfer page of the scene's Window.
- *
- * Opened by the "storage" / "corpse" InteractActions through the shell —
- * `scene.window.open("storage", { target, onTake })`: `target` is the chest entity (read live off
- * scene.window.target), `onTake` an optional per-open hook fired per stack taken (a corpse's pickup
- * credit; a plain chest sets none, so withdrawing can't farm collect quests). Open, close, Esc and
- * the refresh are the shell's (Window). Tables swap rows via setRows (not rebuilt) so column sort
- * survives every transfer. Caller contract: set scene.window.dirty whenever the bag changes from
- * outside this file (a craft, a pickup, an equip) — the refresh is flag-driven and would otherwise
- * show stale rows. The move itself is Bag.transfer / transferAll; this file holds the
- * rows, the gesture and the colony's guards — what the bag keeps back (_kept) and what a store
- * drags along (_afterStore). State on the page: bagTable / boxTable (UITable), click (the
- * InvTable.reclick latch), onTake.
+ * Bag–chest transfer page of the scene's Window, opened with `{ target, onTake }`: `target` is the
+ * chest entity, `onTake` an optional per-open hook fired per stack taken (a plain chest sets none,
+ * so withdrawing can't farm collect quests). Rows are swapped in place, so column sort survives
+ * every transfer. Caller contract: set scene.window.dirty whenever the bag changes from outside
+ * this page — the refresh is flag-driven and would otherwise show stale rows. This page owns the
+ * rows, the gesture and the colony's guards: what the bag keeps back and what a store drags along.
  */
 globalThis.StorageUI = {
-  /** build the page once; the scene adds it to its Window under "storage" */
   build(scene) {
     const page = {
       title: I18n.textRef("STORAGE_TITLE"),
@@ -26,12 +18,12 @@ globalThis.StorageUI = {
       }),
       bagTable: null,
       boxTable: null,
-      click: { key: "", time: 0 }, // InvTable.reclick latch
-      onTake: undefined, // per-open take hook (corpse looting) — never outlives the open
+      click: { key: "", time: 0 }, // the re-click latch
+      onTake: undefined, // never outlives the open
       refresh: () => StorageUI.refresh(scene, page),
       onOpen: (opts) => {
         page.onTake = opts.onTake;
-        StorageUI._applyColumns(page); // pick up any column-setting change since build
+        StorageUI._applyColumns(page);
       },
       onClose: () => {
         page.onTake = undefined;
@@ -40,7 +32,7 @@ globalThis.StorageUI = {
 
     const cols = new UIElement({
       width: "100%",
-      flexGrow: 1, // tables grow to fill the card height
+      flexGrow: 1,
       flexBasis: 0,
       flexDirection: "row",
       gap: FacetTheme.gap,
@@ -77,10 +69,7 @@ globalThis.StorageUI = {
     return page;
   },
 
-  /**
-   * one side's column: the title with its bulk "All" button, a live usage line, the table.
-   * invFn is a live () => Inventory feeding the usage readout and the All empty-gate.
-   */
+  /** `invFn` is read live: () => Inventory. */
   _column(titleRef, tableEl, allLabelRef, onAll, invFn) {
     const usage = new UIElement({ width: "100%", height: 20 });
     usage.insertChild(
@@ -97,16 +86,10 @@ globalThis.StorageUI = {
     });
   },
 
-  /**
-   * True when an inventory is missing or holds no stacks (drives the All-button gate).
-   */
   _empty(inv) {
     return inv === undefined || inv.slots.length === 0;
   },
 
-  /**
-   * "Slots used/cap   Weight cur[/max]" — the "/max" tail only when weight-capped (the bag).
-   */
   _usageText(inv) {
     if (inv === undefined) return "";
     let s =
@@ -116,9 +99,7 @@ globalThis.StorageUI = {
     return s;
   },
 
-  /**
-   * per-side bag/chest table. `side` ("bag"/"box") routes the transfer direction.
-   */
+  /** `side` ("bag"/"box") is the source of a transfer. */
   _table(scene, page, side) {
     return InvTable.table(InvTable.columns({ fav: true }), {
       emptyText: I18n.text("COMMON_EMPTY"),
@@ -127,10 +108,7 @@ globalThis.StorageUI = {
     });
   },
 
-  /**
-   * re-apply the Settings-driven column set to both tables (on every open, so a toggle made in
-   * the bag's Settings tab since the build lands).
-   */
+  /** On every open, so a column setting changed since the build lands. */
   _applyColumns(page) {
     page.bagTable.setColumns(InvTable.columns({ fav: true }));
     page.boxTable.setColumns(InvTable.columns({ fav: true }));
@@ -140,15 +118,13 @@ globalThis.StorageUI = {
     const entities = scene.level.entities;
     const bagInv = entities.require(scene.playerId, Inventory);
     const boxInv = entities.get(scene.window.target, Inventory);
-    if (boxInv === undefined) return; // the target went (a reaped corpse) — the engine range-closes
-    const fav = entities.require(scene.playerId, Favorites); // the "*" marker on both sides
-    page.bagTable.setRows(InvTable.rows(bagInv, fav)); // re-applies the sort
+    if (boxInv === undefined) return; // the target is gone; the page closes on range
+    const fav = entities.require(scene.playerId, Favorites);
+    page.bagTable.setRows(InvTable.rows(bagInv, fav));
     page.boxTable.setRows(InvTable.rows(boxInv, fav));
   },
 
-  /**
-   * single click selects; a re-click transfers (InvTable.reclick owns the gesture).
-   */
+  /** A click selects; a re-click transfers. */
   _click(scene, page, side, row) {
     if (row === null || row === undefined) return;
     if (InvTable.reclick(page.click, row, side))
@@ -156,9 +132,8 @@ globalThis.StorageUI = {
   },
 
   /**
-   * activate (double-click / confirm) on a row. a fungible stack > 1 opens the amount picker;
-   * a single unit or an instance transfers whole. storing a kept-back item (a favorite) is
-   * refused; taking from the chest is never protected.
+   * A fungible stack asks for an amount; a single unit or an instance moves whole. Storing a
+   * favorite is refused; taking is never protected.
    */
   _move(scene, page, side, row) {
     if (row === null || row === undefined) return;
@@ -179,11 +154,7 @@ globalThis.StorageUI = {
     StorageUI._doMove(scene, page, side, row, s.qty);
   },
 
-  /**
-   * amount picker (facetAmountPicker): stepper (default = full stack) + 1/Half/All shortcuts,
-   * held by the shell so Esc cancels the picker before the page (closeOnEscape stays off in
-   * the factory; the scene's handleEscape drives Window.back).
-   */
+  /** Held by the window as a prompt, so Esc cancels the picker before the page. */
   _promptAmount(scene, page, side, row, maxQty) {
     scene.window.prompt(
       facetAmountPicker({
@@ -200,10 +171,7 @@ globalThis.StorageUI = {
     );
   },
 
-  /**
-   * transfer `amount` of the row's slot to the opposite side, then what the direction drags
-   * along: a store's hotbar unbind / equipment reconcile, a take's per-open hook.
-   */
+  /** Move `amount` to the other side, then what the direction drags along. */
   _doMove(scene, page, side, row, amount) {
     const entities = scene.level.entities;
     const bag = entities.require(scene.playerId, Inventory);
@@ -215,7 +183,6 @@ globalThis.StorageUI = {
       if (moved > 0) StorageUI._afterStore(scene, bag, row.itemId);
     } else {
       moved = Bag.transfer(box, bag, row.idx, amount);
-      // the per-open take hook (corpse looting reports pickup credit)
       if (moved > 0 && page.onTake !== undefined)
         page.onTake(row.itemId, moved);
     }
@@ -225,9 +192,8 @@ globalThis.StorageUI = {
   },
 
   /**
-   * bulk Take/Store All: every stack of `side` to the other inventory, as much as fits. A store
-   * keeps back what _kept names for a bulk move; a take keeps nothing back and reports each
-   * stack to the per-open hook.
+   * Every stack of `side` to the other side, as much as fits. A store keeps back what a bulk move
+   * must; a take keeps nothing back.
    */
   _allFrom(scene, page, side) {
     const entities = scene.level.entities;
@@ -246,9 +212,8 @@ globalThis.StorageUI = {
   },
 
   /**
-   * The bag's keep-back rule as a slot predicate. A favorited item never stores. A BULK store
-   * (`bulk`) also keeps hotbar-bound items and worn instances — an Equipment slot must not
-   * dangle — where a single move stores one and unbinds / unequips it instead (_afterStore).
+   * The bag's keep-back rule as a slot predicate. A favorite never stores; a bulk store also keeps
+   * hotbar-bound items and worn instances, which a single move stores and unbinds instead.
    */
   _kept(scene, bulk) {
     const entities = scene.level.entities;
@@ -266,8 +231,8 @@ globalThis.StorageUI = {
   },
 
   /**
-   * what a store out of the bag drags along: the LAST copy unbinds its hotbar slot (a partial
-   * transfer keeps the binding usable), and a worn instance that left is unequipped.
+   * Only the last copy unbinds its hotbar slot, so a partial store keeps the binding usable; a
+   * worn instance that left is unequipped.
    */
   _afterStore(scene, bag, itemId) {
     const entities = scene.level.entities;

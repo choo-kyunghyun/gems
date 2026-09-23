@@ -1,10 +1,7 @@
 /**
- * Colony achievement defs and their trigger rules.
- *
- * Separated from contentQuests (quest data) so each content family has one home. THE RULES HOOK:
- * sceneColony wires this module onto `Tracker.rules`, so a single gameplay report drives both
- * stages — counterOf names the counter an event kind feeds, then report turns a met threshold into
- * a Tracker.unlock request. The engine holds no conditions and never sweeps.
+ * Colony achievement defs and their trigger rules, as the tracker's rules hook: one gameplay
+ * report drives both stages — counterOf names the counter an event kind feeds, then report turns a
+ * met threshold into an unlock request. The engine holds no conditions and never sweeps.
  */
 globalThis.contentAchievements = {
   registered: false,
@@ -39,8 +36,7 @@ globalThis.contentAchievements = {
         name: "ACH_TIME_SKIP_NAME",
         desc: "ACH_TIME_SKIP_DESC",
       },
-      // Placeholder — def only, no trigger rule yet (stays Locked until a gameplay site reports
-      // it). Planned trigger: building a room + placing a bed (needs room detection).
+      // TODO: no trigger rule yet — building a room and placing a bed
       {
         id: "td_home_builder",
         name: "ACH_HOME_BUILDER_NAME",
@@ -49,23 +45,21 @@ globalThis.contentAchievements = {
     ]);
   },
 
-  // Which counter each reported event kind feeds. A kind absent here bumps nothing ("reach"/"talk"
-  // exist only as quest objectives); a counter here with no RULES entry is tallied but unlocks
-  // nothing. Data, not closures.
+  // A kind absent here bumps nothing; a counter with no RULES entry is tallied but unlocks nothing.
   COUNTERS: {
-    kill: "enemiesKilled", // any species — the Slayer rules don't discriminate
+    kill: "enemiesKilled", // any species
     collect: "itemsCollected",
     quest: "questsCompleted",
     sleepSkip: "sleepFastForwards",
   },
 
-  /** Tracker.rules hook: the counter this event kind feeds, or undefined for none. */
+  /** Undefined for none. */
   counterOf(kind) {
     return contentAchievements.COUNTERS[kind];
   },
 
-  // Threshold rules per lifetime counter: reaching `at` on that counter requests the unlock.
-  // Data, not closures — the engine never evaluates a condition.
+  // Per lifetime counter: reaching `at` requests the unlock. Data, not closures — the engine never
+  // evaluates a condition.
   RULES: {
     enemiesKilled: [
       { at: 1, id: "td_first_kill" },
@@ -73,13 +67,13 @@ globalThis.contentAchievements = {
     ],
     itemsCollected: [{ at: 10, id: "td_collector" }],
     questsCompleted: [{ at: 1, id: "td_quester" }],
-    // bumped by sceneColony when a sleep's Time.scale ramp hits the ×20 ceiling
+    // a sleep's fast-forward reaching its ceiling
     sleepFastForwards: [{ at: 1, id: "td_time_skip" }],
   },
 
   /**
-   * Tracker.rules hook: a counter just changed (key + new total); every met rule becomes an unlock
-   * REQUEST (Tracker.unlock dedups). Returns newly-unlocked ids so the caller can toast them.
+   * A counter just changed to `value`; every met rule becomes an unlock request, which dedups.
+   * Returns the newly unlocked ids.
    */
   report(key, value) {
     const newly = [];

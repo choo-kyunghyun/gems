@@ -1,6 +1,5 @@
-// Achievement DEFINITIONS — pure data ({ id, name, desc }), NO condition; the engine never sweeps.
-// The unlock STATE lives in Tracker, which reads defs from here; the trigger rules stay with the
-// content that owns them (contentAchievements).
+// Achievement definitions — pure data ({ id, name, desc }), no condition; the engine never sweeps.
+// The unlock state and the trigger rules live elsewhere.
 globalThis.Achievement = {
   register(defs) {
     Registry.register(Achievement, defs);

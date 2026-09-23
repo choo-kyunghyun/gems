@@ -1,11 +1,10 @@
 /**
  * Swappable stat model from attributes to derived Stats.
  *
- * Game-side (names the colony sheet, like CombatAI). Lean 4-attr set: POW→attack, VIT→maxHp, AGI→speed,
- * END→maxStamina.
+ * Game-side: it names the colony sheet. Stats are always rebuilt from source — attributes, gear,
+ * installed attachments and statuses — so they can't drift.
  */
 globalThis.StatModel = {
-  // defaults tuned so derive() reproduces the legacy player sheet exactly
   ATTRS: [
     { id: "pow", name: "ATTR_POW", default: 2 },
     { id: "vit", name: "ATTR_VIT", default: 3 },
@@ -13,7 +12,6 @@ globalThis.StatModel = {
     { id: "end", name: "ATTR_END", default: 6 },
   ],
 
-  /** fresh attribute bag from defaults; ColonyPlayer.spawn uses this */
   defaults() {
     const a = {};
     for (let i = 0; i < StatModel.ATTRS.length; i++) {
@@ -23,10 +21,6 @@ globalThis.StatModel = {
     return a;
   },
 
-  /**
-   * derive combat stats from attrs. default values → maxHp 10, attack 1, defense 0, speed 440, maxStamina 100
-   * (the pre-attribute sheet at 32px-cell scale). swap formulas + ATTRS to re-model.
-   */
   derive(a) {
     return {
       maxHp: 4 + a.vit * 2,
@@ -38,22 +32,22 @@ globalThis.StatModel = {
   },
 
   /**
-   * recompute-from-source: rebuild Stats each call so it can't drift. no-op without Attributes
-   * (monsters author Stats directly). clamps Health/Stamina to new maxima.
+   * A no-op without Attributes: such an entity authors its Stats directly. Clamps Health and
+   * Stamina down to the new maxima.
    */
   recompute(entities, id) {
     const attrs = entities.get(id, Attributes);
-    if (attrs === undefined) return; // monster with authored Stats — leave alone
+    if (attrs === undefined) return;
     const stats = entities.require(id, Stats);
     const d = StatModel.derive(attrs);
     StatModel._foldEquipment(entities, id, d);
-    StatModel._foldStatuses(entities, id, d); // buff/debuff mods on top of gear
+    StatModel._foldStatuses(entities, id, d);
     stats.maxHp = d.maxHp;
     stats.attack = d.attack;
     stats.defense = d.defense;
     stats.speed = d.speed;
     stats.maxStamina = d.maxStamina;
-    // clamp resources down if maxima shrank; a raise doesn't free-heal
+    // a raised maximum doesn't free-heal
     const hp = entities.get(id, Health);
     if (hp !== undefined && hp.hp > stats.maxHp) hp.hp = stats.maxHp;
     const stam = entities.get(id, Stamina);
@@ -61,9 +55,6 @@ globalThis.StatModel = {
       stam.value = stats.maxStamina;
   },
 
-  /**
-   * fold Equippable.mods into the derived block. for...in over plain object is GMRT-safe (no Map iterator).
-   */
   _foldEquipment(entities, id, d) {
     const eq = entities.get(id, Equipment);
     if (eq === undefined) return;
@@ -71,7 +62,7 @@ globalThis.StatModel = {
     if (inv === undefined) return;
     const slots = eq.slots;
     for (const slot in slots) {
-      const uid = slots[slot]; // instance uid, not an itemId
+      const uid = slots[slot]; // an instance uid, not an itemId
       if (uid === undefined || uid === "") continue;
       const inst = Bag.findByUid(inv, uid);
       if (inst === undefined) continue;
@@ -83,14 +74,10 @@ globalThis.StatModel = {
           if (d[key] !== undefined) d[key] += eqp.mods[key];
         }
       }
-      // installed mods may also grant Stats via WeaponMod.stat
       StatModel._foldInstanceMods(inst.mods, d);
     }
   },
 
-  /**
-   * fold WeaponMod.stat deltas from installed attachments. for...in over plain object is GMRT-safe.
-   */
   _foldInstanceMods(mods, d) {
     if (mods === undefined) return;
     for (const slotId in mods) {
@@ -103,11 +90,7 @@ globalThis.StatModel = {
     }
   },
 
-  /**
-   * fold active status mods (e.g. fortify +attack/+defense) into d, same as _foldEquipment.
-   * recompute-from-source: re-runs on apply/expire via Effects.onStatsChanged hook.
-   * live mult statuses (speed) are NOT folded — read at point of use via Effects.scale.
-   */
+  /** Multiplier statuses are not folded; they apply at the point of use. */
   _foldStatuses(entities, id, d) {
     const eff = entities.get(id, StatusEffects);
     if (eff === undefined) return;

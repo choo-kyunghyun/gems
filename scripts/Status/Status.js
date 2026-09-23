@@ -1,11 +1,9 @@
 /**
- * Status definition registry.
- *
- * A status carries up to three effect kinds:
- *   dot/hot — Health change per `interval` (StatusSystem.update)
- *   mult    — live multiplicative factors read at use via Effects.scale; never folded into Stats
- *   mods    — flat Stats deltas folded by the GAME (StatModel._foldStatuses), re-derived via onStatsChanged
- * Status stays stat-model-agnostic: it owns list/timing/dot-hot/scale; the game owns how `mods` fold.
+ * Status definition registry. A status carries up to three effect kinds:
+ *   dot/hot — Health change per `interval`
+ *   mult    — live multiplicative factors read at use; never folded into Stats
+ *   mods    — flat Stats deltas, folded by the game
+ * Stat-model-agnostic: the game owns how `mods` fold.
  */
 globalThis.Status = {
   register(defs) {
@@ -13,8 +11,8 @@ globalThis.Status = {
   },
 
   /**
-   * A status def: { id, name, color?, beneficial? (default buff), duration? (0 = no auto-expire),
-   * dot?, hot?, interval? (default 1, seconds between dot/hot), mods?, mult? }
+   * A status def: { id, name, color?, beneficial?, duration? (0 = no auto-expire), dot?, hot?,
+   * interval? (seconds between dot/hot), mods?, mult? }
    */
   make(d) {
     return {

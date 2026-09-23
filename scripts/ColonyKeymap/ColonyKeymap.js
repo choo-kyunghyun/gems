@@ -1,17 +1,12 @@
 /**
- * The colony's keymap — input LIFECYCLE, not simulation: the app registers it once at boot (Game
- * Create_0) and it stays for the run; the settings key-binding list (`rows`) rebinds it live, and
- * InputPreset persists the rebinds over it. What the actions DRIVE each frame is PlayerSystem's.
+ * The colony's keymap — input lifecycle, not simulation: registered once at boot, it stays for
+ * the run and is rebound live from the settings list.
  */
 globalThis.ColonyKeymap = {
   /**
-   * register the colony keymap + InputContext tags (boot; idempotent).
-   *
-   * tags (set by sceneColony each frame): movement live everywhere; fire "play"-only so it self-mutes
-   * while building/window (no per-frame BuildMode check); the build brush "build"-only, on the same
-   * mouse buttons (the context splits them — and Input mutes both while the build bar holds the
-   * pointer); interact opens in play / closes a window; build inert with a window open. See
-   * InputContext / inContext.
+   * Idempotent. Context tags split actions sharing a key — fire and the build brush share the
+   * mouse buttons — and mute play actions while building or in a window, so no action needs a
+   * per-frame mode check.
    */
   bind() {
     const ANYWHERE = ["play", "build", "window"];
@@ -20,19 +15,18 @@ globalThis.ColonyKeymap = {
       moveRight: [INPUT_SOURCE.KEYBOARD, ord("D"), ANYWHERE],
       moveUp: [INPUT_SOURCE.KEYBOARD, ord("W"), ANYWHERE],
       moveDown: [INPUT_SOURCE.KEYBOARD, ord("S"), ANYWHERE],
-      sprint: [INPUT_SOURCE.KEYBOARD, vk_shift, ANYWHERE], // hold to sprint (drains Stamina)
+      sprint: [INPUT_SOURCE.KEYBOARD, vk_shift, ANYWHERE],
       fire: [INPUT_SOURCE.MOUSE, mb_left, ["play"]],
-      buildPlace: [INPUT_SOURCE.MOUSE, mb_left, ["build"]], // place the brush (BuildMode)
-      buildRemove: [INPUT_SOURCE.MOUSE, mb_right, ["build"]], // deconstruct under the brush (BuildMode)
+      buildPlace: [INPUT_SOURCE.MOUSE, mb_left, ["build"]],
+      buildRemove: [INPUT_SOURCE.MOUSE, mb_right, ["build"]],
       inventory: [INPUT_SOURCE.KEYBOARD, ord("I"), ANYWHERE],
       interact: [INPUT_SOURCE.KEYBOARD, ord("E"), ["play", "window"]],
       build: [INPUT_SOURCE.KEYBOARD, ord("B"), ["play", "build"]],
-      reload: [INPUT_SOURCE.KEYBOARD, ord("R"), ["play"]], // top up the equipped gun's magazine
-      grenade: [INPUT_SOURCE.KEYBOARD, ord("G"), ["play"]], // lob a grenade at the cursor
+      reload: [INPUT_SOURCE.KEYBOARD, ord("R"), ["play"]],
+      grenade: [INPUT_SOURCE.KEYBOARD, ord("G"), ["play"]],
     });
 
-    // gamepad (device 0) added alongside the keyboard bindings (InputAction OR-combines). Twin-stick:
-    // left=move, right=aim. Self-mutes while a menu owns nav, so the sticks drive UINav with a window open.
+    // gamepad bindings OR-combine with the keyboard's; they mute while a menu owns navigation
     const GP = INPUT_SOURCE.GAMEPAD;
     Input.get("moveLeft").bindButton(GP, gp_padl);
     Input.get("moveRight").bindButton(GP, gp_padr);
@@ -44,7 +38,6 @@ globalThis.ColonyKeymap = {
     Input.get("interact").bindButton(GP, gp_face1); // A
     Input.get("build").bindButton(GP, gp_face3); // X
     Input.get("grenade").bindButton(GP, gp_shoulderlb); // LT
-    // analog axes: left stick = movement (everywhere), right stick = aim ("play" only)
     Input.register(
       "moveX",
       new InputAction()
@@ -70,8 +63,7 @@ globalThis.ColonyKeymap = {
         .inContext(["play"]),
     );
 
-    // hotbar number keys 1..N, "play"-only so they self-mute with a window open or building (keyboard
-    // only — the gamepad dpad is movement)
+    // keyboard only: the gamepad dpad is movement
     for (let i = 0; i < HOTBAR_SIZE; i++) {
       Input.register(
         "hotbar" + (i + 1),
@@ -83,8 +75,8 @@ globalThis.ColonyKeymap = {
   },
 
   /**
-   * The rebindable keymap in display order — `{ action, label }` rows (label a live textRef) for
-   * a settings key-binding list (GameOverlay.keymap). The stick axes are gamepad-only and stay out.
+   * The rebindable actions in display order, as `{ action, label }` rows with a live textRef
+   * label. The gamepad-only stick axes stay out.
    */
   rows() {
     const rows = [

@@ -1,20 +1,15 @@
 /**
- * OR-combined button/axis bindings gated by InputContext. Each binding reads through the Input
- * queries, so an action is already muted wherever the frame's claims mute its device (a hovered
- * widget takes the mouse, a focused text field the keyboard, live menu nav the pad — Input);
- * the context gate here is the orthogonal scene-level one (play/build/window).
+ * OR-combined button/axis bindings. A binding is already muted wherever the frame's device claims
+ * mute its device; the context gate here is the orthogonal scene-level one.
  */
 globalThis.InputAction = class InputAction {
   constructor() {
     this.buttons = [];
     this.axes = [];
-    // null = live in every context; string[] gates to those contexts.
+    // null = live in every context
     this.contexts = null;
   }
 
-  /**
-   * Restrict to given context names (indexOf-tested array).
-   */
   inContext(list) {
     this.contexts = list;
     return this;
@@ -34,14 +29,14 @@ globalThis.InputAction = class InputAction {
     return this;
   }
 
-  /** Index of the first keyboard button, -1 when none — the slot a rebind edits (Input._setKey). */
+  /** Index of the first keyboard button, -1 when none — the slot a rebind edits. */
   keyIndex() {
     for (let i = 0; i < this.buttons.length; i++)
       if (this.buttons[i].source === INPUT_SOURCE.KEYBOARD) return i;
     return -1;
   }
 
-  /** The binding's display text, read live — e.g. "W", or "—" when unbound. */
+  /** The binding's display text, read live; "—" when unbound. */
   label() {
     return this.buttons.length > 0 ? this.buttons[0].label() : "—";
   }

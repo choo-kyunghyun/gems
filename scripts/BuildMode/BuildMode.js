@@ -1,49 +1,32 @@
 /**
- * Gated to an ALLIED Settlement — the level's (a settlement is a whole map), owned by the player's
- * faction or an ally of it (Diplomacy.isAlly). An unsettled level is founded by pressing E at a
- * Survey Post (Interactable routes to BuildMode.claim → Settlement.found). Build mode only OPENS
- * on an allied map, and placement is gated to it too. The palette (a bottom-center facetCatBar) is
- * contentBuild's catalog: an item is a TILE (TileLayer via TileEdit) or an ENTITY (its `spawn`
- * fields through descriptor() to ColonySpawn.spawnEntity); the `buildPlace`
- * (LMB) action places, `buildRemove` (RMB) deconstructs — "build"-context actions from the app
- * keymap (ColonyKeymap.bind), read through Input, which mutes them while the bar (or any
- * widget) holds the pointer: a click on the palette never reaches the grid behind it, with no
- * rect guard of its own. The SHAPE row above the bar sets the brush's footprint: `cell` acts on
- * the hovered cell at once, `rect`/`frame`/`line` drag from a press to a release and act on every
- * cell the shape spans as ONE build (the whole cost paid up front, solid layers remeshed once) —
- * a drag pressed on the grid stays the grid's until its release wherever the cursor goes (Input's
- * pointer ownership); an entity item is always single-cell.
+ * Build mode: placing and deconstructing tiles and entities on an allied settlement's map (owned
+ * by the player's faction or an ally); an unsettled level is founded through claim(). A shape
+ * brush acts on every cell it spans as ONE build — the whole cost paid up front, each solid layer
+ * remeshed once; an entity item is always single-cell. A drag pressed on the grid stays the
+ * grid's until its release, wherever the cursor goes.
  *
- * build() returns the PANEL HANDLE holding this mode's whole state (`el`/`bar` the HUD, `armed`
- * the B toggle, `active` armed AND the build context owning input, `item`/`shape`/`drag`/`cell`
- * the brush) — the scene keeps that one field and hands it back to every member, the shape a
- * `*UI` page already takes (see Window). `active` is the flag anything gating on build mode
- * reads (Interactable, drawWorld); update() recomputes it each frame, before any draw.
+ * build() returns the panel handle holding the mode's whole state. `active` (armed AND the build
+ * context owning input) is the flag anything gating on build mode reads; update() recomputes it
+ * each frame, before any draw.
  *
- * DEV authoring: F6 toggles FREE build (no settlement gate, no wood) and the shape row gains
- * `capture` — drag a rect and Blueprint.capture writes what stands there out as the prefab literal
- * contentPrefabs takes (the scratch site is the canvas for it — contentSites).
+ * DEV: F6 toggles free build (no settlement gate, no cost) and adds a `capture` shape that writes
+ * the dragged rect out as a prefab literal.
  *
- * scene contract: level, playerId, ui, window, mouseWorld. Off the level: the map runtime
- * (ColonyMap.runtime — the layer handles this edits and the tilePasses it marks dirty), the map
- * record (ColonyMap.of — the collider lists a remesh refills) and this module's own record under
- * KEY, the player's builds: `built` "gx,gy" → tile item id (the deconstructable tiles) and
- * `builtEnts` "gx,gy" → { ent, itemId } (the deconstructable built entities), seeded blank on a
- * level's first use and saved with it.
+ * Scene contract: level, playerId, ui, window, mouseWorld. The level's build record under KEY —
+ * the player-built tiles and entities by "gx,gy", the deconstructable set — is seeded blank on
+ * first use and saved with the level.
  */
 globalThis.BuildMode = {
-  KEY: "build", // its token on the level's own entity — a data key (a save holds it)
+  KEY: "build", // a data key: a save holds it
 
-  /** The level's build record — { built, builtEnts } — seeded blank. */
   of(level) {
     return level.entities.of(level.self, BuildMode.KEY, () => ({ built: {}, builtEnts: {} }));
   },
 
-  // DEV free build (F6): no settlement gate, no wood, no refund — the authoring mode, where a
-  // structure is built to be captured (Blueprint), not paid for. Never reachable in release.
-  // Module-scope, not on the panel: a session-wide authoring toggle a HUD rebuild must not clear.
+  // DEV free build: no gate, no cost, no refund — structures built to be captured, not paid for.
+  // Module-scope, not on the panel: a session-wide toggle a HUD rebuild must not clear.
   free: false,
-  // the brush shapes, in the shape row's order; `dev` rows only show in DEV_MODE
+  // in the shape row's order
   SHAPES: [
     { id: "cell", labelKey: "BUILD_SHAPE_CELL" },
     { id: "rect", labelKey: "BUILD_SHAPE_RECT" },
@@ -52,24 +35,24 @@ globalThis.BuildMode = {
     { id: "capture", labelKey: "BUILD_SHAPE_CAPTURE", dev: true },
   ],
   RESOURCE: "wood",
-  // the player's faction: a map builds when its Settlement's owner is it or an ally (Game policy)
+  // a map builds when its Settlement's owner is this faction or an ally
   FACTION: "player",
 
-  /** build the HUD and return the panel handle. call once from create(). */
+  /** Build the HUD and return the panel handle; once per scene. */
   build(scene) {
     const panel = {
-      el: null, // the HUD root
-      bar: null, // the catalog bar (its flyout closes when the mode leaves)
-      armed: false, // the B toggle
-      active: false, // armed AND the build context owns input — see the header
-      item: contentBuild.CATEGORIES[0].items[0], // selected catalog item (default Wall)
-      shape: "cell", // the brush footprint (SHAPES id)
+      el: null,
+      bar: null,
+      armed: false,
+      active: false, // see the header
+      item: contentBuild.CATEGORIES[0].items[0],
+      shape: "cell", // SHAPES id
       drag: undefined, // { x, y, remove } — the anchor cell while a shape drag is held
-      cell: undefined, // last hovered cell, for drawWorld
+      cell: undefined, // last hovered cell
     };
 
-    // bottom-center HUD: status line over the build bar. Placement is on the world grid through
-    // the build actions, which Input mutes while the bar holds the pointer (see the header).
+    // Placement reads the build actions, which Input mutes while the HUD holds the pointer, so a
+    // click on the palette never reaches the grid.
     const wrap = new UIElement({
       positionType: "absolute",
       left: 0,
@@ -83,9 +66,7 @@ globalThis.BuildMode = {
       alignItems: "center",
     });
 
-    // shape row: one button per brush footprint (the DEV capture tool among them in DEV_MODE).
-    // Topmost — the catbar's open flyout reaches up over the row right above the bar, which
-    // stays the status line as before.
+    // Topmost: the bar's open flyout covers the row right above it, so the status line sits there.
     const shapeRow = new UIElement({
       width: "100%",
       height: 30,
@@ -118,7 +99,6 @@ globalThis.BuildMode = {
     );
     col.insertChild(statusRow);
 
-    // map the catalog to facetCatBar's shape; each item's onSelect sets the active brush.
     const cats = [];
     for (let c = 0; c < contentBuild.CATEGORIES.length; c++) {
       const cat = contentBuild.CATEGORIES[c];
@@ -159,19 +139,15 @@ globalThis.BuildMode = {
     return BuildMode.free ? I18n.text("BUILD_FREE") + "   ·   " + text : text;
   },
 
-  /** a SHAPES row by id */
+  /** Falls back to the first shape. */
   _shape(id) {
     for (let i = 0; i < BuildMode.SHAPES.length; i++)
       if (BuildMode.SHAPES[i].id === id) return BuildMode.SHAPES[i];
     return BuildMode.SHAPES[0];
   },
 
-  /**
-   * per-frame: toggle on B, then (while active) place on buildPlace / deconstruct on buildRemove
-   * at the hovered cell. call from step() after Interactable.update, after the sim.
-   */
+  /** Per frame, after the sim. */
   update(scene, panel) {
-    // DEV: F6 toggles free build (no settlement gate, no wood)
     if (DEV_MODE && Input.keyPressed(vk_f6)) {
       BuildMode.free = !BuildMode.free;
       Toast.push(
@@ -179,21 +155,18 @@ globalThis.BuildMode = {
         { type: "info" },
       );
     }
-    // B toggles build mode, but it only OPENS on an allied map (the level's Settlement owned by
-    // the player's faction or an ally) — "you can only build in an allied settlement" — or under
-    // free build. Closing is free.
+    // opens only on an allied map or under free build; closing is free
     if (Input.get("build").pressed()) {
       if (panel.armed) panel.armed = false;
       else if (BuildMode.free || BuildMode._allied(scene)) panel.armed = true;
       else Toast.push(I18n.text("BUILD_NEED_SETTLEMENT"), { type: "info" });
     }
-    // active only when toggled on AND the build context owns input — an open window makes the
-    // context "window" (priority over build), so building pauses and window clicks can't place/remove.
+    // a higher-priority input context (an open window) pauses building
     const on = panel.armed && InputContext.is("build");
     panel.active = on;
     panel.el.enabled = on;
     if (!on) {
-      panel.bar.catbar.close(); // collapse any open flyout when leaving build mode
+      panel.bar.catbar.close();
       panel.drag = undefined;
       return;
     }
@@ -201,7 +174,7 @@ globalThis.BuildMode = {
     const grid = scene.level.grid;
     const drag = panel.drag;
 
-    // scene-latched world cursor (pitch-aware) — mouse_x/mouse_y are wrong under the pitched camera
+    // mouse_x/mouse_y are wrong under the pitched camera
     const cell = grid.worldToGrid(scene.mouseWorld.x, scene.mouseWorld.y);
     panel.cell = cell;
     if (
@@ -211,13 +184,11 @@ globalThis.BuildMode = {
       cell.y >= grid.rows
     ) {
       if (drag !== undefined && !BuildMode._dragHeld(drag))
-        panel.drag = undefined; // let go off the grid: cancelled
+        panel.drag = undefined; // released off the grid: cancelled
       return;
     }
 
     if (drag === undefined) {
-      // a press: a single-cell brush acts at once, a shape anchors a drag. A press the UI took
-      // (the bar, its flyout, any hovered widget) reads false here — Input muted it.
       if (Input.get("buildPlace").pressed()) {
         if (BuildMode._single(panel))
           BuildMode._tryPlace(scene, panel, cell.x, cell.y);
@@ -228,9 +199,8 @@ globalThis.BuildMode = {
       }
       return;
     }
-    if (BuildMode._dragHeld(drag)) return; // still dragging — drawWorld previews the shape
+    if (BuildMode._dragHeld(drag)) return;
 
-    // the release: act on every cell the shape spans between the anchor and this cell
     panel.drag = undefined;
     const shape = panel.shape;
     const cells = BuildMode._shapeCells(shape, drag.x, drag.y, cell.x, cell.y);
@@ -240,17 +210,14 @@ globalThis.BuildMode = {
     else BuildMode._placeCells(scene, panel, cells);
   },
 
-  /** is the button a drag started on still held — the grid's press, so it reads true over the HUD too */
+  /** The grid owns its press, so this reads true over the HUD too. */
   _dragHeld(drag) {
     return drag.remove
       ? Input.get("buildRemove").down()
       : Input.get("buildPlace").down();
   },
 
-  /**
-   * does the brush act on one cell at once: the cell shape, or an entity item under any brush
-   * but capture (an entity never tiles a shape)
-   */
+  /** An entity item never tiles a shape. */
   _single(panel) {
     const shape = panel.shape;
     if (shape === "cell") return true;
@@ -258,10 +225,7 @@ globalThis.BuildMode = {
     return panel.item.kind === "entity";
   },
 
-  /**
-   * The cells a shape spans between two corner cells (inclusive), as [gx, gy] pairs: a filled
-   * rect, its `frame` (the perimeter — a wall run around a room), or a Bresenham `line`.
-   */
+  /** The [gx, gy] cells a shape spans between two corner cells, inclusive. */
   _shapeCells(shape, x0, y0, x1, y1) {
     const out = [];
     if (shape === "line") {
@@ -304,13 +268,12 @@ globalThis.BuildMode = {
   },
 
   /**
-   * Place the selected TILE item over `cells` as ONE build: only the placeable cells count, the
-   * whole wood cost is paid up front (nothing partial — half a wall is worse than none), and each
-   * solid layer touched is remeshed once at the end.
+   * One build over the placeable cells: the whole cost is paid up front or nothing is placed —
+   * half a wall is worse than none.
    */
   _placeCells(scene, panel, cells) {
     const item = panel.item;
-    if (item.kind !== "tile") return; // an entity item never reaches here (_single)
+    if (item.kind !== "tile") return;
     const todo = [];
     for (let i = 0; i < cells.length; i++)
       if (BuildMode._cellFree(scene, panel, cells[i][0], cells[i][1]))
@@ -337,7 +300,6 @@ globalThis.BuildMode = {
     Log.info(`built ${todo.length}x ${item.id} (${panel.shape})`);
   },
 
-  /** deconstruct over `cells` as one batch — each solid layer touched remeshed once */
   _removeCells(scene, panel, cells) {
     const remesh = {};
     let n = 0;
@@ -347,7 +309,7 @@ globalThis.BuildMode = {
     if (n > 0) Log.info(`removed ${n} (${panel.shape})`);
   },
 
-  /** remesh the colliders of every solid layer keyed true in `remesh` — a batch's one remesh */
+  /** Remesh every solid layer keyed in `remesh`: a batch's one remesh. */
   remeshLayers(scene, remesh) {
     const keys = Object.keys(remesh);
     const rt = ColonyMap.runtime(scene.level);
@@ -361,10 +323,7 @@ globalThis.BuildMode = {
       );
   },
 
-  /**
-   * DEV: capture the dragged rect as a prefab body (Blueprint.capture) and write it to the save
-   * dir as the pretty literal contentPrefabs takes — the authoring exit of the scratch site.
-   */
+  /** DEV: write the dragged rect to the save dir as a prefab literal. */
   _capture(scene, x0, y0, x1, y1) {
     const ax = Math.min(x0, x1);
     const ay = Math.min(y0, y1);
@@ -386,7 +345,6 @@ globalThis.BuildMode = {
     );
   },
 
-  /** is the level an allied settlement — owned by the player's faction or an ally? gates build mode. */
   _allied(scene) {
     const owner = Settlement.owner(scene.level);
     return (
@@ -394,12 +352,7 @@ globalThis.BuildMode = {
     );
   },
 
-  /**
-   * can the selected item stand at (gx, gy) at all: an allied map (or free build), the cell empty
-   * across every buildable tile layer and the built entities, and a SOLID item (a wall / any
-   * entity — not a floor) not on the player's own cell. The per-cell test a shape runs; wood is
-   * the batch's business.
-   */
+  /** Can the selected item stand at (gx, gy), cost aside — the per-cell test a shape runs. */
   _cellFree(scene, panel, gx, gy) {
     const grid = scene.level.grid;
     if (!BuildMode.free && !BuildMode._allied(scene)) return false;
@@ -410,7 +363,7 @@ globalThis.BuildMode = {
     if (BuildMode.of(scene.level).builtEnts[gx + "," + gy] !== undefined)
       return false;
     const item = panel.item;
-    // a crop roots only on its species' ground, and never over a standing body or prop
+    // a crop only where its species can root
     if (item.species !== undefined) {
       if (
         !Flora.canRoot(
@@ -422,6 +375,7 @@ globalThis.BuildMode = {
       )
         return false;
     }
+    // a solid item never lands on the player's own cell
     const solid = !(
       item.kind === "tile" && contentTiles.get(item.layer).solid !== true
     );
@@ -433,7 +387,7 @@ globalThis.BuildMode = {
     return true;
   },
 
-  /** _cellFree plus the wood for ONE placement — shared by the single place + cursor highlight */
+  /** _cellFree plus the cost of one placement. */
   _canBuild(scene, panel, gx, gy) {
     if (!BuildMode._cellFree(scene, panel, gx, gy)) return false;
     if (BuildMode.free) return true;
@@ -448,16 +402,14 @@ globalThis.BuildMode = {
       const inv = scene.level.entities.get(scene.playerId, Inventory);
       Bag.remove(inv, BuildMode.RESOURCE, item.cost);
     }
-    BuildMode.applyItem(scene, gx, gy, item); // immediate remesh (deferRemesh unset)
+    BuildMode.applyItem(scene, gx, gy, item);
     scene.window.dirty = true;
     Log.info(`built ${item.id} at ${gx},${gy}`);
   },
 
   /**
-   * The spawn descriptor for an entity item at a cell — the catalog's `spawn` fields over the build
-   * defaults (a "prop" preset at the cell, the item's label as the entity's name); an `orient` item
-   * (the door) turns vertical between walls above and below, the N-S run it closes. Blueprint.capture
-   * reads the same descriptor at the live cell, so a captured plan carries what a placement would.
+   * The spawn descriptor for an entity item at a cell: the item's `spawn` fields over the build
+   * defaults. An `orient` item turns vertical between walls above and below, the run it closes.
    */
   descriptor(scene, item, gx, gy) {
     const s = { preset: "prop", gx, gy, label: I18n.text(item.labelKey) };
@@ -472,23 +424,19 @@ globalThis.BuildMode = {
     return s;
   },
 
-  // Place a resolved catalog `item` at a cell — the SHARED placement core of live LMB placement
-  // and Blueprint.stamp. It does NOT gate on cost/validity (the caller decides) or
-  // touch inventory. Options:
-  //   opts.snapshot    restore an EXACT entity from an Row (chest contents, turret
-  //                    damage) instead of a fresh descriptor; Position is overridden to this cell.
-  //   opts.deferRemesh skip the solid-collider remesh (a batch stamp remeshes once at the end).
-  // Updates the level's build record (built / builtEnts). Returns the entity id (entity) or
-  // whether a solid tile was placed (so a deferred caller knows that layer's remesh is pending).
+  // The placement core: no cost or validity gate, no inventory — the caller decides. Records the
+  // cell in the build record.
+  //   opts.snapshot    restore this exact Row instead of a fresh descriptor, moved to the cell.
+  //   opts.deferRemesh skip the solid-collider remesh; the caller remeshes once for a batch.
+  // Returns the entity id for an entity, else whether a solid tile was placed (a deferred
+  // caller's pending remesh).
   applyItem(scene, gx, gy, item, opts = {}) {
     const level = scene.level;
     const grid = level.grid;
     const key = gx + "," + gy;
     const rec = BuildMode.of(level);
     if (item.kind === "tile") {
-      // resolve layer/type by the item's LAYERS key; `mat` picks a material TileType (per-cell
-      // wall materials). A solid layer (wall/fence) has its own colliders to remesh (the map
-      // record's `colliders`).
+      // `mat` picks a per-cell material type
       const rt = ColonyMap.runtime(level);
       const layer = rt[item.layer + "Layer"];
       const type =
@@ -496,10 +444,10 @@ globalThis.BuildMode = {
           ? rt[item.layer + "Types"][item.mat]
           : rt[item.layer + "Type"];
       TileEdit.set(layer, gx, gy, type);
-      Grassland.cut(level, gx, gy); // built ground kills the grass under it
+      Grassland.cut(level, gx, gy);
       const solid = contentTiles.get(item.layer).solid === true;
-      // nested, not `solid && …`: the short-circuit corrupts its left operand (docs/GMRT.md
-      // #15549) and the return below would read false for a deferred solid tile
+      // BUG: nested, not `solid && …` — the short-circuit corrupts its left operand, read by
+      // the return below (docs/GMRT.md #15549)
       if (opts.deferRemesh !== true) {
         if (solid)
           TileEdit.remesh(
@@ -513,8 +461,7 @@ globalThis.BuildMode = {
       rec.built[key] = item.id;
       return solid;
     }
-    // entity: an exact snapshot restore (state preserved) or a fresh descriptor (a new instance);
-    // a built prop is identical to a file/streamed one and persists via Row (see ColonyMap).
+    // a built entity is an ordinary one: it persists like any other
     let id;
     if (opts.snapshot !== undefined) {
       const wp = grid.gridToWorld(gx, gy);
@@ -529,14 +476,13 @@ globalThis.BuildMode = {
       );
     }
     rec.builtEnts[key] = { ent: id, itemId: item.id };
-    Grassland.cut(level, gx, gy); // a built prop's pad kills the grass under it too
+    Grassland.cut(level, gx, gy);
     return id;
   },
 
   /**
-   * Deconstruct whatever the player built at (gx, gy) — a built entity first, else a built tile.
-   * Returns whether anything was removed. With `remesh` (a solid-layer-key → true map) given, a
-   * solid tile's collider remesh is recorded there instead of run at once (a batch's one remesh).
+   * Deconstruct what the player built at (gx, gy); returns whether anything was removed. Given
+   * `remesh`, a solid tile's remesh is recorded there for the batch instead of run at once.
    */
   _tryRemove(scene, gx, gy, remesh) {
     const key = gx + "," + gy;
@@ -544,17 +490,16 @@ globalThis.BuildMode = {
     const grid = level.grid;
     const rec = BuildMode.of(level);
     const rt = ColonyMap.runtime(level);
-    // built entities sit on top of tiles — remove one first if present.
+    // an entity sits on top of a tile, so it goes first
     const ent = rec.builtEnts[key];
     if (ent !== undefined) {
-      // a slotted module isn't in any inventory, so return it to the bag or deconstruct deletes it.
+      // a slotted module is in no inventory: return it or deconstructing deletes it
       if (scene.level.entities.isValid(ent.ent)) {
         const st = scene.level.entities.get(ent.ent, Interaction);
         if (st !== undefined && st.module !== undefined && st.module !== "") {
           Bag.add(scene.level.entities.require(scene.playerId, Inventory), st.module, 1);
         }
-        // spill the entity's Inventory as drops first, else entities.remove silently deletes the
-        // contents. no-op without an Inventory; preserves instance uid/mods on the drop.
+        // spill the contents first, else removing the entity deletes them
         ColonyCombat.spillLoot(scene, ent.ent);
         scene.level.entities.remove(ent.ent);
       }
@@ -567,7 +512,7 @@ globalThis.BuildMode = {
     const tileId = rec.built[key];
     if (tileId === undefined) return false; // only player-built cells are deconstructable
     const item = contentBuild.item(tileId);
-    const lkey = item !== undefined ? item.layer : "floor"; // stale id → floor (non-solid, safe)
+    const lkey = item !== undefined ? item.layer : "floor"; // a stale id: non-solid, safe
     TileEdit.clear(rt[lkey + "Layer"], gx, gy);
     if (contentTiles.get(lkey).solid === true) {
       if (remesh !== undefined) remesh[lkey] = true;
@@ -587,10 +532,7 @@ globalThis.BuildMode = {
     return true;
   },
 
-  /**
-   * RenderTileMap passes are VBO-cached, so a tile edit must markDirty the layer's pass to render
-   * (autotiling rebuilds the whole VBO, restyling neighbors). guarded: absent if its sprite failed sprite_exists.
-   */
+  /** A layer's pass is cached, so an edit shows only once it is marked; a pass may be absent. */
   _markTileDirty(scene, layerKey) {
     const pass = ColonyMap.runtime(scene.level).tilePasses[layerKey];
     if (pass !== undefined) pass.markDirty();
@@ -604,9 +546,8 @@ globalThis.BuildMode = {
   },
 
   /**
-   * sweep built entities destroyed in combat (a turret brought to 0 HP) out of the deconstruct
-   * tracking, so the cell frees + persistence won't snapshot a dead handle. NO wood refund (destroyed,
-   * not deconstructed). called every frame from step. keys via Object.keys + index loop (no Map iteration — GMRT-safe).
+   * Per frame: drop built entities destroyed in combat from the build record, freeing the cell
+   * and keeping a dead handle out of the save. No refund.
    */
   reapDestroyed(scene) {
     const entities = scene.level.entities;
@@ -616,7 +557,7 @@ globalThis.BuildMode = {
       const k = keys[i];
       const e = builtEnts[k];
       if (!entities.isValid(e.ent)) {
-        delete builtEnts[k]; // already gone (removed elsewhere)
+        delete builtEnts[k];
         continue;
       }
       const hp = entities.get(e.ent, Health);
@@ -632,10 +573,8 @@ globalThis.BuildMode = {
   },
 
   /**
-   * Found the player's settlement at a Survey Post: the whole level, owned by the player's faction,
-   * then *spend* the post (detach its Interaction). The founded settlement is the stored state
-   * (the level's own record, pooled and saved with it), so a post on an already-settled
-   * level is still spent — no re-founding.
+   * Found the player's settlement over the level at a survey post, then spend the post — also on
+   * an already-settled level, so it never re-founds.
    */
   claim(scene, postId) {
     const s = Settlement.found(scene.level, {
@@ -646,14 +585,10 @@ globalThis.BuildMode = {
       Toast.push(I18n.text("SETTLEMENT_FOUNDED"), { type: "success" });
       Log.info(`founded settlement over ${scene.level.id}`);
     }
-    scene.level.entities.detach(postId, Interaction); // spent — stop prompting / block re-founding
+    scene.level.entities.detach(postId, Interaction);
   },
 
-  /**
-   * world-space cursor highlight: green = placeable, yellow = deconstructable, red = invalid;
-   * while a shape drag is held, the cells it would act on instead (yellow = remove, cyan =
-   * capture, green = place). call from scene.draw().
-   */
+  /** World-space highlight of the hovered cell, or of the cells a held drag would act on. */
   drawWorld(scene, panel) {
     if (!panel.active) return;
     const cell = panel.cell;
@@ -664,7 +599,7 @@ globalThis.BuildMode = {
 
     const drag = panel.drag;
     if (drag !== undefined) {
-      // the hovered cell clamped onto the grid, so a drag past the edge previews to the edge
+      // clamped, so a drag past the edge previews to the edge
       const cx = Math.min(Math.max(cell.x, 0), grid.cols - 1);
       const cy = Math.min(Math.max(cell.y, 0), grid.rows - 1);
       const shape = panel.shape;

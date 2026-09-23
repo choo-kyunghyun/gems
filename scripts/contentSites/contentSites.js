@@ -1,25 +1,10 @@
 /**
- * The colony's world map sites.
- *
- * Pure data plus its by-id lookup, no registration step (like contentTiles). A site:
- *   id          the map id it pools under (World) — a save stores it, so renaming one is a migration
- *   name        i18n key; `desc` the i18n key of the world map's one-line brief
- *   pos         { x, y } in [0,1] chart space — the world map's node placement AND the travel-time
- *               metric (ColonyTravel.travelHours)
- *   danger      0..3 threat tier, the world map's readout; 0 is a SAFE site — the generator stamps
- *               no raider on it (ColonyLevel._generate's spawn filter; the biome tunes the rest)
- *   biome       contentBiomes.BIOMES profile id — the generator's stage tuning, and the world map's
- *               terrain readout
- *   cols/rows   the level's size in cells; `seed` the generator seed (the same seed lays the same
- *               level on every first build)
- *   anchor      the Prefab id GenAnchor fixes on dry ground near the centre — the site's one
- *               hand-built structure (contentPrefabs), carrying its beacon and its `entry` marker
- *   clear?      cells kept procedural-free around the anchor (default ColonyLevel's)
- *   settlement? the level's settlement record (meta.settlement — Settlement.found on arrival):
- *               { name (i18n key), faction, comp (SettlementComponent ids), color }
- *   dev?        true keeps the site off the chart outside DEV_MODE (WorldMapUI) — an authoring
- *               site, not a place in the world
- * The first entry is the HOME site (ColonyLevel.START): the chart's routes fan out from it.
+ * The colony's world map sites: pure data plus its by-id lookup. A site's `id` is the map id it
+ * pools under and a save stores it, so renaming one is a migration. `pos` is in [0,1] chart
+ * space and is also the travel-time metric; `danger` 0 is a safe site that spawns no raider;
+ * the same `seed` lays the same level on every first build; `anchor` is the site's one
+ * hand-built structure, carrying its beacon and entry. A `dev` site is an authoring canvas kept
+ * off the chart outside dev mode. The first entry is the home site the routes fan out from.
  */
 globalThis.contentSites = {
   SITES: [
@@ -90,8 +75,7 @@ globalThis.contentSites = {
       seed: 4409,
       anchor: "landing_pad",
     },
-    // DEV: the scratch pad — a flat canvas to build prefabs on under free build (BuildMode F6)
-    // and capture them off (the build bar's capture shape)
+    // the scratch pad: a flat canvas to build and capture prefabs on
     {
       id: "scratch",
       name: "SITE_SCRATCH",
@@ -107,7 +91,7 @@ globalThis.contentSites = {
     },
   ],
 
-  /** the site def for a map id, or undefined */
+  /** The site def for a map id, or undefined. */
   get(id) {
     const all = contentSites.SITES;
     for (let i = 0; i < all.length; i++) if (all[i].id === id) return all[i];

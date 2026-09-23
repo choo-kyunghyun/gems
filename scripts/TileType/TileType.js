@@ -1,6 +1,6 @@
 /**
- * Tile material identity + nav cost. `pathCost: null` → Infinity (blocking); omit → 1.
- * Stored as the cell value of a TileLayer's Grid.
+ * Tile material identity and nav cost, stored as a tile layer's cell value. `pathCost: null`
+ * blocks; omitted it costs 1.
  */
 globalThis.TileType = class TileType {
   constructor(def) {

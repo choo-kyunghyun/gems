@@ -1,26 +1,15 @@
 /**
- * Plans over the level's NavGrid — its entry in the level's cache (`nav`), seeded on the first
- * read from the level's grid (a level with no grid has nowhere to plan and throws — a wiring
- * error). Every tick `update` keeps the grid current first: the tile costs through `sync`
- * (a no-op while the layers' edit count holds) and the kinematic solids through `stamp` — their
- * rects re-read from the store only when PuppetSystem's collider generation moved (a wall built
- * or torn down, a door's leaf flipped; a body spawn moves nothing), and then every held
- * `PathResponse` is dropped, since a new wall may cut one (the walkers re-request on their own
- * throttle). The generation is the last collider walk's, so a wall raised after this tick's
- * PuppetSystem.update lands one tick on.
+ * Serves path requests into path responses over the level's nav grid, seeded from the level's
+ * grid on first read (a level with no grid throws — a wiring error). Each tick first brings the
+ * grid current; when the solid kinematic colliders changed, every held response is dropped, since
+ * a new wall may cut one, and the walkers re-request on their own throttle.
  *
- * Serves `PathRequest`s into `PathResponse`s over `MotionPlanner`, at most `budget` per tick — the
- * rest stay pending for later ticks, taken round-robin by POSITION in the request walk from where
- * the last tick stopped (`nav.cursor`), so a sustained overload starves no requester: a served
- * request's slot is refilled from the walk's tail (Columns's order contract), so a pending
- * request only ever moves toward the front and the forward sweep reaches it within two passes. A
- * pending request its walker refreshes first (`PathFollow.target`'s throttle) is replaced in
- * place. A count bound is not a time bound: a map-crossing plan runs tens of milliseconds on its
- * own, so serving one is over a frame whatever the budget — testLevel `perf.plan` is what that
- * costs.
+ * At most `budget` requests are served per tick, round-robin by position in the request walk
+ * from where the last tick stopped, so a sustained overload starves no requester. A count bound
+ * is not a time bound: one map-crossing plan alone runs over a frame.
  */
 globalThis.PathfindingSystem = {
-  KEY: "nav", // its derived token on the level's own entity — the level's NavGrid
+  KEY: "nav", // the derived token on the level's own entity
   budget: 4, // requests served per tick; the overflow carries over
 
   /** The level's NavGrid, seeded from its grid on the first read. */
@@ -34,7 +23,7 @@ globalThis.PathfindingSystem = {
     });
   },
 
-  /** The solid kinematics' rects, fresh — NavGrid keeps the array by reference. */
+  /** The solid kinematics' rects, fresh, as the nav grid keeps the array by reference. */
   _statics(entities) {
     const statics = [];
     entities.forEach([Collision, Position, BBox], (id, col, pos, box) => {
@@ -65,7 +54,7 @@ globalThis.PathfindingSystem = {
     const cursor = nav.cursor;
     let served = 0;
     let skipped = 0; // pending below the cursor, left to the wrap pass
-    let pos = 0; // the walk's position
+    let pos = 0;
     let next = cursor;
     entities.forEach([PathRequest], (id, req) => {
       const at = pos++;
@@ -78,8 +67,9 @@ globalThis.PathfindingSystem = {
       served++;
       next = at + 1;
     });
-    // budget left ⇒ everything at/after the cursor was served; wrap to what was skipped (the
-    // served slots are compacted away by now, so the second walk's positions are the fresh ones)
+    // budget left means everything from the cursor on was served, so wrap to what was skipped;
+    // the served slots are compacted away by now, so the second walk's positions are fresh
+
     if (served < budget)
       if (skipped > 0) {
         pos = 0;

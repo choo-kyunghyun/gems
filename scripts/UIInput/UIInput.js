@@ -1,20 +1,16 @@
-// Single-line text field with caret+selection model, drag-select, key-repeat, clipboard, and
-// horizontal scroll-to-caret. Draws immediate-mode in onDraw.
-
-const _INPUT_REPEAT_DELAY = 0.4; // s before a held nav/delete key starts repeating
-const _INPUT_REPEAT_RATE = 0.04; // s between repeats once started
-const _INPUT_BLINK = 0.53; // s per caret blink half-cycle
-const _INPUT_DBLCLICK = 300; // ms window for double-click word-select
+const _INPUT_REPEAT_DELAY = 0.4; // s
+const _INPUT_REPEAT_RATE = 0.04; // s
+const _INPUT_BLINK = 0.53; // s per half-cycle
+const _INPUT_DBLCLICK = 300; // ms
 
 /**
- * GMRT: modifier flags (shift/ctrl) read live via Input.keyDown, never cached — a cached primitive
- * bool can be clobbered mid-call. Keys and the typed text come through Input (its latched
- * `typed` is this frame's keyboard_string), and the field claims the keyboard each frame it is
- * focused, so no later reader acts on what it typed.
+ * Single-line text field with a caret/selection model, key repeat and clipboard. The focused
+ * field claims the keyboard each frame, so no later reader acts on what it typed.
+ * BUG: a cached primitive bool can be clobbered mid-call — read modifier state live.
  * @implements {UIComponent}
  */
 globalThis.UIInput = class UIInput {
-  // UINav reads this to suspend menu nav while typing (arrows/Enter go to caret).
+  // the focused field; menu navigation suspends while one is set.
   static active = null;
 
   constructor(input = {}) {
@@ -31,30 +27,26 @@ globalThis.UIInput = class UIInput {
     this.colorSelection = input.colorSelection ?? Color.rgb(74, 158, 255);
     this.alphaSelection = input.alphaSelection ?? 0.35;
     this.font = input.font ?? -1;
-    this.padX = input.padX ?? 6; // horizontal inset of the text from the field edge
+    this.padX = input.padX ?? 6;
 
     this.onConfirm = input.onConfirm ?? noop; // Enter
     this.onCancel = input.onCancel ?? noop; // Escape
     this.onChange = input.onChange ?? noop;
 
     this._focused = false;
-    this._cursor = 0; // caret index [0, value.length]
-    this._anchor = 0; // selection anchor; selection is [low, high] of the two
-    this._scroll = 0; // px the text is shifted left so the caret stays visible
+    this._cursor = 0;
+    this._anchor = 0; // the selection spans anchor..cursor in either order
+    this._scroll = 0; // px
     this._dragging = false;
     this._blinkTimer = 0;
     this._cursorVis = true;
 
-    this._repKey = -1; // key currently auto-repeating
+    this._repKey = -1;
     this._repTime = 0;
     this._lastClickTime = -Infinity;
     this._lastClickX = 0;
   }
 
-  /**
-   * Take UIInput.active: while focused the field claims the keyboard every frame (onUpdate), so
-   * gameplay keys and UINav go quiet.
-   */
   focus() {
     if (this._focused) return this;
     this._focused = true;
@@ -63,9 +55,6 @@ globalThis.UIInput = class UIInput {
     return this;
   }
 
-  /**
-   * Release UIInput.active (the per-frame keyboard claim lapses with it).
-   */
   blur() {
     if (!this._focused) return this;
     this._focused = false;
@@ -74,9 +63,6 @@ globalThis.UIInput = class UIInput {
     return this;
   }
 
-  /**
-   * UINav: confirm focuses the field; UINav suspends while active so caret keeps the keys.
-   */
   navActivate(element) {
     if (!this.readOnly) this.focus();
   }
@@ -92,8 +78,6 @@ globalThis.UIInput = class UIInput {
   clear() {
     return this.setValue("");
   }
-
-  // selection helpers
 
   _selLow() {
     return Math.min(this._anchor, this._cursor);
@@ -142,10 +126,8 @@ globalThis.UIInput = class UIInput {
     return i;
   }
 
-  // edits
-
   _accept(ch) {
-    if (ch.charCodeAt(0) < 32) return false; // reject control chars
+    if (ch.charCodeAt(0) < 32) return false;
     if (this.filter === null) return true;
     if (typeof this.filter === "function") return this.filter(ch);
     if (this.filter instanceof RegExp) return this.filter.test(ch);
@@ -189,18 +171,14 @@ globalThis.UIInput = class UIInput {
 
   _paste() {
     if (this.readOnly) return;
-    // skip clipboard_has_text() — it falsely reports false on GMRT 0.19; "" means empty.
-    // no regex scrub: _insert/_accept drops control chars, and regex .replace() faults on GMRT.
+    // BUG: clipboard_has_text() falsely reports false, so "" means empty; and regex .replace()
+    // faults, so control chars are dropped per char on insert.
     const text = clipboard_get_text();
     if (text === "" || text === undefined) return;
     this._insert(text);
   }
 
-  // input
-
-  /**
-   * edge-then-interval repeat for one key at a time; true on press and each interval.
-   */
+  /** One key at a time; true on press and on each repeat. */
   _repeat(key) {
     if (Input.keyPressed(key)) {
       this._repKey = key;
@@ -229,9 +207,7 @@ globalThis.UIInput = class UIInput {
     };
   }
 
-  /**
-   * nearest caret index to gui x; assumes field font is active draw font.
-   */
+  /** Assumes the field font is the active draw font. */
   _indexAtX(pos, mx) {
     const tr = this._textRegion(pos);
     const disp = this._display();
@@ -257,8 +233,7 @@ globalThis.UIInput = class UIInput {
     const my = Input.pointer.y;
     const over = !block && element.positionMeeting(mx, my);
 
-    // set field font so string_width calls below match render width; resolve an I18n key
-    // here too — the measure font must match the draw font after a locale reload.
+    // the measure font must match the draw font, including after a locale reload.
     const prevFont = draw_get_font();
     const fnt = resolveUIFont(this.font);
     if (fnt !== -1) draw_set_font(fnt);
@@ -291,8 +266,7 @@ globalThis.UIInput = class UIInput {
 
     if (this._focused) {
       this._processKeyboard();
-      // the field holds the keyboard this frame: the keys it read (and the Enter/Esc that may
-      // just have blurred it) reach no later reader — UINav, the enclosing modal, gameplay
+      // including the Enter/Esc that may just have blurred it.
       Input.claimKeys();
       this._blinkTimer += Time.raw;
       if (this._blinkTimer >= _INPUT_BLINK) {
@@ -309,7 +283,7 @@ globalThis.UIInput = class UIInput {
     const len = this.value.length;
     const ctrl = Input.keyDown(vk_control);
 
-    // clipboard + select-all: return before the insert below so the key doesn't also type.
+    // shortcuts return early so the key doesn't also type.
     if (ctrl) {
       if (Input.keyPressed(ord("A"))) {
         this._anchor = 0;
@@ -330,7 +304,6 @@ globalThis.UIInput = class UIInput {
       }
     }
 
-    // caret navigation (ctrl = word jump, shift = extend selection).
     if (this._repeat(vk_left)) {
       if (Input.keyDown(vk_shift))
         this._setCursor(
@@ -368,7 +341,6 @@ globalThis.UIInput = class UIInput {
       return;
     }
 
-    // deletion: selection first, else one char / one word (ctrl).
     if (!this.readOnly && this._repeat(vk_backspace)) {
       if (this._deleteSelection()) this.onChange(this.value);
       else if (this._cursor > 0) {
@@ -398,12 +370,10 @@ globalThis.UIInput = class UIInput {
     if (Input.keyPressed(vk_escape)) {
       this.onCancel(this.value);
       this.blur();
-      // a blur is not a dismiss: the keyboard claim (onUpdate) keeps this Esc from the enclosing
-      // UIModal and the Game object's gameplay Esc, which read after this
+      // a blur is not a dismiss: the keyboard claim keeps this Esc from later readers.
       return;
     }
 
-    // plain text entry (not while ctrl is held — those are shortcuts).
     if (ctrl) {
       return;
     }
@@ -411,11 +381,7 @@ globalThis.UIInput = class UIInput {
     if (typed !== "") this._insert(typed);
   }
 
-  // draw
-
-  /**
-   * shift _scroll so caret stays visible.
-   */
+  /** Keeps the caret visible. */
   _clampScroll(tr, disp) {
     const caret = string_width(disp.slice(0, this._cursor));
     if (caret - this._scroll < 0) this._scroll = caret;
@@ -444,10 +410,9 @@ globalThis.UIInput = class UIInput {
     } else {
       this._clampScroll(tr, disp);
       const halfH = string_height("|") * 0.5;
-      const winL = this._scroll; // left edge of the visible window, text-pixel space
+      const winL = this._scroll; // text-pixel space
 
-      // clip by substring/offset rather than gpu_set_scissor — scissor leaked onto all
-      // later UI draws on GMRT 0.19 (whole level invisible). no global render state touched.
+      // clipped by substring rather than scissor, touching no global render state.
       let start = 0;
       while (start < disp.length && string_width(disp.slice(0, start)) < winL)
         start++;
@@ -459,7 +424,6 @@ globalThis.UIInput = class UIInput {
         end++;
       const startX = tr.x + string_width(disp.slice(0, start)) - winL;
 
-      // selection band, clamped to field width.
       if (this._focused && this._hasSel()) {
         const sx = clamp(
           string_width(disp.slice(0, this._selLow())) - winL,
@@ -488,7 +452,6 @@ globalThis.UIInput = class UIInput {
       draw_set_color(this.color);
       draw_text(startX, tr.cy, disp.slice(start, end));
 
-      // caret, only when inside the visible region.
       if (this._focused && this._cursorVis) {
         const cx = string_width(disp.slice(0, this._cursor)) - winL;
         if (cx >= 0 && cx <= tr.w) {
@@ -509,8 +472,7 @@ globalThis.UIInput = class UIInput {
 
   onDestroy(element) {
     this._focused = false;
-    // must clear UIInput.active on destroy — a focused field torn down mid-typing
-    // (level change / trip) would strand the capture and keep gameplay + UINav muted forever.
+    // a field torn down mid-typing would otherwise keep the keyboard muted forever.
     if (UIInput.active === this) UIInput.active = null;
   }
 };

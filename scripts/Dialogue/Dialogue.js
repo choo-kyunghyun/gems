@@ -1,10 +1,10 @@
 /**
- * Advance with Enter/Space/gamepad-A or click (first snaps the page to revealed, next pages on; past
- * the last closes + fires onComplete). isOpen() is a METHOD not a getter — house style.
+ * The typewriter dialogue box. An advance press first reveals the rest of the page, the next
+ * moves on; past the last page it closes and fires onComplete. What advances is consumed.
  */
 globalThis.Dialogue = {
   speedDefault: 45, // chars/sec
-  lines: 3, // visible text rows (fixed box height; design pages to fit)
+  lines: 3, // fixed box height in rows; pages are written to fit
 
   marginX: 24,
   marginBottom: 24,
@@ -25,18 +25,16 @@ globalThis.Dialogue = {
   _open: false,
   _pages: [], // { speaker, text }
   _page: 0,
-  _chars: 0, // revealed char count (fractional; floored to draw)
-  speed: 45, // literal, not Dialogue.speedDefault — an initializer can't
-  // self-reference (the global binds after the literal). keep in sync with speedDefault.
+  _chars: 0, // revealed, fractional
+  speed: 45, // keep in sync with speedDefault — an initializer can't self-reference
   _onComplete: null,
 
-  // wrap cache — recomputed only when page or inner width changes
+  // wrap cache, keyed by page and inner width
   _lines: [],
   _total: 0,
   _wrapPage: -1,
   _wrapW: -1,
 
-  /** METHOD not a getter — house style, not a runtime dodge. */
   isOpen() {
     return Dialogue._open;
   },
@@ -58,25 +56,21 @@ globalThis.Dialogue = {
     Dialogue._open = list.length > 0;
   },
 
-  /** force-close, no onComplete (scene swap / abort). */
+  /** Force-close without onComplete. */
   clear() {
     Dialogue._open = false;
     Dialogue._pages = [];
   },
 
-  /** typewriter + advance input (Step_0). */
   update() {
     if (!Dialogue._open) return;
     const g = Dialogue._geom();
     Dialogue._ensureWrap(g);
 
-    // typewriter advance (Time.raw, the clock split)
     Dialogue._chars += Dialogue.speed * Time.raw;
     if (Dialogue._chars > Dialogue._total) Dialogue._chars = Dialogue._total;
 
-    // keyboard/gamepad advance anywhere; LMB only inside the box (so a click on background UI
-    // doesn't page too). Read through the Input queries, and what advances is consumed, so the
-    // scene after this never acts on the same press (the distribution contract — Input).
+    // a click advances only inside the box, so a click on background UI doesn't page too
     let advance = false;
     if (Input.keyPressed(vk_enter)) {
       Input.consumeKey(vk_enter);
@@ -102,7 +96,6 @@ globalThis.Dialogue = {
   },
 
   _advance() {
-    // first press reveals the rest of the page; the next moves on
     if (Dialogue._chars < Dialogue._total) {
       Dialogue._chars = Dialogue._total;
       return;
@@ -115,11 +108,10 @@ globalThis.Dialogue = {
       if (done !== null) done();
     } else {
       Dialogue._chars = 0;
-      Dialogue._wrapPage = -1; // re-wrap the new page
+      Dialogue._wrapPage = -1;
     }
   },
 
-  /** draw the box (Draw_75, after Toast). */
   draw() {
     if (!Dialogue._open) return;
     const g = Dialogue._geom();
@@ -134,7 +126,7 @@ globalThis.Dialogue = {
 
     drawUIPanel(g.x1, g.y1, g.x2, g.y2, Dialogue.rad, Dialogue);
 
-    // speaker name plate on the box's top-left edge
+    // speaker plate on the box's top-left edge
     const speaker = Dialogue._pages[Dialogue._page].speaker;
     if (speaker !== null && speaker !== "") {
       const tw = string_width(speaker);
@@ -177,7 +169,6 @@ globalThis.Dialogue = {
       );
     }
 
-    // revealed body text — count a substring across pre-wrapped lines
     const n = floor(Dialogue._chars);
     const lines = Dialogue._lines;
     let shown = 0;
@@ -192,7 +183,6 @@ globalThis.Dialogue = {
       shown += line.length;
     }
 
-    // blinking advance chevron once the page is fully revealed
     if (
       Dialogue._chars >= Dialogue._total &&
       floor(current_time / 450) % 2 === 0
@@ -213,7 +203,6 @@ globalThis.Dialogue = {
     draw_set_alpha(alpha0);
   },
 
-  /** box rect (centered, bottom-anchored) + inner text metrics */
   _geom() {
     const gw = display_get_gui_width();
     const gh = display_get_gui_height();
@@ -250,9 +239,7 @@ globalThis.Dialogue = {
     Dialogue._wrapW = g.innerW;
   },
 
-  /**
-   * greedy word-wrap to `maxW`, honoring "\n". fixed here so the typewriter has a stable layout.
-   */
+  /** Wrapped up front so the typewriter reveals into a stable layout. */
   _wrap(text, maxW) {
     const lines = [];
     const paras = text.split("\n");

@@ -1,5 +1,5 @@
-// standalone singleton (not UIComponent). set() each frame to show; draw() renders + clears.
-// visible only while something re-sets it each frame (see UITooltip's dwell timer).
+// Standalone tooltip singleton, visible only while something re-sets it each frame: draw()
+// renders and clears.
 globalThis.Tooltip = {
   text: "",
   textColor: Color.parse("#f1f4fa"),
@@ -25,7 +25,7 @@ globalThis.Tooltip = {
     Tooltip.text = "";
   },
 
-  /** draw at cursor then clear (Draw_75). */
+  /** Draws at the cursor, then clears. */
   draw() {
     if (Tooltip.text === "") return;
 

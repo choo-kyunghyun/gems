@@ -1,41 +1,31 @@
 /**
- * The growth and spread of a level's flora, over the Growth component and the contentFlora
- * species table. Runs on the ACTIVE map only, like every system, but in IN-GAME HOURS off one
- * whole-map record: the level's flora clock (KEY → { lastHour } on its own entity, the hour the level was
- * last grown to). A parked map's clock simply stops, so its first tick after a resume or a load
- * spans the whole absence and the forest grows while the squad is away — no off-focus
- * simulation, no scheduling. A span is cut at DAY boundaries, so a long absence still grows each
- * day under its own season. The verbs over a plant (species, attach, canRoot, plant, harvest,
- * stage, ripen) are Flora's.
+ * The growth and spread of a level's flora. Runs on the active map only, in in-game hours off one
+ * whole-map clock: the hour the level was last grown to, under KEY. A parked map's clock simply
+ * stops, so its first tick after a resume or a load spans the whole absence — the forest grows
+ * while the squad is away, with no off-focus simulation. A span is cut at day boundaries, so each
+ * day grows under its own season.
  *
- * Growth: progress advances by dh / growHours × the species' season weight (0 halts it, and on a
- * non-hardy crop is the frost that kills it); the stage is floor(progress × (stages−1)), drawn
- * through Flora.stage; a ripe plant (progress ≥ 1) carries its species' Interaction (Flora.ripen).
+ * Growth: progress advances by dh / growHours × the species' season weight; a weight of 0 halts
+ * it, and kills a non-hardy crop. A ripe plant (progress ≥ 1) becomes interactable.
  *
- * Spread: only WILD plants (the generator's and their seedlings) count and seed. Under the biome's
- * flora cap (its generation density × CAP) each hour rolls SPREAD_RATE seedings — a mature wild
- * plant seeding a cell within SPREAD_REACH, on its species' season weight — plus POOL_RATE rolls
- * of the biome pool at a random cell, so a species absent from a map can still arrive. A cell
- * takes root when Flora.canRoot says so. A level without a biome record (a pre-flora save) grows
- * but never spreads.
- *
- * Takes the level (its runtime — ColonyMap: terrainMats and the layer handles — its records and
- * its store). GMRT-safe: index loops, structural changes buffered past the scan
- * (Columns.forEach).
+ * Spread: only wild plants count and seed. Under the biome's flora cap each hour rolls seedings
+ * off mature wild plants plus rolls of the biome pool at a random cell, so a species absent from
+ * a map can still arrive. A level without a biome record grows but never spreads.
  */
 globalThis.FloraSystem = {
-  KEY: "flora", // its token on the level's own entity — a data key (a save holds it)
+  KEY: "flora", // a data key: a save holds it
   CAP: 1.5, // the flora cap, as a multiple of the biome's generation density
   SPREAD_RATE: 0.4, // expected seedings per in-game hour off mature wild plants (season weight 1)
   POOL_RATE: 0.05, // expected biome-pool rolls per in-game hour
-  SPREAD_REACH: 3, // cells a seedling lands from its parent (per axis)
-  _mature: [], // scratch: the tick's mature wild ids
-  _ripe: [], // scratch: the ids that ripened this tick (their Interaction lands past the scan)
-  _dead: [], // scratch: the ids the frost took
+  SPREAD_REACH: 3, // cells a seedling lands from its parent, per axis
+  // scratch; structural changes land past the scan
+  _mature: [],
+  _ripe: [],
+  _dead: [],
 
   /**
-   * Grow the level up to now (WorldClock.absHours). Cheap when under an hour has passed;
-   * a first call on a map without the record starts its clock (the stand is the generator's).
+   * Grow the level up to now. Cheap when under an hour has passed; a first call on a map starts
+   * its clock.
    */
   update(level) {
     const now = WorldClock.absHours();
@@ -93,7 +83,7 @@ globalThis.FloraSystem = {
     mature.length = 0;
   },
 
-  /** The biome's flora pool for a level, or undefined (no biome record, or a biome without one). */
+  /** The level biome's flora pool, or undefined. */
   _pool(level) {
     const id = level.entities.get(level.self, ColonyMap.BIOME);
     if (id === undefined) return undefined;
@@ -111,7 +101,6 @@ globalThis.FloraSystem = {
     const entities = level.entities;
     const mature = FloraSystem._mature;
     const reach = FloraSystem.SPREAD_REACH;
-    // seedlings off mature wild plants, each on its species' season weight
     let n = m > 0 ? FloraSystem._draws(FloraSystem.SPREAD_RATE * dh) : 0;
     while (n > 0) {
       n--;
@@ -125,7 +114,7 @@ globalThis.FloraSystem = {
       const gy = c.y + FloraSystem._offset(reach);
       if (Flora.canRoot(level, def, gx, gy)) Flora.plant(level, species, gx, gy);
     }
-    // the biome pool at a random cell — how a species reaches a map it is absent from
+    // how a species reaches a map it is absent from
     n = FloraSystem._draws(FloraSystem.POOL_RATE * dh);
     while (n > 0) {
       n--;
@@ -149,10 +138,7 @@ globalThis.FloraSystem = {
     return Math.floor(Math.random() * (2 * reach + 1)) - reach;
   },
 
-  /**
-   * A pool roll — [species, weight] entries, each weight × the species' season weight; undefined
-   * when every weight is 0 (nothing seeds in that season).
-   */
+  /** A season-weighted roll over [species, weight] entries; undefined when nothing seeds. */
   _roll(pool, season) {
     let total = 0;
     for (let i = 0; i < pool.length; i++)

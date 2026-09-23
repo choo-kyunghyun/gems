@@ -1,37 +1,26 @@
 /**
- * NOT a base class to extend — GMRT subclassing is broken (#15067: subclass field inits never run,
- * `super` faults), so this class has exactly three jobs:
+ * Not a base class to extend — BUG: subclassing is broken (docs/GMRT.md #15067) — so this class
+ * has exactly three jobs:
  *
- * 1. THE CONTRACT (duck-typed): the Game object drives any object shaped like this class —
- *      create(openScene) / update() / draw() / destroy()   required (called unconditionally)
- *      handleEscape()         optional — GameOverlay gives it first refusal on Esc/B
- *      retheme()              optional — the live theme swap rebuilds the scene's UI through it
+ * 1. The contract (duck-typed): the game drives any object shaped like this class —
+ *      create(openScene) / update() / draw() / destroy()   required
+ *      handleEscape()         optional — first refusal on Esc/B
+ *      retheme()              optional — rebuilds the scene's UI on a live theme swap
  *      label / gameplay       optional fields — display fallback / pause+nav opt-in
- *    A scene is LIVE or GONE, never frozen: a switch destroys it, so it carries no state across
- *    one. Navigation is ONE transition (the Game object's `switchTo`, Create_0) behind two doors:
- *    a scene's is `openScene(factory)` — the only handle it gets on the switch, there is no
- *    back-ref to the Game object — while the GUI singletons the Game object hands itself to
- *    (`GameOverlay.update(game)`, `SaveGame.buildMenuTab(game)`) call `game.switchTo` and read
- *    `game.scene` directly, since they outlive every scene.
- *    A scene script exposes ONE global: a factory function under the script's own name
- *    (`sceneLobby`, `sceneColony`, `sceneFacet`). That one ref is what the Game object boots,
- *    the catalogue labels and `openScene` takes — a scene is never reached through an alias.
- *    Genre screens (sceneColony / sceneFacet) are STANDALONE classes
- *    satisfying it — composition, never `extends Scene`.
+ *    A scene is live or gone, never frozen: a switch destroys it, so it carries no state across
+ *    one. `openScene(factory)` is a scene's only handle on navigation; there is no back-ref to
+ *    the game. A scene script exposes one global, a factory under the script's own name, and a
+ *    scene is never reached through an alias. A genre screen is a standalone class satisfying the
+ *    contract — composition, never `extends Scene`.
  *
- * 2. THE BLANK SCREEN: menus/one-shots instantiate it bare and assign what they need (the lobby:
- *    `Object.assign(new Scene(), { create, destroy })` — the no-op stubs below cover the rest). A
- *    screen COMPOSES its sub-modules, all optional:
- *      level (Level: grid + entities) · renderer · camera · ui
- *    A menu is just a screen with only `ui` set.
+ * 2. The blank screen: a menu or one-shot instantiates it bare and assigns what it needs; the
+ *    no-op stubs below cover the rest. A screen composes its optional sub-modules:
+ *      level · renderer · camera · ui
  *
- * 3. THE CATALOGUE (the statics): a scene script registers its factory from its top-level code —
- *    unlike the content registries, which register from `create()` — so the catalogue is complete
- *    by boot. It lives here and not in a script of its own because top-level code runs in
- *    resource order (docs/GMRT.md → script load order) and `Scene` is the one name that precedes
- *    every `scene*` script. `byCategory()` groups entries in registration order; a consumer
- *    imposes its own category order (the lobby's fixed display list). `labelOf` serves the Game
- *    object's display label, latched on every switch: the match is by factory ref.
+ * 3. The catalogue (the statics): a scene script registers its factory from its top-level code,
+ *    so the catalogue is complete by boot. It lives here because top-level code runs in resource
+ *    order (docs/GMRT.md) and `Scene` precedes every `scene*` script. A consumer imposes its own
+ *    category order.
  */
 globalThis.Scene = class Scene {
   label = "";

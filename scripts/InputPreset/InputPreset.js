@@ -1,12 +1,9 @@
 /**
- * File-IO persistence for the player input profile — Input.export()/import(): sensitivity,
- * deadzone, keyboard rebinds. Loaded at boot over the registered keymap (Game Create_0), saved
- * by the settings Save (GameOverlay).
+ * File persistence for the player input profile: sensitivity, deadzone, keyboard rebinds. Loaded
+ * at boot over the registered keymap.
  *
- * Serialized with GML json_stringify — a JS object IS a GML struct, so the nested blob (the
- * rebinds table) round-trips crash-free where JS JSON.stringify would fault on the nesting (see
- * docs/GMRT.md). load() reads it back with native JSON.parse (parse handles nesting; only
- * stringify faults).
+ * BUG: serialized with json_stringify, since JSON.stringify faults on the nesting; JSON.parse is
+ * fine (docs/GMRT.md #15565).
  */
 globalThis.InputPreset = {
   PATH: "input.json",
@@ -32,7 +29,7 @@ globalThis.InputPreset = {
       typeof data.rebinds !== "object" ||
       data.rebinds === null ||
       Array.isArray(data.rebinds) ||
-      // a keycode is a plain number — a GML int64 constant lands as a tagged string (json_stringify)
+      // a keycode must be a plain number, not the tagged string an int64 constant serializes to
       Object.keys(data.rebinds).some(
         (k) => typeof data.rebinds[k] !== "number",
       )

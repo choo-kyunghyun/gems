@@ -9,16 +9,11 @@
  * @property {Object[]} [spawns]
  */
 /**
- * A REUSABLE LEVEL FRAGMENT: a registered, tagged, weighted LevelData — the def body IS a LevelData
- * (footprint + tiles/spawns in origin-local coords), so a prefab carries no ops of its own.
- * `LevelData.translate(prefab, ox, oy)` stamps it into a generator's output and `LevelData.paint`
- * writes it into a level, the same two calls a generator's whole output goes through.
- *
- * `make` fail-fast validates every channel against the footprint — an out-of-footprint rect
- * would silently break a generator's seam-margin guarantee. The def store is a `Registry` facade.
+ * A reusable level fragment: a registered, tagged, weighted {LevelData} in origin-local coords,
+ * so a prefab carries no ops of its own. Every channel is validated against the footprint at
+ * registration, since out-of-footprint content would silently break a generator's seam margin.
  */
 globalThis.Prefab = {
-  /** Validated — throws on out-of-footprint content. */
   register(defs) {
     Registry.register(Prefab, defs, Prefab.make);
   },
@@ -37,8 +32,6 @@ globalThis.Prefab = {
     return p;
   },
 
-  // fail fast at register time — an overflowing rect/spawn would silently break the seam
-  // margin a generator's interior placement guarantees
   _validate(p) {
     if (typeof p.id !== "string" || p.id === "")
       throw new Error(`Prefab def needs a string id`);
@@ -82,7 +75,7 @@ globalThis.Prefab = {
     return Registry.all(Prefab);
   },
 
-  /** In registration order — a weighted pick over the set relies on it being stable. */
+  /** In registration order: a weighted pick relies on it being stable. */
   byTag(tag) {
     const all = Prefab.all();
     const out = [];

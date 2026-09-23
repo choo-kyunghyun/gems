@@ -13,9 +13,8 @@ globalThis.uuid = function uuid() {
 };
 
 /**
- * Pure 2D position hash → float in [0, 1); deterministic in (x, y, seed) — the shared home for
- * seeded worldgen/terrain hashing. Float math only (`sin`/`floor`): bitwise overflow
- * computes wrong values on GMRT (docs/GMRT.md), so never "simplify" this to a bitwise hash.
+ * Pure position hash in [0, 1), deterministic in (x, y, seed).
+ * BUG: float math only — bitwise overflow computes wrong values (docs/GMRT.md).
  */
 globalThis.hash2 = function hash2(x, y, seed) {
   const s = Math.sin(x * 12.9898 + y * 78.233 + seed * 43.123) * 43758.5453;
@@ -23,9 +22,8 @@ globalThis.hash2 = function hash2(x, y, seed) {
 };
 
 /**
- * Value noise in [0, 1): smoothstep-interpolated over a hashed integer lattice (`lattice` = blob
- * spacing in cells); pure in (x, y, seed, lattice), so a generator's every query replays from its
- * seed. Fold a salt into `seed` to draw an independent channel.
+ * Value noise in [0, 1), pure so a generator replays from its seed. `lattice` is the blob spacing
+ * in cells; fold a salt into `seed` for an independent channel.
  */
 globalThis.noise2 = function noise2(x, y, seed, lattice) {
   const fx = x / lattice;
@@ -34,7 +32,7 @@ globalThis.noise2 = function noise2(x, y, seed, lattice) {
   const iy = Math.floor(fy);
   let tx = fx - ix;
   let ty = fy - iy;
-  tx = tx * tx * (3 - 2 * tx); // smoothstep for blobby, non-grid-aligned regions
+  tx = tx * tx * (3 - 2 * tx); // smoothstep, so regions don't align to the grid
   ty = ty * ty * (3 - 2 * ty);
   const v00 = hash2(ix, iy, seed);
   const v10 = hash2(ix + 1, iy, seed);
@@ -46,17 +44,16 @@ globalThis.noise2 = function noise2(x, y, seed, lattice) {
 };
 
 /**
- * An animation-curve asset's channel (index or name) evaluated at `t`; the runtime clamps `t` to
- * [0, 1], so a curve is the easing primitive. Nothing is cached: the per-call channel lookup is
- * negligible, and a hot loop can hoist `animcurve_get_channel` itself.
+ * `t` is clamped to [0, 1], so a curve is the easing primitive. The channel lookup is not cached;
+ * a hot loop can hoist it.
  */
 globalThis.curve = function curve(ac, t, channel = 0) {
   return animcurve_channel_evaluate(animcurve_get_channel(ac, channel), t);
 };
 
 /**
- * Exponential smoothing of `current` toward `target`; `dt` defaults to Time.raw (the clock split),
- * so pass Time.delta for sim-space motion. The clamp prevents overshoot on a hitched frame.
+ * Exponential smoothing toward `target`, on real time unless `dt` says otherwise — pass the sim
+ * delta for sim-space motion. Never overshoots on a hitched frame.
  */
 globalThis.approach = function approach(current, target, speed, dt = Time.raw) {
   return lerp(current, target, clamp(dt * speed, 0, 1));

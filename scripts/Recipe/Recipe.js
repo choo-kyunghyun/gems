@@ -1,4 +1,5 @@
-// Crafting-recipe registry. `requires` = WorkbenchModule itemId that must be slotted; omit for a base recipe.
+// Crafting-recipe registry. `requires` = the workbench module's itemId that must be slotted; omit
+// for a base recipe.
 // { id, station, requires?, inputs: [{itemId,qty}], output: {itemId,qty} }
 globalThis.Recipe = {
   register(defs) {
@@ -9,7 +10,7 @@ globalThis.Recipe = {
     return {
       id: def.id,
       station: def.station,
-      requires: def.requires, // undefined = base recipe (no module needed)
+      requires: def.requires,
       inputs: def.inputs ?? [],
       output: def.output,
     };
@@ -23,7 +24,7 @@ globalThis.Recipe = {
     return Registry.all(Recipe);
   },
 
-  /** recipes for a station kind, registration order. */
+  /** Recipes for a station kind, in registration order. */
   forStation(kind) {
     const all = Recipe.all();
     const out = [];

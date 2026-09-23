@@ -1,8 +1,7 @@
 /**
- * `data` is PUBLIC: a bulk consumer walks the row-major buffer directly (NavGrid recomposes its
- * whole level on a change — a per-cell set() there would be a call per cell); single-cell
- * access still goes through get/set. clear() fills IN PLACE, so a held `data` reference stays
- * valid across it.
+ * Row-major cell grid. `data` is public so a bulk consumer can walk it without a call per cell;
+ * single-cell access goes through get/set. clear() fills in place, so a held `data` reference
+ * stays valid across it.
  */
 globalThis.Grid = class Grid {
   constructor(width, height) {
@@ -61,12 +60,10 @@ globalThis.Grid = class Grid {
   }
 
   /**
-   * Greedy-mesh a solid/empty cell field into the fewest [gx, gy, wCells, hCells] rects: a caller
-   * makes one collider per rect, where per-cell boxes leave seams that snag the AABB resolver.
-   * Static and predicate-driven because the field need not be a Grid — TileEdit meshes a tile
-   * layer, LevelGen and a wall pass a sampled array. `isSolid(x, y)` is asked only about in-bounds cells, and
-   * repeatedly per cell, so it must be a cheap read (sample an expensive source into an array
-   * first).
+   * Greedy-meshes a solid/empty field into the fewest [gx, gy, wCells, hCells] rects, since
+   * per-cell colliders leave seams that snag the resolver. Predicate-driven because the field need
+   * not be a Grid. `isSolid(x, y)` is asked only about in-bounds cells, repeatedly, so it must be
+   * a cheap read.
    */
   static meshRects(cols, rows, isSolid) {
     const consumed = new Array(cols * rows).fill(false);
@@ -89,7 +86,7 @@ globalThis.Grid = class Grid {
               break;
             }
         }
-        h--; // last iteration that incremented also set grow=false
+        h--; // the last iteration incremented past the failed row
 
         for (let yy = y; yy < y + h; yy++)
           for (let xx = x; xx < x + w; xx++) consumed[yy * cols + xx] = true;

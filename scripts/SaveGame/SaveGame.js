@@ -1,39 +1,23 @@
 /**
- * The colony's disk save/load driver.
+ * The colony's disk save/load driver. A save is the session as it stands: the world's store whole
+ * and each resident map's entity store whole, every entity under its saved id; no pass names a
+ * system or a field, and binary codec entries cross as named blobs. A load rebuilds, spawns and
+ * re-meshes nothing — every saved map is pooled back as data and gets its runtime on its first
+ * visit — so the entity set after a load is exactly the one saved.
  *
- * A save is the session AS IT STANDS, read off the two data homes and nothing else: the world's
- * store whole (its own entity's records — the clock, the sky, the progression, the event queue,
- * the traders — and the map roster) and, per resident map, its Level's entity store whole (each
- * entity under its saved id — the level's own entity with its grid and its records, colliders,
- * statics, builds and residents alike). No pass names a system or a field: what a consumer
- * keeps in a record rides along unlisted, and the grid crosses as a blob through the store's
- * codec channel (Level.GRID — ColonyMap._gridCodec), named by this driver's sink. A load rebuilds nothing from a seed, spawns nothing
- * and re-meshes nothing — those are a map's FIRST-visit path (ColonyMap.build); every saved map
- * is pooled back at load (ColonyMap.restoreLevel), its runtime built on its first visit, so the
- * entity set after a load is exactly the one that was saved.
- *
- * Layout (a slot is a directory — a subdir write creates it):
- *   saves/index.json         { slots: { <slot>: <meta header> } } — the load menu reads THIS
- *                            (file_find_first scans the build dir, NOT the save area, so a directory
- *                            scan can't see saves — the index is the source of truth).
- *   saves/<slot>/manifest.json   the JSON half of the hybrid bundle: metadata, the world's store,
- *                            and one entry per map — its store export (see _mapsPass).
- *   saves/<slot>/<id>.grid.0.bin the binary half: one blob per codec entry of a map's store,
- *                            `<map>.<token>.<index>` — today the tile layers (LevelGrid.pack).
- * Passes run in insert order both ways; capture and restore live on the same pass object so they
- * can't drift. A manifest from another Snapshot.VERSION is refused at load — no migration.
+ * A slot is a directory holding a JSON manifest plus its blobs; `saves/index.json` is the source of
+ * truth for the slot list, since a directory scan can't see the save area. Passes run in insert
+ * order both ways, capture and restore on one object so they can't drift. A manifest from another
+ * Snapshot.VERSION is refused — no migration.
  */
 globalThis.SaveGame = {
   DIR: "saves/",
   INDEX: "saves/index.json",
-  _index: null, // the index as last read or written (see _readIndex)
-  _frame: null, // lazily-composed Snapshot (the pass stack)
-  _pending: null, // a loaded bundle awaiting the colony scene's create() load-branch, which consumes it
+  _index: null,
+  _frame: null,
+  _pending: null, // a loaded bundle awaiting restore on a fresh scene
 
-  /**
-   * Compose the pass stack once. Order matters for restore: maps rebuild before world-sim reads
-   * the active map, etc. (locked in when restore lands).
-   */
+  /** Insert order is restore order: the world's records replace the session's before any map. */
   frame() {
     if (SaveGame._frame === null) {
       SaveGame._frame = new Snapshot();
@@ -44,16 +28,12 @@ globalThis.SaveGame = {
     return SaveGame._frame;
   },
 
-  /**
-   * Capture the whole session into slot `slot` (a bare name — becomes saves/<slot>/) + refresh
-   * the index.
-   */
+  /** `slot` is a bare name, which becomes a directory. */
   save(scene, slot) {
     const t0 = current_time;
     const bundle = SaveGame.frame().capture(scene);
     const dir = SaveGame.DIR + slot + "/";
-    // binary blobs first — the bundle owns them; write, RECORD the name (so load is self-describing
-    // for any pass's blobs, not hard-coded to one), then free.
+    // recording each blob's name keeps load self-describing for any pass's blobs.
     bundle.manifest._blobs = [];
     for (let i = 0; i < bundle.blobs.length; i++) {
       const b = bundle.blobs[i];
@@ -82,7 +62,7 @@ globalThis.SaveGame = {
     return true;
   },
 
-  /** slot -> meta header, for the load menu. */
+  /** slot -> meta header. */
   list() {
     return SaveGame._readIndex().slots;
   },
@@ -91,12 +71,9 @@ globalThis.SaveGame = {
     return SaveGame._readIndex().slots[slot] !== undefined;
   },
 
-  // ── load ──
-
   /**
-   * Read a slot's bundle off disk and PARK it for the colony scene's create() load-branch (the
-   * actual reconstruction needs a fresh scene). The caller then boots/switches to sceneColony.
-   * Returns false if the slot can't be read.
+   * Parks a slot's bundle until restore, which needs a fresh scene. False if the slot can't be
+   * read.
    */
   load(slot) {
     const dir = SaveGame.DIR + slot + "/";
@@ -105,7 +82,7 @@ globalThis.SaveGame = {
       Log.error("SaveGame: no manifest for slot '" + slot + "'");
       return false;
     }
-    const manifest = Json.decode(raw); // revives {"$spr"} tags → live sprite refs
+    const manifest = Json.decode(raw);
     if (manifest === undefined) {
       Log.error("SaveGame: manifest for '" + slot + "' is corrupt");
       return false;
@@ -121,8 +98,7 @@ globalThis.SaveGame = {
       );
       return false;
     }
-    // load every blob the manifest recorded (name -> buffer; a pass takes what it applies later,
-    // the rest is freed after restore runs)
+    // a pass takes the blobs it applies; restore frees the rest.
     const blobs = {};
     const names = manifest._blobs !== undefined ? manifest._blobs : [];
     for (let i = 0; i < names.length; i++) {
@@ -133,16 +109,13 @@ globalThis.SaveGame = {
     return true;
   },
 
-  /** Whether a bundle is parked for the load-branch. */
   pending() {
     return SaveGame._pending !== null;
   },
 
   /**
-   * Reconstruct the session into a FRESH colony scene — called from sceneColony.create()'s load-branch
-   * in place of the new-game map+player seeding. Runs the frame's restore passes, then frees the
-   * loaded blobs no pass took (a map's grid blob is taken and freed by ColonyMap.restoreLevel).
-   * Clears the pending bundle.
+   * Reconstructs the parked bundle into a fresh scene, in place of new-game seeding, and frees the
+   * blobs no pass took.
    */
   restore(scene) {
     const p = SaveGame._pending;
@@ -154,17 +127,14 @@ globalThis.SaveGame = {
     Log.info("SaveGame: restored slot '" + p.slot + "'");
   },
 
-  /**
-   * index read-modify-write. The index is the authoritative slot list (find can't scan the save
-   * area); it is read from disk once and held (`_index`) — the menu label reads it every frame.
-   */
+  /** The index is read from disk once and held: the menu reads it every frame. */
   _writeIndex(slot, meta) {
     const idx = SaveGame._readIndex();
     const prev = idx.slots[slot];
     idx.slots[slot] = meta;
     const json = Json.encode(idx);
     if (json === undefined) {
-      // encode aborted (already Log.error'd) — keep the old index, on disk and in memory
+      // keep the old index, on disk and in memory.
       if (prev === undefined) delete idx.slots[slot];
       else idx.slots[slot] = prev;
       return;
@@ -183,10 +153,7 @@ globalThis.SaveGame = {
     return SaveGame._index;
   },
 
-  // ── PASSES ── plain { id, capture, restore } objects, defined here (content, not machinery) —
-  // the same "passes live with the composition" pattern OverworldGen uses for its scatters.
-
-  // metadata header: the at-a-glance card the load menu shows (never applied on restore).
+  // the at-a-glance card the load menu shows; never applied on restore.
   _metaPass: {
     id: "meta",
     capture(ctx) {
@@ -199,7 +166,7 @@ globalThis.SaveGame = {
       ctx.manifest.activeMap = World.activeId;
       ctx.manifest.meta = {
         version: Snapshot.VERSION,
-        savedAt: new Date().toISOString(), // clean wall-clock stamp (date_datetime_string is garbled on GMRT)
+        savedAt: new Date().toISOString(), // date_datetime_string is garbled (docs/GMRT.md)
         map: World.activeId,
         day: WorldClock.state().day,
         season: WorldClock.season().id,
@@ -209,12 +176,10 @@ globalThis.SaveGame = {
         credits: inv !== undefined ? SaveGame._credits(inv) : 0,
       };
     },
-    restore(_ctx) {}, // header is informational — nothing to apply
+    restore(_ctx) {},
   },
 
-  // the world's store whole (its own entity's records, the map roster): the clock, the sky, the
-  // progression (counters, unlocks, quests) and the off-focus world — the event queue and the
-  // trader records it drives. The roster's Levels are minted — the maps pass hands each back.
+  // the world's store whole; the roster's Levels are minted, so the maps pass hands each back.
   _simPass: {
     id: "sim",
     capture(ctx) {
@@ -223,24 +188,15 @@ globalThis.SaveGame = {
     restore(ctx) {
       const sim = ctx.manifest.sim;
       if (sim === undefined) return;
-      // the records REPLACE the session's — a load is not a merge, so whatever the previous
-      // slot left in memory can't survive into this one. Before the maps: a trader embodied in
-      // the active map is in that map's store, and its record re-links to it by id once the map
-      // is up (Trader.onActivate).
+      // a load is not a merge: nothing the previous slot left in memory survives. Records that
+      // name a map's entity re-link by id once that map is up.
       World.table.import(sim);
     },
   },
 
   /**
-   * Per-map state, one entry per resident map (active or parked) — a Level's store, which is
-   * everything ColonyMap.restoreLevel needs to pool the map back without its file:
-   *   world        the store export whole — every entity under its index + generation, the
-   *                level's own entity first with its grid (a blob name — the bytes ride the
-   *                bundle under it) and its records (the map record: spawn, entries, the
-   *                collider id lists, the terrain palette rows; the builds, indoor, climate, the
-   *                settlement, the clocks); on-disk manifest key, renaming it orphans existing
-   *                saves
-   *   capacity     the store's size
+   * One entry per resident map, active or parked: its store export, enough to pool the map back
+   * without its file. `world` is an on-disk manifest key; renaming it orphans existing saves.
    */
   _mapsPass: {
     id: "maps",
@@ -249,10 +205,8 @@ globalThis.SaveGame = {
       const maps = [];
       for (let m = 0; m < ids.length; m++) {
         const mapId = ids[m];
-        const level = World.get(mapId); // the map's data — pooled whether it's active or parked
+        const level = World.get(mapId);
         const entities = level.entities;
-        // a minted component stays behind (Table.mint); a codec entry's buffer goes to
-        // the bundle under `<map>.<token>.<index>`, its name into the export
         const exp = entities.export((token, index, buffer) => {
           const name = mapId + "." + token + "." + index;
           ctx.putBlob(name, buffer);
@@ -263,10 +217,9 @@ globalThis.SaveGame = {
       ctx.manifest.maps = maps;
     },
     /**
-     * Pool every saved map back (ColonyMap.restoreLevel — data only), then enter the ACTIVE one
-     * through ColonyTravel.go: the player is in its store, so no squad lands and nothing moves, and
-     * its runtime is built there like any first visit. A map that can't be restored is built
-     * fresh on its first visit, loudly — the only path on which a load makes anything.
+     * Pools every saved map back as data, then enters the active one like any first visit; the
+     * player is already in its store, so nothing lands or moves. A map that can't be restored is
+     * built fresh, loudly — the only path on which a load makes anything.
      */
     restore(ctx) {
       const scene = ctx.scene;
@@ -283,8 +236,7 @@ globalThis.SaveGame = {
       ColonyTravel.go(scene, activeMap, "default");
       if (scene.playerId === undefined)
         Log.error("SaveGame: no player in the restored map");
-      // aim the camera entity's look-at at the player straight away (the follow policy eases
-      // in from wherever the look-at sits — CameraSystem)
+      // the camera starts on the player rather than easing in from wherever it sits.
       if (scene.playerId !== undefined) {
         const entities = scene.level.entities;
         const pos = entities.get(scene.playerId, Position);
@@ -300,16 +252,9 @@ globalThis.SaveGame = {
     },
   },
 
-  // ── helpers ──
+  SLOTS: 3,
 
-  // ── menu UI (injected into GameOverlay as an extra tab; see Game Create_0) ──
-  SLOTS: 3, // fixed named save slots shown in the menu
-
-  /**
-   * Build the Save/Load tab content — a slot list, each row a live metadata label + Save/Load.
-   * Called fresh on each menu open, so the rows reflect the current index. `game` is the Game
-   * object — Save reads its live scene, Load switches it.
-   */
+  /** `game` owns the live scene: Save reads it, Load switches it. */
   buildMenuTab(game) {
     const scroll = facetScroll({ grow: true });
     const sec = facetSection(I18n.textRef("SAVE_TITLE"));
@@ -328,7 +273,7 @@ globalThis.SaveGame = {
       alignItems: "center",
       gap: FacetTheme.gapSm,
     });
-    // live label (function ref re-reads the index each frame → updates in place after a save)
+    // the label re-reads the index each frame, so it updates in place after a save.
     const wrap = new UIElement({
       flexGrow: 1,
       height: "100%",
@@ -375,9 +320,7 @@ globalThis.SaveGame = {
     );
   },
 
-  /**
-   * the current scene if it's saveable (has a level + player), else null — Save is gated on it.
-   */
+  /** The current scene if it has a level and a player, else null. */
   _saveable(game) {
     const s = game.scene;
     if (
@@ -411,12 +354,9 @@ globalThis.SaveGame = {
       return;
     }
     GameOverlay.close();
-    game.switchTo(sceneColony); // fresh colony boot → create() load-branch → restore
+    game.switchTo(sceneColony); // a fresh scene restores the parked bundle
   },
 
-  /**
-   * sum of the currency item in a bag (for the metadata card).
-   */
   _credits(inv) {
     let n = 0;
     const slots = inv.slots;

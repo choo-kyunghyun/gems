@@ -1,25 +1,22 @@
 /**
- * The sky: a season-weighted roll between the registered CONDITIONS (contentWeather's — this holds
- * the cross-fade, the hold timer and the climate pin, never a condition of its own), on Time.delta
- * so everything — transitions, rain/snow fall, cloud drift — freezes when the game pauses and
- * dilates with Time.scale (the bed fast-forward races the sky). A change CROSS-FADES over _fadeTime
- * (lerped by blend()). The active MAP's climate can pin the open sky map-wide (setClimate); the
- * displayed condition is the effective one (climate ?? ambient).
+ * The sky: a season-weighted roll between the registered conditions. This holds the cross-fade,
+ * the hold timer and the map's climate pin, never a condition of its own. It runs on sim time, so
+ * transitions and weather visuals freeze on pause and dilate with the time scale. The displayed
+ * condition is the effective one (climate ?? ambient), and a change cross-fades.
  */
 globalThis.Weather = {
-  KEY: "weather", // its token on the world's own entity — a data key (a save holds it)
+  KEY: "weather", // a data key: a save holds it
 
-  _minHold: 25, // a condition holds 25..70 real seconds (at Time.scale 1) before re-roll
+  _minHold: 25, // real seconds at time scale 1 a condition holds before a re-roll
   _maxHold: 70,
-  _fadeTime: 2.5, // cross-fade seconds when the condition changes
+  _fadeTime: 2.5, // seconds
 
-  // ── the condition registry (a Registry facade) ──
+  // ── the condition registry ──
   /**
-   * A condition def, keyed by `id`: name (i18n key, the HUD's), { c, a } the screen tint,
-   * particle ("none"/"rain"/"snow") + density for RenderWeather, cloud the cloud-shadow coverage
-   * for RenderCloudShadow, temp a scale-agnostic Kelvin delta, chroma the sky's factor on the
-   * world's colour (chromaMod), weight the per-season roll weight { <season id>: n } (0 = never
-   * in that season). The FIRST registered condition is the settled default a fresh world starts on.
+   * A condition def, keyed by `id`: name (i18n key), { c, a } the screen tint, particle
+   * ("none"/"rain"/"snow") + density, cloud the cloud-shadow coverage, temp a Kelvin delta, chroma
+   * the sky's factor on the world's colour, weight the per-season roll weight { <season id>: n }
+   * (0 = never). The first registered condition is the default a fresh world starts on.
    */
   register(defs) {
     Registry.register(Weather, defs);
@@ -30,14 +27,10 @@ globalThis.Weather = {
   },
 
   /**
-   * The sky record — ambient (season-rolled) sky vs. the active map's optional climate; the
-   * displayed condition is the effective one (climate ?? ambient), cross-faded into cur/prev/blend
-   * by _sync(): `ambient` the season-rolled open-sky condition, `climate` the condition id the
-   * active map forces (or null) and `climateTemp` its additive Kelvin offset, `cur`/`prev` the
-   * displayed and outgoing conditions, `blend` 1 = settled on cur (eases 0..1 after a change),
-   * `timer` real seconds until the next re-roll, `time` cumulative SIM seconds — the clock the
-   * weather VISUALS scroll on (see time()). Seeded settled on the first registered condition; a
-   * loaded record needs no _sync(), the next update() re-syncs from it.
+   * The sky record: `ambient` the season-rolled condition, `climate` the id the active map pins
+   * (or null) and `climateTemp` its Kelvin offset, `cur`/`prev` the displayed and outgoing
+   * conditions, `blend` 1 = settled on cur, `timer` seconds until the next re-roll, `time`
+   * cumulative sim seconds. Seeded settled; a loaded record re-syncs on the next update().
    */
   state() {
     return World.table.of(World.self, Weather.KEY, () => {
@@ -71,9 +64,8 @@ globalThis.Weather = {
   },
 
   /**
-   * The active map's climate, applied on every arrival (ColonyTravel._applyClimate): `c` is the
-   * level's `meta.climate` — { weather?, tempMod? }, pinning the sky map-wide — or undefined for
-   * an open sky. Either way the change cross-fades like a re-roll.
+   * The active map's climate, on every arrival: `c` is { weather?, tempMod? }, pinning the sky
+   * map-wide, or undefined for an open sky. The change cross-fades like a re-roll.
    */
   setClimate(c) {
     const w = Weather.state();
@@ -99,7 +91,7 @@ globalThis.Weather = {
     );
   },
 
-  /** season-weighted pick over the registered conditions, excluding the current ambient (so it changes) */
+  /** Excludes the current ambient, so the sky changes. */
   _rollAmbient(w) {
     const season = WorldClock.season().id;
     const conds = Registry.all(Weather);
@@ -114,7 +106,7 @@ globalThis.Weather = {
       ids.push(c.id);
       cum.push(total);
     }
-    if (total <= 0) return w.ambient; // nothing else available — stay
+    if (total <= 0) return w.ambient;
     const r = Math.random() * total;
     let i = 0;
     while (i < ids.length) {
@@ -125,21 +117,19 @@ globalThis.Weather = {
   },
 
   /**
-   * cumulative sim-time clock (seconds) the weather visuals scroll on: RenderWeather's particle
-   * fall and RenderCloudShadow's drift both multiply speeds by this, so they FREEZE on pause and
-   * dilate with Time.scale, matching the condition transitions. A plain method, not a getter —
-   * house style, not a runtime dodge.
+   * Cumulative sim seconds the weather visuals scroll on, so they freeze and dilate with the
+   * condition transitions.
    */
   time() {
     return Weather.state().time;
   },
 
-  /** target condition (the HUD's name) */
+  /** The incoming condition. */
   current() {
     return Weather.get(Weather.state().cur);
   },
 
-  /** outgoing condition (the cross-fade's other half) */
+  /** The outgoing condition. */
   previous() {
     return Weather.get(Weather.state().prev);
   },
@@ -149,7 +139,7 @@ globalThis.Weather = {
     return Weather.state().blend;
   },
 
-  /** Blended chroma factor (outgoing → incoming) of the sky — an overcast or snowing sky drains the world's colour a little further (ColonyView.chroma multiplies it in). */
+  /** The sky's blended factor on the world's colour. */
   chromaMod() {
     const w = Weather.state();
     const p = Weather.get(w.prev).chroma;
@@ -157,7 +147,7 @@ globalThis.Weather = {
     return p + (c - p) * w.blend;
   },
 
-  /** Blended Kelvin temp delta (outgoing → incoming) + the map's climate offset; folded into Temperature.now(). */
+  /** Blended Kelvin delta plus the map's climate offset. */
   tempMod() {
     const w = Weather.state();
     const p = Weather.get(w.prev).temp;

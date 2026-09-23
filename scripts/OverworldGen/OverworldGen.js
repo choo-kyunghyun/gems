@@ -1,34 +1,19 @@
 /**
- * The colony's level generator COMPOSITION — the stages a biome profile (contentBiomes.BIOMES)
- * selects and tunes, in order, the way a scene composes its render passes:
- *   GROUND      GenGround over `ground` (the noise base — always)
- *   LAKES       GenLakes over `lakes` (when the profile has one)
- *   ANCHOR      GenAnchor — the site's one fixed prefab (the colony compound, a landing pad, a
- *               cave mouth), on dry ground nearest the centre, its surroundings claimed
- *   WALLS       GenWalls over `walls` (a cave's noise shell — when the profile has one)
- *   STRUCTURES  PrefabStamp over `prefabs` (the tag's prefab set at its density — when present),
- *               carrying the colony spawn policy below
- *   ENTITIES    one GenScatter per `scatter` key, each placing what SCATTER's entry describes
- *   FLORA       flora() over `flora` — the biome's plant pool at its density (when present)
- * A frozen basin, a marsh and a lava tube are profile entries over this one composition — a stage
- * is present exactly when its profile section is, so a new kind of level is data, and a genuinely
- * new stage is one more Gen* pass slotted in here.
+ * The colony's level generator composition: the ordered stages a biome profile selects and
+ * tunes. A stage is present exactly when its profile section is, so a new kind of level is data
+ * and a genuinely new stage is one more pass slotted in here.
  *
- * Contract: `create` returns the LevelGen the level builder holds — generate(cols, rows) →
- * { tiles, spawns, terrain, solid } (grid coords, deterministic from (seed, pass salt): the
- * same seed rebuilds the same level, and each pass draws from its OWN salted stream, so adding/
- * removing a pass never reshuffles the others' output) — plus the `palette` the terrain layer is
- * typed by and paint(). A generator runs at a map's FIRST build only; a save keeps the grid it
- * painted, never the seed. Register prefabs before calling (GenAnchor/PrefabStamp resolve them).
- * GMRT-safe: index loops, namespace object on globalThis.
+ * Generation is deterministic from the seed, and each pass draws from its own salted stream, so
+ * adding or removing a pass never reshuffles the others' output. A generator runs at a map's
+ * first build only; a save keeps the grid, never the seed. Prefabs must be registered before
+ * calling.
  */
 
 globalThis.OverworldGen = {
   /**
-   * Build a level generator. opts: { seed, biome, anchor, clear, spawnFilter, defaultLoot } —
-   * `biome` the contentBiomes.BIOMES profile (default steppe); `anchor` the Prefab id GenAnchor
-   * fixes (required), `clear` the cells claimed around it (default 0); the last two override the
-   * colony spawn policy (see PrefabStamp).
+   * opts: { seed, biome, anchor, clear, spawnFilter, defaultLoot }. `anchor` is the required
+   * fixed prefab id and `clear` the cells claimed around it; the last two override the colony
+   * spawn policy.
    */
   create(opts = {}) {
     const seed = (opts.seed ?? 1337) | 0;
@@ -56,7 +41,7 @@ globalThis.OverworldGen = {
         prefab: opts.anchor,
         margin: opts.clear ?? 0,
         edge: 2, // the border wall + one clear cell
-        fill: biome.ground.bands[0][0], // the lowest ground band — a drained lake floor
+        fill: biome.ground.bands[0][0], // a drained lake floor
       }),
     );
     if (biome.walls !== undefined)
@@ -76,8 +61,8 @@ globalThis.OverworldGen = {
           salt: 5,
           density: biome.prefabs.density,
           tries: biome.prefabs.tries,
-          // Colony spawn policy: mobile combatants (raider) stay off water — nothing spawns
-          // swimming, and deep water's collider would snag a dynamic body
+          // Raiders stay off water: nothing spawns swimming, and deep water's collider would
+          // snag a dynamic body.
           spawnFilter:
             opts.spawnFilter ??
             ((s, ctx) => s.preset !== "raider" || ctx.spawnable(s.gx, s.gy)),
@@ -107,11 +92,9 @@ globalThis.OverworldGen = {
   },
 
   /**
-   * The material palette a biome profile describes: its lake bands (lowest first) then its ground
-   * bands, each a MATERIALS row. Index = material id = painter order (the terrain layer's TileTypes
-   * and the stacked dual-grid passes are built from it, lowest material first so an upper one's
-   * transparent corners reveal the one below). A material listed twice throws — two bands would
-   * silently share one id.
+   * The biome's material palette. Index = material id = painter order, lowest first, so an upper
+   * material's transparent corners reveal the one below. A material listed twice throws, since
+   * two bands would silently share one id.
    */
   palette(biome) {
     const out = [];
@@ -121,7 +104,6 @@ globalThis.OverworldGen = {
         bands.push(biome.lakes.bands[i][0]);
     for (let i = 0; i < biome.ground.bands.length; i++)
       bands.push(biome.ground.bands[i][0]);
-    // extras: materials no band paints (a prefab stamps them) — on top of the painter stack
     if (biome.extras !== undefined)
       for (let i = 0; i < biome.extras.length; i++) bands.push(biome.extras[i]);
     for (let i = 0; i < bands.length; i++) {
@@ -134,7 +116,6 @@ globalThis.OverworldGen = {
     return out;
   },
 
-  /** a fresh palette entry for a MATERIALS id; unknown id throws */
   _material(id) {
     const m = contentBiomes.MATERIALS[id];
     if (m === undefined)
@@ -151,16 +132,11 @@ globalThis.OverworldGen = {
   },
 
   /**
-   * The scatter table: profile `scatter` key → the GenScatter placing that kind at the profile's
-   * density (per 1000 cells). Each carries its own salt, so a profile listing a subset draws the
-   * same placements for the kinds it keeps. Position hashes key on the pass seed, drawing nothing
-   * from the stream, so a variant's look never shifts its placement.
+   * Profile `scatter` key → its pass at a per-1000-cell density. Each carries its own salt, so a
+   * profile listing a subset draws the same placements for the kinds it keeps.
    */
   SCATTER: {
-    /**
-     * rock clusters — one `rock` preset entity per cluster (the vox boulder mesh, stretched over
-     * the w×h cells); claimed so later scatters don't stand inside the boulder
-     */
+    /** One boulder per cluster, claimed so later scatters don't stand inside it. */
     rock(density) {
       return new GenScatter({
         salt: 6,
@@ -170,13 +146,11 @@ globalThis.OverworldGen = {
           return { w: 1 + Math.floor(rng() * 2), h: 1 + Math.floor(rng() * 2) };
         },
         spawn(ctx, gx, gy, w, h) {
-          // the cluster shape picks the boulder's frame and the cell hash its facing (ColonySpawn)
           return { preset: "rock", gx: gx, gy: gy, w: w, h: h };
         },
       });
     },
 
-    /** wandering rats, the ambient wildlife; raiders stay the camp/quest enemy (prefabs) */
     rat(density) {
       return new GenScatter({
         salt: 8,
@@ -195,13 +169,9 @@ globalThis.OverworldGen = {
   },
 
   /**
-   * The FLORA stage: the biome's plant pool (contentFlora species) strewn at its per-1000 density
-   * — one weighted species roll per try, rooted only where the species' ground allows, at a
-   * random maturity (a share already ripe) so a first-visit map carries a grown stand. Each
-   * plant gets the position-hashed quarter-turn + size the tree scatter gave (the one model per
-   * species doesn't visibly repeat). The season is deliberately NOT read here — a seed must rebuild the same
-   * level (LevelGen); it weights the spread and growth FloraSystem runs from then on. Salt 7 —
-   * the retired tree scatter's, so existing seeds keep their stands where the pool allows.
+   * The biome's plant pool strewn at its per-1000 density, rooted only on each species' ground,
+   * at a random maturity so a first-visit map carries a grown stand. The season is deliberately
+   * not read: a seed must rebuild the same level. Salt 7 keeps existing seeds' stands in place.
    */
   flora(section) {
     const pool = section.pool;
@@ -234,13 +204,13 @@ globalThis.OverworldGen = {
           wild: true,
           progress: Math.min(1, ctx.rng() * 1.3), // ~a quarter ripe on arrival
           yaw: (q % 4) * 90,
-          size: 0.8 + (q % 5) * 0.15, // 0.8..1.4 specimen variety
+          size: 0.8 + (q % 5) * 0.15,
         };
       },
     });
   },
 
-  /** wilderness raider loot table (the PrefabStamp defaultLoot policy) */
+  /** Wilderness raider loot table. */
   rollLoot(rng) {
     const loot = [{ itemId: "rags", qty: 1 + Math.floor(rng() * 2) }];
     const roll = rng();

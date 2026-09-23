@@ -1,10 +1,6 @@
-// See FacetTheme.js for the kit overview + the GMRT globalThis-assignment rule.
-
 /**
- * Standalone text node, auto-fitting to the string (UIText). Pass `opts.font` as an I18n
- * font KEY (string), NOT a pre-resolved handle — the widget re-resolves it each draw so it
- * survives a language switch (resolve-at-draw GMRT-Safe Idiom); a raw handle also works.
- * `opts.wrap` (px) wraps to that width; omit for a single auto-fit line.
+ * Auto-fitting text node. Pass `opts.font` as an I18n font key rather than a resolved handle so
+ * it survives a language switch. `opts.wrap` (px) wraps to that width; omit for one line.
  */
 globalThis.facetLabel = function facetLabel(label, opts = {}) {
   const el = new UIElement();
@@ -21,9 +17,8 @@ globalThis.facetLabel = function facetLabel(label, opts = {}) {
 };
 
 /**
- * Rich text node: markup with colored spans + inline icons (UIRichText), auto-fitting
- * like facetLabel. `opts.palette` maps `[c=name]` tags to colors; the kit's semantic
- * names (accent/muted/dim) are merged in. `opts.iconSize` overrides the icon size.
+ * Auto-fitting markup with colored spans and inline icons. `opts.palette` maps `[c=name]` tags to
+ * colors, over the kit's semantic names.
  */
 globalThis.facetRichText = function facetRichText(markup, opts = {}) {
   const palette = {};
@@ -48,10 +43,8 @@ globalThis.facetRichText = function facetRichText(markup, opts = {}) {
 };
 
 /**
- * Quest tracker: a live HUD list bound to opts.source (a quest log; the colony passes its
- * Tracker) — keeps this factory + Core's UIQuestTracker genre-agnostic. Sized to the
- * active quests by default (build it AFTER quests are registered/accepted — it measures
- * at construction); pass opts.height to fix it. opts.emptyText shows when empty.
+ * Live quest list bound to `opts.source`, a quest log. Without `opts.height` it measures the
+ * active quests at construction, so build it after they are accepted.
  */
 globalThis.facetQuestTracker = function facetQuestTracker(opts = {}) {
   const tracker = new UIQuestTracker({
@@ -82,11 +75,7 @@ globalThis.facetQuestTracker = function facetQuestTracker(opts = {}) {
   return facetAttachTooltip(el, opts);
 };
 
-/**
- * Non-interactive themed progress / fill bar. `getValue` is () => 0..1 (read live).
- * `opts.label` (string or () => string) draws centered; `opts.fillColor`/`trackColor`
- * accept a theme key/hex/int.
- */
+/** Non-interactive fill bar; `getValue` is () => 0..1, read live. */
 globalThis.facetProgress = function facetProgress(getValue, opts = {}) {
   const el = new UIElement({
     height: opts.height ?? 16,
@@ -110,10 +99,7 @@ globalThis.facetProgress = function facetProgress(getValue, opts = {}) {
   return facetAttachTooltip(el, opts);
 };
 
-/**
- * One-line hint text on a card backdrop — for overlays where a bare facetLabel would
- * float as low-contrast text over the scene's render.
- */
+/** Hint text on a card backdrop, where a bare label would be low-contrast over the scene. */
 globalThis.facetHint = function facetHint(label, opts = {}) {
   const card = facetCard({ padding: FacetTheme.padSm });
   card.insertChild(
@@ -127,11 +113,8 @@ globalThis.facetHint = function facetHint(label, opts = {}) {
 };
 
 /**
- * label:value row — label in a growing left cell, value pushed to the right edge by flex.
- * `label`/`value` are strings or live () => string (facetLabel normalizes). `opts`:
- *   { height (lineH), gap (0), labelColor (textMuted), valueColor (text),
- *     grow: true — CELL mode: flexGrow/flexBasis instead of width/height, for packing
- *     two label:value pairs side-by-side in one row (WeaponModUI's stat grid) }.
+ * label:value row with the value at the right edge. `opts.grow` makes it a flexing cell, for
+ * packing pairs side by side in one row.
  */
 globalThis.facetKeyValueRow = function facetKeyValueRow(
   label,
@@ -166,19 +149,14 @@ globalThis.facetKeyValueRow = function facetKeyValueRow(
   return row;
 };
 
-/**
- * Destroy every child of a host — the first step of every refill (a detail pane, a rebuilt
- * row list). Snapshots the child list first, since destroy() unlinks as it goes.
- */
 globalThis.facetClear = function facetClear(host) {
   const kids = [...host.children];
   for (let i = 0; i < kids.length; i++) kids[i].destroy();
 };
 
 /**
- * Clear + refill a list host with one selectable facetButton per entry, or a dim empty
- * notice. The refill shape shared by the workbench master lists (recipes / weapons):
- * `entries` is [{ label, onPick, selected: () => bool, textColor?, icon? }].
+ * One selectable button per entry, or a dim empty notice. `entries` is
+ * [{ label, onPick, selected: () => bool, textColor?, icon? }].
  */
 globalThis.facetFillList = function facetFillList(host, entries, emptyLabel) {
   facetClear(host);
@@ -200,14 +178,9 @@ globalThis.facetFillList = function facetFillList(host, entries, emptyLabel) {
 };
 
 /**
- * Live, context-aware key-bind hint bar. `entries` is { label, contexts?, actions? | text? }:
- *   • label    i18n key or () => string — the action's human name.
- *   • actions  action keys whose CURRENT bindings are read LIVE each frame (a remap updates
- *              the hint with zero wiring). Joined "" if every key is one glyph (→ "WASD") else "/".
- *   • text     a literal label for a non-rebindable key (e.g. "LMB"/"Esc"), not an InputAction.
- *   • contexts InputContext names this entry shows in (omit = always); re-filtered each frame,
- *              so the bar tracks the active context (play / build / window).
- * Built on facetLabel with a live composer, so it self-sizes and survives a language switch.
+ * Key-bind hint bar, recomposed each frame so it tracks remaps and the active input context.
+ * `entries` is { label, contexts?, actions? | text? }: `actions` read their live bindings, `text`
+ * is a literal for a non-rebindable key, and `contexts` omitted means always shown.
  */
 globalThis.facetKeyHints = function facetKeyHints(entries, opts = {}) {
   const sep = opts.separator ?? "   ·   ";
@@ -243,9 +216,8 @@ globalThis.facetKeyHints = function facetKeyHints(entries, opts = {}) {
 };
 
 /**
- * Attach a hover tooltip to any element (chainable). Added at index 0 so a sibling
- * interactive component setting `block` while hovered doesn't suppress its own tooltip.
- * Most factories also accept `opts.tooltip` (+ `opts.tooltipDelay`) and call this for you.
+ * Chainable. Added first so a sibling that blocks the pointer while hovered doesn't suppress its
+ * own tooltip.
  */
 globalThis.facetTooltip = function facetTooltip(element, label, opts = {}) {
   element.addComponent(
@@ -255,7 +227,6 @@ globalThis.facetTooltip = function facetTooltip(element, label, opts = {}) {
   return element;
 };
 
-/** Internal: honor `opts.tooltip` on a factory's element. No-op when unset. */
 globalThis.facetAttachTooltip = function facetAttachTooltip(element, opts) {
   if (opts.tooltip != null) {
     facetTooltip(element, opts.tooltip, { delay: opts.tooltipDelay });

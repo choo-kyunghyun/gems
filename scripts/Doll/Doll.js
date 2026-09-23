@@ -1,22 +1,14 @@
 /**
  * The on-demand verbs over a colony DOLL — an actor whose body is a Skeleton — the one place a
- * gameplay state becomes an animation name. `Rig` (Core) binds a set to a puppet; this names
- * which set a state means, per rig, and applies the facing and stride conventions every doll
- * shares (the player, a raider, a rat, an NPC, a companion). Callers: PlayerSystem, CombatAI,
- * FollowerSystem, ColonyCombat, and the spawners (ColonyPlayer, contentPresets) for `rest`.
+ * gameplay state becomes an animation name: which set a state means, per rig, plus the facing
+ * and stride conventions every doll shares.
  */
 globalThis.Doll = {
   /**
-   * Actor state -> the animation each rig plays it with, keyed by the Skeleton sprite's name.
-   * The unarmed swing alternates attack/kick (see PlayerSystem), which lands as the human rig's
-   * two attacks; the rat has one bite, so a state a rig lacks leaves its set playing. spineHuman
-   * also carries dodge0 / idle1 / attack2, which no brain drives yet. `down` is the authored
-   * fallen pose — a one-shot holding its last frame (a single-key set, so the doll snaps into it)
-   * — played by ColonyCombat for a corpse (_toCorpse) and for a Downed companion (_goDown), which
-   * stands back up into idle on recovery.
-   * `pace` marks a locomotion set: the world speed (px/s) its cycle was authored for — `pace`
-   * (below) scales playback to the doll's ACTUAL speed against it, so one set serves every
-   * gait and stat (the rat runs on its walk set, a drifting raider shuffles it slow).
+   * Actor state -> the animation each rig plays it with, keyed by the Skeleton sprite's name. A
+   * state a rig lacks leaves its current set playing. `down` is the fallen pose, a one-shot
+   * holding its last frame. `pace` marks a locomotion set: the world speed (px/s) its cycle was
+   * authored for, so playback can scale to the doll's actual speed and one set serves every gait.
    */
   RIGS: {
     spineHuman: {
@@ -37,9 +29,8 @@ globalThis.Doll = {
   },
 
   /**
-   * The set a rig rests in — the `anim` a Skeleton is authored with at spawn (EntityPreset
-   * defaults none: Core knows no rig's names), so a doll no brain drives, an NPC, plays it from
-   * its first frame. Throws for a sprite that is no rig: an authoring error, not a runtime state.
+   * The set a rig rests in — the `anim` a Skeleton is authored with at spawn. Throws for a sprite
+   * that is no rig: an authoring error, not a runtime state.
    */
   rest(sprite) {
     const rig = Doll.RIGS[sprite_get_name(sprite)];
@@ -48,10 +39,7 @@ globalThis.Doll = {
     return rig.idle.anim;
   },
 
-  /**
-   * Drive an actor's skeleton to a named state. No-op for an actor that carries no Skeleton, or
-   * whose rig has no such state.
-   */
+  /** No-op for an actor with no Skeleton, or whose rig has no such state. */
   setState(entities, id, state) {
     const sk = entities.get(id, Skeleton);
     if (sk === undefined) return;
@@ -67,10 +55,8 @@ globalThis.Doll = {
   PACE_MAX: 5,
 
   /**
-   * Stride-match every doll's locomotion set to its ACTUAL motion, once per frame: rate =
-   * |velocity| / the set's RIGS `pace`, written to the puppet only when it changes
-   * (Rig.rate). Any other set plays authored time. A corpse sheds Velocity
-   * (ColonyCombat._toCorpse), so its held `down` pose is never touched.
+   * Stride-match every moving doll's locomotion set to its actual speed, once per frame; any
+   * other set plays authored time. A doll without Velocity is never touched.
    */
   pace(entities) {
     entities.forEach([Skeleton, Velocity], (id, sk, vel) => {
@@ -93,8 +79,8 @@ globalThis.Doll = {
   },
 
   /**
-   * Flip a humanoid's facing toward `vx`, ignoring anything under `dead`. Sign ONLY — |xscale|
-   * carries the baked size factor, so a bare ±1 here would silently reset the actor's size.
+   * Face toward `vx`, ignoring anything under `dead`. Sign ONLY — |xscale| carries the baked size
+   * factor, so a bare ±1 would silently reset the actor's size.
    */
   face(entities, id, vx, dead) {
     const sk = entities.get(id, Skeleton);

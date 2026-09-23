@@ -1,17 +1,15 @@
 /**
- * Equal-mass MTV push-apart for unit crowding, over the mirrors (PuppetSystem). Pure resolution,
- * run after SolidSystem.update in the SAME tick: each solid body asks the runtime once —
- * `instance_place_list` over `Puppet` at its own mask — for what it overlaps, sums half of every
- * overlap's shallower axis against each other BODY (a Solid hit is the solid pass's, skipped),
- * then — every push summed before any body moves, so a pair reads one overlap from both sides —
- * moves that far through the runtime against the Solids (PuppetSystem.move), so a push never
- * lands a body inside a wall. Each side pushes itself, so a pair separates by its whole overlap;
- * a solid-off body wears the empty mask, so it neither lists nor is pushed.
+ * Equal-mass push-apart for unit crowding, over the runtime mirrors. Pure resolution, run after
+ * the solid pass in the same tick: each solid body sums half of every overlap's shallower axis
+ * against each other moving body (a static solid is the solid pass's), and every push is summed
+ * before any body moves, so a pair reads one overlap from both sides and separates by the whole
+ * of it. The move runs against the solids, so a push never lands a body inside a wall. A
+ * solid-off body wears the empty mask, so it neither lists nor is pushed.
  */
 globalThis.SeparationSystem = {
   iterations: 1, // raise for dense clusters; each pass re-asks the runtime
-  // Scratch reused every tick: the pushed bodies of a pass — the mirror, the Position and the
-  // summed push per body (docs/ARCHITECTURE.md → Hot-path idioms).
+  // per-tick scratch: the mirror, Position and summed push per pushed body
+  // (docs/ARCHITECTURE.md)
   _held: [],
   _pos: [],
   _px: [],
@@ -27,12 +25,11 @@ globalThis.SeparationSystem = {
     const pxs = SeparationSystem._px;
     const pys = SeparationSystem._py;
     for (let it = 0; it < SeparationSystem.iterations; it++) {
-      // the pushes, off this pass's positions
       let n = 0;
       entities.forEach([Collision, Instance, Position], (id, col, h, pos) => {
         if (h.still) return; // a kinematic: the solid pass keeps bodies out of those
         if (!col.solid) return;
-        if (!h.shaped) return; // no mirror yet — PuppetSystem's next update shapes it
+        if (!h.shaped) return; // no mirror shape yet
         const inst = h.inst;
         const list = PuppetSystem.list();
         const found = inst.instance_place_list(inst.x, inst.y, Puppet, list, false);
@@ -66,7 +63,6 @@ globalThis.SeparationSystem = {
         pys[n] = py;
         n++;
       });
-      // the moves
       for (let i = 0; i < n; i++) PuppetSystem.move(hs[i], ps[i], pxs[i], pys[i], 1);
     }
   },

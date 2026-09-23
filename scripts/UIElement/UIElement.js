@@ -6,39 +6,24 @@
  */
 
 /**
- * Shared per-element runtime state (the `element.state` blackboard) — written by behavior
- * components (UITrigger is the canonical writer), read by any sibling. Flat scalars only
- * (an object-keyed Map/Set crashes GMRT natively, and nested data invites deep-copy bugs).
- * Component array order = write order: a writer must precede its readers on the element.
+ * Per-element blackboard shared by the element's components. Flat scalars only (docs/GMRT.md).
+ * Component order is write order: a writer must precede its readers on the element.
  * @typedef {Object} UIState
  * @property {boolean} [hover] pointer inside the element and not blocked upstream
  * @property {boolean} [held] press started inside; cleared on release
  * @property {boolean} [clicked] one-frame pulse: released inside this frame
- * @property {boolean} [disabled] live disabled state (written by UIButton)
- * @property {boolean} [selected] live selected/toggled state (written by UIButton)
+ * @property {boolean} [disabled]
+ * @property {boolean} [selected]
  */
 
 /**
- * flexpanel-backed tree node.
- *
- * HOW LAYOUT CHANGES REACH THE SCREEN — the rule every widget follows. Live style mutation does
- * work on GMRT (measure-callback self-sizing does not — GMRT.md → Known Incompatibilities), and
- * `UIText`/`UIRichText` use it to self-size in onUpdate so a label reports a real width/height.
- * Everything else deliberately does NOT:
- *   fixed layout props   set ONCE at construction (the `style` arg below)
- *   runtime movement     draw-time offset math through getLayoutPosition (scroll, drag, slider
- *                        fill) — applies at draw AND hit-test with no reflow
- *   show / hide          `child.enabled`, never `display`
- *   change of SIZE       structural insertChild/removeChild + markDirty, which reflows reliably
- *                        (UIAccordion); prefer `enabled` when the size is unchanged
- * The offset/clip drivers work and migrating them to style mutation would be churn, so they stay.
- * Related: this class's ~45 commented-out style setters stay commented — re-enabling them all
- * would pass the 50-method ceiling (#15065); enable one on demand, minding the
- * count. Property reference: `gm-cli manual read "Flex Panel Struct Members"`; Yoga docs
- * (https://www.yogalayout.dev/docs/styling/) cover the semantics.
+ * flexpanel-backed UI tree node, and the rule for how a layout change reaches the screen:
+ * layout props are set once at construction; runtime movement (scroll, drag) is draw-time offset
+ * math through getLayoutPosition, applied at draw and hit-test with no reflow; show/hide is
+ * `enabled`, never `display`; a size change is a structural insert/remove, which reflows.
+ * Measure-callback self-sizing is unsupported (docs/GMRT.md).
  */
 globalThis.UIElement = class UIElement {
-  /** style: flexpanel node style struct (fixed layout props, set once at construction) */
   constructor(style = {}) {
     this.enabled = true;
     this.flexpanel = flexpanel_create_node(style);
@@ -46,20 +31,18 @@ globalThis.UIElement = class UIElement {
     this.parent = null;
     this.children = [];
     this.components = [];
-    /** Shared component blackboard — see the UIState typedef. */
+    /** @type {UIState} */
     this.state = {};
     this.dirty = true;
-    // clip: children scissored to this rect. scrollX/scrollY shift descendants (not self) at
-    // draw+hit-test. clipInsetRight reserves a right gutter (e.g. scrollbar) outside the clip.
+    // scroll shifts descendants, not self; the inset reserves a right gutter outside the clip.
     this.clip = false;
     this.scrollX = 0;
     this.scrollY = 0;
     this.clipInsetRight = 0;
-    // dragX/Y offsets THIS element + subtree (vs scrollX/Y which offset only descendants).
-    // Applied in getLayoutPosition — not via flexpanel mutation (bug #15065).
+    // drag shifts this element and its subtree.
     this.dragX = 0;
     this.dragY = 0;
-    // set in destroy(); guards against touching a deleted flexpanel node mid-traversal.
+    // guards against touching a deleted flexpanel node mid-traversal.
     this._destroyed = false;
   }
 
@@ -85,9 +68,9 @@ globalThis.UIElement = class UIElement {
     return this;
   }
 
-  /** tear down subtree + components + flexpanel node. idempotent. */
+  /** Idempotent. */
   destroy() {
-    if (this._destroyed) return; // idempotent — close() may fire more than once
+    if (this._destroyed) return;
     this._destroyed = true;
     for (const component of this.components) {
       if (component.onDestroy) component.onDestroy(this);
@@ -99,12 +82,10 @@ globalThis.UIElement = class UIElement {
     flexpanel_delete_node(this.flexpanel, false);
   }
 
-  /**
-   * update subtree then own components. `block` = pointer already captured upstream.
-   */
+  /** `block`: the pointer is already captured upstream. Returns whether it is captured now. */
   update(block) {
-    if (this._destroyed) return block; // already torn down (e.g. a closed modal's subtree)
-    // clip: pointer must be inside the viewport or scrolled-away children stay clickable.
+    if (this._destroyed) return block;
+    // scrolled-away children must not stay clickable.
     let childBlock = block;
     let insideClip = true;
     if (this.clip) {
@@ -116,7 +97,7 @@ globalThis.UIElement = class UIElement {
     [...this.children].reverse().forEach((child) => {
       if (child.enabled) childBlock = child.update(childBlock) || childBlock;
     });
-    // a descendant's onUpdate may destroy this element mid-traversal — stop early.
+    // a descendant's onUpdate may destroy this element mid-traversal.
     if (this._destroyed) return block;
     // don't propagate the forced block from out-of-viewport children.
     let result = this.clip && !insideClip ? block : childBlock;
@@ -130,10 +111,9 @@ globalThis.UIElement = class UIElement {
     return result;
   }
 
-  /** draw components then children; children are scissored when `clip` is set. */
   draw() {
     if (this._destroyed) return;
-    // components (panel bg, scrollbar) draw unclipped.
+    // components draw unclipped.
     for (const component of this.components) {
       if (component.onDraw) component.onDraw(this);
     }
@@ -147,10 +127,8 @@ globalThis.UIElement = class UIElement {
   }
 
   /**
-   * gpu_set_scissor clips children directly on the back buffer — crisp SDF text, correct blending,
-   * no off-screen surface (see the gpu_set_scissor GMRT-Safe Idiom): save/restore
-   * does NOT leak. Scissor coords are render-target PIXELS; convert GUI → pixels by k = target/gui.
-   * Intersect with the current scissor so nested clips (facetScroll within facetScroll) both apply.
+   * Scissors children on the back buffer (no off-screen surface), intersected with any enclosing
+   * clip so nested clips both apply (docs/GMRT.md).
    */
   _drawClipped() {
     const pos = this.getLayoutPosition();
@@ -158,10 +136,7 @@ globalThis.UIElement = class UIElement {
     const h = Math.ceil(pos.height);
     if (!(w > 0) || !(h > 0)) return; // unlaid-out (NaN) or zero-size
 
-    // GUI lays out in design-resolution units; scissor needs render-target PIXELS (k = target/gui).
-    // Use Display.clipW/H — NOT raw window/surface queries: those lag the back buffer on a resize
-    // frame, so the old (bigger) size overflows a shrunk target → fatal "scissor not contained" error.
-    // clipW/H is always ≤ the live back buffer (see Display).
+    // the scissor is in render-target pixels, sized never to exceed the back buffer (docs/GMRT.md).
     const gw = display_get_gui_width();
     const gh = display_get_gui_height();
     const tw = Display.clipW();
@@ -169,7 +144,7 @@ globalThis.UIElement = class UIElement {
     const kx = gw > 0 ? tw / gw : 1;
     const ky = gh > 0 ? th / gh : 1;
 
-    // clip rect in target pixels, clamped so an off-canvas or stale rect never exceeds the target.
+    // clamped so an off-canvas or stale rect never exceeds the target.
     let x1 = Math.floor(pos.left) * kx;
     let y1 = Math.floor(pos.top) * ky;
     let x2 = x1 + w * kx;
@@ -179,8 +154,7 @@ globalThis.UIElement = class UIElement {
     if (x2 > tw) x2 = tw;
     if (y2 > th) y2 = th;
 
-    // intersect with any parent clip. gpu_get_scissor() returns {0,0,0,0} (not target dims) when
-    // unset — only intersect when prev is a real positive sub-rect.
+    // an unset scissor reads as {0,0,0,0} (docs/GMRT.md).
     const prev = gpu_get_scissor();
     const nested = prev.w > 0 && prev.h > 0;
     if (nested) {
@@ -194,20 +168,14 @@ globalThis.UIElement = class UIElement {
     for (const child of this.children) {
       if (child.enabled) child.draw();
     }
-    // GMRT's gpu_set_scissor does NOT flush the vertex batch, so the last item under the clip
-    // (a text run) stays pending and is only submitted by a later texture swap — by then the
-    // scissor is restored to the full target and the item renders unclipped (scrolled-list bleed).
-    // draw_flush is debug-flagged but is the only batch-flush primitive; runs once per clip per frame.
-    // Must precede the scissor restore so the flush is still inside this clip rect.
+    // BUG: [#6523] the scissor does not flush the batch: flush, then re-arm with an untextured
+    // draw, both still inside this clip (docs/GMRT.md).
     draw_flush();
-    // re-arm the pipeline with an untextured primitive while still inside this clip rect — a text
-    // run as the first draw after the flush is dropped whole (docs/GMRT.md → gpu_set_scissor, 5).
     const a0 = draw_get_alpha();
     draw_set_alpha(0);
     draw_rectangle_color(0, 0, 1, 1, c_black, c_black, c_black, c_black, false);
     draw_set_alpha(a0);
-    // replaying {0,0,0,0} (the unset sentinel) does NOT restore full drawing on GMRT — it clips
-    // everything after to an empty rect. at top level, reset to the full target explicitly.
+    // an unset scissor is never replayed (docs/GMRT.md).
     if (nested) gpu_set_scissor(prev);
     else gpu_set_scissor(0, 0, tw, th);
   }
@@ -232,7 +200,6 @@ globalThis.UIElement = class UIElement {
     return element;
   }
 
-  /** walk to root and flag dirty so the next update() recomputes layout. */
   markDirty() {
     let root = this;
     while (root.parent !== null) {
@@ -241,7 +208,7 @@ globalThis.UIElement = class UIElement {
     root.dirty = true;
   }
 
-  /** recompute flex layout from root; no-op on non-root nodes. */
+  /** No-op on a non-root node. */
   refresh() {
     if (!this.parent) {
       const w = display_get_gui_width();
@@ -251,15 +218,11 @@ globalThis.UIElement = class UIElement {
     this.dirty = false;
   }
 
-  /**
-   * flex-computed rect + own drag + all ancestor scroll/drag — single chokepoint for draw+hit-test.
-   */
+  /** The one rect both draw and hit-test use: layout plus every scroll/drag offset. */
   getLayoutPosition() {
     const pos = flexpanel_node_layout_get_position(this.flexpanel, false);
-    // own drag offset moves this element and its subtree.
     if (this.dragX) pos.left += this.dragX;
     if (this.dragY) pos.top += this.dragY;
-    // accumulate ancestor scroll/drag so this chokepoint applies them without flex mutation.
     let p = this.parent;
     while (p !== null) {
       if (p.scrollX) pos.left -= p.scrollX;
@@ -295,9 +258,8 @@ globalThis.UIElement = class UIElement {
     return this;
   }
 
-  // BUG: [#15065] these setters stay commented: nothing calls them (kit uses draw-time
-  // offset math), and enabling all ~45 would breach the 50-method ceiling.
-  // enable individual ones on demand, watching the count.
+  // BUG: [#15065] the style accessors below stay commented out: enabling them all would breach
+  // the class method ceiling (docs/GMRT.md). Enable one on demand, minding the count.
 
   // setMinWidth(value, unit) {
   //   flexpanel_node_style_set_min_width(this.flexpanel, value, unit);

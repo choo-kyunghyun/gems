@@ -1,9 +1,7 @@
 /**
  * Static A* planner over a `Grid` of cell costs (≥ 1 = walkable, weighted; Infinity = blocked).
- * Stateless: `plan` takes a `nav` — anything carrying the `grid` and a `scratch` record built by
- * `scratch(count)` for that grid's size (NavGrid holds both, in the level's cache) — so the
- * level-sized working arrays live with the level and a map switch binds nothing here. Consumer:
- * `PathfindingSystem`.
+ * Stateless: `plan` takes a `nav` carrying the `grid` and a `scratch(count)` record for its size,
+ * so the level-sized working arrays live with the level and a map switch binds nothing here.
  */
 globalThis.MotionPlanner = {
   SQRT_2: Math.sqrt(2),
@@ -36,18 +34,11 @@ globalThis.MotionPlanner = {
   ],
 
   /**
-   * The working record a plan over a `count`-cell grid reuses — g/from/closed per cell and the
-   * path scratch; `stamp`/`gen`, the per-plan generation (a cell's g/from/closed are live only
-   * while `stamp[i]` equals the plan's `gen`, so nothing is cleared between plans — a fill over
-   * the level is a VM loop even on a typed array, ~10 ms per plan on a 128² level (testRuntime
-   * perf.measured, array.fill)); the open set `hn`/`hf`, a binary min-heap as parallel node/f
-   * arrays whose live length is a local in `plan` (in JS rather than ds_priority so a plan holds
-   * no GML resource and pays no boundary crossing per op, sifted INLINE in the loop — a push per
-   * neighbour is too hot for a call, testRuntime perf.measured); and `iters`, the expansions the
-   * last plan spent (what a time budget and `perf.plan` divide by).
-   * PLAIN arrays, not typed: a typed element read costs ~20x a plain one on this runtime
-   * (testRuntime perf.access, `read.typed` vs `read.array`), and the expansion loop is all
-   * scratch reads. Typed would only pay for the memory, which a level-sized array does not need.
+   * The working record a plan reuses. A cell's g/from/closed are live only while its `stamp`
+   * equals the plan's `gen`, so nothing is cleared between plans — a level-sized fill is too slow.
+   * The open set `hn`/`hf` is a binary min-heap as parallel arrays, in JS so a plan holds no GML
+   * resource. `iters` is the expansions the last plan spent. Plain arrays, not typed: a typed read
+   * costs far more on this runtime, and the loop is all scratch reads.
    * TODO typed scratch is an option again when `read.typed` reaches `read.array`.
    */
   scratch(count) {
@@ -65,17 +56,12 @@ globalThis.MotionPlanner = {
   },
 
   /**
-   * The cells from `start` to `goal` inclusive (grid coords), or `[]` when either end is out of
-   * bounds or blocked, or the goal is unreachable within `opt.maxIter` expansions. `opt`:
-   * `allowDiag` (octile moves; with `cornerCutting` a diagonal may pass between two blocked
-   * cells), `heuristicWeight` (> 1 trades optimality for fewer expansions on a far plan),
-   * `maxIter`.
+   * The cells from `start` to `goal` inclusive, or `[]` when either end is out of bounds or
+   * blocked, or the goal is unreachable within `opt.maxIter` expansions. `opt.heuristicWeight`
+   * > 1 trades optimality for fewer expansions.
    *
-   * The expansion loop is written FLAT on purpose — the grid accessors, the heuristic and the
-   * heap are inlined and the neighbour scan indexes `grid.data` directly. A static-method call
-   * and an object literal each cost about a hundred plain reads here (testRuntime perf.measured), so
-   * the call-per-neighbour form this replaced spent most of an expansion on the boundary rather
-   * than on the search. Keep it flat; `perf.plan` is the row that says what it costs.
+   * The expansion loop is flat on purpose: a call or an object literal costs about a hundred plain
+   * reads on this runtime, so accessors, heuristic and heap are inlined. Keep it flat.
    */
   plan(nav, start, goal, opt = {}) {
     const grid = nav.grid;
@@ -116,10 +102,10 @@ globalThis.MotionPlanner = {
     const gen = ++sc.gen;
     const hn = sc.hn;
     const hf = sc.hf;
-    let hlen = 0; // the heap's live length, owned here so a push is not an array-length call
+    let hlen = 0; // a local, so a push is not an array-length call
 
-    // octile's diagonal discount folds to 0 for cardinal, so one heuristic serves both with no
-    // branch per push; `?:` only — a bare variable must never be a `&&` left operand (GMRT.md #15549)
+    // octile's diagonal discount folds to 0 for cardinal, so one heuristic serves both.
+    // BUG: [#15549] `?:`, never a bare variable as a `&&` left operand (docs/GMRT.md).
     const diagK = allowDiag ? MotionPlanner.SQRT_2 - 2 : 0;
     const checkCorner = allowDiag ? (cornerCutting ? 0 : 1) : 0;
 
@@ -144,7 +130,6 @@ globalThis.MotionPlanner = {
     while (hlen > 0) {
       if (++iter > maxIter) break;
 
-      // pop the min-f node: take the root, sift the tail down into it
       const node = hn[0];
       const last = --hlen;
       if (last > 0) {
@@ -166,7 +151,7 @@ globalThis.MotionPlanner = {
         hf[i] = lf;
       }
 
-      if (closed[node] === 1) continue; // pushed ⇒ stamped this plan, so closed is live
+      if (closed[node] === 1) continue; // pushed implies stamped this plan, so closed is live
       closed[node] = 1;
 
       if (node === goalIdx) {
@@ -194,7 +179,6 @@ globalThis.MotionPlanner = {
         const cellCost = data[ni];
         if (cellCost === Infinity) continue;
 
-        // a diagonal may not pass between two blocked cells unless cornerCutting says it may
         if (checkCorner === 1)
           if (dx !== 0)
             if (dy !== 0) {
@@ -202,7 +186,7 @@ globalThis.MotionPlanner = {
               if (data[ni - dx] === Infinity) continue;
             }
 
-        // nested, not `touched && …`: the short-circuit corrupts its left operand (GMRT.md #15549)
+        // BUG: [#15549] nested, not `touched && …` (docs/GMRT.md).
         const touched = stamp[ni] === gen;
         if (touched) if (closed[ni] === 1) continue;
 
@@ -216,7 +200,6 @@ globalThis.MotionPlanner = {
         from[ni] = node;
         g[ni] = tg;
 
-        // push (ni, f): sift the hole up to where f belongs
         const adx = gx > nx ? gx - nx : nx - gx;
         const ady = gy > ny ? gy - ny : ny - gy;
         const f =

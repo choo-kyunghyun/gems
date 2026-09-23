@@ -5,9 +5,8 @@ globalThis.INPUT_AXIS_MODE = Object.freeze({
 });
 
 /**
- * One analog binding of an InputAction (gamepad stick axis or trigger). value() returns the RAW
- * axis — a caller thresholds it itself (PlayerSystem's STICK_DEADZONE) — through the Input pad
- * queries, so it reads 0 while menu navigation holds the pad (the distribution contract — Input).
+ * One analog binding of an input action: a gamepad stick axis or trigger. value() returns the raw
+ * axis — the caller thresholds it — and reads 0 while menu navigation holds the pad.
  */
 globalThis.InputAxis = class InputAxis {
   constructor(mode, axis, device = 0) {

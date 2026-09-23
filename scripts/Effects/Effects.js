@@ -1,19 +1,18 @@
 /**
  * On-demand status verbs over an entity's StatusEffects.
  *
- * Stat-model coupling is ONE injected hook (like Combat.mitigate): a `mods`-bearing status only affects
- * derived Stats once the game re-derives, so apply/remove (and StatusSystem's expiry) call
- * onStatsChanged (default no-op; the Game wires StatModel.recompute). dot/hot and live `mult` need
- * no recompute — they act directly / are read live.
+ * The stat model is coupled through one injected hook: a `mods`-bearing status affects derived
+ * stats only once the game re-derives, so adding or removing one calls onStatsChanged. A live
+ * `mult` needs no re-derive; it is read live.
  */
 globalThis.Effects = {
-  // Injected re-derive hook (mirrors Combat.mitigate / Consumption.grantAttr). Default no-op; read
-  // off the global so the game's override is always seen.
+  // injected re-derive hook, a no-op until a game overrides it; read off the global so the
+  // override is always seen
   onStatsChanged(entities, id) {},
 
   /**
-   * Add or refresh a timed status (opts.duration overrides the def; 0/undefined = non-expiring). Refresh
-   * keeps the LONGER remaining (no magnitude stacking yet). Re-derives if the def carries `mods`.
+   * `opts.duration` overrides the def's; 0 never expires. A refresh keeps the longer remaining
+   * time and never stacks magnitude.
    */
   apply(entities, id, statusId, opts) {
     const def = Status.get(statusId);
@@ -38,9 +37,7 @@ globalThis.Effects = {
     return true;
   },
 
-  /**
-   * Remove by id; re-derives if the def carried `mods`. Returns whether it was present.
-   */
+  /** Returns whether it was present. */
   remove(entities, id, statusId) {
     const eff = entities.get(id, StatusEffects);
     if (eff === undefined) return false;
@@ -54,9 +51,8 @@ globalThis.Effects = {
   },
 
   /**
-   * Maintain a LIVE-driven status: `mult` ensures a permanent instance with that dynamic magnitude (lives
-   * on the INSTANCE so the driver can refresh it each tick — the encumbrance path); null/undefined removes
-   * it. Never re-derives — a maintained status carries no `mods`, it's read live by scale().
+   * A live-driven status: `mult` lives on the instance so its driver can refresh it each tick;
+   * null removes it. Never re-derives, since a maintained status carries no `mods`.
    */
   maintain(entities, id, statusId, mult) {
     if (mult === null || mult === undefined) {
@@ -76,18 +72,13 @@ globalThis.Effects = {
     }
   },
 
-  /**
-   * Live array of active instances (or []) — for the HUD. Static data via Status.get(entry.id).
-   */
+  /** The live array of active instances; do not mutate it. */
   list(entities, id) {
     const eff = entities.get(id, StatusEffects);
     return eff !== undefined ? eff.list : [];
   },
 
-  /**
-   * Combined multiplicative factor for one stat `key` (instance `mult` wins over the def's), default 1.
-   * The mover reads this for "speed" so speed statuses compose by multiplication. Read live each use.
-   */
+  /** Statuses compose by multiplication; an instance's `mult` wins over its def's. */
   scale(entities, id, key) {
     const eff = entities.get(id, StatusEffects);
     if (eff === undefined) return 1;

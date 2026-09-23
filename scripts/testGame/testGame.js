@@ -1,25 +1,21 @@
-// Game-side cases (Test → GAME): what the PINNED runtime does with a Game asset where the doc
-// entry (docs/SPINE.md, docs/GMRT.md) names a defect and the code carries the workaround, each
-// FAIL line naming the workaround to retire when it flips. The Core tiers may not touch these
-// assets.
+// Game-side cases: what the pinned runtime does with a Game asset where docs/SPINE.md or
+// docs/GMRT.md names a defect and the code carries the workaround; each FAIL line names the
+// workaround to retire when it flips.
 
 const DOLL_X = 240; // in view, so the puppet draws and the runtime poses it
 const DOLL_Y = 360;
 const IDLE_SAMPLES = [0, 5, 10]; // `image_index` marks across idle0's 16 image frames
 
-/** worldAngleX of one bone off the puppet's current pose, through a caller-owned map. */
+/** Reads through a caller-owned map. */
 function _testBoneAngle(inst, map, bone) {
   inst.skeleton_bone_state_get(bone, map);
   return ds_map_find_value(map, "worldAngleX");
 }
 
 Test.register(Test.GAME, [
-  // ── spine.constraint: a transform constraint moves its bone ──────────────────
-  // spineHuman's `footRAngle` binds footR's rotation to legRo's, and idle0 keys footR's
-  // translation only: legRo swings with the leg's path as the foot lifts, so an APPLIED
-  // constraint turns footR with it and an inert one leaves footR on its setup angle. The
-  // runtime poses the rig when the puppet draws, so a sample reads the mark set the frame
-  // before.
+  // A transform constraint binds footR's rotation to legRo's, and idle0 keys footR's translation
+  // only, so an applied constraint turns footR as legRo swings. The rig is posed when the puppet
+  // draws, so a sample reads the mark set the frame before.
   {
     id: "spine.constraint",
     frames: IDLE_SAMPLES.length + 1,
@@ -34,7 +30,7 @@ Test.register(Test.GAME, [
       ctx.foot = [];
     },
     frame(ctx, i) {
-      if (i === 0) return; // the pose lands on the first draw
+      if (i === 0) return;
       ctx.leg.push(_testBoneAngle(ctx.inst, ctx.map, "legRo"));
       ctx.foot.push(_testBoneAngle(ctx.inst, ctx.map, "footR"));
       if (i < IDLE_SAMPLES.length) ctx.inst.image_index = IDLE_SAMPLES[i];
@@ -52,7 +48,7 @@ Test.register(Test.GAME, [
         if (Math.abs(leg[k] - leg[0]) > 0.5) legMoves = true;
         if (Math.abs(foot[k] - foot[0]) > 0.5) footMoves = true;
       }
-      // the control: the rig IS posed (legRo turns across idle0), else the reading below is void
+      // the control: unless the rig is posed, the reading below is void.
       t.ok(
         legMoves,
         "legRo holds one angle across idle0: the rig is not posed " + leg,
@@ -69,10 +65,8 @@ Test.register(Test.GAME, [
       instance_destroy(ctx.inst);
     },
   },
-  // ── spine.speed: a set plays in its authored seconds ──────────────────────────
-  // Rig.speed rests on `image_number` being the bound set's length in image
-  // frames at the sheet's speed: one pass at rate 1 must take `skeleton_animation_get_duration`
-  // seconds, whatever frame rate the rig was exported at.
+  // A set plays in its authored seconds whatever frame rate the rig was exported at: this rests
+  // on `image_number` being the set's length in image frames at the sheet's speed.
   {
     id: "spine.speed",
     frames: 1,
@@ -101,15 +95,8 @@ Test.register(Test.GAME, [
       instance_destroy(ctx.inst);
     },
   },
-  // ── audio.groups: the two audio groups load at boot and carry the category gains ──
-  // Only audiogroup_default loads on its own: Audio.init loads audiogroup_sfx and
-  // audiogroup_track, and the volume sliders are those groups' gains (a 50 ms ramp on the
-  // track's), so a cue plays only from a loaded group and a track lands in its own. The case
-  // reads the groups the assets declare through their names — a group id is not `===`-safe.
-  // ── puppet.draw: a rigged puppet's mask is the instance's scale, its draw the matrix's ──
-  // RenderBillboard draws a puppet at its own x/y under image_xscale = the MASK's scale, undone
-  // by the world matrix T(-p)·S·R·T(p) (the colony's dolls are the visual check). Here a doll
-  // draws that way beside a plain reference, and the bbox reads the mask.
+  // A rigged puppet's mask is the instance's scale and its draw the world matrix's, which
+  // undoes that scale; the bbox reads the mask.
   {
     id: "puppet.draw",
     frames: 2,
@@ -151,6 +138,8 @@ Test.register(Test.GAME, [
       instance_destroy(ctx.doll);
     },
   },
+  // Only the default audio group loads on its own; the others load at boot and carry the
+  // category gains. Groups are compared by name — a group id is not `===`-safe.
   {
     id: "audio.groups",
     frames: 6, // the 50 ms ramp on the track gain settles within a few frames
@@ -185,11 +174,8 @@ Test.register(Test.GAME, [
       audio_group_set_gain(audiogroup_track, ctx.track, 0);
     },
   },
-  // ── puppet.area: the area collision queries find a Puppet ─────────────────────
-  // The runtime's area queries skip an instance whose object has no editor sprite, whatever
-  // sprite it is given at runtime (docs/GMRT.md); Puppet carries pixMissing as its editor
-  // sprite for that reason, and this case guards it — a puppet sprited the Rig way (a Spine
-  // sprite) and one with a plain sprite must both answer the three queries at their bbox.
+  // Area queries skip an instance whose object has no editor sprite (docs/GMRT.md), so Puppet
+  // carries one; a Spine-sprited and a plain-sprited puppet must both answer at their bbox.
   {
     id: "puppet.area",
     frames: 2, // the Spine bbox lands after the first draw
@@ -206,7 +192,7 @@ Test.register(Test.GAME, [
       ctx.pix.draw_self();
     },
     verify(ctx, t) {
-      // instance-scoped: a collision query needs an instance self (the runner is a struct)
+      // a collision query needs an instance self.
       const probe = (inst, tag) => {
         const l = inst.bbox_left;
         const r = inst.bbox_right;

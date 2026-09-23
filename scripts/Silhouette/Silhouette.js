@@ -2,26 +2,24 @@
  * The shape the player sees an entity as, and cursor tests over it.
  *
  * A pitched view splits an entity's shape in two: the sim's footprint lies on the ground, while
- * a body is DRAWN standing off it (RenderBillboard's STANDING pass), so the two cover different
- * screen pixels and only the drawn one is what a click means.
+ * a body is drawn standing off it, so the two cover different screen pixels and only the drawn
+ * one is what a click means.
  *
  * Both live here as ONE box in SILHOUETTE SPACE — `{left, right, bottom, top}` measured from the
  * entity's foot (Position): left/right along world x, bottom/top as height UP the silhouette.
  * That space is the screen with the perspective divided out: world x reaches it untouched, and
  * a ground cursor `c` sits at height `a = (pos.y − c.y)·cos(pitch)` over the foot — the inverse
- * of the standing pass's own projection (RenderBillboard.tall), so a box built from the drawn
- * sprite and a box built from the flat footprint are directly comparable. One rect, two sources:
+ * of the standing projection, so a box built from the drawn sprite and one built from the flat
+ * footprint are directly comparable:
  *   STANDING   a Visual or Skeleton sprite — its drawn extent, origin at the foot
  *   GROUND     no sprite (a Mesh prop, a bare collider) — its BBox, flattened by cos(pitch)
  *
  * `of`/`ofInto` answer the standing box alone (undefined where there is none — a caller that
  * DRAWS must know which plane it got); `hit` tests the shape the player sees, either source.
- * Cursors here are GROUND-plane points (View.cursorWorld with no argument), never the aim
- * plane: the height IS the answer this reads.
+ * Cursors here are ground-plane points, never the aim plane: the height IS the answer this reads.
  */
 globalThis.Silhouette = {
-  // hit()'s own box, reused per test (docs/ARCHITECTURE.md → Hot-path idioms) — a caller that
-  // keeps a box past the call passes its own (Silhouette.box)
+  // hit()'s own box, reused per test (docs/ARCHITECTURE.md → Hot-path idioms)
   _box: { left: 0, right: 0, bottom: 0, top: 0 },
 
   /** A zeroed box, for the `*Into` calls — one owner for the shape. */
@@ -36,10 +34,9 @@ globalThis.Silhouette = {
 
   /**
    * The STANDING box of a drawn body into `out`, or undefined when the entity draws no sprite.
-   * The sprite's own frame and origin are the silhouette (a Spine sheet reports both soundly;
-   * it has no frame count), scaled by the draw scale, whose x sign
+   * The sprite's own frame and origin are the silhouette, scaled by the draw scale, whose x sign
    * is facing — so the extents come out of a min/max, not an abs, and a rig drawn off-centre
-   * (spineRat) keeps its longer side ahead.
+   * keeps its longer side ahead.
    */
   ofInto(entities, id, out) {
     let sprite;
@@ -108,7 +105,7 @@ globalThis.Silhouette = {
     const ignore = opts.ignore;
     const each = (id, pos) => {
       if (id === ignore) return;
-      if (pos.y <= bestY) return; // a nearer hit already stands — no need to test this one
+      if (pos.y <= bestY) return; // a nearer hit already stands
       if (!Silhouette.hit(entities, id, pos, c, pitch)) return;
       bestY = pos.y;
       bestId = id;

@@ -1,23 +1,18 @@
 /**
  * @implements {UIComponent}
- * Slot grid with hover + single selection (inventory foundation). Whole grid drawn
- * immediate-mode across one element (no child-per-slot), so a large inventory is cheap.
- * `items` is a flat array of { sprite, subimg, count, color, borderColor?, badge?, badgeColor? }
- * or null — `borderColor` overrides the grid border per cell (rarity tint), `badge` is a short
- * corner marker ("E"/"*"). `sprite` MUST be raster — SVG sprites report 0 frames + fault
- * draw_sprite on GMRT (see CLAUDE.md).
+ * Slot grid with hover and single selection, drawn immediate-mode across one element so a large
+ * inventory stays cheap. `items` is a flat array of { sprite, subimg, count, color, borderColor?,
+ * badge?, badgeColor? } or null; `borderColor` overrides the grid border per cell and `badge` is a
+ * short corner marker. `sprite` must be raster (docs/GMRT.md).
  *
- * Browse mode: `navActivate` enters it; the grid then owns the arrows (a 2D slot cursor,
- * confirm → onActivate). It claims the keys via `UINav.claimKeys(this)` each frame — a
- * per-frame REQUEST UINav consumes, so a stale claim lapses (same contract as UITable).
- * Edge reads come from the shared `UINav.readEdge()`.
+ * `navActivate` enters browse mode, where the grid owns the arrows as a 2D slot cursor. The key
+ * claim is re-requested every frame, so a stale claim lapses on its own.
  *
- * GMRT: hover/selection read live each frame (no cached primitive bool to clobber).
+ * Hover and selection are read live each frame, never cached in a boolean (docs/GMRT.md).
  */
 globalThis.UISlots = class UISlots {
-  /** s: { items, cols, cellSize, gap, pad, selected, onSelect, onActivate, draggable, font, rad, slotColor, slotHover, borderColor, selectColor, countColor } */
   constructor(s = {}) {
-    this.items = s.items ?? []; // flat array; entry is item-or-null
+    this.items = s.items ?? []; // entry is item-or-null
     this.cols = s.cols ?? 4;
     this.cellSize = s.cellSize ?? 64;
     this.gap = s.gap ?? 8;
@@ -25,27 +20,24 @@ globalThis.UISlots = class UISlots {
     this.selected = s.selected ?? -1;
     this.onSelect = s.onSelect ?? noop;
     this.onActivate = s.onActivate ?? noop; // browse-mode confirm on the cursor slot
-    this.draggable = s.draggable ?? false; // opt into SlotDrag pick-up/drop
+    this.draggable = s.draggable ?? false;
     this.font = s.font ?? -1;
     this.rad = s.rad ?? 6;
 
     this.slotColor = s.slotColor ?? c_dkgray;
     this.slotHover = s.slotHover ?? c_gray;
     this.borderColor = s.borderColor ?? c_gray;
-    this.selectColor = s.selectColor ?? c_white; // selection outline
+    this.selectColor = s.selectColor ?? c_white;
     this.countColor = s.countColor ?? c_white;
 
-    this._hover = -1; // hovered slot index, -1 = none
-    this._inside = false; // instance field, not a local bool — see onUpdate (GMRT)
-    this._browsing = false; // keyboard/gamepad browse mode (navActivate enters)
-    this._cursor = 0; // browse-mode slot cursor
+    this._hover = -1;
+    this._inside = false; // a field, not a local boolean (docs/GMRT.md)
+    this._browsing = false;
+    this._cursor = 0;
     this._mx = -1; // last pointer position — a move hands browse back to the mouse
     this._my = -1;
   }
 
-  /**
-   * top-left of slot i in gui space, relative to the laid-out rect.
-   */
   _slotXY(pos, i) {
     const step = this.cellSize + this.gap;
     return {
@@ -59,23 +51,20 @@ globalThis.UISlots = class UISlots {
     const mx = Input.pointer.x;
     const my = Input.pointer.y;
 
-    // hit-test into INSTANCE fields, not boolean local consts — on GMRT a local bool
-    // can flip true→false mid-function (see CLAUDE.md).
+    // an instance field, not a boolean local (docs/GMRT.md)
     this._inside = !block && element.positionMeeting(mx, my);
     const moved = mx !== this._mx || my !== this._my;
     this._mx = mx;
     this._my = my;
 
-    // browse mode owns input while latched; a pointer move/click hands control back to the
-    // mouse. Re-requests nav suspension each frame and absorbs that frame's keys (incl. the
-    // exit Esc) — same contract as UITable browse mode.
+    // browse mode owns input and absorbs the frame's keys; a pointer move or click takes over
     if (this._browsing) {
       if (moved || (this._inside && Input.pointer.left.pressed)) {
-        this._browsing = false; // pointer takes over → fall through to mouse handling
+        this._browsing = false;
       } else {
         this._hover = -1; // no stale mouse hover under the key cursor
         this._browseKeys();
-        UINav.claimKeys(this); // re-request nav suspension THIS frame (self-healing)
+        UINav.claimKeys(this); // per frame, so a stale claim lapses
         return true;
       }
     }
@@ -101,7 +90,6 @@ globalThis.UISlots = class UISlots {
     }
 
     if (this.draggable) {
-      // filled slot → pick up; empty slot → select.
       if (this._inside && this._hover >= 0 && Input.pointer.left.pressed) {
         if (this.items[this._hover] != null) {
           SlotDrag.begin(this, this._hover);
@@ -110,8 +98,7 @@ globalThis.UISlots = class UISlots {
         }
         return true;
       }
-      // report the hovered slot as drop target; SlotDrag.update resolves on release
-      // using the last reported slot — drift-forgiving.
+      // the drop resolves on the last reported slot, forgiving drift on release
       if (SlotDrag.active && this._inside && this._hover >= 0) {
         SlotDrag.hover(this, this._hover);
         return true;
@@ -128,11 +115,9 @@ globalThis.UISlots = class UISlots {
     this.onSelect(i, this.items[i]);
   }
 
-  // ── nav ─────────────────────────────────────────────────────
-  // confirm enters browse mode; its presence marks the element focusable (UINav duck-typing)
+  // its presence marks the element focusable
   navActivate(element) {
     this._browsing = true;
-    // seed the cursor on the current selection, else the first slot
     this._cursor =
       this.selected >= 0 && this.selected < this.items.length
         ? this.selected
@@ -157,9 +142,6 @@ globalThis.UISlots = class UISlots {
     if (e.confirm) this.onActivate(this._cursor, this.items[this._cursor]);
   }
 
-  /**
-   * Release the browse-mode key claim on teardown.
-   */
   onDestroy(element) {
     UINav.releaseClaim(this);
   }
@@ -175,7 +157,6 @@ globalThis.UISlots = class UISlots {
       const x1 = p.x + sz;
       const y1 = p.y + sz;
 
-      // cell background (the browse cursor highlights like a hover).
       const bg =
         i === this._hover || (this._browsing && i === this._cursor)
           ? this.slotHover
@@ -192,9 +173,8 @@ globalThis.UISlots = class UISlots {
         false,
       );
 
-      // icon (raster only — an invalid subimg or SVG sprite is the caller's bug and faults
-      // loudly rather than being clamped away). CONTAIN fit inside the cell's inner box: a
-      // non-square icon (wide gun / tall item) keeps its shape instead of being squished.
+      // a bad subimg or sprite is the caller's bug and faults loudly; a contain fit keeps a
+      // non-square icon's shape
       const it = this.items[i];
       if (it != null && it.sprite != null && sprite_exists(it.sprite)) {
         const box = sz - this.pad * 2;
@@ -218,11 +198,9 @@ globalThis.UISlots = class UISlots {
         );
       }
 
-      // 2px accent outline if selected, else 1px border.
       if (i === this.selected) {
         drawUIOutline(p.x, p.y, x1, y1, this.rad, this.selectColor, 2);
       } else {
-        // per-item border (rarity tint) wins over the grid default
         const bc =
           it != null && it.borderColor != null
             ? it.borderColor
@@ -241,7 +219,7 @@ globalThis.UISlots = class UISlots {
       }
     }
 
-    // counts + corner badges drawn last so the selection outline never covers them.
+    // drawn last so the selection outline never covers them
     const fnt = resolveUIFont(this.font);
     if (fnt !== -1) draw_set_font(fnt);
     draw_set_halign(fa_right);

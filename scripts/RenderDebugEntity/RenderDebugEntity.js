@@ -3,15 +3,13 @@
 const BATCH_VERTS = 1000;
 
 /**
- * lime BBox outlines, one linelist batch per 125 entities. insert after the entity pass.
+ * Debug bbox outlines. Insert after the entity pass.
  * @implements {RenderPass}
  */
 globalThis.RenderDebugEntity = class RenderDebugEntity {
   constructor() {
-    // overlay scenes insert this disabled and flip it to inspect; RTS keeps it
-    // enabled as its only entity renderer.
     this.enabled = true;
-    this._rect = AABB.rect(); // the box walk's scratch
+    this._rect = AABB.rect(); // scratch
   }
 
   destroy() {}

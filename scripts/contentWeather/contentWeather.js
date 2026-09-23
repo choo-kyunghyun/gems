@@ -1,7 +1,6 @@
-// Colony sky defs — the content for the Weather registry: the conditions the open sky rolls
-// between, each with its look, its Kelvin delta and its per-season roll weight. The first is the
-// settled default a fresh world starts on. Registered by content.register (NOT top-level — GMRT
-// load-order). Def shape at Weather.register.
+// Colony sky defs: the conditions the open sky rolls between, each with its look, its Kelvin
+// delta and its per-season roll weight. The first is the settled default a fresh world starts on.
+// Registered from register(), not at top level (load order — docs/GMRT.md).
 globalThis.contentWeather = {
   register() {
     Weather.register([

@@ -1,29 +1,20 @@
 /**
- * The doll: derives a humanoid's gear overlay from its Equipment (`rebuild`, called by
- * Loadout and after a carried sheet lands via Row.apply) and pushes any
- * Appearance onto that entity's Spine puppet (`update`, once per frame after SkeletonSystem has
- * minted). No-op for entities without an Appearance — opt-in, skeletal humanoids only.
+ * The doll: derives a humanoid's gear overlay from its Equipment and dresses its Spine puppet
+ * with it. Opt-in: an entity without an Appearance is untouched.
  *
- * Two layers compose per dress slot (Appearance): the authored base `slots`, which rebuild never
- * touches, under the `gear` overlay it re-derives WHOLESALE from the equipped items — so a slot
- * whose claim goes away falls back to the base with no memory. WHICH slots an item claims is the
- * item's own to say (`Equippable.worn` as an object — a one-piece occupying shirt AND pants);
- * a plain string lands on its gear slot's default in SLOT.
+ * Two layers compose per dress slot: the authored base, which rebuild never touches, under the
+ * gear overlay it re-derives wholesale from the equipped items, so a slot whose claim goes away
+ * falls back to the base with no memory. An item names the slots it claims (`worn` as an
+ * object); a plain string lands on its gear slot's default.
  *
- * Everything about WHERE gear goes is read, never declared: the rig says which slots are
- * dressable (the ones its setup pose leaves empty) and which bone each rides, the bone's setup
- * rotation comes off the sheet (Rig.info), and a garment sits with its own SPRITE
- * ORIGIN on that bone — so placing a piece is an origin edit in the sprite editor, and a new rig
- * or slot is nothing here.
- *
- * An Equippable shows on the doll when its `worn` names an existing sprite, and the WEAPON slot
- * needs no worn art at all: an unset `worn` falls back to the item's own icon in the hand slot,
- * so every weapon gets a held visual with zero dedicated art.
+ * Where gear goes is read, never declared: a rig's dress slots are those its setup pose leaves
+ * empty, and a garment sits with its own sprite origin on the slot's bone, so placing a piece is
+ * an origin edit and a new rig or slot needs nothing here. A weapon with no worn art shows its
+ * item icon in the hand.
  */
 globalThis.AppearanceSystem = {
-  // Equipment slot -> its DEFAULT spineHuman slot: where a plain-string `worn` lands. An object
-  // `worn` names its slots itself and ignores this. Declaration order is also the overlay merge
-  // order — on a claim conflict the later gear slot wins.
+  // Equipment slot -> the dress slot a plain-string `worn` lands on. Declaration order is the
+  // merge order: on a claim conflict the later gear slot wins.
   SLOT: {
     weapon: "primary",
     armor: "outer",
@@ -31,10 +22,9 @@ globalThis.AppearanceSystem = {
     trinket: "hat",
   },
 
-  // skeleton sprite name -> its dress slots (see _rig); rig data never changes within a run
+  // skeleton sprite name -> its dress slots; rig data never changes within a run
   _rigs: {},
 
-  /** Re-derive the gear overlay from scratch. Authored base outfits are never touched. */
   rebuild(entities, id) {
     const ap = entities.get(id, Appearance);
     if (ap === undefined) return;
@@ -48,7 +38,7 @@ globalThis.AppearanceSystem = {
     ap.dirty = true;
   },
 
-  /** Dress every puppet whose map changed — or whose puppet was re-minted under it. */
+  /** Dresses every puppet whose look changed or that was re-minted. */
   update(level) {
     const entities = level.entities;
     entities.forEach([Appearance, Instance], (id, ap, held) => {
@@ -58,8 +48,7 @@ globalThis.AppearanceSystem = {
   },
 
   /**
-   * Push the composed look onto one puppet. EVERY dress slot is written: a slot that lost its
-   * claim has to fall back (base art, or bare), and re-creating an attachment just redefines it.
+   * Writes every dress slot: a slot that lost its claim has to fall back to base art or bare.
    */
   apply(entities, id, inst) {
     const ap = entities.get(id, Appearance);
@@ -69,7 +58,7 @@ globalThis.AppearanceSystem = {
     for (let i = 0; i < rig.length; i++) {
       const slot = rig[i];
       let spr = gear[slot.name];
-      if (spr === undefined) spr = ap.slots[slot.name]; // unclaimed — the base layer shows
+      if (spr === undefined) spr = ap.slots[slot.name]; // unclaimed: the base layer shows
       if (spr === undefined || !sprite_exists(spr)) {
         inst.skeleton_attachment_set(slot.name, -1); // the manual's clear; "" is not one
         continue;
@@ -80,11 +69,8 @@ globalThis.AppearanceSystem = {
   },
 
   /**
-   * The dress slots of a rig, derived once per sprite off its sheet (Rig.info): every
-   * slot the setup pose leaves EMPTY (the body parts are authored and stay), with `rot` — minus
-   * the setup world rotation of the bone it rides — which every attachment on that bone carries
-   * to draw upright — the manual's `_create` origin args are bone-local, the sprite's own origin
-   * ignored.
+   * Every slot the setup pose leaves empty, cached per sprite. `rot` undoes the bone's setup
+   * world rotation, so an attachment on it draws upright.
    *
    * @returns {{name: string, rot: number}[]}
    */
@@ -103,7 +89,7 @@ globalThis.AppearanceSystem = {
     return rig;
   },
 
-  /** A bone's setup world rotation: its local rotation plus every ancestor's, up to the root. */
+  /** A bone's setup world rotation. */
   _angle(info, bone) {
     let sum = 0;
     while (bone != null) {
@@ -115,7 +101,6 @@ globalThis.AppearanceSystem = {
     return sum;
   },
 
-  /** A bone's setup record off the sheet, by name. */
   _bone(info, name) {
     for (let i = 0; i < info.bones.length; i++)
       if (info.bones[i].name === name) return info.bones[i];
@@ -123,16 +108,13 @@ globalThis.AppearanceSystem = {
   },
 
   /**
-   * Mount one sprite on one slot, its origin on the slot's bone. The origin args are bone-local
-   * Spine coordinates, and the runtime centres the packer-TRIMMED rect there after subtracting
-   * the trim in that same frame (docs/SPINE.md) — so give the trim back, then move the trimmed
-   * centre onto the sprite's origin: an image-space vector, y flipped and turned by `rot` into
-   * the bone frame, shrunk with the art. Every term is read off the sprite, so the art's authored
-   * framing and origin are what the doll shows, trimmed or not.
+   * Mounts a sprite with its own origin on the slot's bone. The runtime centres the trimmed
+   * rect at bone-local coordinates (docs/SPINE.md), so the offset gives the trim back and moves
+   * that centre onto the sprite origin; the doll shows the art's authored framing, trimmed or
+   * not.
    */
   _attach(inst, slot, spr) {
-    // one name per (slot, sprite): the definition behind it never changes, so a redefine is a
-    // no-op we can skip rather than a correctness risk
+    // one name per (slot, sprite): its definition never changes, so a repeat is skipped
     const name = "a_" + slot.name + "_" + sprite_get_name(spr);
     if (inst.skeleton_attachment_get(slot.name) === name) return;
     // attachment scale is rig-pixel space, so the density RATIO keeps the art's world size:
@@ -143,8 +125,7 @@ globalThis.AppearanceSystem = {
     const dy = (uv[5] + (sprite_get_height(spr) * uv[7]) / 2 - sprite_get_yoffset(spr)) * k;
     const c = Math.cos((slot.rot * Math.PI) / 180);
     const s = Math.sin((slot.rot * Math.PI) / 180);
-    // a standing definition is identical (the name carries the sprite), so it is only pointed at;
-    // re-creating it would throw (a name stays taken until `_destroy`, per the manual)
+    // a standing definition is identical, so it is only pointed at; re-creating it would throw
     if (!inst.skeleton_attachment_exists(name))
       inst.skeleton_attachment_create(
         name,
@@ -160,9 +141,8 @@ globalThis.AppearanceSystem = {
   },
 
   /**
-   * Merge one equipped uid's doll claims into `out` (spine slot -> sprite, -1 = occupied bare).
-   * No item / no worn art = no claims — the base layer shows through. An object `worn` claims a
-   * slot the rig doesn't have harmlessly: apply only reads the rig's own slots back out.
+   * Merges one equipped uid's claims into `out` (dress slot -> sprite, -1 = occupied bare).
+   * Claiming a slot the rig lacks is harmless: apply reads back only the rig's own slots.
    */
   _claims(inv, uid, gear, out) {
     if (uid === undefined || uid === "") return;
@@ -182,12 +162,11 @@ globalThis.AppearanceSystem = {
       out[AppearanceSystem.SLOT[gear]] = worn;
       return;
     }
-    // held-icon fallback (item.sprite is the def's bag icon; -1 = none)
     if (gear === "weapon" && sprite_exists(item.sprite))
       out[AppearanceSystem.SLOT[gear]] = item.sprite;
   },
 
-  /** A slot map entry's sprite — -1 (occupied bare) for null. */
+  /** null in a slot map means occupied bare (-1). */
   _sprite(spr) {
     return spr === null ? -1 : spr;
   },

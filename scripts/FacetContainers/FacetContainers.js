@@ -1,10 +1,7 @@
-// See FacetTheme.js for the kit overview + the GMRT globalThis-assignment rule.
-
 /**
- * Full-screen scene root. Flow content goes into the returned element's `.body` — a full-bleed
- * column inside the screen padding, or with `opts.maxWidth` a centered capped column (the menu
- * look). A HUD overlay that anchors to the whole screen (`positionType: "absolute"`) is
- * inserted into the root itself, where the padding does not reach it (sceneColony's HUD).
+ * Full-screen scene root. Flow content goes into `.body` — a full-bleed column inside the screen
+ * padding, or a centered capped column with `opts.maxWidth`. An absolute overlay that anchors to
+ * the whole screen is inserted into the root itself, where the padding does not reach it.
  */
 globalThis.facetRoot = function facetRoot(opts = {}) {
   const root = new UIElement({
@@ -21,7 +18,7 @@ globalThis.facetRoot = function facetRoot(opts = {}) {
   if (opts.maxWidth != null) style.maxWidth = opts.maxWidth;
   const body = new UIElement(style);
   root.insertChild(body);
-  root.body = body; // flow content lands here
+  root.body = body;
   return root;
 };
 
@@ -65,9 +62,8 @@ globalThis.facetPanel = function facetPanel(opts = {}) {
 };
 
 /**
- * Card: the bordered, translucent pane (cardAlpha) that fronts the world — HUD blocks, overlay
- * windows, modals. Never nest one in another (the kit overview, FacetTheme); `opts.alpha: 1`
- * for a card that floats over other UI (a popup).
+ * Card: the bordered, translucent pane that fronts the world. Never nest one in another;
+ * `opts.alpha: 1` for a card that floats over other UI (a popup).
  */
 globalThis.facetCard = function facetCard(opts = {}) {
   return facetPanel({
@@ -84,12 +80,9 @@ globalThis.facetCard = function facetCard(opts = {}) {
 };
 
 /**
- * Sprite-skinned panel — facetPanel's content box over a nine-slice sprite frame
- * (pixUiBox default) instead of a drawn roundrect, so the kit can wear hand-drawn
- * skins. The corner-safe stretch comes from the sprite's IDE nine-slice data
- * (pixUiBox insets 12px); UIImage FILL just draws it. `color` tints the frame
- * (theme key / hex / int); the sprite's IDE playback speed animates a multi-frame
- * skin, `speed` (frames/sec) overrides it.
+ * Sprite-skinned panel: a content box over a nine-slice sprite frame instead of a drawn
+ * roundrect. The corner-safe stretch comes from the sprite's IDE nine-slice data. `color` tints
+ * the frame (theme key / hex / int); `speed` (frames/sec) overrides the sprite's playback speed.
  */
 globalThis.facetNineSlice = function facetNineSlice(opts = {}) {
   const el = new UIElement({
@@ -103,25 +96,23 @@ globalThis.facetNineSlice = function facetNineSlice(opts = {}) {
       subimg: opts.subimg ?? 0,
       color: opts.color != null ? facetColor(opts.color) : c_white,
       alpha: opts.alpha ?? 1,
-      speed: opts.speed, // undefined defers to the sprite's IDE playback speed
+      speed: opts.speed,
     }),
   );
   return el;
 };
 
 /**
- * Scroll viewport. Add items to the returned element's `.scrollBody`; insert the
- * viewport into the layout. Clips via surface, scrolls via draw-time offset — no flex
- * mutation. `opts.height` fixes the viewport; `opts.grow` flex-fills between siblings.
+ * Scroll viewport. Items go into `.scrollBody`. Scrolls by draw-time offset, never flex mutation.
+ * `opts.height` fixes the viewport; `opts.grow` flex-fills between siblings.
  */
 globalThis.facetScroll = function facetScroll(opts = {}) {
-  // reserve the scrollbar gutter as right padding so right-aligned children lay out LEFT
-  // of the bar (the clip drops this same gutter); must mirror UIScroll.clipInsetRight =
-  // barW + barPad*2 (barPad defaults to 4).
+  // right padding reserves the scrollbar gutter so right-aligned children lay out left of the
+  // bar; it must equal the scroll clip's right inset (barW + twice the default 4px bar padding)
   const gutter = (opts.barW ?? 8) + 8;
   const body = new UIElement({
     width: "100%",
-    flexShrink: 0, // keep natural (tall) height so it can overflow
+    flexShrink: 0, // keeps its natural height so it can overflow
     gap: opts.gap ?? FacetTheme.gapSm,
     padding: opts.padding ?? 0,
     paddingRight: Math.max(opts.padding ?? 0, gutter),
@@ -147,16 +138,13 @@ globalThis.facetScroll = function facetScroll(opts = {}) {
       thumbHover: facetColor(opts.thumbHover ?? FacetTheme.borderHi),
     }),
   );
-  viewport.scrollBody = body; // callers add items here
+  viewport.scrollBody = body;
   return viewport;
 };
 
 /**
- * Modal dialog: dimmed full-screen root + centered card (title, body, right-aligned
- * button row). Each button runs onClick then closes unless `keepOpen`. Returns the
- * UIModal handle (`.close()`); also closes on Escape / backdrop click. `opts`: { title,
- * body, buttons:[{label, onClick, primary, keepOpen, width}], width, dim,
- * closeOnBackdrop, closeOnEscape }.
+ * Modal dialog: a dimmed full-screen root over a centered card. Each button runs its onClick
+ * then closes unless `keepOpen`. Returns the {UIModal} handle.
  */
 globalThis.facetModal = function facetModal(opts = {}) {
   const root = new UIElement({
@@ -183,8 +171,6 @@ globalThis.facetModal = function facetModal(opts = {}) {
   // swallow card clicks so they don't read as a backdrop dismiss
   card.addComponent(new UITrigger({}));
 
-  // labels self-size (UIText sets width/height in onUpdate, applied by flexpanel on
-  // GMRT 0.20), so insert directly — no fixed-height wrapper row needed.
   if (opts.title != null) {
     card.insertChild(
       facetLabel(opts.title, {
@@ -224,22 +210,18 @@ globalThis.facetModal = function facetModal(opts = {}) {
   card.insertChild(row);
 
   root.insertChild(card);
-  UI.insert(root); // top of the stack → blocks lower roots, draws last
+  UI.insert(root); // top of the stack, so it blocks lower roots
   return modal;
 };
 
 /**
- * Near-fullscreen overlay window — facetModal's non-modal sibling for the gameplay Window
- * shell (bag / workbench / chest / trade pages). Absolute dim host that veils the HUD, a
- * centered 16:9 card inside a side margin, and a title row (title + close "x")
- * over a divider. Built ONCE and toggled via `.enabled` (starts hidden) so rebuilt-in-place
- * content keeps sort/filter/selection; the caller inserts it into its scene root itself.
- * Content goes into the returned host's `.body` (the card, under the divider); an extra
- * title-row item (a page's `titleExtra`, the Window shell mounts it) goes into `.titleRow` before
- * its close button. `opts`: { onClose }.
+ * Non-modal near-fullscreen window: a dim host over a centered 16:9 card under a title row.
+ * Built once and toggled via `.enabled` (starts hidden) so its content keeps its state; the
+ * caller inserts it into its scene root. Content goes into `.body`; extra title-row items go
+ * into `.titleRow`, before the close button.
  */
 globalThis.facetOverlay = function facetOverlay(title, opts = {}) {
-  // absolute → fills the screen ignoring the scene root's padding; the side margin sizes the card.
+  // absolute, so it fills the screen past the scene root's padding
   const host = new UIElement({
     positionType: "absolute",
     left: 0,
@@ -253,11 +235,11 @@ globalThis.facetOverlay = function facetOverlay(title, opts = {}) {
   });
   // a light veil: the card is translucent, so the world stays legible behind the window
   host.addComponent(new UIPanel({ color: facetColor("#000000"), alpha: 0.45 }));
-  host.addComponent(new UITrigger({})); // swallow backdrop clicks so they don't reach the world
-  host.enabled = false; // owner shows/hides via .enabled
+  host.addComponent(new UITrigger({})); // backdrop clicks never reach the world
+  host.enabled = false;
 
-  // full-width 16:9 card, its height derived from the width: flexpanel clamps a max without
-  // re-deriving the other side, so width leads and fits by the GUI's own 16:9 (UI.designW/H)
+  // width leads and height derives from it: flexpanel clamps a max without re-deriving the
+  // other side, and the GUI's own 16:9 keeps the card within the max
   const inner = new UIElement({
     width: "100%",
     aspectRatio: 16 / 9,
@@ -270,7 +252,7 @@ globalThis.facetOverlay = function facetOverlay(title, opts = {}) {
     gap: FacetTheme.gapSm,
   });
 
-  // title (in a growing cell so extra items + the close "x" sit right) + divider.
+  // the title cell grows so extra items and the close button sit right
   const titleRow = new UIElement({
     width: "100%",
     height: 40,
@@ -298,19 +280,16 @@ globalThis.facetOverlay = function facetOverlay(title, opts = {}) {
 
   inner.insertChild(card);
   host.insertChild(inner);
-  host.body = card; // content lands under the title row
+  host.body = card;
   host.titleRow = titleRow;
   return host;
 };
 
 /**
- * Tabbed view: tab strip over a content host — or, with `opts.vertical`, a narrow strip
- * down its left (the VSCode activity-bar shape; `stripWidth`/`segment` size it). `tabs` is
- * [{ label, content, short }] — a `short` abbreviation is drawn in the strip and the full
- * label becomes its hover tooltip (see UITabs). Pages stack as absolute overlays in one
- * rect; selecting toggles `enabled` (no reflow). Pass `opts.height` to fix the host, or
- * `opts.grow: true` to flex-fill (reflows on a GUI resize — pair with
- * `facetScroll({ grow: true })`). UITabs is on `root.tabs`.
+ * Tabbed view: a tab strip over a content host, or down its left with `opts.vertical`. A tab's
+ * `short` abbreviation is drawn in the strip with the full label as its tooltip. Pages stack as
+ * absolute overlays in one rect, so switching never reflows. `opts.height` fixes the host;
+ * `opts.grow` flex-fills it. The tabs component is on `root.tabs`.
  */
 globalThis.facetTabs = function facetTabs(tabs, opts = {}) {
   const vertical = opts.vertical ?? false;
@@ -322,7 +301,7 @@ globalThis.facetTabs = function facetTabs(tabs, opts = {}) {
         gap: opts.gap ?? FacetTheme.gapSm,
       }
     : { width: opts.width ?? "100%", gap: opts.gap ?? FacetTheme.gapSm };
-  if (vertical) rootStyle.flexDirection = "row"; // strip | pages
+  if (vertical) rootStyle.flexDirection = "row";
   const root = new UIElement(rootStyle);
 
   const strip = new UIElement(
@@ -335,7 +314,6 @@ globalThis.facetTabs = function facetTabs(tabs, opts = {}) {
         },
   );
 
-  // vertical: the pages take the remaining width; a fixed `opts.height` still applies
   const hostStyle = vertical
     ? { flexGrow: 1, flexBasis: 0 }
     : { width: "100%" };
@@ -351,7 +329,6 @@ globalThis.facetTabs = function facetTabs(tabs, opts = {}) {
   }
   const host = new UIElement(hostStyle);
 
-  // wrap each page in an absolute overlay so they stack (no reflow on switch)
   const items = [];
   for (let i = 0; i < tabs.length; i++) {
     const overlay = new UIElement({
@@ -381,7 +358,7 @@ globalThis.facetTabs = function facetTabs(tabs, opts = {}) {
     color: facetColor(FacetTheme.text),
     colorIdle: facetColor(FacetTheme.textMuted),
     colorHover: facetColor(FacetTheme.text),
-    activeBg: facetColor(FacetTheme.btn), // a step up from the card it sits on
+    activeBg: facetColor(FacetTheme.btn), // a step up from the card beneath
     accent: facetColor(FacetTheme.accent),
     border: facetColor(FacetTheme.border),
   });
@@ -394,9 +371,8 @@ globalThis.facetTabs = function facetTabs(tabs, opts = {}) {
 };
 
 /**
- * Accordion: a stack of collapsible sections. `sections` is [{ title, content, open }].
- * Each header's body is inserted/removed on toggle so the stack reflows; sections are
- * independent (multiple can be open).
+ * Accordion: a stack of independent collapsible sections. A body is inserted/removed on toggle
+ * so the stack reflows.
  */
 globalThis.facetAccordion = function facetAccordion(sections, opts = {}) {
   const list = new UIElement({
@@ -427,7 +403,6 @@ globalThis.facetAccordion = function facetAccordion(sections, opts = {}) {
     });
     header.addComponent(acc);
 
-    // padded body; the component inserts/removes this wrapper on toggle
     const body = facetPanel({
       color: FacetTheme.panelLo,
       rad: FacetTheme.radiusSm,
@@ -445,19 +420,10 @@ globalThis.facetAccordion = function facetAccordion(sections, opts = {}) {
 };
 
 /**
- * Category bar with a pop-up flyout — category buttons; clicking one toggles a flyout
- * of its items above the bar (one open at a time). Shared by the colony build HUD + scene
- * editor palette.
- *
- * `categories` = [{ label, items: [{ label, onSelect?, disabled?, tooltip? }] }]. opts:
- *   onSelect(catIdx, itemIdx, item)  global hook after the item's own onSelect
- *   selCat / selItem                 initial highlighted item (default 0 / 0)
- *   width, barHeight, itemWidth, itemHeight, font
- *
- * Returns the root (flyout host on top, bar below) — the caller anchors it (a bottom
- * anchor keeps the bar pinned and pops the list upward). Flyouts are prebuilt once and
- * driven by structural insert/remove, not flex mutation (the layout rule at UIElement).
- * `root.catbar` exposes { state, open(c), close(), select(c, k) }.
+ * Category bar: clicking a category toggles a flyout of its items above the bar, one open at a
+ * time. `opts.onSelect` runs after the item's own onSelect. The caller anchors the root; a
+ * bottom anchor pins the bar and pops the flyout upward. Flyouts are prebuilt once and swapped
+ * structurally, never by flex mutation. `root.catbar` exposes { state, open, close, select }.
  */
 globalThis.facetCatBar = function facetCatBar(categories, opts = {}) {
   const itemW = opts.itemWidth ?? 130;
@@ -473,10 +439,8 @@ globalThis.facetCatBar = function facetCatBar(categories, opts = {}) {
     gap: FacetTheme.gapSm,
   });
 
-  // flyout host above the bar; the active category's prebuilt card is inserted here
   const host = new UIElement({ width: "100%" });
 
-  // prebuild one flyout card per category — a wrapping row of item buttons
   const flyouts = [];
   for (let c = 0; c < categories.length; c++) {
     const items = categories[c].items;
@@ -522,7 +486,6 @@ globalThis.facetCatBar = function facetCatBar(categories, opts = {}) {
     flyouts.push(card);
   }
 
-  // Toggle a category's flyout: close if it's the open one, else swap in its card.
   const toggle = (c) => {
     if (state.open === c) {
       host.removeChild(flyouts[c]);
@@ -534,7 +497,6 @@ globalThis.facetCatBar = function facetCatBar(categories, opts = {}) {
     }
   };
 
-  // Category bar — equal-width buttons (flexGrow split) that toggle their flyout.
   const bar = new UIElement({
     width: "100%",
     height: opts.barHeight ?? FacetTheme.rowH,
@@ -574,11 +536,9 @@ globalThis.facetCatBar = function facetCatBar(categories, opts = {}) {
 };
 
 /**
- * Titled column of a multi-column page: a header row — the title in the kit's gold, then
- * `opts.trailing` (a bulk button, a live sub-label) pushed to the right edge — over `content`
- * (one element or an array of them, in order), the last of which flex-fills the card height
- * when it grows (a facetTable with `grow`). The column shares the row's free width unless
- * `opts.width` fixes it (a deal panel beside the tables).
+ * Titled column of a multi-column page: a header row with `opts.trailing` pushed right, over
+ * `content` (one element or an array). The column shares the row's free width unless
+ * `opts.width` fixes it.
  */
 globalThis.facetColumn = function facetColumn(title, content, opts = {}) {
   const col = new UIElement(
@@ -604,11 +564,9 @@ globalThis.facetColumn = function facetColumn(title, content, opts = {}) {
 };
 
 /**
- * Master-detail row: a fixed-width list column (`.list`) beside a detail column (`.detail`)
- * that takes the rest, both full-height and refilled by the page (facetFillList into the list,
- * facetClear + inserts into the detail). The columns are PLAIN — no clip: a scissored column
- * beside a non-clipped sibling is the batch-flush trap (docs/GMRT.md → gpu_set_scissor) — so a
- * page sizes its content to the card. `opts`: { listWidth (210), gap }.
+ * Master-detail row: a fixed-width `.list` column beside a `.detail` column that takes the
+ * rest. Neither clips — a scissored column beside a non-clipped sibling breaks batching
+ * (docs/GMRT.md) — so a page sizes its content to the card.
  */
 globalThis.facetListDetail = function facetListDetail(opts = {}) {
   const row = new UIElement({
@@ -665,10 +623,8 @@ globalThis.facetHeader = function facetHeader(title, opts = {}) {
 };
 
 /**
- * Titled section: a muted title over a rule, then the content — no box of its own, so it
- * groups rows inside a card (or on the scene backdrop) without nesting a surface. The title
- * self-sizes (UIText sets height in onUpdate, applied by flexpanel on GMRT 0.20), so it's
- * inserted directly. Top padding spaces stacked sections apart.
+ * Titled section: a muted title over a rule, with no box of its own, so it groups rows inside a
+ * card without nesting a surface.
  */
 globalThis.facetSection = function facetSection(title, opts = {}) {
   const section = new UIElement({
@@ -693,11 +649,11 @@ globalThis.facetDivider = function facetDivider(opts = {}) {
 };
 
 /**
- * Label + control on one line — a two-column row (fixed-width label cell | control fills
- * the rest), vertically centered. `opts.key` names the Settings key (or keys) the control
- * writes — or is a `() => boolean` for a control bound elsewhere — marking the label while it
- * differs from its default.
+ * Label + control on one line: a fixed-width label cell, the control filling the rest.
+ * `opts.key` names the setting key(s) the control writes, or is a `() => boolean`; the label
+ * is marked while the setting differs from its default.
  */
+
 globalThis.facetRow = function facetRow(label, control, opts = {}) {
   const row = new UIElement({
     width: "100%",

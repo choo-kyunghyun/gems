@@ -1,32 +1,18 @@
 /**
- * VOLUME pass of the art projection contract (RenderBillboard): draws each
- * `Mesh` + `Position` entity as real depth-writing geometry (z-write on for this loop
- * only, like RenderBillboard), so pawns sort against deep furniture per-pixel with zero
- * manual layering. Two paths per entity:
- * - `model` set → a MagicaVoxel mesh (meshes/<name>.vox, parsed + greedy-meshed by Vox on
- *   first use, frozen + cached — no texture). Vox emits the exposed faces as UNSHADED albedo
- *   with the face normal PACKED in the texcoord — shMeshlit lights them live: one
- *   directional sun (`opt.sun` provider, injected like RenderLighting's ambient — the demo
- *   wires WorldClock.sunDir; the default is a fixed neutral sun reproducing the old baked
- *   top/south look) + the nearest injected point lights (`opt.pointLights` provider — the
- *   demo gathers the `Light` entities; torch/lantern — faces toward a torch
- *   brighten, tops of tall meshes stay dark to a ground-level flame). This
- *   composes UNDER RenderLighting's screen-space multiply: the shader differentiates faces
- *   by direction, the light map owns absolute night darkness + the visible glow pools.
- *   No-shader fallback submits flat albedo.
- * - else → an analytic axis-aligned box: under the fixed-yaw pitched ortho camera only TWO
- *   faces are ever visible — the plan-view TOP (lying at -height over the footprint) and the
- *   elevation FRONT (a true vertical quad at the footprint's south edge) — so two quads.
- *   Face textures are authored in canonical views (top = plan, front = elevation); the
- *   pitched camera foreshortens them like the terrain. Faces must stay OPAQUE or alpha-test
- *   cutout: alpha-blended geometry that writes depth occludes what's behind its soft pixels
- *   (the billboard hard-alpha rule).
+ * Volume pass: draws each `Mesh` + `Position` entity as depth-writing geometry, so pawns sort
+ * against deep furniture per pixel with no manual layering. A `model` draws a baked mesh lit by
+ * an injected sun and the nearest injected point lights; that lighting only tells faces apart by
+ * direction, while absolute darkness belongs to the screen-space light map composed over it.
+ * Without a model, an analytic box draws the only two faces the fixed-yaw pitched camera can
+ * see, the plan-view top and the upright front, unlit and authored in canonical views. Faces
+ * must stay opaque or alpha-test cutout: blended geometry that writes depth occludes what lies
+ * behind its soft pixels.
  * @implements {RenderPass}
  */
 globalThis.RenderMesh = class RenderMesh {
   static MAX_LIGHTS = 8; // must match shMeshlit.fsh MAX_LIGHTS
-  static LIGHT_Z = -20; // point lights lifted off the ground plane (torch flame height)
-  // literal (a static initializer can't reference its own class name — GMRT)
+  static LIGHT_Z = -20; // point-light height off the ground plane (torch flame)
+  // BUG: a literal, since a static initializer can't reference its own class (docs/GMRT.md)
   static SUN_DEFAULT = {
     x: 0,
     y: 0.33,
@@ -41,17 +27,15 @@ globalThis.RenderMesh = class RenderMesh {
     opt = opt ?? {};
     this.enabled = true;
     this.alphaRef = opt.alphaRef ?? 0.5; // texel cutout threshold (shape only, tint-safe)
-    // vox models: position_3d + colour + texcoord, 24 bytes/vertex — this declaration and
-    // Vox's emitted layout are a lockstep pair (the texcoord carries the PACKED FACE
-    // NORMAL, not UVs — see Vox / shMeshlit.vsh)
+    // model vertex layout; the texcoord carries the packed face normal, not UVs
     vertex_format_begin();
     vertex_format_add_position_3d();
     vertex_format_add_colour();
     vertex_format_add_texcoord();
     this._format = vertex_format_end();
-    this._models = new Map(); // name -> { vb } (string keys only — ref-keyed Maps crash GMRT)
-    this._vbs = []; // parallel cleanup list (no for...of over Map iterators on GMRT)
-    // THE world shader (guarded — without it models draw flat unlit albedo)
+    this._models = new Map(); // name -> { vb }
+    this._vbs = []; // BUG: parallel cleanup list, Map iterators hang (docs/GMRT.md)
+    // without the shader, models draw flat unlit albedo
     this._lit = shMeshlit;
     this.litOk = shaders_are_supported() && shader_is_compiled(this._lit);
     this._uAmbient = this.litOk
@@ -62,8 +46,7 @@ globalThis.RenderMesh = class RenderMesh {
       ? shader_get_uniform(this._lit, "u_sunColor")
       : -1;
     this._uChroma = this.litOk ? shader_get_uniform(this._lit, "u_chroma") : -1;
-    // wave mode — public like uUseTex/uNormal: a ground pass whose material flows sets them
-    // after setupLights (which pins u_wave 0)
+    // public: a flowing ground pass sets the wave uniforms after setupLights
     this.uWave = this.litOk ? shader_get_uniform(this._lit, "u_wave") : -1;
     this.uWaveColor = this.litOk
       ? shader_get_uniform(this._lit, "u_waveColor")
@@ -79,28 +62,20 @@ globalThis.RenderMesh = class RenderMesh {
     this._uLightCol = this.litOk
       ? shader_get_uniform(this._lit, "u_lightCol")
       : -1;
-    // textured mode (RenderWalls/RenderBillboard/ground passes): texcoord = real UVs, normal
-    // via u_normal per submit. setupLights resets u_useTex to 0 so the vox models always
-    // draw in packed-normal mode, and u_alphaRef to 0 (no cutout) so they never discard.
+    // public: textured mode reads real UVs and takes the normal per submit
     this.uUseTex = this.litOk ? shader_get_uniform(this._lit, "u_useTex") : -1;
     this.uNormal = this.litOk ? shader_get_uniform(this._lit, "u_normal") : -1;
     this._uAlphaRef = this.litOk
       ? shader_get_uniform(this._lit, "u_alphaRef")
       : -1;
-    // (no ambient field: ambient is derived per frame as the sun's complement — see setupLights)
-    // sun provider: () => flat { x, y, z (toward the sun, up = -z), strength, r, g, b }.
-    // Default = fixed neutral sun ≈ the old baked look (top ~1.0, south ~0.72), so a bare
-    // consumer gets shaded meshes with zero wiring; the demo injects WorldClock.sunDir.
+    // () => { x, y, z (toward the sun, up = -z), strength, r, g, b }; unset = a fixed neutral
+    // sun, so a bare consumer gets shaded meshes with no wiring
     this.sun = opt.sun;
-    // albedo chroma provider, injected like `sun`: () => 0..1 (shMeshlit's u_chroma — the
-    // world's saturation as an atmosphere dial; the demo injects ColonyView.chroma). Unset = 1,
-    // the authored colours.
+    // () => 0..1 albedo saturation; unset = the authored colours
     this.chroma = opt.chroma;
-    this.camera = opt.camera; // optional, the level's view record (CameraSystem.view); when set, the nearest lights to the view centre win
-    // point-light provider, injected like `sun` (this pass takes records, never the query): (entities) => [{ x, y, radius, color, intensity?,
-    // flicker?, seed? }] — color a GM color int, seed the flicker phase offset (the demo passes
-    // the entity id so the mesh term stays in phase with RenderLighting's glow pools).
-    // Unset = sun-only.
+    this.camera = opt.camera; // optional view record; when set, the lights nearest the view win
+    // (entities) => [{ x, y, radius, color, intensity?, flicker?, seed? }]; color is a GM color
+    // int, seed the flicker phase offset; unset = sun only
     this.pointLights = opt.pointLights;
     this._lp = new Array(RenderMesh.MAX_LIGHTS * 4).fill(0); // reused uniform scratch
     this._lc = new Array(RenderMesh.MAX_LIGHTS * 4).fill(0);
@@ -115,9 +90,8 @@ globalThis.RenderMesh = class RenderMesh {
   }
 
   /**
-   * model lookup: meshes/<name>.mesh (poly-kit bake, Poly) first, else meshes/<name>.vox
-   * (Vox-meshed) -> frozen vertex buffer, cached; a name missing BOTH caches vb -1 so the
-   * warning fires once, not per frame
+   * A `.mesh` bake wins over a `.vox`; a name missing both caches vb -1 so the warning fires
+   * once, not per frame.
    */
   _model(name) {
     let m = this._models.get(name);
@@ -135,26 +109,18 @@ globalThis.RenderMesh = class RenderMesh {
   }
 
   /**
-   * THE SHARED-LIGHT SEAM — the public surface a sibling pass gets by taking this pass as
-   * `opt.lights` (RenderBillboard / RenderWalls / RenderTileMap): `litOk`
-   * (is the shader usable at all), this method, and the `uUseTex` / `uNormal` uniform handles
-   * each caller overrides for its own submits. Everything else here is private.
-   *
-   * Sets shMeshlit + this frame's lighting uniforms: the injected sun, then the nearest
-   * MAX_LIGHTS injected point-light records (same flicker formula as RenderLighting so the
-   * mesh response tracks the visible glow pools). Arrays are reused scratch. This is the ONE
-   * light gather every lit pass shares, so the whole level can't diverge; it leaves u_useTex
-   * at 0 (vox mode) and u_alphaRef at 0 (no cutout). A caller ends its own submits with
-   * shader_reset().
+   * The shared light seam: a lit pass given this one gets `litOk`, this method and the public
+   * uniform handles; everything else is private. It is the one light gather every lit pass
+   * shares, so the level can't diverge. Binds the shader in model mode with no cutout, wave or
+   * sway; the caller ends its own submits with shader_reset().
    */
   setupLights(entities) {
     shader_set(this._lit);
-    shader_set_uniform_f(this.uUseTex, 0); // vox mode; textured callers flip it
-    shader_set_uniform_f(this._uAlphaRef, 0); // no cutout; billboards/sprite faces raise it
+    shader_set_uniform_f(this.uUseTex, 0);
+    shader_set_uniform_f(this._uAlphaRef, 0);
     const sun = this.sun !== undefined ? this.sun() : RenderMesh.SUN_DEFAULT;
-    // ambient = the sun's complement: 0.55 in full daylight (sun fills the rest), 1.0 at
-    // night so unlit meshes match the map-lit world around them (see shMeshlit.fsh) —
-    // a constant ambient double-darkened meshes at night vs sprites/ground
+    // ambient is the sun's complement, full at night, so meshes aren't darkened twice under
+    // the light map
     shader_set_uniform_f(this._uAmbient, 1 - 0.9 * sun.strength);
     shader_set_uniform_f(this._uSunDir, sun.x, sun.y, sun.z, sun.strength);
     shader_set_uniform_f(this._uSunColor, sun.r, sun.g, sun.b);
@@ -162,16 +128,12 @@ globalThis.RenderMesh = class RenderMesh {
       this._uChroma,
       this.chroma !== undefined ? this.chroma() : 1,
     );
-    shader_set_uniform_f(this.uWave, 0); // no crests; a flowing ground pass raises it
-    shader_set_uniform_f(this._uSway, 0); // rigid; the grass pass raises it (shMeshlit.vsh)
+    shader_set_uniform_f(this.uWave, 0);
+    shader_set_uniform_f(this._uSway, 0);
 
     const max = RenderMesh.MAX_LIGHTS;
     let recs = this.pointLights !== undefined ? this.pointLights(entities) : [];
-    // CPU cull first: only a light whose RADIUS reaches the view can affect a visible mesh
-    // pixel, so off-screen lights must not eat a MAX_LIGHTS slot (a build zone can hold far
-    // more torches than the budget; the overflow's glow pool still draws — RenderLighting has
-    // no cap — only the per-face mesh term is budgeted). The view rect is View.groundRect,
-    // which owns the pitch stretch.
+    // cull first: a light whose radius misses the view must not spend a budget slot
     if (this.camera !== undefined) {
       const view = this.camera.groundRect();
       const vis = [];
@@ -187,7 +149,7 @@ globalThis.RenderMesh = class RenderMesh {
       }
       recs = vis;
     }
-    // nearest-first when still over budget (view center from the assigned camera)
+    // nearest the view centre first when still over budget
     if (recs.length > max && this.camera !== undefined) {
       const cx = this.camera.toX;
       const cy = this.camera.toY;
@@ -206,7 +168,7 @@ globalThis.RenderMesh = class RenderMesh {
     for (let i = 0; i < n; i++) {
       const rec = recs[i];
       let intensity = rec.intensity ?? 1;
-      // flicker: same wall-clock sine as RenderLighting, seed-offset so torches don't sync
+      // wall-clock flicker matching the glow pools; the seed keeps torches out of sync
       if (rec.flicker)
         intensity *=
           1 -
@@ -229,12 +191,9 @@ globalThis.RenderMesh = class RenderMesh {
   }
 
   /**
-   * one face under the current world matrix — local rect (0,0)-(w,h): the sprite stretched
-   * over it when one is set, else a flat color fill. A sprite face runs under shMeshlit
-   * in textured mode with NEUTRAL light uniforms (ambient 1, sun/points 0 — the analytic box
-   * stays unlit by contract) purely for the texel-alpha CUTOUT, so soft pixels don't write
-   * depth; the color fill draws OUTSIDE the shader (textured mode reads gm_BaseTexture as
-   * black on an untextured primitive and would blacken it).
+   * Local rect (0,0)-(w,h) under the current world matrix. A sprite face runs the shader with
+   * neutral light only for the texel-alpha cutout, so soft pixels don't write depth; a color
+   * fill stays outside it, since textured mode would read an untextured primitive as black.
    */
   _face(spr, color, alpha, w, h) {
     if (spr !== undefined && sprite_exists(spr)) {
@@ -259,19 +218,15 @@ globalThis.RenderMesh = class RenderMesh {
 
   draw(entities) {
     const ident = matrix_build_identity();
-    // depth-writing like RenderBillboard (global default is off — Game Create_0)
+    // depth writes are on for this pass only
     gpu_set_zwriteenable(true);
-    // PASS 1 — baked models, lit by shMeshlit (albedo × sun + point lights over the packed
-    // normals). The analytic quads draw OUTSIDE the shader: their texcoords are real UVs.
     if (this.litOk) this.setupLights(entities);
     entities.forEach([Mesh, Position], (entity, mesh, rp) => {
       if (mesh.model === undefined || mesh.model === "") return;
       const m = this._model(mesh.model);
       if (m.vb === -1) return;
-      // scale + rotation are visual-only (BBox stays authored); scale is per-axis in WORLD
-      // axes — zscale is height; a negative xscale mirrors the model. `yaw` turns about the
-      // footprint center (vox meshes carry all four side faces, so any facing is solid); the shader
-      // re-derives flipped/rotated normals from the world matrix, so lighting follows.
+      // scale and rotation are visual only, per world axis (zscale is height, a negative xscale
+      // mirrors); rotation pivots on the footprint center and the lighting follows it
       const s = mesh.scale ?? 1;
       matrix_set(
         matrix_world,
@@ -290,14 +245,11 @@ globalThis.RenderMesh = class RenderMesh {
       vertex_submit(m.vb, pr_trianglelist, -1);
     });
     if (this.litOk) shader_reset();
-    // PASS 2 — analytic axis-aligned boxes (sprite/color faces, unlit)
     entities.forEach([Mesh, Position], (entity, mesh, rp) => {
       if (mesh.model !== undefined && mesh.model !== "") return;
       const alpha = mesh.alpha ?? 1;
-      // Face matrices are CENTER-relative and composed with an entity world matrix, so the
-      // optional rotation pivots on the footprint center (matrix_multiply applies the left
-      // matrix first — face placement, then entity rotate+translate). With no rotation this
-      // reduces exactly to the old corner-anchored translate.
+      // faces are placed center-relative, then the entity matrix, so rotation pivots on the
+      // footprint center
       const entM = matrix_build(
         rp.x,
         rp.y,
@@ -309,7 +261,7 @@ globalThis.RenderMesh = class RenderMesh {
         1,
         1,
       );
-      // TOP: plan-view quad lying flat at -height over the footprint (up = -z)
+      // top: flat at -height over the footprint (up = -z)
       matrix_set(
         matrix_world,
         matrix_multiply(
@@ -328,10 +280,8 @@ globalThis.RenderMesh = class RenderMesh {
         ),
       );
       this._face(mesh.topSprite, mesh.topColor, alpha, mesh.width, mesh.depth);
-      // FRONT: true vertical quad at the (local) south edge — xrot -90 maps local +y to world
-      // +z (the billboard tilt extended to fully upright), so anchoring the local origin at
-      // -height spans the face from its top edge down to the ground; it shares that top
-      // edge with the TOP quad exactly, so the seam can't gap or z-fight
+      // front: upright at the south edge, sharing the top quad's edge exactly so the seam
+      // can't gap or z-fight
       matrix_set(
         matrix_world,
         matrix_multiply(
@@ -358,6 +308,6 @@ globalThis.RenderMesh = class RenderMesh {
       );
     });
     matrix_set(matrix_world, ident);
-    gpu_set_zwriteenable(false); // restore global default — ground passes stay painter-order
+    gpu_set_zwriteenable(false); // ground passes stay painter-order
   }
 };

@@ -1,7 +1,6 @@
 /**
- * Derived combat stats — the caps/factors the combat/survival systems read (Endurance, StatusSystem,
- * Consumption, movers), with per-reader defaults when absent. Deriving it is the GAME's
- * business: the demo rebuilds it from Attributes via StatModel. Session-scoped.
+ * Derived combat stats: the caps and factors the combat and survival systems read, each reader
+ * with its own default when absent. Deriving it is the game's business. Session-scoped.
  *
  * @typedef {Object} Stats
  * @property {number} maxHp

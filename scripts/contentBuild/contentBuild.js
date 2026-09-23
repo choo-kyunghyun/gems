@@ -1,14 +1,11 @@
 /**
- * The colony's build catalog.
+ * The colony's build catalog: pure data plus its lookups, no registration step.
  *
- * Pure data plus its lookups, no registration step (a plain top-level literal, like contentTiles).
- * An item is one of two kinds: a TILE (`layer` names the contentTiles.LAYERS key it edits, `mat`
- * a wall's per-cell material) or an ENTITY, whose `spawn` fields lay over the build descriptor
- * defaults — a "prop" preset at the cell, named by the item's label — before ColonySpawn.spawnEntity
- * reads them (the adapter is BuildMode.descriptor; `orient` turns the door vertical in a N-S wall
- * run). `cost` is wood per placement; `id` is the token persisted in the level's build record and
- * the map cache, so it MUST be unique across the catalog; `species` marks a crop (a contentFlora
- * id) whose ground gates the cell. A new buildable is an entry here, never a BuildMode edit.
+ * An item is a TILE (`layer` the tile layer it edits, `mat` a wall's per-cell material) or an
+ * ENTITY, whose `spawn` fields lay over the build descriptor defaults (`orient` turns it to match
+ * a N-S wall run). `cost` is wood per placement; `id` is persisted in saves, so it MUST be unique
+ * across the catalog; `species` marks a crop whose ground gates the cell. A new buildable is an
+ * entry here, never a code edit.
  */
 globalThis.contentBuild = {
   CATEGORIES: [
@@ -47,9 +44,8 @@ globalThis.contentBuild = {
           layer: "wall",
           mat: "plank",
         },
-        // the fence layer — solid like a wall (own colliders + nav block), drawn by RenderFence as
-        // post-and-rail boxes joined to their 4-neighbors. The id predates the tile form: a
-        // blueprint's built-entity record carrying it lands as this tile (Blueprint.stamp).
+        // solid like a wall, with its own colliders; a built-entity record carrying this id lands
+        // as the tile
         {
           id: "fence",
           labelKey: "BUILD_FENCE",
@@ -88,8 +84,7 @@ globalThis.contentBuild = {
       ],
     },
     {
-      // furniture: solid props over the vox models (contentPresets.FURN_MODELS by `furn`, a mesh
-      // per Interaction `kind`); colliders come from the voxel footprint, no per-item wiring
+      // solid props; colliders come from the model's footprint, no per-item wiring
       labelKey: "BUILD_CAT_FURNITURE",
       items: [
         {
@@ -106,7 +101,7 @@ globalThis.contentBuild = {
           kind: "entity",
           spawn: { furn: "barrel" },
         },
-        // openable door (the "door" InteractAction toggles Collision.solid), auto-oriented at placement
+        // openable, auto-oriented at placement
         {
           id: "door",
           labelKey: "BUILD_DOOR",
@@ -115,7 +110,6 @@ globalThis.contentBuild = {
           spawn: { kind: "door" },
           orient: true,
         },
-        // the "bed" InteractAction routes E to scene.sleep (fast-forward + drain Drowsiness)
         {
           id: "bed",
           labelKey: "BUILD_BED",
@@ -123,7 +117,7 @@ globalThis.contentBuild = {
           kind: "entity",
           spawn: { kind: "bed", color: "#b06a4f" },
         },
-        // cheaper cot: the same sleep Interaction over the bunk mesh
+        // a cheaper bed
         {
           id: "cot",
           labelKey: "BUILD_COT",
@@ -199,7 +193,7 @@ globalThis.contentBuild = {
           kind: "entity",
           spawn: { preset: "torch", color: "#ff9a3c" },
         },
-        // standing lantern — steadier, wider, whiter light than the torch
+        // steadier, wider, whiter light than the torch
         {
           id: "lantern",
           labelKey: "BUILD_LANTERN",
@@ -241,8 +235,7 @@ globalThis.contentBuild = {
       ],
     },
     {
-      // survival stations — props carrying an Interaction whose InteractAction acts on the player
-      // (hydrate / feed / buff); the action is data (contentInteractions)
+      // props whose Interaction acts on the player
       labelKey: "BUILD_CAT_SURVIVAL",
       items: [
         {
@@ -269,8 +262,7 @@ globalThis.contentBuild = {
       ],
     },
     {
-      // crops — a `plant` species (contentFlora) put down as a seedling; FloraSystem grows it and
-      // serves its harvest
+      // crops, put down as a seedling
       labelKey: "BUILD_CAT_FARMING",
       items: [
         {
@@ -293,7 +285,6 @@ globalThis.contentBuild = {
     },
   ],
 
-  /** the item under `id` (a persisted build-record token back to its layer / cost), else undefined */
   item(id) {
     for (let c = 0; c < contentBuild.CATEGORIES.length; c++) {
       const items = contentBuild.CATEGORIES[c].items;
@@ -303,7 +294,7 @@ globalThis.contentBuild = {
     return undefined;
   },
 
-  /** the tile item painting (layer, material) — `material` undefined is the layer's default */
+  /** The tile item painting (layer, material); undefined `material` matches an item with no `mat`. */
   tileItem(layer, material) {
     for (let c = 0; c < contentBuild.CATEGORIES.length; c++) {
       const items = contentBuild.CATEGORIES[c].items;
@@ -316,8 +307,7 @@ globalThis.contentBuild = {
     return undefined;
   },
 
-  // the distinct layer keys the tile items edit (derived once) — the cell-occupancy check spans
-  // them all, so one built thing per cell across every wall/floor variant
+  // the distinct layer keys the tile items edit, derived once
   _tileLayers: null,
   tileLayers() {
     if (contentBuild._tileLayers !== null) return contentBuild._tileLayers;

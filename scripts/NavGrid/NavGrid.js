@@ -1,34 +1,30 @@
 /**
- * The level's pathfinding state, PathfindingSystem's entry in the level's cache: the level-sized
- * cost grid every planner query shares, one cell per LevelGrid cell — ≥ 1 = walkable
- * (terrain-weighted — MotionPlanner multiplies step distance by cell cost, so a wade is chosen
- * only when shorter than walking around), Infinity = blocked — as the plain Grid `grid`, with
- * the planner's level-sized working record `scratch` (MotionPlanner.scratch) beside it, and
- * `cursor`, the request-walk position the serving system resumes its fairness sweep from.
+ * The level's pathfinding state: the level-sized cost grid every planner query shares, one cell
+ * per level cell — ≥ 1 walkable (terrain-weighted, so a wade is chosen only when shorter than
+ * walking around), Infinity blocked — with the planner's working record and the fairness cursor
+ * the serving system resumes from.
  *
  * Two sources, each with its own refresh signal, composed base-then-stamp so neither re-reads the
  * other's input:
- *   - the tile layers' cost (LevelGrid.costAt) is the BASE, cached and resampled by `sync` only
- *     when the level's edit counter moves (a tile paint);
- *   - the kinematic-solid colliders (walls, water, the level border, a closed door) are STAMPED
- *     over a copy of the base by `stamp`, fed their rects (`statics`) with the generation they
- *     were taken at (`gen`, PuppetSystem's) — the serving system re-derives them only when that
- *     generation moved, so the one live blocking source is polled by number. Dynamic bodies
- *     never enter (agents don't block each other's planning; SeparationSystem keeps them apart).
+ *   - the tile layers' cost is the base, resampled by `sync` only when the level's edit counter
+ *     moves;
+ *   - the kinematic-solid colliders are stamped over a copy of the base by `stamp`, with the
+ *     collider generation they were taken at, so the one live blocking source is polled by
+ *     number. Dynamic bodies never enter: agents don't block each other's planning.
  */
 globalThis.NavGrid = class NavGrid {
-  /** @param {LevelGrid} tiles the level this grid mirrors (dims, cell size, and the cost source) */
+  /** @param {LevelGrid} tiles the level this grid mirrors */
   constructor(tiles) {
     this.tiles = tiles;
     this.cols = tiles.cols;
     this.rows = tiles.rows;
     this.cellW = tiles.cellWidth;
     this.cellH = tiles.cellHeight;
-    this.grid = new Grid(this.cols, this.rows); // the composed costs the planner reads
-    this.scratch = MotionPlanner.scratch(this.grid.size()); // the planner's working record
-    this.cursor = 0; // PathfindingSystem's request-walk position
+    this.grid = new Grid(this.cols, this.rows); // the composed costs
+    this.scratch = MotionPlanner.scratch(this.grid.size());
+    this.cursor = 0;
     this._base = new Grid(this.cols, this.rows); // terrain costs alone
-    this._edits = -1; // tiles.edits() the base was sampled at; -1 = never
+    this._edits = -1; // the edit count the base was sampled at; -1 = never
     this.statics = []; // the last stamped snapshot, re-applied when the base resamples
     this.gen = -1; // the collider generation the snapshot was taken at; -1 = never
   }
@@ -43,10 +39,9 @@ globalThis.NavGrid = class NavGrid {
   }
 
   /**
-   * Mirror the tile layers' cost into the base when they have been edited since the last sample,
-   * then recompose. Only the cells the layers report dirty are resampled (a paint is one cell,
-   * the level is thousands) — everything on the first sync or after a bulk paint. Once
-   * per frame, before the sim. Returns whether it resampled.
+   * Resample the base where the layers were edited, then recompose — only the dirty cells, or
+   * everything on the first sync or after a bulk paint. Once per frame, before the sim. Returns
+   * whether it resampled.
    */
   sync() {
     const tiles = this.tiles;
@@ -57,7 +52,7 @@ globalThis.NavGrid = class NavGrid {
     this._edits = edits;
     for (let i = 0; i < layers.length; i++) if (layers[i].dirtyAll) all = true;
 
-    // a layer's cell index is this grid's index (every layer spans the level's cols×rows)
+    // every layer spans the level, so a layer's cell index is this grid's
     const b = this._base.data;
     const cols = this.cols;
     if (all) {
@@ -81,9 +76,9 @@ globalThis.NavGrid = class NavGrid {
   }
 
   /**
-   * Take the kinematic-solid snapshot (`{x1,y1,x2,y2}` world px each, x2/y2 exclusive) taken at
-   * collider generation `gen` as the blocking set and recompose. The array is kept by reference —
-   * the caller replaces it, never mutates it in place.
+   * Take the kinematic-solid snapshot (`{x1,y1,x2,y2}` world px, x2/y2 exclusive) from collider
+   * generation `gen` as the blocking set. Kept by reference: the caller replaces the array, never
+   * mutates it.
    */
   stamp(statics, gen = -1) {
     this.gen = gen;
@@ -91,9 +86,7 @@ globalThis.NavGrid = class NavGrid {
     this._compose();
   }
 
-  /** base copy, then every static's footprint (clipped to the level) → Infinity */
   _compose() {
-    // whole-grid refill over Grid's public `data` buffer (its contract blesses bulk direct access)
     const d = this.grid.data;
     const b = this._base.data;
     for (let i = 0; i < d.length; i++) d[i] = b[i];
@@ -105,7 +98,6 @@ globalThis.NavGrid = class NavGrid {
     const statics = this.statics;
     for (let i = 0; i < statics.length; i++) {
       const s = statics[i];
-      // inclusive cell range (x2/y2 are exclusive edges, so -1)
       let gx0 = Math.floor(s.x1 / cw);
       let gy0 = Math.floor(s.y1 / ch);
       let gx1 = Math.floor((s.x2 - 1) / cw);

@@ -7,21 +7,19 @@
  */
 
 /**
- * Per-entity state machine over a NAMED state pool. States register once by id (like
- * Item/Status/InteractAction); State.current/next hold the id STRINGS ("" = none), resolved
- * through the pool each use — so a captured/parked actor (Row, a save restore,
- * entities.export) round-trips its state as plain data, never an object ref. Callbacks receive
- * (level, id): the level in hand is the whole context — its store, its grid, its caches — so a
- * state's owner holds no module statics. `change` queues, `update` applies (finish→enter) then
- * ticks.
+ * Per-entity state machine over a named state pool. A State holds id strings ("" = none),
+ * resolved through the pool each use, so a parked or saved actor round-trips its state as plain
+ * data, never an object ref. Callbacks receive (level, id): the level is the whole context, so a
+ * state's owner holds no module statics. `change` queues; `update` applies (finish, then enter)
+ * and then ticks.
  */
 globalThis.StateSystem = {
-  /** Re-registering an id replaces it (content registration is idempotent). */
+  /** Re-registering an id replaces it. */
   register(defs) {
     Registry.register(StateSystem, defs);
   },
 
-  /** Throws on an unknown name (fail fast: a typo'd transition/preset). */
+  /** Throws on an unknown name, so a typo'd transition fails fast. */
   get(id) {
     const def = Registry.get(StateSystem, id);
     if (def === undefined) throw new Error(`Unknown state: ${id}`);

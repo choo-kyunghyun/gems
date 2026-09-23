@@ -1,13 +1,13 @@
 globalThis.SceneTransition = {
-  duration: 0.12, // seconds per direction — short so swaps feel responsive
+  duration: 0.12, // seconds per direction; short so swaps feel responsive
   color: c_black,
   alpha: 0,
 
   _phase: 0, // 0 idle, 1 fading out, 2 fading in
-  _t: 0, // seconds elapsed in current phase
-  _apply: null, // scene-swap callback, fired once at full cover
+  _t: 0,
+  _apply: null,
 
-  /** The Game object holds the pending scene until this clears. */
+  /** A pending scene waits until this clears. */
   isBusy() {
     return SceneTransition._phase !== 0;
   },
@@ -19,7 +19,7 @@ globalThis.SceneTransition = {
     SceneTransition._t = 0;
   },
 
-  /** Fade in from cover with no preceding fade-out (boot: first scene from black). */
+  /** Fades in from cover with no fade-out first, as at boot. */
   reveal() {
     SceneTransition._apply = null;
     SceneTransition._phase = 2;
@@ -27,7 +27,7 @@ globalThis.SceneTransition = {
     SceneTransition.alpha = 1;
   },
 
-  /** Fires the swap at full cover (Step_0). */
+  /** Wall-clock. */
   update() {
     if (SceneTransition._phase === 0) return;
     SceneTransition._t += Time.raw;
@@ -54,7 +54,7 @@ globalThis.SceneTransition = {
     }
   },
 
-  /** Draw_75, last — veils the UI rebuild. */
+  /** Draw last, so the veil covers the UI rebuild. */
   draw() {
     if (SceneTransition.alpha <= 0) return;
     const a = draw_get_alpha();

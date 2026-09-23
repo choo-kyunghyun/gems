@@ -1,9 +1,9 @@
-// Colony quest data, layered over content (achievements live in contentAchievements). Called once
-// from sceneColony.create() (not top-level — GMRT load-order). Idempotent.
+// Colony quest data, layered over the shared content. Registered on demand, not at top level
+// (docs/GMRT.md). Idempotent.
 globalThis.contentQuests = {
   registered: false,
 
-  // quest ids shared between content, level, and NPC data
+  // shared with level and NPC data
   QUEST_HUMANS: "td_humans",
   QUEST_GATHER: "td_gather",
   QUEST_REACH: "td_reach",
@@ -12,7 +12,7 @@ globalThis.contentQuests = {
     if (contentQuests.registered) return;
     contentQuests.registered = true;
 
-    content.register(); // shared rarities + items + recipes
+    content.register();
 
     QuestLog.register([
       {
@@ -33,7 +33,7 @@ globalThis.contentQuests = {
         id: contentQuests.QUEST_REACH,
         name: "QUEST_REACH_NAME",
         objLabel: "QUEST_REACH_OBJ",
-        // permanent attribute boost reward — the item-driven progression path, gated on exploration
+        // a permanent attribute boost, gated on exploration
         objectives: [{ kind: "reach", target: "ruins", count: 1 }],
         rewards: { items: [{ itemId: "vitality_serum", qty: 1 }] },
       },

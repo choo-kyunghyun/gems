@@ -1,28 +1,22 @@
 /**
  * @implements {UIComponent}
  * UITable — sortable/filterable data table with row selection, sticky header, row-based
- * scroll, and keyboard/gamepad browse mode. Drawn entirely in onDraw over ONE element
- * (like UISlots), so re-sort/filter never reflows the layout. The element is FIXED-height
- * to a whole row count (facetTable does this), so the body shows full rows, no surface.
+ * scroll, and keyboard/gamepad browse mode. Drawn entirely in onDraw over ONE element, so
+ * re-sort/filter never reflows the layout; the element should be sized to a whole row count.
  *
  * Columns are declarative:
- *   { label, width?, flex?, align?, text(row)->string, color?(row)->int,
+ *   { key?, label, width?, flex?, align?, text(row)->string, color?(row)->int,
  *     sprite?(row)->{sprite,subimg}|spriteAsset, sortable?, sortValue?(row)->num|str }
- * `width` is a column's base/min px; `flex` shares the surplus so columns grow when the
- * table is wider than its content (default flex: 0 with `width`, else 1 = fill column).
+ * `width` is a column's base/min px; `flex` shares the surplus (default 0 with `width`, else 1).
  *
- * Sorting is a multi-key STACK: clicking a header makes it primary (demoting the old
- * primary, up to `sortDepth`); re-clicking the primary flips direction. Filtering is an
- * external predicate (`setFilter`). Selection tracks the row OBJECT (survives re-sort/filter).
+ * Sorting is a multi-key stack up to `sortDepth`: a clicked header becomes primary, re-clicking
+ * the primary flips direction. Selection tracks the row OBJECT, so it survives re-sort/filter.
  *
- * Browse mode: `navActivate` enters it; the table then owns the arrows (Up/Down row cursor,
- * Left/Right re-pick the sort column). It claims the keys via `UINav.claimKeys(this)` each
- * frame — a per-frame REQUEST UINav consumes, so if the table stops updating the claim
- * lapses and nav resumes. Edge reads come from the shared `UINav.readEdge()`.
+ * Browse mode (entered by `navActivate`) owns the arrows: Up/Down move the row cursor,
+ * Left/Right re-pick the sort column. Its key claim is re-requested every frame, so it lapses on
+ * its own when the table stops updating.
  *
- * GMRT: hit-test/hover live in instance fields (cached primitive bool gets clobbered — see
- * CLAUDE.md); no Map iteration; pointer edges via Input.pointer (frame-latched), never a
- * re-read of mouse_check_button*.
+ * BUG: [#15549] hit-test/hover state lives in instance fields (docs/GMRT.md).
  */
 globalThis.UITable = class UITable {
   constructor(t = {}) {
@@ -30,13 +24,13 @@ globalThis.UITable = class UITable {
     this._rows = t.rows ?? [];
     this._filter = t.filter ?? null; // (row) => bool, or null for all
     this.onSelect = t.onSelect ?? noop; // (row, viewIndex)
-    this.onActivate = t.onActivate ?? noop; // (row, viewIndex) — confirm/double-click
+    this.onActivate = t.onActivate ?? noop; // (row, viewIndex) — confirm in browse mode
 
     this.rowH = t.rowH ?? 28;
     this.headerH = t.headerH ?? 30;
-    this.pad = t.pad ?? 8; // inset around the whole table
-    this.cellPad = t.cellPad ?? 8; // text inset inside a cell
-    this.iconPad = t.iconPad ?? 4; // icon inset inside an icon cell
+    this.pad = t.pad ?? 8;
+    this.cellPad = t.cellPad ?? 8;
+    this.iconPad = t.iconPad ?? 4;
     this.font = t.font ?? -1;
     this.headerFont = t.headerFont ?? -1;
     this.sortDepth = t.sortDepth ?? 2;
@@ -47,58 +41,47 @@ globalThis.UITable = class UITable {
     this.colorHeader = t.colorHeader ?? c_ltgray;
     this.colorHeaderBg = t.colorHeaderBg ?? c_dkgray;
     this.colorRow = t.colorRow ?? c_dkgray;
-    this.colorRowAlt = t.colorRowAlt ?? c_dkgray; // zebra stripe
+    this.colorRowAlt = t.colorRowAlt ?? c_dkgray;
     this.colorRowHover = t.colorRowHover ?? c_gray;
-    this.colorSel = t.colorSel ?? c_white; // selected-row accent
+    this.colorSel = t.colorSel ?? c_white;
     this.colorBorder = t.colorBorder ?? c_gray;
-    this.colorArrow = t.colorArrow ?? c_white; // primary sort arrow
+    this.colorArrow = t.colorArrow ?? c_white; // primary sort arrow + browse cursor
     this.colorArrow2 = t.colorArrow2 ?? c_gray; // secondary sort arrows
     this.rowAlpha = t.rowAlpha ?? 1;
 
-    // shared track/thumb model — bar style opts (barW/minThumb/colors) pass through.
     this._bar = new UIScrollbar(t);
 
     this._sort = []; // [{ ci, dir }] — primary first; dir +1 asc / -1 desc
-    this._view = []; // filtered + sorted row refs
-    this._selRow = t.selected ?? null; // selected row OBJECT
-    this._top = 0; // first visible row index
-    this._cursor = 0; // keyboard cursor (view index)
+    this._view = [];
+    this._selRow = t.selected ?? null;
+    this._top = 0; // first visible view index
+    this._cursor = 0; // view index
 
     this._inside = false;
-    this._hoverRow = -1; // view index under pointer
-    this._hoverCol = -1; // header column under pointer
-    this._browsing = false; // keyboard browse mode latched
-    this._mx = 0; // last pointer pos — movement hands control back to mouse
+    this._hoverRow = -1;
+    this._hoverCol = -1;
+    this._browsing = false;
+    this._mx = 0; // pointer movement hands control back to the mouse
     this._my = 0;
 
     if (t.sortBy != null) this._pushSort(t.sortBy, t.sortDir ?? 1);
     this._recompute();
   }
 
-  // ── public API ──────────────────────────────────────────────
-  /**
-   * Replace the source rows (re-applies filter + sort).
-   */
   setRows(rows) {
     this._rows = rows ?? [];
     this._recompute();
     return this;
   }
-  // Methods, NOT instance getters — house style; the old "getter shadowing a GML name
-  // faults" report was dismissed (2026-07 re-audit).
   getRows() {
     return this._rows;
   }
-  /** The filtered + sorted view rows. */
   getView() {
     return this._view;
   }
   getSelected() {
     return this._selRow;
   }
-  /**
-   * Set the row-filter predicate (or null for all).
-   */
   setFilter(fn) {
     this._filter = fn ?? null;
     this._recompute();
@@ -108,9 +91,7 @@ globalThis.UITable = class UITable {
     this._selRow = row;
     return this;
   }
-  /**
-   * Swap the column set, remapping the active sort by each column's stable `key`.
-   */
+  /** Swap the column set, carrying the active sort over by each column's stable `key`. */
   setColumns(columns) {
     const keys = [];
     for (let i = 0; i < this._sort.length; i++) {
@@ -135,15 +116,12 @@ globalThis.UITable = class UITable {
     return -1;
   }
 
-  // ── sorting ─────────────────────────────────────────────────
-  /**
-   * Make column `ci` the primary sort key (re-click flips direction).
-   */
+  /** Make column `ci` the primary sort key; on the primary already, flip its direction. */
   sortBy(ci) {
     const col = this.columns[ci];
     if (col == null || col.sortable === false) return this;
     if (this._sort.length > 0 && this._sort[0].ci === ci) {
-      this._sort[0].dir *= -1; // re-click primary → flip direction
+      this._sort[0].dir *= -1;
     } else {
       this._pushSort(ci, 1);
     }
@@ -154,14 +132,12 @@ globalThis.UITable = class UITable {
   _pushSort(ci, dir) {
     const next = [{ ci, dir }];
     for (let i = 0; i < this._sort.length; i++) {
-      if (this._sort[i].ci !== ci) next.push(this._sort[i]); // keep others as tiebreaks
+      if (this._sort[i].ci !== ci) next.push(this._sort[i]);
     }
     this._sort = next.slice(0, this.sortDepth);
   }
 
-  /**
-   * Rank of column ci in the sort stack: 0 = primary, 1 = secondary, -1 = unsorted.
-   */
+  /** 0 = primary, 1 = secondary, -1 = unsorted. */
   _sortRank(ci) {
     for (let i = 0; i < this._sort.length; i++) {
       if (this._sort[i].ci === ci) return i;
@@ -211,7 +187,6 @@ globalThis.UITable = class UITable {
     }
   }
 
-  // ── geometry ────────────────────────────────────────────────
   _bodyRows(pos) {
     return Math.max(
       0,
@@ -223,8 +198,8 @@ globalThis.UITable = class UITable {
   }
 
   /**
-   * Recomputed fresh each onUpdate AND onDraw (not cached between): a dragged window's
-   * dragX/dragY changes mid-frame, so a cached geometry would draw a frame behind the panel.
+   * Recomputed on every update and draw, never cached: a dragged window moves mid-frame, so a
+   * cached geometry would draw a frame behind it.
    */
   _geometry(pos) {
     const bodyRows = this._bodyRows(pos);
@@ -239,11 +214,7 @@ globalThis.UITable = class UITable {
     };
   }
 
-  /**
-   * Column pixel layout. `width` is each column's base/min px; `flex` shares the surplus so
-   * columns grow as the table widens (default flex 0 with `width`, else 1 = fill column).
-   * `barOn` reserves the scrollbar gutter.
-   */
+  /** `barOn` reserves the scrollbar gutter. */
   _columns(pos, barOn) {
     const innerW =
       pos.width - this.pad * 2 - (barOn ? this._bar.barW + this.cellPad : 0);
@@ -268,7 +239,6 @@ globalThis.UITable = class UITable {
     return out;
   }
 
-  // ── update ──────────────────────────────────────────────────
   onUpdate(element, block) {
     const pos = element.getLayoutPosition();
     const g = this._geometry(pos);
@@ -278,8 +248,7 @@ globalThis.UITable = class UITable {
     const bodyRows = g.bodyRows;
     const maxTop = g.maxTop;
     const barOn = g.barOn;
-    // positive test: maxTop can be NaN if this widget lands in the residual mid-pass-insert
-    // window (subtree inserted into a not-yet-traversed branch) — never let NaN into _top.
+    // positive test: maxTop can be NaN for a subtree inserted mid layout pass
     this._top = maxTop > 0 ? clamp(this._top, 0, maxTop) : 0;
 
     const mx = Input.pointer.x;
@@ -289,15 +258,14 @@ globalThis.UITable = class UITable {
     this._mx = mx;
     this._my = my;
 
-    // browse mode owns input while latched; a pointer move/click hands control back to mouse.
-    // it re-requests nav suspension each frame and absorbs that frame's keys (incl. the exit
-    // Esc, so Esc doesn't also disengage the focus ring underneath).
+    // browse mode absorbs the frame's keys (the exit Esc included, so it doesn't also
+    // disengage the focus ring underneath); pointer activity hands control back to the mouse
     if (this._browsing) {
       if (moved || (this._inside && Input.pointer.left.pressed)) {
-        this._browsing = false; // pointer takes over → fall through to mouse handling
+        this._browsing = false;
       } else {
         this._browseKeys(pos);
-        UINav.claimKeys(this); // re-request nav suspension THIS frame (self-healing)
+        UINav.claimKeys(this);
         return true;
       }
     }
@@ -307,7 +275,6 @@ globalThis.UITable = class UITable {
     this._bar.over = false;
     if (!this._inside && !this._bar.dragging) return block;
 
-    // Header: hover + click-to-sort.
     if (my >= headerTop && my < bodyTop) {
       for (let i = 0; i < cols.length; i++) {
         if (mx >= cols[i].x && mx < cols[i].x + cols[i].w) {
@@ -318,7 +285,6 @@ globalThis.UITable = class UITable {
       if (this._hoverCol >= 0 && Input.pointer.left.pressed) this.sortBy(this._hoverCol);
     }
 
-    // Body: wheel scroll, row hover + click-to-select.
     const bodyH = bodyRows * this.rowH;
     if (this._inside) {
       const wheel = Input.pointer.wheel;
@@ -336,7 +302,6 @@ globalThis.UITable = class UITable {
       }
     }
 
-    // Scrollbar drag (row-based thumb).
     if (barOn) this._barInput(pos, mx, my, bodyTop, bodyH, maxTop);
 
     return this._inside || this._bar.dragging || block;
@@ -345,7 +310,7 @@ globalThis.UITable = class UITable {
   _barInput(pos, mx, my, bodyTop, bodyH, maxTop) {
     const m = this._barMetrics(pos, bodyTop, bodyH, maxTop);
     const t = this._bar.input(m, mx, my, true);
-    if (t >= 0) this._top = Math.round(t * maxTop); // row-quantized (UIScroll maps to px)
+    if (t >= 0) this._top = Math.round(t * maxTop); // row-quantized
   }
 
   _barMetrics(pos, bodyTop, bodyH, maxTop) {
@@ -373,7 +338,6 @@ globalThis.UITable = class UITable {
     if (this._view.length > 0) {
       if (e.dy !== 0) {
         this._cursor = clamp(this._cursor + e.dy, 0, this._view.length - 1);
-        // Scroll-follow: keep the cursor inside the window.
         if (this._cursor < this._top) this._top = this._cursor;
         else if (this._cursor >= this._top + bodyRows)
           this._top = this._cursor - bodyRows + 1;
@@ -386,9 +350,6 @@ globalThis.UITable = class UITable {
     if (e.dx !== 0) this._cycleSort(e.dx);
   }
 
-  /**
-   * Move the primary sort to the next sortable column in direction dir.
-   */
   _cycleSort(dir) {
     const n = this.columns.length;
     if (n === 0) return;
@@ -402,10 +363,9 @@ globalThis.UITable = class UITable {
     }
   }
 
-  // ── draw ────────────────────────────────────────────────────
   onDraw(element) {
     const pos = element.getLayoutPosition();
-    const g = this._geometry(pos); // live geometry — stays glued to a dragged window
+    const g = this._geometry(pos);
 
     const st = uiDrawSave();
     draw_set_alpha(1);
@@ -455,9 +415,8 @@ globalThis.UITable = class UITable {
       const rank = this._sortRank(i);
       const bright = i === this._hoverCol || rank === 0;
       draw_set_color(bright ? this.colorText : this.colorHeader);
-      // labels always left-aligned so the right-edge sort arrow never collides/truncates them
+      // labels always left-aligned so the right-edge sort arrow never collides with them
       this._cellText(col.label ?? "", c, cy, fa_left, c.w - this.cellPad - 14);
-      // sort arrow at the right edge: up asc / down desc, accent on primary
       if (rank >= 0) {
         const dir = this._sort[rank].dir;
         const ah = 4;
@@ -497,14 +456,12 @@ globalThis.UITable = class UITable {
       const ry = g.bodyTop + r * this.rowH;
       const ry1 = ry + this.rowH;
 
-      // Row background: zebra, then hover, then selection tint.
       let bg = vi % 2 === 0 ? this.colorRow : this.colorRowAlt;
       if (vi === this._hoverRow) bg = this.colorRowHover;
       draw_set_alpha(this.rowAlpha);
       draw_rectangle_color(x0, ry, x0 + w, ry1, bg, bg, bg, bg, false);
       draw_set_alpha(1);
 
-      // Cells.
       const cyr = ry + this.rowH * 0.5;
       for (let i = 0; i < this.columns.length; i++) {
         const col = this.columns[i];
@@ -530,7 +487,7 @@ globalThis.UITable = class UITable {
         if (col.text) {
           draw_set_color(col.color ? col.color(row) : this.colorText);
           const align = col.align ?? fa_left;
-          const ox = col.sprite ? this.rowH : 0; // shift past an icon in the same cell
+          const ox = col.sprite ? this.rowH : 0;
           this._cellText(
             col.text(row),
             { x: c.x + ox, w: c.w - ox },
@@ -541,7 +498,7 @@ globalThis.UITable = class UITable {
         }
       }
 
-      // Selection: a left accent bar + outline so it reads over the zebra.
+      // accent bar + outline, so the selection reads over the zebra
       if (row === this._selRow) {
         draw_rectangle_color(
           x0,
@@ -566,7 +523,6 @@ globalThis.UITable = class UITable {
           true,
         );
       }
-      // Keyboard cursor: a brighter outline while browsing.
       if (this._browsing && vi === this._cursor) {
         draw_rectangle_color(
           x0,
@@ -588,9 +544,7 @@ globalThis.UITable = class UITable {
     this._bar.draw(this._barMetrics(pos, g.bodyTop, bodyH, g.maxTop));
   }
 
-  /**
-   * cell text fit to `maxW` (hard-truncate — the default font has no ellipsis glyph)
-   */
+  /** Hard-truncates to `maxW` — the default font has no ellipsis glyph. */
   _cellText(str, c, cy, align, maxW) {
     draw_set_halign(align);
     let x = c.x + this.cellPad;
@@ -603,8 +557,7 @@ globalThis.UITable = class UITable {
     if (maxW <= 0) return "";
     const s = string(str);
     if (string_width(s) <= maxW) return s;
-    // binary-search the longest fitting prefix (string_width is monotonic in
-    // prefix length); floor of 1 char even when that still overflows.
+    // longest fitting prefix; at least 1 char even when that still overflows
     let lo = 1;
     let hi = string_length(s) - 1;
     while (lo < hi) {
@@ -615,18 +568,13 @@ globalThis.UITable = class UITable {
     return string_copy(s, 1, lo);
   }
 
-  // ── nav ─────────────────────────────────────────────────────
-  // confirm enters browse mode; its presence marks the element focusable
+  // its presence marks the element focusable
   navActivate(element) {
     this._browsing = true;
-    // seed cursor on the selected row, else top of window
     const sel = this._view.indexOf(this._selRow);
     this._cursor = sel >= 0 ? sel : this._top;
   }
 
-  /**
-   * Release the browse-mode key claim on teardown.
-   */
   onDestroy(element) {
     UINav.releaseClaim(this);
   }

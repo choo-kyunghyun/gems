@@ -1,9 +1,6 @@
-// See FacetTheme.js for the kit overview + the GMRT globalThis-assignment rule.
+/** Themed controls: factories for elements that edit a value or fire an action. */
 
-/**
- * `opts.primary: true` paints the button accent (highlighted CTA). Centered label;
- * hover eases fill + border, press darkens it (see UIButton).
- */
+/** `opts.primary` paints the accent call-to-action look. */
 globalThis.facetButton = function facetButton(label, onClick, opts = {}) {
   const primary = opts.primary ?? false;
   const base = opts.color ?? (primary ? FacetTheme.accent : FacetTheme.btn);
@@ -14,13 +11,10 @@ globalThis.facetButton = function facetButton(label, onClick, opts = {}) {
   const bdr =
     opts.borderColor ?? (primary ? FacetTheme.accentHi : FacetTheme.border);
   const bdrHover = primary ? FacetTheme.onAccent : FacetTheme.borderHi;
-  // label sits ON the accent fill for a primary button, so it takes onAccent (light in both
-  // modes) — plain `text` would go dark in light mode and vanish against the blue.
+  // a primary label sits on the accent fill, so it must stay light in both theme modes
   const labelColor =
     opts.textColor ?? (primary ? FacetTheme.onAccent : FacetTheme.text);
 
-  // opts.icon: optional sprite drawn left of the label; only then does the layout become a
-  // row (no-icon path unchanged)
   const hasIcon = opts.icon != null && sprite_exists(opts.icon);
   const style = {
     height: opts.height ?? FacetTheme.rowH,
@@ -54,17 +48,13 @@ globalThis.facetButton = function facetButton(label, onClick, opts = {}) {
       borderColorNormal: facetColor(bdr),
       borderColorHover: facetColor(bdrHover),
       animSpeed: FacetTheme.animSpeed,
-      // opts.disabled: bool or a live () => bool
       disabled: opts.disabled === true,
       getDisabled: typeof opts.disabled === "function" ? opts.disabled : null,
-      // opts.selected: a live () => bool marking the active choice (category bar / palette);
-      // tints toward the accent
       getSelected: typeof opts.selected === "function" ? opts.selected : null,
       colorSelected: facetColor(opts.colorSelected ?? FacetTheme.accentPress),
       borderColorSelected: facetColor(
         opts.borderColorSelected ?? FacetTheme.accentHi,
       ),
-      // grey the label alongside the panel when disabled
       label: labelEl.getComponent(UIText),
       textColorNormal: facetColor(labelColor),
       textColorDisabled: facetColor(FacetTheme.textDim),
@@ -87,7 +77,6 @@ globalThis.facetButton = function facetButton(label, onClick, opts = {}) {
   return facetAttachTooltip(btn, opts);
 };
 
-/** Square button holding a sprite (OBJECT_FIT.CONTAIN inside padding). */
 globalThis.facetIconButton = function facetIconButton(
   sprite,
   onClick,
@@ -131,9 +120,8 @@ globalThis.facetIconButton = function facetIconButton(
 };
 
 /**
- * Boolean button: renders `label: ON/OFF`, live from getValue(); click → onToggle.
- * onText/offText may be strings or () => string (for live i18n). `opts.key` names the Settings
- * key (or keys) onToggle writes, marking the button while it differs from its default.
+ * Button reading `label: ON/OFF`, live from getValue(). `opts.key` names the Settings key (or
+ * keys) onToggle writes, marking the button while it differs from its default.
  */
 globalThis.facetToggle = function facetToggle(
   label,
@@ -156,10 +144,9 @@ globalThis.facetToggle = function facetToggle(
 };
 
 /**
- * Checkbox/switch row: label left, toggle graphic right; the whole row is the click
- * target. `opts.style` "check" (box+tick, default) or "switch" (pill+knob). `opts.key` names
- * the Settings key (or keys) onToggle writes, marking the label while it differs from its
- * default. For a `label: ON/OFF` button instead, use facetToggle.
+ * Checkbox or switch row whose whole width is the click target. `opts.style` is "check" or
+ * "switch". `opts.key` names the Settings key (or keys) onToggle writes, marking the label while
+ * it differs from its default.
  */
 globalThis.facetCheckbox = function facetCheckbox(
   label,
@@ -196,11 +183,8 @@ globalThis.facetCheckbox = function facetCheckbox(
 };
 
 /**
- * Slider with a value readout at its right end (UISlider). `opts`: { key | value, min (0),
- * max (1), step, onChange(value), format(value) — the readout string (a percentage, say),
- * valueColor, showValue (true; false gives the whole width to the track, for a caller that
- * shows the value itself), tooltip }. `opts.key` binds it to Settings (facetBindValue);
- * without a key it starts at `opts.value` (else `min`).
+ * Slider with a value readout at its right end; `opts.showValue: false` gives the track the
+ * whole width. `opts.key` binds it to Settings; without a key it starts at `opts.value`.
  */
 globalThis.facetSlider = function facetSlider(opts = {}) {
   const min = opts.min ?? 0;
@@ -232,11 +216,7 @@ globalThis.facetSlider = function facetSlider(opts = {}) {
   return facetAttachTooltip(el, opts);
 };
 
-/**
- * Framed field chassis shared by the boxed controls (select/dropdown/stepper/rebind/input):
- * a fixed-size element carrying the themed field UIPanel; the caller adds its control
- * component on top. `opts`: { width, height, color, rad }.
- */
+/** Framed field chassis of the boxed controls; the caller adds its control component on top. */
 globalThis.facetFieldPanel = function facetFieldPanel(opts = {}) {
   const el = new UIElement({
     height: opts.height ?? FacetTheme.fieldH,
@@ -254,10 +234,8 @@ globalThis.facetFieldPanel = function facetFieldPanel(opts = {}) {
 };
 
 /**
- * Panel-backed cycling select (`< value >`, UISelect) — the fit for a few options;
- * facetDropdown for many. `items` are { name, value }. `opts`: { key | index,
- * onChange(index, value), width, height, tooltip } — `opts.key` binds the choice to
- * Settings (facetBindChoice).
+ * In-place cycling select (`< value >`), the fit for a few options. `items` are { name, value };
+ * `opts.key` binds the choice to Settings.
  */
 globalThis.facetSelect = function facetSelect(items, opts = {}) {
   const bind = facetBindChoice(items, opts);
@@ -277,11 +255,8 @@ globalThis.facetSelect = function facetSelect(items, opts = {}) {
 };
 
 /**
- * Dropdown / combobox (UIDropdown): clicking the panel-backed field drops a navigable popup
- * list — the fit for many options (resolutions, locales), unlike facetSelect's in-place
- * `< >` cycle. Lists past `opts.maxVisible` (6) scroll. `items` are { name, value }. `opts`:
- * { key | index, onChange(index, value), width, height, rowH, maxVisible, dim, placeholder,
- * tooltip } — `opts.key` binds the choice to Settings (facetBindChoice).
+ * Dropdown whose field opens a popup list, the fit for many options; lists past
+ * `opts.maxVisible` scroll. `items` are { name, value }; `opts.key` binds the choice to Settings.
  */
 globalThis.facetDropdown = function facetDropdown(items, opts = {}) {
   const bind = facetBindChoice(items, opts);
@@ -301,10 +276,7 @@ globalThis.facetDropdown = function facetDropdown(items, opts = {}) {
   return facetAttachTooltip(el, opts);
 };
 
-/**
- * Builds + shows the popup list for an open UIDropdown (its `onOpen`). Assigned global,
- * not a bare function — GMRT large-file hoisting rule.
- */
+/** Shows the modal popup list of an open dropdown. */
 globalThis.facetDropdownPopup = function facetDropdownPopup(
   dropdown,
   field,
@@ -320,12 +292,11 @@ globalThis.facetDropdownPopup = function facetDropdownPopup(
   const listH = visible * rowH + Math.max(0, visible - 1) * gap;
   const cardH = listH + pad * 2;
 
-  // drop below the field; flip above if it would run off the screen bottom
+  // flip above the field when below would run off the screen
   let top = pos.top + pos.height + 4;
   if (top + cardH > display_get_gui_height()) top = pos.top - 4 - cardH;
 
-  // full-screen modal root: blocks rows behind, draws on top, closes on outside-click/Esc.
-  // dim 0 → no darkening, just the popup
+  // a full-screen modal root blocks the UI behind and closes on an outside click or Esc
   const root = new UIElement({ width: "100%", height: "100%" });
   root.addComponent(
     new UIPanel({ color: facetColor("#000000"), alpha: opts.dim ?? 0 }),
@@ -338,8 +309,6 @@ globalThis.facetDropdownPopup = function facetDropdownPopup(
   });
   root.addComponent(modal);
 
-  // absolute wrapper positions the card at the field (construction-time layout props
-  // only — runtime change is draw-time offsets, not flex mutation)
   const wrap = new UIElement({
     positionType: "absolute",
     left: pos.left,
@@ -347,15 +316,14 @@ globalThis.facetDropdownPopup = function facetDropdownPopup(
     width: pos.width,
   });
   const card = facetCard({ width: "100%", padding: pad, gap, alpha: 1 }); // floats over other UI
-  // long lists scroll in a fixed-height viewport; short ones list directly
   const scroll = n > maxVisible ? facetScroll({ height: listH }) : null;
   const host = scroll !== null ? scroll.scrollBody : card;
   if (scroll !== null) card.insertChild(scroll);
-  const sel = dropdown.getIndex(); // method, not a .index getter (UIDropdown house style)
+  const sel = dropdown.getIndex();
   for (let i = 0; i < n; i++) {
     const item = dropdown.items[i];
     const selected = i === sel;
-    const pick = i; // capture for the click closure
+    const pick = i;
     host.insertChild(
       facetButton(
         item.name,
@@ -374,14 +342,10 @@ globalThis.facetDropdownPopup = function facetDropdownPopup(
   }
   wrap.insertChild(card);
   root.insertChild(wrap);
-  UI.insert(root); // top of the stack → blocks lower roots, draws last
+  UI.insert(root);
 };
 
-/**
- * Panel-backed numeric stepper (`< n >`). Holds its own value; `onChange(value)`
- * fires on each step. `opts`: { min, max, step, wrap, format } — `format(v)` returns
- * the centered display string (default `${v}`).
- */
+/** Numeric stepper (`< n >`) holding its own value; `onChange(value)` fires on each step. */
 globalThis.facetStepper = function facetStepper(value, onChange, opts = {}) {
   const el = facetFieldPanel({ height: opts.height, width: opts.width });
   el.addComponent(
@@ -404,15 +368,14 @@ globalThis.facetStepper = function facetStepper(value, onChange, opts = {}) {
 };
 
 /**
- * Panel-backed single-line text field (UIInput). Reach the component via
- * `field.getComponent(UIInput)`. `placeholder` is resolved once (a plain string, not a
- * textRef), so it won't re-translate on a live language switch.
+ * Single-line text field. `placeholder` is a plain string resolved once, so it does not
+ * re-translate on a live language switch.
  */
 globalThis.facetInput = function facetInput(opts = {}) {
   const el = facetFieldPanel({
     height: opts.height ?? FacetTheme.rowH,
     width: opts.width,
-    color: opts.color ?? FacetTheme.btnPress, // input field sits a shade deeper than a button
+    color: opts.color ?? FacetTheme.btnPress, // a shade deeper than a button
     rad: opts.rad,
   });
   el.addComponent(
@@ -437,9 +400,9 @@ globalThis.facetInput = function facetInput(opts = {}) {
 };
 
 /**
- * Slot grid with hover + single selection (inventory foundation). `items` is slot data
- * ({ sprite, subimg, count, color }) or null; `sprite` must be raster (SVG faults on
- * GMRT). Sized exactly to the grid so it drops into a facetScroll. `onSelect(index, item)`.
+ * Slot grid with hover and single selection, sized exactly to the grid so it fits a scroll
+ * view. Each item is { sprite, subimg, count, color } or null; `sprite` must be raster
+ * (docs/GMRT.md).
  */
 globalThis.facetSlots = function facetSlots(items, opts = {}) {
   const cols = opts.cols ?? 4;
@@ -473,10 +436,8 @@ globalThis.facetSlots = function facetSlots(items, opts = {}) {
 };
 
 /**
- * Key-rebinding row (UIRebind): shows an action's current binding; click to arm capture,
- * next key rebinds its keyboard key through Input.rebind (Esc / mouse-click cancels). `actionKey`
- * must already be registered. `opts.prompt` is the capture label; `opts.onRebind(code)` fires on
- * rebind.
+ * Key-rebinding row showing an action's current binding; a click arms capture and the next key
+ * rebinds it (Esc or a mouse click cancels). `actionKey` must already be registered.
  */
 globalThis.facetRebind = function facetRebind(actionKey, opts = {}) {
   const el = facetFieldPanel({
@@ -498,20 +459,16 @@ globalThis.facetRebind = function facetRebind(actionKey, opts = {}) {
 };
 
 /**
- * Data table (UITable): sortable columns, filtering, single selection, sticky header,
- * row scrolling, keyboard/gamepad browse. `columns` is the UITable column spec
- * ({ label, width?/flex?, align?, text(row), color?(row), sprite?(row), sortable?,
- * sortValue?(row) }). Sized to show `opts.rows` (8) whole rows. Reach the component via
- * `el.getComponent(UITable)`. `opts`: { data, rows, grow, rowH, headerH, width, sortBy,
- * sortDir, onSelect, onActivate, emptyText, font, headerFont, tooltip }.
+ * Data table sized to show `opts.rows` whole rows, or to flex-fill with `opts.grow`. `columns`
+ * is the table column spec ({ label, width?/flex?, align?, text(row), color?(row), sprite?(row),
+ * sortable?, sortValue?(row) }).
  */
 globalThis.facetTable = function facetTable(columns, opts = {}) {
   const rowH = opts.rowH ?? FacetTheme.rowH;
   const headerH = opts.headerH ?? FacetTheme.lineH;
   const visible = opts.rows ?? 8;
   const pad = FacetTheme.padSm;
-  // `grow` flex-fills instead of fixing a row count; UITable derives its visible-row count
-  // from the live layout height, so a grown table reflows as a resizable window changes size.
+  // a grown table's visible-row count follows its live layout height, so it reflows on resize
   const el = new UIElement(
     opts.grow
       ? { width: opts.width ?? "100%", flexGrow: 1, flexBasis: 0 }
@@ -563,17 +520,13 @@ globalThis.facetTable = function facetTable(columns, opts = {}) {
 };
 
 /**
- * Amount-picker modal — "how many?" stepper (defaults to the full `max`) + 1/Half/All quick
- * buttons over a facetModal; confirm fires onConfirm(amount), Cancel/backdrop just close.
- * All labels are options (the kit stays content-agnostic — the colony passes its STORAGE_*
- * strings); closeOnEscape defaults OFF because the colony level's handleEscape cancels the
- * picker before the window under it. Returns the UIModal (as facetModal does).
- * opts: { title, max, prompt, half, all, cancelLabel, confirmLabel, onConfirm, onClose,
- *         closeOnEscape, width }
+ * "How many?" modal starting at the full `max`; confirm fires onConfirm(amount), cancel just
+ * closes. Every label is an option so the kit stays content-agnostic. Esc is off by default so
+ * the caller decides what it cancels first. Returns the UIModal.
  */
 globalThis.facetAmountPicker = function facetAmountPicker(opts = {}) {
   const max = opts.max ?? 1;
-  let amount = max; // the confirm button reads it on confirm
+  let amount = max;
   const body = new UIElement({ width: "100%", gap: FacetTheme.gapSm });
   body.insertChild(
     facetLabel((opts.prompt ?? "How many?") + " (" + max + ")", {
@@ -588,7 +541,6 @@ globalThis.facetAmountPicker = function facetAmountPicker(opts = {}) {
   const stepper = stepEl.getComponent(UIStepper);
   body.insertChild(stepEl);
 
-  // equal-width quick-set row; each button snaps the stepper.
   const quickBtn = (label, onClick) => {
     const cell = new UIElement({ flexGrow: 1, flexBasis: 0 });
     cell.insertChild(

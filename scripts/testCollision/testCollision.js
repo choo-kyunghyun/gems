@@ -1,13 +1,11 @@
-// Core/Collision and Puppet cases: SolidSystem and SeparationSystem over the mirrors
-// PuppetSystem keeps, the collider generation, AABB, Query (the position walks, the runtime's
-// mask queries and the segment casts), and perf.builtin, the runtime's collision built-ins
-// against Core/Collision. Every case here references Core only; the case contract and the
-// perf.* rule are Test's.
+// Collision cases: the solid and separation passes, the collider mirrors and their generation,
+// the rect math, the queries and casts, and perf.builtin, the runtime's collision built-ins
+// against the JS forms. Every case references Core only.
 
-const N = 4000; // the perf.builtin loop length
-const BENCH_STATICS = 200; // perf.builtin's statics
-const BENCH_BODIES = 500; // perf.builtin's bodies, the colony's count
-const BENCH_RADIUS = 160; // perf.builtin's nearest-body ring, an aggro scan's size
+const N = 4000;
+const BENCH_STATICS = 200;
+const BENCH_BODIES = 500; // a colony's body count
+const BENCH_RADIUS = 160; // an aggro scan's size
 
 Test.register(Test.CHECK, [
   {
@@ -22,15 +20,14 @@ Test.register(Test.CHECK, [
       s.add(ctx.body, BBox, { x: 0, y: 0, width: 16, height: 16 });
       s.add(ctx.body, Collision, { solid: true });
       s.add(ctx.body, Velocity, { x: 600, y: 0, z: 0 }); // 10 px per tick at the pinned step
-      // the sim integrates by Time.step, REAL frame time (a fast frame's is short): pinned so
-      // the 20 ticks are 200 px whatever the frame took, restored in teardown
+      // the step is real frame time: pinned so 20 ticks are 200 px whatever a frame took
       ctx.step = Time.step;
       Time.step = 1 / 60;
     },
     verify(ctx, t) {
       const s = ctx.entities;
       for (let k = 0; k < 20; k++) {
-        PuppetSystem.update(ctx.level); // the scene's order: the mirror first
+        PuppetSystem.update(ctx.level); // the frame's order: the mirror first
         SolidSystem.update(ctx.level);
       }
       const pos = s.get(ctx.body, Position);
@@ -61,26 +58,26 @@ Test.register(Test.CHECK, [
       s.add(ctx.body, BBox, { x: 0, y: 0, width: 16, height: 16 });
       s.add(ctx.body, Collision, { solid: true });
       s.add(ctx.body, Velocity, { x: 600, y: 0, z: 0 });
-      ctx.step = Time.step; // pinned as system.solid's: the walk through the leaf is 20 ticks of it
+      ctx.step = Time.step; // pinned: the walk through the leaf is 20 ticks of it
       Time.step = 1 / 60;
     },
     verify(ctx, t) {
       const s = ctx.entities;
       const level = ctx.level;
       const col = s.get(ctx.wall, Collision);
-      PuppetSystem.update(level); // the mirrors, ahead of the solid pass as in the scene
+      PuppetSystem.update(level);
       SolidSystem.update(level);
       const c = PuppetSystem.colliders(level);
       t.eq(c.gen, 1, "the wall's shaping counts");
       col.solid = false; // the leaf opens
       for (let k = 0; k < 20; k++) {
-        PuppetSystem.update(level); // the leaf's mirror empties its mask
+        PuppetSystem.update(level);
         SolidSystem.update(level);
       }
       t.eq(c.gen, 2, "the flip moved the generation");
       t.ok(s.get(ctx.body, Position).x > 100, "the body walks through the open leaf");
       col.solid = true; // the leaf closes behind it
-      PuppetSystem.update(level); // the mirror's walk is the collider walk
+      PuppetSystem.update(level);
       t.eq(c.gen, 3, "the flip back moved the generation again");
       PuppetSystem.update(level);
       t.eq(c.gen, 3, "an unchanged set holds the generation");
@@ -121,7 +118,7 @@ Test.register(Test.CHECK, [
     },
     verify(ctx, t) {
       const s = ctx.entities;
-      PuppetSystem.update(ctx.level); // the mirrors, as the scene runs them first
+      PuppetSystem.update(ctx.level);
       SolidSystem.update(ctx.level);
       t.eq(s.get(ctx.still, Position).x, 10, "a body without Velocity is not integrated");
       t.eq(s.get(ctx.wall, Position).x, 100, "a kinematic is not integrated");
@@ -203,10 +200,6 @@ Test.register(Test.CHECK, [
       ctx.entities.destroy();
     },
   },
-  // ── puppet.mirror: every collider's instance mirrors its components ─────────────
-  // PuppetSystem's contract: a kinematic is a Solid, a body a Puppet, the mask is the AABB,
-  // the instance follows Position, a solid flip empties the mask, a parked level answers no
-  // query, and the level's teardown destroys the instance.
   {
     id: "puppet.mirror",
     setup(ctx) {
@@ -269,7 +262,6 @@ Test.register(Test.CHECK, [
       if (ctx.level !== null) ctx.level.destroy();
     },
   },
-  // ── collision.mask: the runtime's mask queries over the mirrors ──────────────────
   {
     id: "collision.mask",
     setup(ctx) {
@@ -320,7 +312,7 @@ Test.register(Test.CHECK, [
       ctx.entities = s;
       ctx.wall = Colliders.box(s, 100, 0, 32, 64);
       ctx.far = Colliders.box(s, 150, 0, 32, 64); // a second wall on the same line, for castAll
-      PuppetSystem.update(ctx.level); // the walls' mirrors, which the cast lists
+      PuppetSystem.update(ctx.level); // the cast reads the mirrors
     },
     verify(ctx, t) {
       const s = ctx.entities;
@@ -357,17 +349,11 @@ Test.register(Test.CHECK, [
       ctx.level.destroy();
     },
   },
-  // ── perf.builtin: the runtime's collision built-ins against Core/Collision ────────
-  // What the runtime's instance collision costs against what Core/Collision keeps in JS, over
-  // the mirrors PuppetSystem keeps (a Solid a static, a
-  // Puppet a body, `eid` the entity behind it) at the colony's shape: 500 bodies, ~200 statics.
-  // Each row is a built-in against the JS form; every built-in runs instance-scoped (a
-  // collision call throws outside one), and a hit is read back through the DS list and its
-  // `eid` — the price a replacement pays, not a benchmark shortcut. Query.cast rides
-  // collision_line_list itself now, so its row is a cast's cost and the collision_line row
-  // what a hit-or-miss alone costs. The checks record where the two agree and differ: the
-  // runtime keeps a fractional bbox (docs/GMRT.md), and rectangle_in_rectangle counts a
-  // touching edge where AABB.overlap is strict.
+  // What the runtime's instance collision costs against the JS forms, over the collider mirrors
+  // at a colony's scale. Every built-in runs instance-scoped and a hit is read back through its
+  // list and `eid` — the price a replacement pays, not a benchmark shortcut. The checks record
+  // where the two agree and differ: the runtime keeps a fractional bbox (docs/GMRT.md), and
+  // rectangle_in_rectangle counts a touching edge where AABB.overlap is strict.
   {
     id: "perf.builtin",
     frames: 2, // the masks land on the instances after their first step
@@ -387,7 +373,6 @@ Test.register(Test.CHECK, [
       ctx.list = ds_list_create();
       ctx.probe = PuppetSystem.probe(); // the scope the built-ins run in
 
-      // the statics: random 32-128 px boxes on the cell lattice
       ctx.staticIds = [];
       for (let k = 0; k < BENCH_STATICS; k++) {
         const x = 32 * Math.floor(rand() * 60);
@@ -398,7 +383,7 @@ Test.register(Test.CHECK, [
         ctx.staticIds.push(id);
       }
 
-      // the bodies: 12 px centred boxes at integer positions (so the bboxes agree exactly)
+      // integer positions, so the bboxes agree exactly
       const n = BENCH_BODIES;
       ctx.n = n;
       ctx.bodyIds = new Array(n);
@@ -419,10 +404,9 @@ Test.register(Test.CHECK, [
         ctx.bodyPos[i] = pos;
         ctx.bodyBox[i] = box;
       }
-      PuppetSystem.update(level); // the mirrors
+      PuppetSystem.update(level);
       for (let i = 0; i < n; i++) ctx.bodyInst[i] = s.get(ctx.bodyIds[i], Instance).inst;
 
-      // rect pairs for the overlap row (perf.measured's shape)
       ctx.ra = new Array(N);
       ctx.rb = new Array(N);
       for (let i = 0; i < N; i++) {
@@ -430,7 +414,6 @@ Test.register(Test.CHECK, [
         const bx = i + (i & 1 ? 8 : 20);
         ctx.rb[i] = { x1: bx, y1: 0, x2: bx + 16, y2: 16 };
       }
-      // query rects, segments
       ctx.queries = [];
       for (let k = 0; k < 64; k++) {
         const x = Math.floor(rand() * 1800);
@@ -461,7 +444,6 @@ Test.register(Test.CHECK, [
       const bodyBox = ctx.bodyBox;
       const bodyInst = ctx.bodyInst;
 
-      // ── the mirror holds: an instance carries its entity and the bbox the components give
       const b0 = bodyInst[0];
       t.eq(b0.eid, ctx.bodyIds[0], "eid reads back");
       t.eq(b0.bbox_left, bodyPos[0].x - 6, "a body's mask left edge");
@@ -469,7 +451,6 @@ Test.register(Test.CHECK, [
       const s0 = s.get(ctx.staticIds[0], Instance).inst;
       t.eq(s0.bbox_left, s.get(ctx.staticIds[0], Position).x, "a static's mask left edge");
 
-      // ── semantics: touching edges, and a fractional position
       const touch = rectangle_in_rectangle(0, 0, 16, 16, 16, 0, 32, 16);
       t.eq(
         AABB.overlap({ x1: 0, y1: 0, x2: 16, y2: 16 }, { x1: 16, y1: 0, x2: 32, y2: 16 }),
@@ -481,7 +462,6 @@ Test.register(Test.CHECK, [
       ctx.insts.push(fa);
       Log.info("[BENCH] builtin.fractional x 500.5 -> bbox_left " + fa.bbox_left + " right " + fa.bbox_right);
 
-      // ── AABB.overlap vs rectangle_in_rectangle: the boundary crossing alone
       const ra = ctx.ra;
       const rb = ctx.rb;
       const readRects = () => {
@@ -513,7 +493,7 @@ Test.register(Test.CHECK, [
       });
       t.eq(gmOverlaps, jsOverlaps, "rectangle_in_rectangle agrees with AABB.overlap on the pairs");
 
-      // ── the sync a replacement pays every tick: a body's x/y onto its instance
+      // the sync a replacement pays every tick
       const readPos = () => {
         let acc = 0;
         for (let i = 0; i < n; i++) acc += bodyPos[i].x + bodyPos[i].y;
@@ -531,7 +511,6 @@ Test.register(Test.CHECK, [
         return acc;
       });
 
-      // ── Query.inRect (a Position walk) vs Query.maskRect (the runtime's list + the id read-back)
       const queries = ctx.queries;
       const nq = queries.length;
       let jsFound = 0;
@@ -576,8 +555,6 @@ Test.register(Test.CHECK, [
       t.eq(missing, 0, "every body Query.inRect finds, Query.maskRect finds");
       Log.info("[BENCH] builtin.query hits js " + jsFound + " gm " + gmFound + " over " + nq + " rects");
 
-      // ── the nearest body in a ring: a Position walk keeping the least distance vs
-      // Query.maskCircle ordered, whose first body is the answer
       const ring = BENCH_RADIUS;
       const jsNear = new Array(nq);
       const gmNear = new Array(nq);
@@ -622,7 +599,7 @@ Test.register(Test.CHECK, [
       }
       t.eq(nearMiss, 0, "the ordered mask list's first body is the walk's nearest");
 
-      // ── instance_place_list per body (+ read-back): the pair sweep a separation pass asks for
+      // the pair sweep a separation pass needs
       let gmPairs = 0;
       const bodySet = new Set(); // a Puppet query lists the Solids too: keep the bodies
       for (let i = 0; i < n; i++) bodySet.add(ctx.bodyIds[i]);
@@ -642,7 +619,6 @@ Test.register(Test.CHECK, [
       });
       t.ok(gmPairs > 0, "instance_place_list finds the overlapping bodies (each pair twice): " + gmPairs);
 
-      // ── instance_place_list + bbox reads per body against the statics
       let gmCand = 0;
       t.measure("builtin.instance_place_list.statics", n, Test.empty(n), () => {
         let acc = 0;
@@ -660,7 +636,6 @@ Test.register(Test.CHECK, [
       });
       t.ok(gmCand >= 0, "instance_place_list lists the statics a body overlaps: " + gmCand);
 
-      // ── Query.cast vs collision_line (a line of sight) and collision_line_list + slab (a hit point)
       const segs = ctx.segs;
       const ns = segs.length;
       const jsHits = new Array(ns);
@@ -724,9 +699,7 @@ Test.register(Test.CHECK, [
       });
       t.eq(nearestAgree, nearestBoth, "the nearest hit's distance agrees between the slab walk and the list");
 
-      // ── move_and_collide, the runtime's resolver, a 1 px step on each axis. Last, since it
-      // moves the bodies. Its return is a GML array — read through array_length, never coerced
-      // (docs/GMRT.md).
+      // last, since it moves the bodies; its GML array return is never coerced (docs/GMRT.md)
       t.measure("builtin.move_and_collide", n, Test.empty(n), () => {
         let acc = 0;
         for (let i = 0; i < n; i++) acc += array_length(bodyInst[i].move_and_collide(1, 1, Solid));

@@ -1,14 +1,12 @@
 /**
- * The GROUND stage: every cell takes a material off a value-noise band table — the level's base
- * before anything is carved into it or placed on it, so it runs first and writes every cell.
- * `bands` is [[materialId, threshold]...] ascending over the noise, the last threshold Infinity
- * (a material's band is [previous threshold, its own)); `lattice` the noise blob spacing in cells
- * (smaller = smaller patches). Pure in (ctx.seed, cell): the same seed lays the same ground.
- * Draws no rng.
- * GMRT-safe: index loops, while, class on globalThis.
+ * The ground stage: every cell takes a material off a value-noise band table. It is the level's
+ * base, so it runs first and writes every cell. `bands` is [[materialId, threshold]...] ascending
+ * over the noise, the last threshold Infinity (a band is [previous threshold, its own));
+ * `lattice` is the noise blob spacing in cells. Pure in (seed, cell) and draws no rng, so the
+ * same seed lays the same ground.
  */
 globalThis.GenGround = class GenGround {
-  /** opts: bands (required), lattice? (default 6), salt? */
+  /** opts: bands (required), lattice?, salt? */
   constructor(opts = {}) {
     if (!Array.isArray(opts.bands) || opts.bands.length === 0)
       throw new Error("GenGround needs a band table");

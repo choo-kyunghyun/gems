@@ -1,11 +1,7 @@
 /**
- * Item component marking an item as a workbench module.
- *
- * One upgradeable bench instead of a station per category. `kind` selects the window mode (CraftingUI):
- *   • "recipes" (default) — unlocks recipes whose `requires` matches this module's itemId (base
- *     recipes, with no `requires`, always available).
- *   • "weaponmod"          — the Toolkit: switches the window to the weapon-mod panel (WeaponModUI).
- * Identity is its itemId (Recipe.requires references that).
+ * Item component marking an item as a module of the one upgradeable workbench. Identity is its
+ * item id. `kind` selects the bench mode: "recipes" unlocks the recipes requiring this module,
+ * "weaponmod" switches the bench to weapon modding.
  */
 globalThis.WorkbenchModule = class WorkbenchModule {
   constructor(d = {}) {

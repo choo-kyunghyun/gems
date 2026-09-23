@@ -1,8 +1,8 @@
-// The restock heartbeat over every finite Merchant; the trade verbs (buy/sell/price) are Trade's.
+// The restock heartbeat over every finite Merchant.
 globalThis.TradeSystem = {
   /**
-   * Every `restockSecs` top each finite merchant's stock UP to `template` (never removes — sold
-   * extras stay for buyback). Called per frame with sim dt (pauses with the game).
+   * Every `restockSecs`, top each finite merchant's stock up to `template`; nothing is removed,
+   * so sold extras stay for buyback. Runs on sim time, so it pauses with the game.
    */
   update(level) {
     const entities = level.entities;

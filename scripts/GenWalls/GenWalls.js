@@ -1,18 +1,13 @@
 /**
- * The WALLS stage: wall tiles from noise — a cell whose noise reaches `threshold` becomes a wall
- * on `layer` (default "wall", `material` optional), plus a ring around the level when `border` is
- * set (a cave's shell). Claimed cells stay open, so an anchor placed before this pass keeps its
- * pocket; every wall cell is claimed in turn, so later stamps and scatters land only in open
- * space. Emitted greedy-meshed (Grid.meshRects) into one tiles entry. Draws no rng.
+ * The WALLS stage: a cell whose noise reaches `threshold` becomes a wall, plus a ring around the
+ * level when `border` is set (a cave's shell). Claimed cells stay open, so an earlier anchor keeps
+ * its pocket; every wall cell is claimed in turn, so later passes land only in open space. Emitted
+ * greedy-meshed into one tiles entry. Draws no rng.
  * TODO: no connectivity guarantee — a pocket the noise seals off can hold a stamped structure
  * nobody can walk to.
- * GMRT-safe: index loops, class on globalThis.
  */
 globalThis.GenWalls = class GenWalls {
-  /**
-   * opts: lattice? (default 4), threshold? (noise ≥ this is wall, default 0.6), layer? (default
-   * "wall"), material? (the layer's material key), border? (default false), salt?
-   */
+  /** opts: lattice?, threshold?, layer?, material? (the layer's material key), border?, salt? */
   constructor(opts = {}) {
     this.salt = opts.salt;
     this.lattice = opts.lattice ?? 4;

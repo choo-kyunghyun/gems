@@ -1,21 +1,15 @@
 /**
  * Workbench page of the scene's Window.
  *
- * One bench upgraded by a single MODULE slot (Interaction.module): slot a WorkbenchModule to change
- * what it does. Two parts:
- *   • a MODULE BAR (top) — slotted module + Remove + an Install button per owned module. rebuilt each refresh.
- *   • a CONTENT area swapped by the module's kind: CRAFT mode (empty / "recipes" module) = a recipe
- *     master-detail filtered by Recipe.requires (base recipes always show); WEAPON-MOD mode (the
- *     Toolkit, "weaponmod") = the WeaponModUI panel.
- * The two content rows are SAME-SIZE facetListDetail rows, swapped STRUCTURALLY (insert/removeChild)
- * on a mode change — `enabled` only gates update/draw, a disabled sibling still reserves its flex
- * space; the content body flex-grows to fill the card. State on the page: sel (recipe id), mode
- * ("craft" | "mod"), the hosts, and `mod` (the WeaponModUI panel's own state).
+ * The bench is upgraded by a single module slot: the slotted module's kind picks the content —
+ * crafting its gated recipes (base recipes always show) or weapon modding. The two content rows
+ * are swapped structurally on a mode change, because a disabled sibling still reserves its flex
+ * space.
  */
 globalThis.CraftingUI = {
-  WRAP: 320, // description wrap width (px) — a stable narrow column within the detail pane
+  WRAP: 320, // description wrap width (px)
 
-  /** build the page once; the scene adds it to its Window under "workbench" */
+  /** Build the page once. */
   build(scene) {
     const page = {
       title: I18n.textRef("CRAFT_TITLE"),
@@ -25,20 +19,19 @@ globalThis.CraftingUI = {
         flexBasis: 0,
         gap: FacetTheme.gapSm,
       }),
-      sel: "", // selected recipe id (defaulted to the first on refresh)
-      mode: "", // "craft" | "mod" — which content row is currently mounted
+      sel: "", // recipe id
+      mode: "", // "craft" | "mod" — the mounted content row
       moduleBar: null,
       body: null,
       list: null,
       detail: null,
       craftRow: null,
       modRow: null,
-      mod: null, // the weapon-mod panel (WeaponModUI.buildPanel)
+      mod: null, // the weapon-mod panel's state
       refresh: () => CraftingUI.refresh(scene, page),
     };
     const card = page.el;
 
-    // module slot bar (top), repopulated each refresh.
     const bar = new UIElement({
       width: "100%",
       flexShrink: 0,
@@ -48,8 +41,7 @@ globalThis.CraftingUI = {
     card.insertChild(bar);
     card.insertChild(facetDivider());
 
-    // content host: holds exactly one content row at a time (swapped structurally). grows to fill
-    // the near-fullscreen card.
+    // holds exactly one content row at a time
     const body = new UIElement({
       width: "100%",
       flexGrow: 1,
@@ -58,30 +50,26 @@ globalThis.CraftingUI = {
     page.body = body;
     card.insertChild(body);
 
-    // ── CRAFT row: left recipe list + right detail ──
     const craftRow = facetListDetail();
     page.list = craftRow.list;
     page.detail = craftRow.detail;
-    page.craftRow = craftRow; // kept detached when mod mode is mounted
+    page.craftRow = craftRow; // kept detached while mod mode is mounted
 
-    // ── WEAPON-MOD row: left weapon list + right mod detail, filled by WeaponModUI ──
     const modRow = facetListDetail();
     page.modRow = modRow;
     page.mod = WeaponModUI.buildPanel(modRow.list, modRow.detail);
 
-    // Mount craft mode by default.
     body.insertChild(craftRow);
     page.mode = "craft";
     return page;
   },
 
-  /** slotted module itemId of the open workbench ("" = empty). */
+  /** The open workbench's slotted module itemId ("" = empty). */
   _module(scene) {
     const st = scene.level.entities.get(scene.window.target, Interaction);
     return st !== undefined && st.module !== undefined ? st.module : "";
   },
 
-  /** content mode the module drives: "mod" for a weaponmod module, else "craft". */
   _modeFor(module) {
     if (module === "") return "craft";
     const it = Item.get(module);
@@ -89,7 +77,6 @@ globalThis.CraftingUI = {
     return m !== undefined && m.kind === "weaponmod" ? "mod" : "craft";
   },
 
-  /** rebuild the module bar + active content panel; swaps the mounted row on a mode change. */
   refresh(scene, page) {
     const module = CraftingUI._module(scene);
     const mode = CraftingUI._modeFor(module);
@@ -116,9 +103,6 @@ globalThis.CraftingUI = {
     CraftingUI._fillDetail(scene, page, inv, recipes, module);
   },
 
-  /**
-   * recipes whose module gate `module` meets: base recipes (no `requires`) + the slotted module's.
-   */
   _visibleRecipes(module) {
     const all = Recipe.forStation("workbench");
     const out = [];
@@ -135,14 +119,10 @@ globalThis.CraftingUI = {
     return false;
   },
 
-  /**
-   * Module bar: slotted module + Remove, then an Install button per owned module. rebuilt each refresh.
-   */
   _fillModuleBar(scene, page, module) {
     const bar = page.moduleBar;
     facetClear(bar);
 
-    // line 1: "Module: <name>" + Remove (when slotted).
     const line1 = new UIElement({
       width: "100%",
       height: 28,
@@ -174,7 +154,7 @@ globalThis.CraftingUI = {
     }
     bar.insertChild(line1);
 
-    // line 2: an Install button per owned module (the slotted one isn't in the bag, so it can't appear).
+    // the slotted module isn't in the bag, so it gets no Install button
     const owned = CraftingUI._ownedModules(scene);
     if (owned.length === 0) {
       if (module === "")
@@ -207,7 +187,7 @@ globalThis.CraftingUI = {
     bar.insertChild(line2);
   },
 
-  /** distinct itemIds of owned WorkbenchModule items (in slot order). */
+  /** Distinct owned module itemIds, in slot order. */
   _ownedModules(scene) {
     const inv = scene.level.entities.get(scene.playerId, Inventory);
     const out = [];
@@ -226,18 +206,18 @@ globalThis.CraftingUI = {
   },
 
   /**
-   * slot module `id`, returning the previously slotted one. order matters: free the incoming module's
-   * bag slot FIRST so a full bag can still take the outgoing one; if it can't fit, undo + warn (never lost).
+   * Slot module `id`, returning the previous one to the bag. The incoming module's bag slot is
+   * freed first so a full bag can still take the outgoing one; if it can't, the swap is undone.
    */
   _installModule(scene, id) {
     const st = scene.level.entities.get(scene.window.target, Interaction);
     const inv = scene.level.entities.require(scene.playerId, Inventory);
     if (st === undefined) return;
-    if (Bag.remove(inv, id, 1) < 1) return; // didn't own it
+    if (Bag.remove(inv, id, 1) < 1) return;
     const prev = st.module;
     if (prev !== undefined && prev !== "") {
       if (Bag.add(inv, prev, 1) !== 0) {
-        Bag.add(inv, id, 1); // bag full — undo the consume, keep the slot as-is
+        Bag.add(inv, id, 1);
         Toast.push(I18n.text("INV_FULL"), { type: "warn" });
         return;
       }
@@ -247,7 +227,7 @@ globalThis.CraftingUI = {
     Log.info(`installed module ${id}`);
   },
 
-  /** pop the slotted module back into the bag (refused if the bag is full). */
+  /** Refused when the bag is full. */
   _removeModule(scene) {
     const st = scene.level.entities.get(scene.window.target, Interaction);
     const inv = scene.level.entities.require(scene.playerId, Inventory);
@@ -262,10 +242,7 @@ globalThis.CraftingUI = {
     scene.window.dirty = true;
   },
 
-  /**
-   * Craft panel — left: one selectable button per recipe (dimmed when uncraftable),
-   * refilled via the shared facetFillList.
-   */
+  /** One selectable entry per recipe, dimmed when uncraftable. */
   _fillList(scene, page, inv, recipes) {
     const entries = [];
     if (inv !== undefined) {
@@ -274,14 +251,13 @@ globalThis.CraftingUI = {
         const id = recipe.id;
         const out = recipe.output;
         const def = Item.get(out.itemId);
-        // list is pre-filtered so the gate always holds — pass the recipe's own `requires`
-        // so canCraft only checks ingredients.
+        // the list is pre-filtered, so only the ingredients are checked
         const can = Crafting.canCraft(inv, recipe, recipe.requires);
         entries.push({
           label: def !== undefined ? I18n.text(def.name) : out.itemId,
           onPick: () => {
             page.sel = id;
-            scene.window.dirty = true; // repopulate the detail
+            scene.window.dirty = true;
           },
           selected: () => page.sel === id,
           textColor: can
@@ -293,7 +269,6 @@ globalThis.CraftingUI = {
     facetFillList(page.list, entries, I18n.textRef("CRAFT_EMPTY"));
   },
 
-  /** Craft panel — right: selected recipe's name, description, ingredients, Craft button. */
   _fillDetail(scene, page, inv, recipes, module) {
     const host = page.detail;
     facetClear(host);
@@ -338,7 +313,7 @@ globalThis.CraftingUI = {
       host.insertChild(CraftingUI._ingredientRow(inv, recipe.inputs[i]));
     }
 
-    // Spacer pushes the Craft button to the bottom of the fixed-height detail column.
+    // spacer pushes the Craft button to the bottom of the column
     host.insertChild(
       new UIElement({ width: "100%", flexGrow: 1, flexBasis: 0 }),
     );
@@ -358,14 +333,12 @@ globalThis.CraftingUI = {
         },
         {
           primary: true,
-          /** live gate: disabled while ingredients aren't met (re-evaluated each frame). */
           disabled: () => !Crafting.canCraft(inv, recipe, module),
         },
       ),
     );
   },
 
-  /** ingredient line: "Name   have/need", reddened when short. */
   _ingredientRow(inv, inp) {
     const have = Bag.count(inv, inp.itemId);
     const def = Item.get(inp.itemId);

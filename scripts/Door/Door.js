@@ -1,17 +1,14 @@
 /**
- * A built door: a solid slab that swings open.
- *
- * Closed = a solid slab (blocks bodies AND pathing — NavGrid rasterizes the kinematic collider
- * live); open = non-solid with the slab swung SWING° on its centre. State (`open`) + yaw are
- * component data, so a door round-trips map parking/Row as-is. A door carries
- * Interaction + Collision; its Mesh is presentation, so a look-less door still swings.
+ * A built door: closed it is a solid slab that blocks bodies and pathing; open it is non-solid,
+ * swung on its centre. State and yaw are component data, so a door round-trips map parking as-is.
+ * The Mesh is presentation, so a look-less door still swings.
  */
 globalThis.Door = {
-  SWING: 80, // degrees the slab turns on its centre when it opens
+  SWING: 80, // degrees
 
   /**
-   * Flip `id`'s leaf. Returns "" when it moved, else the refusal's i18n key: BUILD_DOOR_BLOCKED —
-   * a standing body in the frame would be trapped inside the closed collider.
+   * Returns "" when it moved, else the refusal's i18n key — closing would trap a body standing in
+   * the frame.
    */
   toggle(level, id) {
     const entities = level.entities;
@@ -31,7 +28,7 @@ globalThis.Door = {
     return "";
   },
 
-  /** a solid BODY (non-kinematic) whose mask overlaps the frame, grown 4 px — what a closing leaf would trap */
+  /** A solid non-kinematic body overlapping the frame, grown 4 px. */
   _blocked(entities, id) {
     const box = AABB.of(entities, id);
     const ids = Query.maskRect(entities, box.x1 - 4, box.y1 - 4, box.x2 + 4, box.y2 + 4, {
@@ -39,7 +36,7 @@ globalThis.Door = {
       ignore: id,
     });
     for (let i = 0; i < ids.length; i++) {
-      if (entities.require(ids[i], Collision).kinematic === false) return true; // solid: a solid-off body has no mask
+      if (entities.require(ids[i], Collision).kinematic === false) return true; // a non-solid body has no mask
     }
     return false;
   },

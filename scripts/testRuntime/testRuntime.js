@@ -1,11 +1,8 @@
-// Cases over the pinned runtime itself, no Core area: the frame clock the harness spans, and
-// the perf.* families that decide the hot-path idioms — perf.measured (the costs that decide the
-// frame), perf.native (a GML built-in against its inline JS twin) and perf.access (one read at a
-// loop-variant index). Every case here references Core only; the case contract and the perf.*
-// rule are Test's.
+// Cases over the pinned runtime itself, no Core area: the frame clock, and the perf.* families
+// that decide the hot-path idioms. Every case references Core only.
 
-const N = 4000; // the perf.measured / perf.access loop length
-const N_NATIVE = 20000; // the perf.native loop length — a ~40 ns boundary wants the resolution
+const N = 4000;
+const N_NATIVE = 20000; // a ~40 ns boundary wants the resolution
 
 Test.register(Test.CHECK, [
   {
@@ -23,15 +20,11 @@ Test.register(Test.CHECK, [
       t.eq(Time.frame - ctx.frame0, 2, "one real frame per step");
     },
   },
-  // ── perf.measured: the costs that decide the frame ─────────────────────────
   // A static-method call and an object literal each cost about a hundred plain reads, a hash
-  // lookup a dozen: the rule for every hot loop is the cheap form in the paired row — the
-  // inline mask over Handle.index, a cached column over store.get, AABB.at over a literal, a
-  // reused buffer over push, and never a per-element reset of a level-sized scratch (the
-  // generation stamp, MotionPlanner.scratch's `stamp`). The overlap pair is why a
-  // per-candidate loop inlines the test —
-  // the call is about twice it; the centre pair is about half of an AABB.at, which is why its
-  // rect holds four edges.
+  // lookup a dozen: the rule for every hot loop is the cheap form in the paired row — an inline
+  // mask, a cached column, a rect filled in place, a reused buffer, and never a per-element reset
+  // of a level-sized scratch (a generation stamp instead). The overlap pair is why a
+  // per-candidate loop inlines the test: the call is about twice it.
   {
     id: "perf.measured",
     setup(ctx) {
@@ -48,7 +41,7 @@ Test.register(Test.CHECK, [
       const map = new Map();
       const names = [];
       for (let k = 0; k < 43; k++) {
-        // the colony's column count
+        // a colony's column count
         const name = "Component" + k;
         map.set(name, k);
         names.push(name);
@@ -60,7 +53,7 @@ Test.register(Test.CHECK, [
         ctx.keys[i] = names[i % names.length];
         ctx.keyVals[i] = i % names.length;
       }
-      // rect pairs, every other one overlapping (an odd i's b starts 8 px into a, an even's 20 px past)
+      // every other pair overlaps
       ctx.ra = new Array(n);
       ctx.rb = new Array(n);
       for (let i = 0; i < n; i++) {
@@ -225,23 +218,19 @@ Test.register(Test.CHECK, [
       ctx.entities.destroy();
     },
   },
-  // ── perf.native: a GML built-in against its inline JS twin ──────────────────
-  // The JS↔GML boundary costs ~35-57 ns whatever the call does, so a native pays only when it
-  // replaces more JS than that: bulk work inside ONE call (draw_*, vertex_*, buffer_*, an
-  // array_create fill, array_sort) wins outright, a scalar helper loses to a property read or
-  // a comparison chain — and the JS standard library is itself slow here, so `Math.abs`/
-  // `Math.sin` LOSE to their GML twins. That split is the one the code runs.
+  // A GML built-in against its inline JS twin. The JS↔GML boundary costs ~35-57 ns whatever the
+  // call does, so a native pays only when it replaces more JS than that: bulk work inside one
+  // call wins outright, a scalar helper loses to a property read or a comparison chain — and the
+  // JS standard library is itself slow here, so `Math.abs`/`Math.sin` lose to their GML twins.
   // TODO when `js.abs` reaches `native.abs`, drop the native detours over `Math.*` and
   // `Array.sort` over `array_sort`; when the boundary (`native.clamp` vs `js.clamp`) falls
-  // below ~10 ns, re-test natives at scalar sites and `tilemap_*` against RenderTileMap's
-  // vertex buffers.
+  // below ~10 ns, re-test natives at scalar sites and `tilemap_*` against vertex-buffer tiles.
   {
     id: "perf.native",
     setup(ctx) {
       const n = N_NATIVE;
       ctx.vals = Test.vals(n);
-      // one loop per array: interleaving the allocations scatters each array's elements
-      // through the others' and the read rows pay it back as cache misses (~3x)
+      // one loop per array: interleaved allocations cost the read rows ~3x in cache misses
       ctx.arrs = new Array(n);
       for (let i = 0; i < n; i++) ctx.arrs[i] = [i, i, i];
       ctx.a = new Array(n);
@@ -372,16 +361,14 @@ Test.register(Test.CHECK, [
       });
     },
   },
-  // ── perf.access: one read at a loop-variant index ──────────────────────────
-  // A JS property and a user-defined GM instance property cost the same (both a slot);
-  // access by name (variable_struct_get) ~5x that, the price of any token-driven path; a TYPED
-  // array element ~20x a plain one — the outlier, so a hot value stored in one is MIRRORED into
-  // a plain array (Handle.packed). A BUILT-IN instance variable (x/y, image_*) goes through
-  // accessors at 3-4.5x a column read, which is why an instance holds scope, never data.
+  // One read at a loop-variant index. A JS property and a user-defined instance property cost
+  // the same; access by name ~5x that, the price of any token-driven path; a typed array element
+  // ~20x a plain one — the outlier, so a hot value stored in one is mirrored into a plain array.
+  // A built-in instance variable goes through accessors at 3-4.5x a column read, which is why an
+  // instance holds scope, never data.
   // TODO when `read.typed` reaches `read.array` (AOT does not close it: ~22x under `--runtime
-  // native`), the `Handle.packed` mirror stops paying for itself and typed scratch is an
-  // option again (MotionPlanner); when a built-in reaches a user-defined property, `Instance`
-  // may hold data. The instance-scoped built-ins themselves are an API contract, not a gap.
+  // native`), the plain-array mirror stops paying for itself and typed scratch is an option
+  // again; when a built-in reaches a user-defined property, an instance may hold data.
   {
     id: "perf.access",
     setup(ctx) {

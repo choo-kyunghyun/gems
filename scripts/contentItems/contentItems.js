@@ -1,5 +1,7 @@
-// Colony item content — rarities + manufacturers + full item set. Registered once via
-// content.register() at level create(), NOT top-level (avoids GMRT load-order issues).
+/**
+ * The colony's item content: rarities, manufacturers and the item set. Registered on demand,
+ * never at top level (docs/GMRT.md).
+ */
 const RARITIES = [
   { id: "common", name: "RARITY_COMMON", color: "#b0b0b0", valueMod: 1 },
   { id: "uncommon", name: "RARITY_UNCOMMON", color: "#4caf50", valueMod: 2 },
@@ -8,9 +10,8 @@ const RARITIES = [
   { id: "legendary", name: "RARITY_LEGENDARY", color: "#ff9800", valueMod: 30 },
 ];
 
-// The colony-era companies (Item.maker). A maker's `ops` is its signature weapon layer, folded
-// into composeWeapon like an attachment — Aeon = fast/precise but soft, Vekt = slow but punchy
-// with small clips. Helios (the failed terraformer itself) makes survival gear, no weapon ops.
+// A maker's `ops` is its signature weapon layer, folded in like an attachment — Aeon fast and
+// precise but soft, Vekt slow but punchy with small clips. Helios makes survival gear.
 const MAKERS = [
   {
     id: "aeon",
@@ -49,11 +50,9 @@ globalThis.contentItems = {
     Rarity.register(RARITIES);
     Manufacturer.register(MAKERS);
 
-    // `sprite` is the bag icon, a bare asset ref shared freely between ids (the serums, the
-    // calibers); a def without one has no icon art yet. A misspelt ref is an undeclared read,
-    // which kills the runner without a log (docs/GMRT.md) — verify by running the game.
+    // `sprite` is the bag icon, shared freely between ids; a def without one has no icon art
+    // yet. A misspelt ref kills the runner without a log (docs/GMRT.md).
     Item.register([
-      // loot trash
       {
         id: "rags",
         name: "ITEM_RAGS",
@@ -62,7 +61,6 @@ globalThis.contentItems = {
         value: 2,
         rarity: "common",
       },
-      // instant heal from bag
       {
         id: "medkit",
         name: "ITEM_MEDKIT",
@@ -73,7 +71,6 @@ globalThis.contentItems = {
         rarity: "uncommon",
         components: [new Consumable({ heal: 5 })],
       },
-      // buff consumables: Medgel = Regen (HoT), Combat Stim = Fortify (+attack/+defense)
       {
         id: "medgel",
         name: "ITEM_MEDGEL",
@@ -94,7 +91,6 @@ globalThis.contentItems = {
         rarity: "rare",
         components: [new Consumable({ status: "fortify" })],
       },
-      // survival consumables: lower Thirst / Hunger (cooked_meat also heals)
       {
         id: "water_bottle",
         name: "ITEM_WATER_BOTTLE",
@@ -106,8 +102,6 @@ globalThis.contentItems = {
         components: [new Consumable({ needs: { [Thirst]: 45 } })],
       },
       {
-        // pre-collapse fizzy drink — a lighter thirst hit than the bottle, and the can
-        // survives the drink (Consumable.yields → soda_trash junk)
         id: "soda",
         name: "ITEM_SODA",
         description: "ITEM_SODA_DESC",
@@ -118,7 +112,6 @@ globalThis.contentItems = {
         components: [new Consumable({ needs: { [Thirst]: 30 }, yields: "soda_trash" })],
       },
       {
-        // the empty can (no components — sellable junk; a future scrap recipe input)
         id: "soda_trash",
         name: "ITEM_SODA_TRASH",
         description: "ITEM_SODA_TRASH_DESC",
@@ -147,7 +140,6 @@ globalThis.contentItems = {
         rarity: "uncommon",
         components: [new Consumable({ needs: { [Hunger]: 60 }, heal: 3 })],
       },
-      // produce — what a plant yields (contentFlora), eaten raw
       {
         id: "berries",
         name: "ITEM_BERRIES",
@@ -167,7 +159,7 @@ globalThis.contentItems = {
         rarity: "common",
         components: [new Consumable({ needs: { [Hunger]: 25 } })],
       },
-      // permanent +1 to one attribute — item-driven progression instead of XP leveling
+      // item-driven progression instead of XP leveling
       {
         id: "power_serum",
         name: "ITEM_POWER_SERUM",
@@ -208,7 +200,6 @@ globalThis.contentItems = {
         rarity: "epic",
         components: [new Consumable({ attr: "end", amount: 1 })],
       },
-      // weapons: lead_pipe = melee, blaster = ammo-driven gun (Gun component → composeWeapon gun branch)
       {
         id: "lead_pipe",
         name: "ITEM_LEAD_PIPE",
@@ -218,13 +209,11 @@ globalThis.contentItems = {
         value: 8,
         rarity: "common",
         components: [
-          // no `worn`: a weapon with no overlay sheet is drawn as its own ICON anchored at
-          // the doll's hand (AppearanceSystem held-icon fallback)
+          // no `worn`: drawn as its own icon at the doll's hand
           new Equippable({
             slot: "weapon",
             mods: { attack: 1 },
           }),
-          // melee base stats; mod_sharp fits "edge", mod_heavy fits "pommel"
           new Weapon({
             damage: 3,
             fireCd: 0.3,
@@ -249,7 +238,7 @@ globalThis.contentItems = {
             slot: "weapon",
             mods: { attack: 2 },
           }),
-          // Gun component → ammo-driven; ops are neutral (attachments do the shaping)
+          // neutral base: the attachments do the shaping
           new Weapon({
             fireCd: 0.13,
             slots: [
@@ -263,20 +252,16 @@ globalThis.contentItems = {
           new Gun({ caliber: "standard", magazine: 8 }),
         ],
       },
-      // armor + trinket
       {
         id: "armored_vest",
         name: "ITEM_ARMORED_VEST",
         description: "ITEM_ARMORED_VEST_DESC",
-        // no 32 px icon of its own: the bag shows the worn Outer garment sheet, which every icon
-        // site draws fit-scaled (UIImage CONTAIN, SlotDrag's iconSize)
+        // no icon of its own: the worn garment sheet, drawn fit-scaled
         sprite: pixOuterArmoredVest,
         weight: 8,
         value: 20,
         rarity: "uncommon",
         components: [
-          // worn: the sprite this shows in its doll slot (see Appearance) — the vest sheet lands
-          // on the rig's `outer` slot over the authored shirt
           new Equippable({
             slot: "armor",
             mods: { defense: 2, maxHp: 5 },
@@ -293,8 +278,7 @@ globalThis.contentItems = {
         rarity: "rare",
         components: [new Equippable({ slot: "trinket", mods: { speed: 80 } })],
       },
-      // the thin air's filter: worn on the trinket slot it spares the wearer its seal's share of
-      // the open sky's exposure (ExposureSystem); a room shelters wholly
+      // spares the wearer its seal's share of the open sky's exposure
       {
         id: "filter_mask",
         name: "ITEM_FILTER_MASK",
@@ -304,7 +288,6 @@ globalThis.contentItems = {
         rarity: "uncommon",
         components: [new Equippable({ slot: "trinket", seal: 0.75 })],
       },
-      // backpack: Equippable + Container (expands inventory slots)
       {
         id: "backpack",
         name: "ITEM_BACKPACK",
@@ -317,7 +300,7 @@ globalThis.contentItems = {
           new Container({ capacity: 8 }),
         ],
       },
-      // currency: coin stacks very high so a large balance occupies one slot
+      // stacks high so a large balance occupies one slot
       {
         id: "coin",
         name: "ITEM_COIN",
@@ -342,7 +325,6 @@ globalThis.contentItems = {
         value: 0,
         rarity: "epic",
       },
-      // crafting materials — Material component tints built structures using this material
       {
         id: "wood",
         name: "ITEM_WOOD",
@@ -361,7 +343,6 @@ globalThis.contentItems = {
         rarity: "common",
         components: [new Material({ color: "#9aa3ad" })],
       },
-      // ammo: base projectile stats a gun fires; light = fast/low-pen, heavy = slow/punchy, ap = armor-piercing
       {
         id: "ammo_light",
         name: "ITEM_AMMO_LIGHT",
@@ -416,8 +397,7 @@ globalThis.contentItems = {
           }),
         ],
       },
-      // weapon attachments (WeaponMod): ops = (base+Σadd)·Πmul per field; inert ops on missing fields
-      // gun attachments (blaster's scope/barrel/magazine/grip/muzzle slots)
+      // attachment ops = (base+Σadd)·Πmul per field; inert on a field the weapon lacks
       {
         id: "mod_scope",
         name: "ITEM_MOD_SCOPE",
@@ -484,7 +464,6 @@ globalThis.contentItems = {
           }),
         ],
       },
-      // melee attachments (lead pipe's edge/pommel slots)
       {
         id: "mod_sharp",
         name: "ITEM_MOD_SHARP",
@@ -516,7 +495,6 @@ globalThis.contentItems = {
           }),
         ],
       },
-      // workbench modules: slot to unlock recipe gates or switch to weapon-mod panel (Toolkit)
       {
         id: "machining_module",
         name: "ITEM_MACHINING_MODULE",
@@ -525,7 +503,7 @@ globalThis.contentItems = {
         weight: 3,
         value: 30,
         rarity: "uncommon",
-        components: [new WorkbenchModule()], // defaults kind:"recipes"
+        components: [new WorkbenchModule()],
       },
       {
         id: "chem_module",
@@ -557,9 +535,8 @@ globalThis.contentItems = {
         rarity: "rare",
         components: [new WorkbenchModule({ kind: "weaponmod" })],
       },
-      // ── branded gear (maker → Manufacturer registry) ─────────────────────────────────────
-      // a maker's signature ops fold into composeWeapon on top of the authored base, so two
-      // companies' takes on the same weapon class genuinely play differently.
+      // Branded gear: a maker's ops fold on top of the authored base, so two companies' takes on
+      // the same weapon class play differently.
       // TODO: the pistols, the cutter, the ration and the rounds reuse base icons until they
       // get art of their own
       {
@@ -667,7 +644,7 @@ globalThis.contentItems = {
           new Equippable({
             slot: "armor",
             mods: { defense: 3, maxHp: 8 },
-            worn: pixOuterArmoredVest, // the branded vest reuses the base garment art
+            worn: pixOuterArmoredVest,
           }),
         ],
       },

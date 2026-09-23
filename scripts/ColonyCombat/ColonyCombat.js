@@ -1,25 +1,18 @@
 /**
  * Combat and loot flow for the colony scene.
  *
- * Contract: the scene owns `entities`, `playerId` and `window` (its `dirty` is set on a bag
- * change); the damage-number baseline is the entity's own (PrevHealth). The enemy
- * set is derived LIVE by Faction (hostile to the player) and companions LIVE by the Follower
- * component, so a save restore or squad transfer needs no bookkeeping — allegiance and membership
- * are component queries, not stored lists.
+ * Allegiance and membership are live component queries, not stored lists, so a save restore or
+ * squad transfer needs no bookkeeping; the damage-number baseline is the entity's own.
  *
- * Death is configured PER ENTITY by an opt-in `Mortal` (despawn/respawn/down/corpse), resolved in
- * ONE place — resolveHealth + updateDowned. Damage systems only subtract hp; this is the sole
- * authority that removes/respawns/incapacitates/leaves a body.
+ * Death is configured per entity by an opt-in `Mortal` and resolved only here: damage systems
+ * just subtract hp, and this is the sole authority that removes, respawns, incapacitates or
+ * leaves a body.
  */
 globalThis.ColonyCombat = {
-  /**
-   * live enemy set: Health-bearing bodies hostile to the player (by Faction). Player allies
-   * (followers/turrets, player faction) and neutral props (no Faction) are excluded.
-   */
   _enemies(entities, playerId) {
     const out = [];
-    // Faction JOINS the query: hostile() is false without one on both sides, so the same set
-    // for one fewer scan of the factionless majority (docs/ARCHITECTURE.md → Hot-path idioms).
+    // Faction joins the query: hostility needs one on both sides, so this skips the
+    // factionless majority (docs/ARCHITECTURE.md).
     entities.forEach([Health, Faction], (id) => {
       if (Diplomacy.hostile(entities, playerId, id)) out.push(id);
     });
@@ -27,21 +20,18 @@ globalThis.ColonyCombat = {
   },
 
   /**
-   * floating combat numbers: diff each combatant's Health vs last tick, pop a rising number on any
-   * change. Run after physics, before deaths flush, so the killing blow still pops.
+   * Pop a floating number for each combatant's hp change since last tick. Run after physics and
+   * before deaths flush, so the killing blow still pops.
    */
   trackDamage(scene, yOffset) {
     ColonyCombat._diffHp(scene, scene.playerId, true, yOffset);
     const enemies = ColonyCombat._enemies(scene.level.entities, scene.playerId);
     for (let i = 0; i < enemies.length; i++)
       ColonyCombat._diffHp(scene, enemies[i], false, yOffset);
-    // companions carry Health too → ally "hurt" numbers (a downed one has Health detached, so
-    // no-op). Live Follower query — squad members and residents alike are allies.
     scene.level.entities.forEach([Follower], (id) => {
       ColonyCombat._diffHp(scene, id, true, yOffset);
     });
-    // mesh-bodied combatants (built turrets) — otherwise untracked (player faction, no
-    // Follower); a double-diffed id is harmless (the first call seeds PrevHealth).
+    // Built structures are otherwise untracked; a double-diffed id is harmless.
     scene.level.entities.forEach([Health, Mesh], (id) => {
       ColonyCombat._diffHp(scene, id, true, yOffset);
     });
@@ -61,14 +51,12 @@ globalThis.ColonyCombat = {
     if (hp.hp !== prev) {
       const pos = entities.get(id, Position);
       if (pos !== undefined) {
-        const d = hp.hp - prev; // <0 = damage, >0 = heal
+        const d = hp.hp - prev;
         if (d < 0) {
           FloatingText.push(pos.x, pos.y - yOffset, -d, {
             type: isAlly ? "hurt" : "damage",
           });
-          // impact SFX; let the death pass own the killing blow (sndExplosionSmall), so skip
-          // enemy hp→0. A mesh body (turret/built structure) rings metal; allies read as
-          // armored (geared squad), enemies as flesh (raiders/rats).
+          // An enemy's killing blow is left to the death pass's own sound.
           const at = { x: pos.x, y: pos.y };
           if (entities.has(id, Mesh))
             Audio.play({ sound: sndHitsoundMetal, position: at });
@@ -85,21 +73,15 @@ globalThis.ColonyCombat = {
   },
 
   /**
-   * configurable death pass: an entity with `Mortal` at hp 0 reacts by its `Mortal.kind`. Before
-   * flush, so a despawning entity is still readable for its loot. Handlers `h` (all optional):
-   *   spill { yBase, ySpread } — loot scatter for "despawn"
-   *   onKill(id)               — per-kill genre effects ("despawn" + "corpse", before the body
-   *                              is transformed — the entity's components are still readable)
-   *   onRespawn(id)            — reposition a "respawn" entity after refill
-   *   downSpot(id) → {x,y}     — recovery spot for a "down" entity
-   *   onDown(id)               — fired when an entity enters Down
-   * Only Mortal entities react (a built turret → BuildMode.reapDestroyed is left alone).
+   * The death pass: a `Mortal` entity at hp 0 reacts by its `kind`. Runs before flush, so a
+   * despawning entity is still readable for its loot. Only Mortal entities react. Handlers `h`
+   * (all optional): spill { yBase, ySpread }, onKill(id) (before the body is transformed),
+   * onRespawn(id), downSpot(id) → {x,y}, onDown(id).
    */
   resolveHealth(scene, h) {
     h = h ?? {};
     const entities = scene.level.entities;
-    // Stays on query(), NOT forEach: the loop SPAWNS entities (spillLoot's drops) and strips
-    // components, and the materialised list keeps the pass independent of the walk's contract.
+    // query(), not forEach: the loop spawns entities and strips components.
     const ids = entities.query(Health, Mortal);
     for (let i = 0; i < ids.length; i++) {
       const id = ids[i];
@@ -111,7 +93,7 @@ globalThis.ColonyCombat = {
         if (h.onKill !== undefined) h.onKill(id);
         entities.remove(id);
       } else if (m.kind === "corpse") {
-        if (h.onKill !== undefined) h.onKill(id); // before the transform strips components
+        if (h.onKill !== undefined) h.onKill(id);
         ColonyCombat._toCorpse(scene, id);
       } else if (m.kind === "respawn") {
         const st = entities.get(id, Stats);
@@ -126,13 +108,9 @@ globalThis.ColonyCombat = {
   },
 
   /**
-   * incapacitate a "down" entity: drop Health (so nearestHostile stops targeting + this pass skips
-   * it), stop it, start the recovery timer. A plain Visual dims; a doll falls through its rig's
-   * `down` set and lies in its last frame until updateDowned stands it back up (FollowerSystem
-   * leaves a Downed doll's set alone).
-   * Deliberately touches neither Squad nor Follower: a downed companion stays a squad member with
-   * its carry bonus intact (that rides Follower.state, which a down->recover cycle never changes),
-   * so being knocked out can't silently shrink the player's bag.
+   * Incapacitate until the recovery timer runs out; without Health it is neither targeted nor
+   * resolved again. Deliberately leaves squad membership alone, so being knocked out can't
+   * silently shrink the player's bag.
    */
   _goDown(scene, id, m, h) {
     const entities = scene.level.entities;
@@ -143,17 +121,14 @@ globalThis.ColonyCombat = {
       vel.y = 0;
     }
     const vis = entities.get(id, Visual);
-    if (vis !== undefined) vis.alpha = 0.4; // dimmed = downed
-    Doll.setState(entities, id, "down"); // the doll's fall (no-op without a Skeleton)
+    if (vis !== undefined) vis.alpha = 0.4;
+    Doll.setState(entities, id, "down");
     entities.add(id, Downed, { timer: m.recoverSecs ?? 6 });
-    entities.detach(id, PrevHealth); // no Health now — drop the stale diff baseline
+    entities.detach(id, PrevHealth);
     if (h.onDown !== undefined) h.onDown(id);
   },
 
-  /**
-   * down-timer tick: at <= 0 revive — re-add Health (reviveHp), undim / stand the doll back up in
-   * its idle set, teleport to h.downSpot, drop Downed
-   */
+  /** Revive each downed entity whose timer ran out, at `h.downSpot` when given. */
   updateDowned(scene, h) {
     h = h ?? {};
     const entities = scene.level.entities;
@@ -165,7 +140,7 @@ globalThis.ColonyCombat = {
       entities.add(id, Health, { hp: reviveHp });
       const vis = entities.get(id, Visual);
       if (vis !== undefined) vis.alpha = 1;
-      Doll.setState(entities, id, "idle"); // up off the ground — its brain drives it from here
+      Doll.setState(entities, id, "idle");
       const spot = h.downSpot !== undefined ? h.downSpot(id) : undefined;
       if (spot !== undefined) {
         const pos = entities.get(id, Position);
@@ -185,34 +160,31 @@ globalThis.ColonyCombat = {
   },
 
   /**
-   * transform a "corpse"-kind entity IN PLACE into a lootable body: strip the combatant —
-   * Health/Stats/AI/Faction (targeting, the death scan and CombatAI aggro all key on those) —
-   * make it walk-over, freeze + flatten the visual, and tag it Interaction { kind: "corpse" }
-   * so the Interactable engine opens StorageUI on its Inventory (see contentInteractions). Keeping
-   * the SAME entity means a save snapshots the corpse like any other resident.
-   * Species markers (Raider/Rat — radar blips) are the scene's to drop in onKill, not ours.
+   * Transform the entity in place into a lootable body: strip the combatant, make it walk-over
+   * and tag it a "corpse" interaction over its Inventory. Keeping the same entity means a save
+   * snapshots the corpse like any other resident. Species markers are the scene's to drop in
+   * onKill.
    */
   _toCorpse(scene, id) {
     const entities = scene.level.entities;
     entities.detach(id, Health);
-    entities.detach(id, Mortal); // dead once — this pass is done with it
+    entities.detach(id, Mortal);
     entities.detach(id, Stats);
-    entities.detach(id, Brain); // CombatAI off
+    entities.detach(id, Brain);
     entities.detach(id, State);
-    entities.detach(id, Velocity); // no integrator touches it again
+    entities.detach(id, Velocity);
     entities.detach(id, Faction);
     const col = entities.get(id, Collision);
-    if (col !== undefined) col.solid = false; // walk-over; BBox stays for cursor pick/highlight
+    if (col !== undefined) col.solid = false; // BBox stays for cursor pick
     const vis = entities.get(id, Visual);
     if (vis !== undefined) {
-      vis.alpha = 0.4; // dimmed = dead (the Downed convention)
-      vis.speed = 0; // freeze self-animating sprites (rat scuttle)
-      vis.subimg = 0; // neutral contact pose
-      vis.yscale = Math.abs(vis.yscale) * 0.45; // crumpled flat (|scale| carries baked size)
+      vis.alpha = 0.4;
+      vis.speed = 0;
+      vis.subimg = 0;
+      vis.yscale = Math.abs(vis.yscale) * 0.45; // |scale| carries the baked size
     }
-    // a doll with an authored `down` set dies through it: the one-shot plays and holds its
-    // last pose (Puppet's Animation End), leaving a full-colour lootable body — no crumple, no
-    // ghost alpha. A rig without one falls back to the crumple, like a plain Visual above.
+    // A rig with an authored `down` set dies through it and holds its last pose; one without
+    // falls back to the crumple.
     const sk = entities.get(id, Skeleton);
     if (sk !== undefined) {
       const rig = Doll.RIGS[sprite_get_name(sk.sprite)];
@@ -226,15 +198,10 @@ globalThis.ColonyCombat = {
       }
     }
     entities.add(id, Interaction, { kind: "corpse" });
-    entities.detach(id, PrevHealth); // no Health now — drop the stale diff baseline
+    entities.detach(id, PrevHealth);
   },
 
-  /**
-   * remove looted-empty corpses (deferred remove; the tick's flush commits). Emptying one with
-   * its window open is safe: Interactable range-closes when the entity's Position vanishes and
-   * StorageUI.refresh guards a missing Inventory. A lootless kill reaps the same tick it
-   * corpses — behaviorally the old despawn.
-   */
+  /** Remove looted-empty corpses (deferred); a lootless kill reaps the same tick it corpses. */
   reapCorpses(scene) {
     const entities = scene.level.entities;
     entities.forEach([Interaction], (id, it) => {
@@ -244,9 +211,7 @@ globalThis.ColonyCombat = {
     });
   },
 
-  /**
-   * scatter an enemy's Inventory as ground-drop sensors; `opts` { yBase, ySpread } tunes placement
-   */
+  /** Scatter an enemy's Inventory as ground drops; `opts` { yBase, ySpread }. */
   spillLoot(scene, enemyId, opts) {
     const entities = scene.level.entities;
     const inv = entities.get(enemyId, Inventory);
@@ -266,34 +231,30 @@ globalThis.ColonyCombat = {
         s.qty,
         pos.x + ox,
         pos.y + yBase + oy,
-        s, // pass the source slot so an instance's uid/mods ride the drop
+        s,
       );
     }
   },
 
   /**
-   * A ground drop: an Interaction "pickup" target (contentInteractions → pickup) the player
-   * picks and takes on E like any station. `src` (optional) source slot — an instance (has uid)
-   * records uid+mods so pickup re-inserts the same one.
+   * A ground drop the player picks up like any station. An instance `src` slot records its
+   * uid and mods so pickup re-inserts the same one.
    */
   spawnDrop(scene, itemId, qty, x, y, src) {
     const entities = scene.level.entities;
     const id = entities.create();
     entities.add(id, Position, { x: x, y: y, z: 0 });
-    // the 32px icon WorldOverlay draws 1:1 — the cursor footprint (Silhouette) and the pick
-    // outline line up with the drop
+    // Matches the 32px icon drawn 1:1, so the pick outline lines up with the drop.
     entities.add(id, BBox, { x: -16, y: -16, width: 32, height: 32 });
     entities.add(id, Interaction, { kind: "pickup" });
     const drop = { itemId: itemId, qty: qty };
     if (src !== undefined && src.uid !== undefined) {
       drop.uid = src.uid;
       drop.mods = src.mods ?? {};
-      // a loaded gun keeps its magazine through the ground round-trip
       if (src.ammo !== undefined) drop.ammo = src.ammo;
       if (src.rounds !== undefined) drop.rounds = src.rounds;
     }
     entities.add(id, ItemDrop, drop);
-    // the visibility cue: a sparkle in the item's rarity color, rising for as long as it lies there
     entities.add(id, ParticleEmitter, {
       asset: "psDrop",
       color: InvTable.rarityColor(itemId),
@@ -301,11 +262,9 @@ globalThis.ColonyCombat = {
   },
 
   /**
-   * The "pickup" action: drop `id`'s payload to `playerId`'s bag — an instance drop re-inserts
-   * whole (uid + mods preserved), a fungible one by qty, the remainder left on the ground when
-   * the bag fills — and the drop goes once emptied (deferred — the tick's flush commits it).
-   * Returns `{ itemId, qty, reason }`: `qty` taken, 0 with `reason` "INV_FULL" for a refused
-   * bag — the view's to show (contentInteractions).
+   * Move a drop's payload into the player's bag, leaving any remainder on the ground; the drop
+   * is removed (deferred) once emptied. Returns `{ itemId, qty, reason }`: `qty` taken, 0 with
+   * `reason` "INV_FULL" for a refused bag.
    */
   pickup(entities, id, playerId) {
     const d = entities.require(id, ItemDrop);

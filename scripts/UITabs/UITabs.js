@@ -1,20 +1,16 @@
 /**
  * @implements {UIComponent}
  * Tab strip — N segments drawn immediate-mode. Horizontal (default): equal-width segments
- * across the strip, active tab filled + underlined. Vertical (`vertical: true`, the VSCode
- * activity-bar shape): fixed `segment`-px segments stacked from the top, active tab filled +
- * an accent bar on its left edge, a rule down the strip's right edge. Selecting swaps
- * content by each overlay's `enabled` flag, NOT flex mutation, so there is no reflow on
- * switch (overlays laid out once, stacked absolute; only the active one draws/updates).
- * `tabs[i].label` is a string or () => string; `tabs[i].content` the overlay to show;
- * `tabs[i].short` (optional, same forms) is drawn INSTEAD of the label, which then shows as
- * the hover tooltip after `tipDelay` — the icon-less abbreviation form.
- * GMRT: hover/active read live each frame (no cached primitive bool to clobber).
+ * across the strip, the active one filled + underlined. Vertical: fixed `segment`-px segments
+ * stacked from the top, the active one filled + an accent bar on its left edge. Selecting swaps
+ * content by each overlay's `enabled` flag, never flex mutation, so a switch doesn't reflow.
+ * `tabs[i].label` is a string or () => string; `tabs[i].short` (optional, same forms) is drawn
+ * INSTEAD of the label, which then shows as the hover tooltip after `tipDelay`.
+ * BUG: hover/active are read live each frame, never cached as a bool (docs/GMRT.md #15549).
  */
 globalThis.UITabs = class UITabs {
-  /** tabs: { tabs: {label, short, content}[], index, onChange, vertical, segment, tipDelay, font, color, colorIdle, colorHover, activeBg, accent, border } */
   constructor(tabs = {}) {
-    this.tabs = tabs.tabs ?? []; // [{ label, short, content }]
+    this.tabs = tabs.tabs ?? [];
     this.index = tabs.index ?? 0;
     this.onChange = tabs.onChange ?? noop;
     this.font = tabs.font ?? -1;
@@ -32,7 +28,7 @@ globalThis.UITabs = class UITabs {
     this._hover = -1; // hovered segment index, -1 = none
     this._dwell = 0; // s the pointer has rested on the hovered segment (tooltip timer)
 
-    this._apply(); // show only the active tab from the start
+    this._apply();
   }
 
   _label(i) {
@@ -63,7 +59,7 @@ globalThis.UITabs = class UITabs {
     const n = this.tabs.length;
     if (this.vertical) {
       const seg = floor((my - pos.top) / this.segment);
-      return seg < 0 ? -1 : seg < n ? seg : -1; // nested ?: — no && (#15549)
+      return seg < 0 ? -1 : seg < n ? seg : -1; // BUG: nested ?:, no && (docs/GMRT.md #15549)
     }
     return clamp(floor(((mx - pos.left) / pos.width) * n), 0, n - 1);
   }
@@ -94,15 +90,15 @@ globalThis.UITabs = class UITabs {
 
     const prev = this._hover;
     this._hover = inside ? this._hit(pos, mx, my) : -1;
-    // tooltip dwell: restarts whenever the hovered segment changes (or the pointer leaves).
-    // nested ?: rather than && — the &&-clobber quirk (#15549).
+    // restarts whenever the hovered segment changes or the pointer leaves.
+    // BUG: nested ?: rather than && (docs/GMRT.md #15549)
     this._dwell =
       this._hover === -1 ? 0 : this._hover === prev ? this._dwell + Time.raw : 0;
     if (this._hover !== -1) {
       if (this.tabs[this._hover].short !== undefined) {
         if (this._dwell >= this.tipDelay) Tooltip.set(this._label(this._hover));
       }
-      // selects on PRESS — deliberately snappier than the FSM widgets' release-inside commit
+      // selects on PRESS — deliberately snappier than a release-inside commit
       if (Input.pointer.left.pressed) {
         this.select(this._hover);
         return true;
@@ -128,7 +124,6 @@ globalThis.UITabs = class UITabs {
     const right = pos.left + pos.width;
     const bottom = pos.top + pos.height;
 
-    // rule along the strip's content edge (under a horizontal strip, right of a vertical one).
     draw_set_alpha(1);
     this._rule(pos, right, bottom);
 
@@ -137,7 +132,6 @@ globalThis.UITabs = class UITabs {
       const active = i === this.index;
 
       if (active) {
-        // filled tab + accent indicator: an underline, or a bar down the left edge when vertical.
         if (this.vertical) {
           draw_roundrect_color_ext(
             r.x0,
@@ -202,11 +196,9 @@ globalThis.UITabs = class UITabs {
       );
     }
 
-    // re-stroke the rule as a trailing UNTEXTURED draw to force a texture swap that flushes
-    // the last label out of the pending batch — else a clip container drawn right after (a
-    // facetScroll) captures it under gpu_set_scissor and clips it away ("About" tab vanished).
-    // CAN'T fix with draw_flush(): flushing before a clip's gpu_set_scissor corrupts the clip
-    // on GMRT 0.20 ("No pipeline set"). redundant with the rule above, so free.
+    // BUG: re-stroke the rule as a trailing untextured draw, so the last label is flushed out of
+    // the pending batch before a clip drawn right after can capture it (docs/GMRT.md #6523).
+    // Redundant with the rule above, so free.
     draw_set_alpha(1);
     this._rule(pos, right, bottom);
 

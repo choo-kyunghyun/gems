@@ -1,11 +1,9 @@
 /**
  * @implements {UIComponent}
- * Exclusive modal controller on a full-screen root (facetModal). Returns `true` every
- * frame to block all pointer input beneath it. Closes on Escape or a backdrop click (a
- * press no card child captured). Enter/exit animates: backdrop dim fades + card slides
- * via `root.scrollY`/`scrollX` (offsets the subtree = the card) — no flex mutation. `.close()`
- * starts the exit (idempotent); root is removed + onClose fires once it completes —
- * safe to call mid-update (destroy happens later, UIElement `_destroyed` guards the unwind).
+ * Exclusive modal controller on a full-screen root: blocks all pointer input beneath it until
+ * removed. Closes on Escape or a backdrop click (a press no card child captured). Enter and exit
+ * fade the backdrop and slide the card by scroll offset, with no flex mutation. `close()` is
+ * safe mid-update: the root is removed and onClose fires once the exit completes.
  */
 globalThis.UIModal = class UIModal {
   /** modal: { onClose, closeOnBackdrop, closeOnEscape, root: UIElement, duration, slide, slideX } */
@@ -13,13 +11,13 @@ globalThis.UIModal = class UIModal {
     this.onClose = modal.onClose ?? noop;
     this.closeOnBackdrop = modal.closeOnBackdrop ?? true;
     this.closeOnEscape = modal.closeOnEscape ?? true;
-    this._root = modal.root ?? null; // full-screen root, set by facetModal
+    this._root = modal.root ?? null;
 
-    this.duration = modal.duration ?? 0.18; // s per direction (Time.raw)
+    this.duration = modal.duration ?? 0.18; // s per direction, wall-clock
     this.slide = modal.slide ?? 28; // px the card rises
     this.slideX = modal.slideX ?? 0; // px the card enters from the right (a side sheet)
 
-    // capture the backdrop UIPanel's target alpha so the enter/exit fade scales to it.
+    // the fade scales to the backdrop's authored alpha
     this._backdrop =
       this._root !== null ? this._root.getComponent(UIPanel) : null;
     this._dim =
@@ -33,7 +31,7 @@ globalThis.UIModal = class UIModal {
   }
 
   /**
-   * visibility factor f∈[0,1]: 0 = hidden, 1 = shown.
+   * f in [0,1]: 0 = hidden, 1 = shown.
    */
   _apply(f) {
     if (this._backdrop !== undefined && this._backdrop !== null) {
@@ -45,17 +43,16 @@ globalThis.UIModal = class UIModal {
     }
   }
 
-  /** Begin the exit animation (idempotent). */
+  /** Idempotent. */
   close() {
-    if (this._phase >= 2 || this._root === null) return; // already exiting / gone
+    if (this._phase >= 2 || this._root === null) return;
     this._phase = 2;
     this._t = 0;
   }
 
   /**
-   * Drop the root NOW — no exit animation, no onClose (idempotent). For an owner tearing the
-   * modal down outside its own flow (the Game object's scene switch, a rebuild), where a
-   * deferred onClose would land on state the owner has already replaced.
+   * Drops the root now, with no exit and no onClose (idempotent): for an owner tearing the modal
+   * down outside its flow, where a deferred onClose would land on state already replaced.
    */
   remove() {
     if (this._phase === 3 || this._root === null) return;
@@ -64,11 +61,10 @@ globalThis.UIModal = class UIModal {
     this._root.destroy();
   }
 
-  /** Always returns true (exclusive) until removed. */
   onUpdate(element, block) {
     if (this._phase === 3) return block;
 
-    // advance enter/exit on wall-clock (UI ignores Time.scale).
+    // wall-clock: UI ignores time scale
     if (this._phase === 0) {
       this._t += Time.raw;
       const p = clamp(this._t / this.duration, 0, 1);
@@ -87,15 +83,14 @@ globalThis.UIModal = class UIModal {
       return true; // exiting: swallow input, skip dismiss triggers
     }
 
-    // Input.keyPressed, not the raw edge: a child may have consumed this Esc (UIRebind's cancel)
-    // or hold the keyboard (a focused UIInput); consumed here in turn so the Game object's
-    // gameplay Esc, read after the tree, doesn't also act on it
+    // the consumable key edge, not the raw one: a child may already own this Esc; consumed in
+    // turn so gameplay, read after the tree, doesn't also act on it
     if (this.closeOnEscape && Input.keyPressed(vk_escape)) {
       Input.consumeKey(vk_escape);
       this.close();
       return true;
     }
-    // backdrop click: a press the card didn't capture (block still false).
+    // backdrop click: a press the card didn't capture
     if (this.closeOnBackdrop && !block && Input.pointer.left.pressed) {
       this.close();
       return true;
@@ -103,8 +98,7 @@ globalThis.UIModal = class UIModal {
     return true; // exclusive: swallow all pointer input beneath
   }
 
-  // UINav reads this to stop collecting focusables beneath the modal (mirrors the
-  // pointer block) until it's fully removed.
+  // blocks keyboard focus beneath the modal, as the pointer block does, until it's removed
   navExclusive() {
     return this._phase !== 3;
   }

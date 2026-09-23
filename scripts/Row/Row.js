@@ -1,12 +1,9 @@
 /** @typedef {Object} RowRecord @property {Object<string,Object>} components token -> data */
 /**
- * A ROW captured whole — the substrate for whole-entity migration between level tables (World.take/put wrap it — the
- * squad travelling between maps, a trader hydrating) and for a Blueprint's exact
- * stamps. A whole capture (no list) takes the persistent components: a minted one
- * (Table.mint) stays behind for the destination to rebuild. Data objects are REFERENCED,
- * not deep-copied: a captured component re-attaches by reference and the objects outlive the
- * source store's destroy() (only the storage map is dropped).
- * For disk, serialize the record yourself (mind the JSON nested-value fault + Set fields).
+ * A row captured whole — the substrate for whole-entity migration between stores and for exact
+ * stamps. A whole capture (no list) takes the persistent components; a minted one stays behind
+ * for the destination to rebuild. Data objects are referenced, not deep-copied, and outlive the
+ * source store's destroy(). Serializing a record for disk is the caller's (docs/GMRT.md).
  */
 globalThis.Row = {
   capture(entities, id, components) {
@@ -23,15 +20,15 @@ globalThis.Row = {
     return { components: comps };
   },
 
-  /** Onto an EXISTING entity (the caller already created it — can't go through restore). */
+  /** Onto an existing entity the caller already created. */
   apply(entities, id, snapshot) {
     const comps = snapshot.components;
-    // for...in over a plain object is GMRT-safe; Map iteration is not (docs/GMRT.md).
+    // for...in over a plain object; Map iteration is unsafe (docs/GMRT.md)
     for (const token in comps) entities.add(id, token, comps[token]);
     return id;
   },
 
-  /** `overrides` applied after the snapshot (e.g. fresh Position so a migrated entity drops old-map coords). */
+  /** `overrides` apply after the snapshot, such as a migrated entity's fresh position. */
   restore(entities, snapshot, overrides) {
     const id = Row.apply(entities, entities.create(), snapshot);
     if (overrides !== undefined)

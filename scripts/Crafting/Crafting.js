@@ -1,7 +1,8 @@
-// Pure crafting: inputs consumed from and output placed into the crafter's own Inventory. No world tick.
+// Pure crafting: inputs consumed from and output placed into the crafter's own Inventory. No
+// world tick.
 globalThis.Crafting = {
   /**
-   * module gate + input check. gate enforced here so it holds even if UI surfaces a recipe out of context.
+   * The station gate is enforced here, so it holds even for a recipe shown out of context.
    */
   canCraft(inv, recipe, module) {
     if (inv === undefined || recipe === undefined) return false;
@@ -15,7 +16,7 @@ globalThis.Crafting = {
   },
 
   /**
-   * dry-run output fit before consuming inputs — a full bag can't eat materials.
+   * The output fit is dry-run before inputs are consumed, so a full bag can't eat materials.
    */
   craft(entities, crafterId, recipeId, module) {
     const recipe = Recipe.get(recipeId);
@@ -23,7 +24,6 @@ globalThis.Crafting = {
     const inv = entities.require(crafterId, Inventory);
     if (!Crafting.canCraft(inv, recipe, module)) return false;
 
-    // probe a clone so we don't mutate on a no-fit.
     const probe = {
       slots: Crafting._cloneSlots(inv.slots),
       capacity: inv.capacity,

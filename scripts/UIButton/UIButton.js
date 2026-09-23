@@ -1,10 +1,9 @@
 /**
- * Eases panel color/border on Time.raw (the clock split), greys the label, and supports live
- * disabled + selected predicates (written to element.state.disabled/selected for any sibling reader).
+ * Button: eases its panel color and border on the unscaled clock, greys its label when disabled,
+ * and publishes live disabled/selected predicates on `element.state` for sibling readers.
  * @implements {UIComponent}
  */
 globalThis.UIButton = class UIButton {
-  /** btn: see field defaults below for the accepted options */
   constructor(btn = {}) {
     this.colorNormal = btn.colorNormal ?? c_white;
     this.colorHover = btn.colorHover ?? c_ltgray;
@@ -14,12 +13,11 @@ globalThis.UIButton = class UIButton {
     this.alphaDisabled = btn.alphaDisabled ?? 0.5;
     this.disabled = btn.disabled ?? false;
     this.getDisabled = btn.getDisabled ?? null; // live () => bool, overrides `disabled`
-    // live () => bool for a toggle's "active" state — hover/press still win on top.
-    // both colorSelected and the predicate must be set for it to apply.
+    // live () => bool for a toggle's active state; hover and press still win over it
     this.getSelected = btn.getSelected ?? null;
     this.colorSelected = btn.colorSelected;
     this.borderColorSelected = btn.borderColorSelected;
-    // label UIText to grey alongside the panel when disabled; panel dim alone left text bright.
+    // greyed with the panel when disabled, as the panel dim alone leaves text bright
     this.label = btn.label ?? null;
     this.textColorNormal = btn.textColorNormal ?? c_white;
     this.textColorDisabled = btn.textColorDisabled ?? c_gray;
@@ -28,35 +26,32 @@ globalThis.UIButton = class UIButton {
     this.onDown = btn.onDown ?? noop;
     this.onUp = btn.onUp ?? noop;
     this.onClick = btn.onClick ?? noop;
-    // border glow — both must be set to animate.
+    // the border animates only when both are set
     this.borderColorNormal = btn.borderColorNormal;
     this.borderColorHover = btn.borderColorHover;
-    this.animSpeed = btn.animSpeed ?? 16; // per-second lerp rate (higher = snappier)
-    // internal FSM delegate; callbacks are live arrow closures so reassigning
-    // this.onClick etc. after construction keeps working.
+    this.animSpeed = btn.animSpeed ?? 16; // per-second lerp rate
+    // callbacks are live closures, so reassigning a handler after construction keeps working
     this._fsm = new UITrigger({
       onEnter: () => this.onEnter(),
       onLeave: () => this.onLeave(),
       onDown: () => this.onDown(),
       onUp: () => this.onUp(),
       onClick: () => {
-        Audio.play({ sound: sndButtonClick }); // click cue (before onClick, may swap level)
+        Audio.play({ sound: sndButtonClick }); // before onClick, which may swap the level
         this.onClick();
       },
     });
-    // ease float r/g/b channels, not a packed int — a packed-int lerp loses a sub-1 per-frame
-    // step at unlimited FPS (tween freezes), and GMRT's merge_color drifts darker. ch[0]
-    // undefined until first seeded so there's no fade-in from black.
+    // float channels, not a packed int: a packed-int lerp loses a sub-1 per-frame step at
+    // unlimited FPS, and merge_color drifts darker. Unseeded until first eased, so there's no
+    // fade-in from black.
     this._colorCh = [undefined, 0, 0];
     this._borderCh = [undefined, 0, 0];
   }
 
-  // live predicate wins over static flag — callers can gate on changing state without polling.
   _disabled() {
     return this.getDisabled !== null ? this.getDisabled() : this.disabled;
   }
 
-  // float channel ease — see constructor note on why not a packed-int lerp.
   _easeColor(ch, target) {
     const tr = color_get_red(target);
     const tg = color_get_green(target);
@@ -78,7 +73,6 @@ globalThis.UIButton = class UIButton {
     const disabled = this._disabled();
     element.state.disabled = disabled;
 
-    // grey the label when disabled — panel dim alone left text bright.
     if (this.label !== null) {
       this.label.color = disabled
         ? this.textColorDisabled
@@ -86,15 +80,14 @@ globalThis.UIButton = class UIButton {
     }
 
     if (disabled) {
-      // force-release any latched hover/press (fires onUp/onLeave) and clear the bag —
-      // the FSM doesn't run this frame, so it can't clear its own state.
+      // the trigger doesn't run this frame, so it can't clear its own latched state
       this._fsm.release();
       element.state.hover = false;
       element.state.held = false;
       element.state.clicked = false;
       element.state.selected = false;
       if (panel) {
-        // snap channels so re-enable eases out of the disabled color, not from black.
+        // so re-enabling eases out of the disabled color, not from black
         this._colorCh[0] = color_get_red(this.colorDisabled);
         this._colorCh[1] = color_get_green(this.colorDisabled);
         this._colorCh[2] = color_get_blue(this.colorDisabled);
@@ -114,7 +107,7 @@ globalThis.UIButton = class UIButton {
     if (panel) {
       panel.alpha = this.alpha;
 
-      // BUG: [#15549] ternaries only — `selected` must not be reused as a `&&`/`||` left operand.
+      // BUG: #15549 — ternaries only, as `selected` is reused (docs/GMRT.md)
       const targetColor = held
         ? this.colorPress
         : hover
@@ -149,7 +142,8 @@ globalThis.UIButton = class UIButton {
     this._fsm.onDestroy(element);
   }
 
-  // UINav: confirm fires the click; presence marks element focusable.
+  // nav confirm fires the click; its presence marks the element focusable
+
   navActivate(element) {
     if (!this._disabled()) this.onClick();
   }

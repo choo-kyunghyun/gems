@@ -1,14 +1,11 @@
-// Rarity-tier registry — the item quality ladder, in ascending tier order (see `rank`). Each genre
-// registers its own tiers (the colony's via content.register), low tier first.
+// Rarity-tier registry: the item quality ladder. Tiers register low tier first, so registration
+// order is the tier order.
 globalThis.Rarity = {
   register(defs) {
     Registry.register(Rarity, defs, Rarity.make);
   },
 
-  /**
-   * Rarity def, keyed by `id`: name (i18n key), color (colour int or "#rrggbb" hex), valueMod
-   * (item-value multiplier).
-   */
+  /** def: id, name (i18n key), color (colour int or "#rrggbb"), valueMod (value multiplier). */
   make(def) {
     return {
       id: def.id,
@@ -25,12 +22,12 @@ globalThis.Rarity = {
     return Registry.get(Rarity, id);
   },
 
-  /** tier index (registration order), -1 when unknown — the inventory sort key. */
+  /** Tier index, -1 when unknown. */
   rank(id) {
     return Registry.rank(Rarity, id);
   },
 
-  /** scale a value by a rarity's modifier; unknown id returns value as-is. */
+  /** An unknown id returns the value as-is. */
   modify(id, value) {
     const r = Rarity.get(id);
     return r === undefined ? value : value * r.valueMod;

@@ -1,5 +1,5 @@
-// Pure operations on an Inventory component (no world tick). Methods take the component directly so
-// any entity's inventory works. Stacking respects Item.stack; adds capped by maxWeight.
+// Pure operations on an Inventory component, taken directly so any entity's inventory works.
+// Stacks respect Item.stack; adds are capped by maxWeight.
 globalThis.Bag = {
   weight(inv) {
     let total = 0;
@@ -10,16 +10,14 @@ globalThis.Bag = {
     return total;
   },
 
-  // Add qty of itemId: weight gate → top up stacks → fill new slots. Returns the amount that did NOT
-  // fit (0 = all added). Instances never stack — one fresh-uid slot per unit. MINTS new instances;
-  // to insert a pre-existing instance preserving uid/mods (transfer/drop), use addSlot.
+  // Returns the amount that did NOT fit (0 = all added). Instances never stack — one fresh-uid
+  // slot per unit; addSlot inserts an existing instance with its uid and mods.
   add(inv, itemId, qty = 1) {
     const def = Item.get(itemId);
     const max = def !== undefined ? def.stack : 99;
     const unitW = def !== undefined ? def.weight : 1;
     const instanced = def !== undefined && def.isInstanced();
 
-    // weight gate: cap accepted qty to what maxWeight allows.
     let accept = qty;
     if (inv.maxWeight !== undefined && unitW > 0) {
       const budget = inv.maxWeight - Bag.weight(inv);
@@ -28,8 +26,7 @@ globalThis.Bag = {
     }
     let left = accept;
 
-    // instances: one slot per unit, fresh uid + empty mods. `mods` is a MAP { slotId -> attachmentId }
-    // (not an array); gun ammo/rounds added lazily by the firing path so this stays generic.
+    // `mods` is a MAP { slotId -> attachmentId }, not an array
     if (instanced) {
       while (left > 0 && inv.slots.length < inv.capacity) {
         inv.slots.push({ itemId: itemId, qty: 1, uid: uuid(), mods: {} });
@@ -58,23 +55,21 @@ globalThis.Bag = {
   },
 
   /**
-   * Insert a pre-existing slot preserving uid/mods (an instance moved by transfer/drop). Gated by
-   * weight then a free slot. A fungible slot falls back to add(). Slot taken by reference.
-   * Returns the qty that did NOT fit, like add() (0 = fully inserted) — a boolean would misreport
-   * a partial fungible add as total failure while units were already moved (transfer duplication).
+   * Insert a pre-existing slot by reference, preserving uid/mods; a fungible slot falls back to
+   * add(). Returns the qty that did NOT fit, like add() — a boolean would misreport a partial
+   * fungible add as total failure while units were already moved.
    */
   addSlot(inv, slot) {
     const def = Item.get(slot.itemId);
     const instanced = def !== undefined && def.isInstanced();
     if (!instanced) return Bag.add(inv, slot.itemId, slot.qty);
 
-    // weight gate (one unit — instances are qty 1).
     const unitW = def !== undefined ? def.weight : 1;
     if (inv.maxWeight !== undefined && unitW > 0) {
       if (Bag.weight(inv) + unitW > inv.maxWeight) return slot.qty;
     }
     if (inv.slots.length >= inv.capacity) return slot.qty;
-    if (slot.mods === undefined) slot.mods = {}; // tolerate a bare {itemId,qty,uid} (mods = slot map)
+    if (slot.mods === undefined) slot.mods = {}; // tolerate a bare {itemId,qty,uid}
     if (slot.uid === undefined) slot.uid = uuid();
     inv.slots.push(slot);
     return 0;
@@ -183,7 +178,6 @@ globalThis.Bag = {
    * (uid/mods preserved); only fungibles merge.
    */
   sort(inv) {
-    // tally fungible totals; keep instance slots whole, grouped by itemId.
     const counts = {}; // fungible itemId -> total qty
     const insts = {}; // instance itemId -> InventorySlot[]
     const ids = [];
@@ -201,7 +195,7 @@ globalThis.Bag = {
       }
     }
 
-    // BUG: [#15593] insertion sort, not Array.prototype.sort.
+    // BUG: insertion sort, not Array.prototype.sort (docs/GMRT.md #15593)
     for (let i = 1; i < ids.length; i++) {
       const v = ids[i];
       let j = i - 1;
@@ -212,7 +206,6 @@ globalThis.Bag = {
       ids[j + 1] = v;
     }
 
-    // rebuild: instance slots verbatim, fungibles merged into full stacks.
     const slots = [];
     for (let i = 0; i < ids.length; i++) {
       const itemId = ids[i];
@@ -233,9 +226,6 @@ globalThis.Bag = {
     inv.slots = slots;
   },
 
-  /**
-   * Compare two itemIds for sort(): category, then rarity (rarer first), then id.
-   */
   _cmp(a, b) {
     const ca = Bag._category(a);
     const cb = Bag._category(b);

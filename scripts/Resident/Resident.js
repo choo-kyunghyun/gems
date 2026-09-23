@@ -1,6 +1,6 @@
 /**
  * Settlement membership.
  * @typedef {Object} Resident
- * @property {string} settlementId  the owning settlement's id — its level's map id (Settlement.id)
+ * @property {string} settlementId  the owning settlement's id — its level's map id
  */
 globalThis.Resident = "Resident";

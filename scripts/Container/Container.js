@@ -1,7 +1,7 @@
-// Item-component: while equipped, grows the wearer's Inventory.capacity (Loadout adds/removes
-// on equip/unequip). Pairs with Equippable (e.g. a backpack). Flat class queried by `instanceof`.
+// Item component: while equipped, grows the wearer's inventory capacity. Pairs with Equippable
+// (e.g. a backpack).
 globalThis.Container = class Container {
-  /** d: capacity — extra Inventory slots granted while equipped. */
+  /** d: capacity, the extra slots granted while equipped. */
   constructor(d) {
     this.capacity = d.capacity ?? 0;
   }

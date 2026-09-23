@@ -1,9 +1,7 @@
 /**
- * Registers all shared colony content in one idempotent call.
- *
- * Sequences the per-domain modules. Called from create() (not top level) to avoid GMRT load-order
- * issues; prefabs register before any level generator is built (PrefabStamp resolves Prefab.byTag in
- * its constructor).
+ * Registers all shared colony content in one idempotent call — from a scene's create, never at
+ * top level, where script load order is not defined. Prefabs register before any level generator
+ * is built, since a generator resolves them at construction.
  */
 globalThis.content = {
   registered: false,
@@ -11,20 +9,18 @@ globalThis.content = {
   register() {
     if (content.registered) return;
     content.registered = true;
-    contentItems.register(); // rarity tiers + the full item set
-    contentStatuses.register(); // buff/debuff Status defs (encumbered / regen / fortify)
-    contentNeeds.register(); // the needs a body carries (thirst/hunger/drowsiness + exposure/cold), in HUD order
-    contentWeather.register(); // the sky's conditions, each with its look, temp and season weights
-    contentRecipes.register(); // workbench recipes
-    contentPrefabs.register(); // overworld prefabs (OverworldGen stamps these)
-    contentInteractions.register(); // InteractAction defs (storage/workbench/claim/bed + hydrate/feed/buff)
-    CombatAI.register(); // named combat states (combat.idle/chase/attack) into the StateSystem pool
-    contentPresets.register(); // entity presets (raider/rat/npc/chest/prop/torch/turret/follower) as EntityPreset defs
+    contentItems.register();
+    contentStatuses.register();
+    contentNeeds.register();
+    contentWeather.register();
+    contentRecipes.register();
+    contentPrefabs.register();
+    contentInteractions.register();
+    CombatAI.register();
+    contentPresets.register();
 
-    // Factions + relations: enemies aggro by RELATION (not a hardcoded id), so a third faction is
-    // just one register + setRelation here. "colony" is the settler faction that owns the hub
-    // settlement — allied with the player, whose commander builds there (BuildMode gates on the ally
-    // relation); a raider camp's owner stays hostile, so its level is not player-buildable.
+    // enemies aggro by relation, not id, so a third faction is one register + setRelation here.
+    // Building needs an ally owner, so the hub is buildable and a raider camp is not.
     Diplomacy.register([
       { id: "player", name: "Player", color: "#5aa0ff" },
       { id: "monster", name: "Hostiles", color: "#e65a5a" },
@@ -33,8 +29,7 @@ globalThis.content = {
     Diplomacy.setRelation("player", "monster", "hostile");
     Diplomacy.setRelation("player", "colony", "ally");
 
-    // Settlement capability defs (the faction-style component layer): a settlement carries a
-    // SettlementComponent id array; a system acting on "settlements that have X" layers on later.
+    // settlement capabilities: a settlement carries an array of these ids.
     SettlementComponent.register([
       { id: "market", name: "Market", color: "#d0b45a" },
       { id: "depot", name: "Depot", color: "#5a86d0" },

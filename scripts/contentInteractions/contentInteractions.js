@@ -1,21 +1,16 @@
 /**
- * The colony's InteractAction defs.
+ * The colony's interaction defs.
  *
- * Two families: WINDOW actions open their page through the scene's Window with the target
- * (`scene.window.open(id, { target })` — so Interactable range-closes it and E closes it); INSTANT
- * actions act once per E press. The survival ones (hydrate/feed/buff) act on
- * the PLAYER (ctx.playerId), not the station — the reference examples of "an interaction that does
- * something to the player, not just open a panel". The entity just carries { kind: <id> }.
- * The NPC pair (talk/trade) carries `prompt: ""`: no pill, the dialogue panel prompts for them. A
- * prompt may also be a function of the run() ctx, for a def whose action depends on the target's
- * state (companion: the wait/follow flip it will make).
+ * Window actions open a page over the target, so leaving range or pressing again closes it;
+ * instant actions act once per press. The survival stations act on the player, not the station.
+ * An NPC def carries an empty prompt, since its dialogue prompts instead; a prompt may be a
+ * function of the run ctx when the action depends on the target's state.
  */
 globalThis.contentInteractions = {
   registered: false,
 
   /**
-   * The harvest/chop view step: Flora.harvest's yield to the quest/achievement credit, the bag
-   * page's refresh and a toast — or the refusal it names (a full bag), shown here.
+   * The view side of a harvest: credit, refresh and toast, or the refusal it names.
    */
   _harvest(ctx) {
     const r = Flora.harvest(ctx.entities, ctx.id, ctx.playerId);
@@ -23,7 +18,7 @@ globalThis.contentInteractions = {
       if (r.reason !== "") Toast.push(I18n.text(r.reason), { type: "info" });
       return;
     }
-    ctx.scene.onCollect(r.itemId, r.qty); // quest/achievement credit + the pickup blip
+    ctx.scene.onCollect(r.itemId, r.qty);
     ctx.scene.window.dirty = true;
     Toast.push(
       I18n.text("FLORA_HARVESTED", r.qty, I18n.text(Item.get(r.itemId).name)),
@@ -36,7 +31,6 @@ globalThis.contentInteractions = {
     contentInteractions.registered = true;
 
     InteractAction.register([
-      // ── window actions (open a page of the scene's Window over the target entity) ──
       {
         id: "storage",
         prompt: "STORAGE_PROMPT",
@@ -45,9 +39,7 @@ globalThis.contentInteractions = {
         },
       },
       {
-        // lootable body left by a "corpse"-kind Mortal (ColonyCombat._toCorpse) — the standard
-        // storage page over the body's Inventory, with takes counted as pickups (the same
-        // quest/achievement credit as ground drops; the hook lasts the open — StorageUI)
+        // a lootable body: the storage page, with takes credited as pickups
         id: "corpse",
         prompt: "STORAGE_CORPSE_PROMPT",
         run(ctx) {
@@ -65,8 +57,7 @@ globalThis.contentInteractions = {
         },
       },
       {
-        // travel beacon (prop kind "travel") — a site's departure point: the world map, from which
-        // the squad deploys to another site (WorldMapUI.travel → ColonyTravel.travel)
+        // a site's departure point: the world map the squad deploys from
         id: "travel",
         prompt: "WORLDMAP_PROMPT",
         run(ctx) {
@@ -74,7 +65,7 @@ globalThis.contentInteractions = {
         },
       },
       {
-        // a merchant NPC (ColonySpawn's `merchant` descriptor): the shop over its own stock
+        // a merchant NPC: the shop over its own stock
         id: "trade",
         prompt: "",
         run(ctx) {
@@ -82,10 +73,8 @@ globalThis.contentInteractions = {
         },
       },
 
-      // ── instant actions ──
       {
-        // a quest NPC: accept its quest, or turn it in once ready; inert in between (the dialogue
-        // panel names this press's action, QUEST_ACCEPT / QUEST_TURNIN, or nothing)
+        // a quest NPC: accept its quest, or turn it in once ready; inert in between
         id: "talk",
         prompt: "",
         run(ctx) {
@@ -101,8 +90,7 @@ globalThis.contentInteractions = {
         },
       },
       {
-        // a ground drop (ColonyCombat.spawnDrop): its payload to the bag, the pickup credit the
-        // same as corpse looting's (scene.onCollect); the refusal (a full bag) is shown here
+        // a ground drop, credited like corpse looting
         id: "pickup",
         prompt: "INV_PICKUP_PROMPT",
         run(ctx) {
@@ -120,8 +108,6 @@ globalThis.contentInteractions = {
         },
       },
       {
-        // built door (woodenDoor prop): the leaf flip is Door's; its refusal (a body in the
-        // frame) is shown here
         id: "door",
         prompt: "BUILD_DOOR_PROMPT",
         run(ctx) {
@@ -130,8 +116,7 @@ globalThis.contentInteractions = {
         },
       },
       {
-        // Survey Post — founds the player's Settlement over the level (its buildable map). Keeps
-        // the "claim" id so existing scene JSON (kind:"claim") is unchanged; the prompt reads as founding.
+        // founds the player's settlement over the level; the id stays "claim" for the scene data
         id: "claim",
         prompt: "SETTLEMENT_FOUND_PROMPT",
         run(ctx) {
@@ -146,9 +131,7 @@ globalThis.contentInteractions = {
         },
       },
       {
-        // a ripe plant (Flora.ripen adds the Interaction at ripeness): the yield to the bag,
-        // then the plant regrows or goes — one action under two prompts (a crop is picked, a
-        // tree felled)
+        // a ripe plant; one action under two prompts (a crop is picked, a tree felled)
         id: "harvest",
         prompt: "FLORA_HARVEST_PROMPT",
         run(ctx) {
@@ -163,21 +146,18 @@ globalThis.contentInteractions = {
         },
       },
       {
-        // unhired/kicked companion — talking recruits it into the player's squad
-        // (Companions.hire adds Squad + follow + carry bonus and drops this Interaction)
+        // an unhired or dismissed companion
         id: "rehire",
         prompt: "SQUAD_RECRUIT_PROMPT",
         run(ctx) {
           Companions.hire(ctx.entities, ctx.playerId, ctx.id);
-          ctx.scene.window.dirty = true; // squad roster changed
+          ctx.scene.window.dirty = true;
           Toast.push(I18n.text("SQUAD_HIRED"), { type: "success" });
         },
       },
       {
-        // a squad member (Companions.hire swaps its "rehire" for this): E flips it between
-        // following and waiting here (Companions.toggle); the prompt names the flip, and a
-        // member that is not commandable (Downed) shows none. Priority -1: a companion walks at
-        // your side, so by proximity it yields to any station you stopped at.
+        // a squad member: flips between following and waiting; one not commandable shows no
+        // prompt. Low priority: it walks at your side, so it yields to any station you stop at.
         id: "companion",
         priority: -1,
         prompt(ctx) {
@@ -194,8 +174,7 @@ globalThis.contentInteractions = {
         },
       },
 
-      // survival stations — act on the player (ctx.playerId). restore() returns false when the need
-      // is already satisfied, so a full player gets a "no effect" cue instead of wasting the visit.
+      // survival stations act on the player; a satisfied need gets a "no effect" cue
       {
         id: "hydrate",
         prompt: "SURVIVAL_DRINK_PROMPT",

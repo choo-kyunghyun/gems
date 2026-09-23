@@ -1,20 +1,15 @@
 /**
- * Owner of every ParticleEmitter's live stream, and the only caller of part_system_create for
- * one: an emitter without a stream is minted one — a ParticleStream, TRANSIENT with a release
- * hook (Table.mint), so the stream is destroyed when the component goes (a detach, the
- * entity's removal, a level's teardown) and nothing holds an id across frames to reap it — every
- * stream steps one frame, and a stream whose emitter was detached is detached too.
+ * Owner of every ParticleEmitter's live stream. A stream is a transient component with a release
+ * hook, so it is destroyed whenever the component goes and nothing holds an id across frames to
+ * reap it; a stream whose emitter was detached is detached too.
  *
- * GMRT (docs/GMRT.md): the MANUAL part_system_drawit path (auto draw/update off) — the stepper
- * advances in whole frames, so update() ticks once per frame (not Time.delta), and a pause is
- * update() being skipped.
+ * The stepper advances in whole frames, so update() ticks per frame, not per Time.delta, and a
+ * pause is update() being skipped.
  */
 globalThis.ParticleEmitterSystem = {
   /**
-   * Mint what is new, step every stream one frame, drop what lost its emitter. Once per frame
-   * from the scene's update — a stream freezes and slows with the sim, like every world-space
-   * effect (the clock split). An `asset` naming no particle system warns once and detaches the
-   * emitter (fail fast, no per-frame spam).
+   * Once per frame on the sim clock, so a stream freezes and slows with the sim. An `asset`
+   * naming no particle system warns once and detaches the emitter.
    */
   update(level) {
     const entities = level.entities;
@@ -28,15 +23,15 @@ globalThis.ParticleEmitterSystem = {
         return;
       }
       const s = part_system_create(asset_get_index(em.asset));
-      part_system_automatic_draw(s, false); // draw() places it under the entity's matrix
-      part_system_automatic_update(s, false); // stepped here (pause-aware)
-      // a persistent blend, like image_blend on an instance — set once, not per draw
+      part_system_automatic_draw(s, false);
+      part_system_automatic_update(s, false);
+      // a persistent blend, set once, not per draw
       if (em.color !== undefined) part_system_colour(s, em.color, 1);
       entities.mint(id, ParticleStream, { sys: s }, ParticleEmitterSystem._release);
     });
     entities.forEach([ParticleStream], (id, st) => {
       if (!entities.has(id, ParticleEmitter)) {
-        entities.detach(id, ParticleStream); // the emitter went: the release hook frees the stream
+        entities.detach(id, ParticleStream);
         return;
       }
       part_system_update(st.sys);
@@ -44,11 +39,8 @@ globalThis.ParticleEmitterSystem = {
   },
 
   /**
-   * Draw every stream at its entity's Position. From the scene's draw() in world space AFTER the
-   * renderer — the ground passes paint an opaque fill that would hide it. 2.5D: `pitchDeg` is the
-   * live camera pitch in degrees (FloatingText.draw's convention), which stands each stream up on
-   * a camera-facing plane so its drift rises on screen; a flat top-down camera (0) leaves it on
-   * the ground.
+   * World space, after the renderer, whose opaque ground would hide it. `pitchDeg` (the camera
+   * pitch) stands each stream up on a camera-facing plane so its drift rises on screen.
    */
   draw(entities, pitchDeg = 0) {
     const tilt = -pitchDeg;
@@ -63,7 +55,6 @@ globalThis.ParticleEmitterSystem = {
     matrix_set(matrix_world, matrix_build_identity());
   },
 
-  /** The release hook: the component left its slot, so the stream goes with it. */
   _release(st) {
     part_system_destroy(st.sys);
   },

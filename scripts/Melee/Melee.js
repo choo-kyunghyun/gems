@@ -8,7 +8,7 @@
  */
 globalThis.Melee = {
   /**
-   * facing: the sign picks the side (< 0 left, else right). Returns the ids hit this swing.
+   * `facing` < 0 swings left, else right. Returns the ids hit.
    * @param {MeleeHitbox} hitbox
    */
   swing(entities, attackerId, facing, hitbox, damage) {
@@ -25,15 +25,14 @@ globalThis.Melee = {
     });
     for (let i = 0; i < ids.length; i++) {
       const id = ids[i];
-      if (Diplomacy.allied(entities, attackerId, id)) continue; // no friendly fire
-      // shared applier mitigates + subtracts; death reaction is central
+      if (Diplomacy.allied(entities, attackerId, id)) continue;
       Combat.applyDamage(entities, id, damage);
       hits.push(id);
     }
     return hits;
   },
 
-  /** The hitbox's front edge, px from the attacker's centre — the "reach" a stat line shows. */
+  /** The hitbox's front edge, px from the attacker's centre. */
   reach(hitbox) {
     return hitbox.xoffset + hitbox.width * 0.5;
   },

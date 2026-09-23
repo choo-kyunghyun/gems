@@ -1,34 +1,22 @@
 /**
  * Entity construction for colony levels — the one place a spawn descriptor becomes an entity.
  *
- * The entity kinds are EntityPreset DEFS (contentPresets — registered by content.register) —
- * component data + design scale + two hooks the def owns: `adapt(s, over, ctx)` turns its own
- * descriptor fields into per-spawn component overrides (field-merged onto the def like a variant)
- * and `post(entities, id, ctx)` wires what data can't express once the id exists (CombatAI.attach,
- * a merchant's stock), reading the descriptor off `ctx.opts.descriptor`. spawnEntity does the
- * grid→world and the fields EVERY descriptor takes, then hands the preset its own — so a new kind,
- * or a new field on one, is a def entry, never an edit here. A fresh map's descriptors
- * (ColonyMap.populate — the file's and the generator's alike), BuildMode, FloraSystem and the
- * Trader all route through it; a variant preset (`extends: "raider"`) inherits its base's hooks.
+ * An entity kind is a preset def with two hooks it owns: `adapt(s, over, ctx)` turns its own
+ * descriptor fields into per-spawn component overrides, and `post(entities, id, ctx)` wires what
+ * data can't express once the id exists, reading the descriptor off `ctx.opts.descriptor`. This
+ * module handles only the fields every descriptor takes, so a new kind, or a new field on one, is
+ * a def entry, never an edit here.
  *
- * Every descriptor takes `preset` and grid coords `gx/gy`, plus `label?` (its Name), `size?` — the
- * per-spawn SCALAR (Alpha/boss knob) multiplying the def's `scale` across BBox + Visual + Mesh
- * (see EntityPreset.spawn — AssetMeta density divides the DRAW scale separately) —
- * `settlement?` (the map whose settlement it is a Resident of) and, on mesh spawns, `yaw?`, a
- * visual turn in degrees (BBox stays axis-aligned). A preset's own fields are on its def.
+ * Every descriptor takes `preset` and grid coords `gx/gy`, plus `label?` (its Name), `size?` (a
+ * per-spawn scalar on the def's scale), `settlement?` (the map whose settlement it is a Resident
+ * of) and, on mesh spawns, `yaw?` (a visual turn in degrees; the collider stays axis-aligned).
  *
- * The helpers below `_spawn` are the hooks' vocabulary — what a def's adapt/post calls — so a
- * preset states its rule in one line over them.
+ * The helpers below `_spawn` are the hooks' vocabulary, so a preset states its rule in one line.
  */
 globalThis.ColonySpawn = {
   /**
-   * Collider footprint for a mesh model, derived from its tight content dims — a poly bake's
-   * header (Poly) or the vox extent (Vox), the same shadowing order RenderMesh draws by:
-   * max(8, content − 2) per axis — BBox ≤ content, erring small for walkability
-   * (reproduces the retired hand table; the floor of 8 keeps thin content like the sign's
-   * 4px plank robustly solid). 1 unit = 1 world px; big furniture is genuinely multi-cell
-   * (a 60px bench = ~2×1 cells at the 32px cell), so the collider must match the art, not
-   * the one-size prop preset box. Returns undefined for an unknown model.
+   * Collider footprint for a mesh model from its content dims, in world px: erring small for
+   * walkability, with a floor that keeps thin content solid. Undefined for an unknown model.
    */
   footprint(model) {
     let content;
@@ -45,49 +33,36 @@ globalThis.ColonySpawn = {
     };
   },
 
-  /**
-   * Reach-quest zone rect (world coords) for a "reach" spawn — a region, not an entity.
-   */
+  /** World rect for a "reach" spawn — a region, not an entity. */
   reachZone(grid, s) {
     const w = grid.gridToWorld(s.gx, s.gy);
     const half = s.half ?? 44;
     return { x1: w.x - half, y1: w.y - half, x2: w.x + half, y2: w.y + half };
   },
 
-  /**
-   * Construct ONE spawn descriptor's entity, returning its id (-1 for a marker preset — reach,
-   * entry — which is no entity). `gx/gy` are grid coords (gridToWorld handles negatives, so an
-   * off-grid descriptor works too).
-   */
+  /** Returns the entity id, or -1 for a marker preset, which is no entity. Off-grid cells work. */
   spawnEntity(entities, grid, s) {
     if (!EntityPreset.has(s.preset)) return -1;
     return ColonySpawn._spawn(entities, grid, s, grid.gridToWorld(s.gx, s.gy));
   },
 
   /**
-   * Spawn a companion at WORLD coords through the `follower` preset — the scene's programmatic
-   * party seed, taking the follower descriptor's fields as `opt`. The skin/persona hash keys on
-   * gx/gy, so a world-placed companion hashes its world point.
+   * Spawn a companion at world coords, taking the follower descriptor's fields as `opt`. Its
+   * cell-keyed hashes key on the world point instead.
    */
   spawnFollower(entities, wx, wy, opt = {}) {
     const s = { ...opt, preset: "follower", gx: Math.round(wx), gy: Math.round(wy) };
     return ColonySpawn._spawn(entities, undefined, s, { x: wx, y: wy });
   },
 
-  /**
-   * The adapter proper, over a resolved world point `w` (a preset's adapt may move it — the rock
-   * centres on its cluster): the fields every descriptor takes, the preset's `adapt`, the spawn
-   * with the descriptor riding `opts` to `post`, then the membership every preset may state.
-   */
+  /** The adapter proper, over a world point `w` a preset's adapt may move. */
   _spawn(entities, grid, s, w) {
     const def = EntityPreset.get(s.preset);
     const over = {};
     if (s.label !== undefined) over.Name = { name: s.label };
     if (def.adapt !== undefined) def.adapt(s, over, { grid, w });
-    // visual yaw for any mesh look (`yaw?`, degrees — vox meshes carry all four sides, so any
-    // facing is solid). Gated to mesh-bearing spawns: on a sprite entity (fence) a bare
-    // Mesh {yaw} would send RenderMesh's box path NaN dims. BBox stays axis-aligned —
-    // author the swapped footprint for 90° turns of oblong furniture.
+    // mesh-bearing spawns only: a bare Mesh on a sprite entity has no dims. The collider stays
+    // axis-aligned, so a 90° turn of oblong furniture authors the swapped footprint.
     if (s.yaw !== undefined) {
       if (
         over.Mesh !== undefined ||
@@ -98,16 +73,15 @@ globalThis.ColonySpawn = {
     const id = EntityPreset.spawn(entities, s.preset, w.x, w.y, 0, {
       size: s.size,
       components: over,
-      grid, // post hooks (CombatAI.attach) read ctx.opts.grid
-      descriptor: s, // post hooks read their preset's fields off it
+      grid,
+      descriptor: s,
     });
-    // Settlement membership (any preset): `settlement: <map id>` makes the entity a Resident of that
-    // level's settlement through the inhabitant seam. Explicit — no auto-by-location.
+    // explicit membership only, never by location
     if (s.settlement !== undefined) Residency.assign(entities, id, s.settlement);
     return id;
   },
 
-  /** A mob's descriptor fields (raider/rat): `hp` seeds Health + maxHp, `loot` the Inventory. */
+  /** A mob's descriptor fields: `hp` and `loot`. */
   adaptMob(s, over) {
     if (s.hp !== undefined) {
       over.Health = { hp: s.hp };
@@ -117,9 +91,8 @@ globalThis.ColonySpawn = {
   },
 
   /**
-   * A merchant NPC's `merchant` descriptor: the trade config + a stock Inventory (its OWN goods);
-   * its `trade` Interaction opens TradeUI on E. Stock built via Bag.add so instanced gear gets a
-   * uid/mods; weightless (no maxWeight) so a vendor isn't encumbered.
+   * A merchant's `merchant` descriptor: the trade config and a stock of its own goods, added item
+   * by item so instanced gear is minted; weightless, so a vendor is never encumbered.
    */
   merchant(entities, id, mc) {
     const mInv = { slots: [], capacity: mc.capacity ?? 32 };
@@ -139,10 +112,7 @@ globalThis.ColonySpawn = {
     });
   },
 
-  /**
-   * A strewn prop's facing: a boulder or plant mirrors by cell hash so one sheet doesn't visibly
-   * repeat — the sign of Visual.xscale, the same facing knob a mover turns.
-   */
+  /** A strewn prop mirrors by cell hash so one sheet doesn't visibly repeat. */
   mirror(entities, id, s) {
     if (hash2(s.gx, s.gy, 11) < 0.5) {
       const vis = entities.require(id, Visual);
@@ -150,12 +120,10 @@ globalThis.ColonySpawn = {
     }
   },
 
-  /** The flora presets' adapt: a `species` (contentFlora) brings its model, name and Growth. */
   adaptFlora(s, over) {
     if (s.species !== undefined) ColonySpawn._flora(s, over);
   },
 
-  /** The flora presets' post: a species' stage frame and (if ripe) Interaction, then the mirror. */
   postFlora(entities, id, ctx) {
     const s = ctx.opts.descriptor;
     if (s.species === undefined) return;
@@ -163,11 +131,7 @@ globalThis.ColonySpawn = {
     ColonySpawn.mirror(entities, id, s);
   },
 
-  /**
-   * A flora species' per-spawn overrides: the species' sprite sheet and name, and its Growth
-   * record (progress as authored, default a seedling; `wild` marks the generator's and the
-   * spread's). The stage frame and the ripe Interaction are Flora.attach's, after the spawn.
-   */
+  /** A species' per-spawn overrides; throws on an unknown species. */
   _flora(s, over) {
     const def = contentFlora.get(s.species);
     if (def === undefined)
@@ -182,14 +146,14 @@ globalThis.ColonySpawn = {
     };
   },
 
-  // Skin tones for doll humanoids (slot tints over the white spineHuman body art).
+  // tints over the white body art
   SKINS: ["#e8b890", "#d19a6b", "#a2714c"],
 
-  // the slots skin shows through: spineHuman's authored body parts. A garment or gear slot is
-  // NOT here, so it keeps its authored colours — whole-rig `color` would wash it (image_blend composes over every slot).
+  // the body parts only: a garment or gear slot keeps its authored colours, which a whole-rig
+  // colour would wash
   SKIN_SLOTS: ["head", "eyes", "mouth", "neck", "torso", "armL", "armR", "handL", "handR", "legL", "legR", "footLB", "footLF", "footRB", "footRF"],
 
-  /** one skin tone over every SKIN_SLOT — the slot -> colour map for Skeleton.tints */
+  /** The slot -> colour tint map. */
   skinTints(color) {
     const tints = {};
     for (let j = 0; j < ColonySpawn.SKIN_SLOTS.length; j++)
@@ -197,10 +161,7 @@ globalThis.ColonySpawn = {
     return tints;
   },
 
-  /**
-   * deterministic skin pick — hashed from the spawn CELL so a regenerated level's humanoid
-   * keeps the same face (a seed must rebuild the same level — see LevelGen)
-   */
+  /** Hashed from the spawn cell, so a regenerated level's humanoid keeps the same face. */
   skin(s) {
     const gx = s.gx ?? 0;
     const gy = s.gy ?? 0;
@@ -208,13 +169,12 @@ globalThis.ColonySpawn = {
     return Color.parse(ColonySpawn.SKINS[i]);
   },
 
-  // Coat colours for rats (Skeleton.tints over the white spineRat body art; white = as authored).
+  // tints over the white body art; white is as authored
   COATS: ["#ffffff", "#b4b4b4", "#a06a3c", "#585858"],
-  // the slots a coat covers: the furred parts — not `ear`/`feetF`/`feetB` (pink art of their
-  // own) and not `tail` (outline only)
+  // the furred parts only
   COAT_SLOTS: ["torso", "head", "legF", "legB"],
 
-  /** deterministic coat pick, cell-hashed like skin — the slot -> colour map for Skeleton.tints */
+  /** Cell-hashed like skin; returns the slot -> colour tint map. */
   coat(s) {
     const gx = s.gx ?? 0;
     const gy = s.gy ?? 0;
@@ -227,9 +187,7 @@ globalThis.ColonySpawn = {
   },
 
   /**
-   * Deterministic persona pick, banded by the caller's role — hashed from the spawn CELL like
-   * skin, so a regenerated level keeps the same colonist. Two distinct hash2 seeds so sex and age
-   * are independent of each other and of the skin tone.
+   * Cell-hashed like skin, over an age band; distinct seeds keep sex, age and skin independent.
    */
   persona(s, minAge, maxAge) {
     const gx = s.gx ?? 0;
@@ -241,9 +199,8 @@ globalThis.ColonySpawn = {
   },
 
   /**
-   * Authored outfit as a spineHuman slot map — one sprite per slot, in its own colours (a Spine
-   * slot has no tint of its own, so an outfit varies by ART, never by colour). `hat` is optional;
-   * both shoes take the one sprite, mirrored by their bones.
+   * An outfit as a slot map, one sprite per slot: a slot has no tint of its own, so an outfit
+   * varies by art, never by colour. `hat` is optional.
    */
   outfit(shirt, shoe, hat) {
     const slots = { shirt: shirt, shoeL: shoe, shoeR: shoe };

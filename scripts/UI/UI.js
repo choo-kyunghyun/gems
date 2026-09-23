@@ -1,23 +1,20 @@
-// root registry. update() reverse (later overlay blocks earlier); draw() forward.
+// The root registry: update() runs topmost-first (a later root blocks earlier), draw() in order.
 globalThis.UI = {
   roots: [],
 
-  // fixed design resolution; GUI is sized to this ÷ uiScale so layout is monitor-independent.
+  // GUI is sized to this ÷ uiScale, so layout is monitor-independent
   designW: 1920,
   designH: 1080,
 
   /**
-   * Resize the GUI layer to designRes/scale and reflow all roots. Applies LIVE (the uiScale
-   * slider drags through it), which constrains how full-screen chrome is built: fill the space
-   * with flex (`grow: true`), never by snapshotting `display_get_gui_height()` at build time —
-   * a snapshot is stale the moment the scale moves. Fixed-size windows may size themselves.
+   * Applies live while the scale is dragged, so full-screen chrome must fill the space with flex
+   * (`grow: true`), never a GUI size snapshotted at build time.
    */
   applyScale(scale) {
     display_set_gui_size(UI.designW / scale, UI.designH / scale);
     for (let i = 0; i < UI.roots.length; i++) UI.roots[i].markDirty();
   },
 
-  /** app teardown. */
   destroy() {
     UI.roots = [];
   },
@@ -25,17 +22,11 @@ globalThis.UI = {
   insert(root, index = UI.roots.length, enabled = true) {
     root.enabled = enabled;
     UI.roots.splice(index, 0, root);
-    // THE LAYOUT GUARANTEE: flexpanel layout reads are NaN until the first
-    // flexpanel_calculate_layout, so three refreshes close every path — this one at
-    // registration (a root inserted mid-frame from an onClick, e.g. a modal/dropdown, never
-    // reaches UI.draw un-laid-out), the end-of-update refresh (UIElement.update), and the
-    // pre-draw dirty refresh (UI.draw). Components therefore never observe NaN layout and
-    // carry NO per-widget NaN guards — do not add them back.
-    // One residual path: a subtree inserted mid-update-pass into a not-yet-traversed sibling
-    // branch can still see NaN in that frame's onUpdate. It is contained, not guarded —
-    // hit-tests are NaN-safe (point_in_rectangle with NaN is false) and the persistent-scalar
-    // sinks (UITable._top, UIScroll.scroll/_track) clamp with positive tests, so NaN can't
-    // stick. UIElement._drawClipped keeps its own zero-size check (it guards gpu_set_scissor).
+    // THE LAYOUT GUARANTEE: layout reads are NaN until the first layout pass, so a root is laid
+    // out at registration, at the end of update and before draw — components carry NO per-widget
+    // NaN guards. The one residual path, a subtree inserted mid-update into a not-yet-traversed
+    // branch, is contained: hit-tests are NaN-safe and persistent scalars clamp with positive
+    // tests, so NaN can't stick.
     root.refresh();
     return UI;
   },
@@ -59,10 +50,8 @@ globalThis.UI = {
   },
 
   /**
-   * The tree's frame: later roots block earlier from the pointer (a widget reads the raw
-   * Input.pointer and arbitrates through `block`), then a tree that took the pointer — a
-   * hovered or held widget, an exclusive modal — CLAIMS it, so no consumer after the tree
-   * (the scene's world clicks above all) sees the press (the distribution contract — Input).
+   * Later roots block earlier from the pointer; a tree that took it — a hovered or held widget,
+   * an exclusive modal — then CLAIMS it, so no consumer after the UI sees the press.
    */
   update() {
     let block = false;
@@ -73,25 +62,20 @@ globalThis.UI = {
   },
 
   draw() {
-    // GM doesn't clear the scissor between frames. After a resolution SHRINK the stale rect is bigger
-    // than the new back buffer — a clip's gpu_get_scissor() reads it as a "nested" parent and replays
-    // every frame → self-perpetuating "scissor not contained in render target" error. Re-anchor to the
-    // live target each frame so nested-clip detection starts clean. Display.clipW/H is crash-safe
-    // (not a lagged query); see UIElement._drawClipped.
+    // BUG: the scissor persists across frames; after a resolution shrink the stale rect exceeds
+    // the back buffer and a nested clip replays it every frame. Re-anchor to the live target.
     if (Display.renderW > 0) {
       gpu_set_scissor(0, 0, Display.clipW(), Display.clipH());
     }
     for (const root of UI.roots) {
       if (root.enabled) {
-        // a root can still be dirty here: scenes insert-then-build (children added after
-        // UI.insert's refresh), and UINav-driven mutations (accordion expand) land after
-        // UI.update's end-of-update refresh. Recompute before drawing so no subtree draws
-        // with NaN layout.
+        // a root can still be dirty here: children built after insert, or mutations after the
+        // end-of-update refresh
         if (root.dirty) root.refresh();
         root.draw();
       }
     }
-    // advance so a GROW only clips next frame once the back buffer catches up; see Display.clipW.
+    // a grow only clips from next frame, once the back buffer catches up
     Display.advanceFrame();
   },
 };

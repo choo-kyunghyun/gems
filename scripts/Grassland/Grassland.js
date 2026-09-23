@@ -1,21 +1,15 @@
 /**
- * The grass ground as a live resource, as terrain cell EDITS: `cut` consumes one grass cell back
- * to HOST and reports whether it did — the caller owns the yield (a harvest job, a grazer; the
- * placement side is BuildMode.applyItem cutting the grass under whatever it places) — and
- * `clearBuilt` sweeps a freshly built map's prefab tiles once. Overcut ground regrows only from
- * the front (GrassSystem's creep), so a field cut to the root stays bald: depletion is real (the
- * fauna carrying-capacity groundwork — WORLD's "남획은 고갈로 돌아온다"). No entity per cell:
- * the state IS the terrain layer (already in every save), and RenderGrass redraws whatever the
- * layer says, so every edit is a cell write plus `mark`, one batched rebuild of the terrain
- * passes + the grass pass (RenderTileMap.markDirty — however many edits a frame makes, each
- * pass rebuilds once). Takes the level (its runtime's layers and passes — ColonyMap).
+ * The grass ground as a live resource, edited as terrain cells. Grass regrows only from the
+ * front of a field, so ground cut to the root stays bald: depletion is real. There is no entity
+ * per cell; the state is the terrain layer, so every edit is a cell write plus `mark`, one
+ * batched rebuild per pass however many edits a frame makes.
  */
 globalThis.Grassland = {
   HOST: "soil", // the material grass creeps into — and what a cut cell reverts to
 
   /**
-   * Consume one grass cell back to HOST. True when a grass cell reverted — the caller owns
-   * the yield; false on any other ground (a double cut is a miss, not an error).
+   * True when a grass cell reverted to HOST; the caller owns the yield. A double cut is a miss,
+   * not an error.
    */
   cut(level, gx, gy) {
     const grass = Grassland.type(level, "grass");
@@ -29,10 +23,8 @@ globalThis.Grassland = {
   },
 
   /**
-   * One build-time sweep: every cell a build layer occupies loses its grass (a generated
-   * prefab's walls and floors — the runtime side is BuildMode's cut on placement). Called by
-   * ColonyView._renderer BEFORE the passes exist, so the initial VBOs already see the
-   * result — there is nothing to mark yet.
+   * One build-time sweep clearing the grass under every built cell. Runs before the passes
+   * exist, so there is nothing to mark.
    */
   clearBuilt(level) {
     const grass = Grassland.type(level, "grass");
@@ -53,7 +45,7 @@ globalThis.Grassland = {
       }
   },
 
-  /** The map's TileType for a contentBiomes material id, off the runtime's terrainMats; undefined off-palette. */
+  /** The map's TileType for a material id; undefined off-palette. */
   type(level, material) {
     const mats = ColonyMap.runtime(level).terrainMats;
     if (mats === undefined) return undefined;
@@ -62,7 +54,7 @@ globalThis.Grassland = {
     return undefined;
   },
 
-  /** the ground changed: the terrain stack + the grass pass rebuild on their next draw */
+  /** The ground passes rebuild on their next draw. */
   mark(level) {
     const rt = ColonyMap.runtime(level);
     for (let i = 0; i < rt.terrainPasses.length; i++)

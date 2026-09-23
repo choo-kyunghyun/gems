@@ -1,6 +1,6 @@
 /**
- * The host widget owns when it runs; this owns only the bar. The host maps the normalized t ∈ [0,1]
- * returned by input() onto its own scroll unit (px or rows).
+ * A scrollbar's track/thumb model: the host widget owns when it runs, this owns only the bar. The
+ * host maps the normalized t ∈ [0,1] returned by input() onto its own scroll unit (px or rows).
  */
 globalThis.UIScrollbar = class UIScrollbar {
   /** s: { barW, minThumb, trackColor, trackAlpha, thumbColor, thumbHover } */
@@ -12,14 +12,11 @@ globalThis.UIScrollbar = class UIScrollbar {
     this.thumbColor = s.thumbColor ?? c_gray;
     this.thumbHover = s.thumbHover ?? c_ltgray;
     this.dragging = false;
-    this.over = false; // pointer over the thumb (hover tint)
+    this.over = false; // pointer over the thumb
     this._dragDY = 0; // grab offset inside the thumb
   }
 
-  /**
-   * track/thumb geometry for a bar at (x, y, h) showing `view` of `total` units (any shared
-   * unit) with the current scroll at t ∈ [0,1]. Same shape consumed by input() and draw().
-   */
+  /** Geometry for a bar showing `view` of `total` units (any shared unit) at scroll t ∈ [0,1]. */
   metrics(x, y, h, view, total, t) {
     const ratio = total > 0 ? view / total : 1;
     const thumbH = clamp(ratio * h, this.minThumb, h);
@@ -28,10 +25,8 @@ globalThis.UIScrollbar = class UIScrollbar {
   }
 
   /**
-   * pointer step: thumb hover + press latch + drag tracking. Reads the frame-latched
-   * Input.pointer edges (the poll-once rule — Input.poll). `hoverGate` = extra hit-test condition the host
-   * imposes (UIScroll also requires the pointer inside its viewport; pass true otherwise).
-   * Returns the dragged position t ∈ [0,1], or -1 when not dragging.
+   * `hoverGate` is an extra hit-test condition the host imposes (true for none). Returns the
+   * dragged position t ∈ [0,1], or -1 when not dragging.
    */
   input(m, mx, my, hoverGate) {
     this.over =

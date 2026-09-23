@@ -1,10 +1,10 @@
 /**
- * A layer's cell value is a `TileType` instance — id/name and the nav-cost rules live on the class.
+ * A layer's cell value is a `TileType` instance.
  * @typedef {Object} LevelLayer
  * @property {function(number, number): TileType | undefined} get
  * @property {function(number, number, TileType | undefined): LevelLayer} set
  * @property {function(number, number): number | undefined} costAt  the cell's nav cost; undefined passes through to the layer below
- * @property {number} edits  count of cell writes so far (a consumer mirroring the layer diffs it)
+ * @property {number} edits  count of cell writes so far; a mirror diffs it
  * @property {number[]} dirty  cell indexes written since the mirror last drained them
  * @property {boolean} dirtyAll  the writes outran `dirty` — the mirror resamples every cell
  * @property {function(): Object} export
@@ -13,9 +13,8 @@
  */
 
 /**
- * Live pathfinding does NOT read the tile layers — NavGrid (colliders + tile costs) is the one nav
- * source; it mirrors `costAt` into its base whenever `edits` moves. `costAt` itself is on-demand
- * layer cost, for that mirror and for debug/inspection.
+ * A level's cell grid and its stacked tile layers. Live pathfinding never reads the layers: the
+ * nav source mirrors `costAt` whenever `edits` moves.
  */
 globalThis.LevelGrid = class LevelGrid {
   constructor(opt = {}) {
@@ -41,8 +40,8 @@ globalThis.LevelGrid = class LevelGrid {
 
   /**
    * On-demand tile nav cost of a cell: topmost layer with a defined cost wins (higher index =
-   * higher priority); no layer reporting → Infinity. Debug/inspection only (RenderDebugTileMap
-   * shading) — live pathfinding reads NavGrid, never the tile layers.
+   * higher priority); no layer reporting → Infinity. For mirroring and inspection, never live
+   * pathfinding.
    */
   costAt(x, y) {
     for (let i = this.layers.length - 1; i >= 0; i--) {
@@ -75,13 +74,12 @@ globalThis.LevelGrid = class LevelGrid {
   }
 
   /**
-   * The cell window a view record (CameraSystem.view) can see, clamped to the grid: `x0`/`y0` INCLUSIVE, `x1`/`y1`
+   * The cell window a view record can see, clamped to the grid: `x0`/`y0` INCLUSIVE, `x1`/`y1`
    * EXCLUSIVE — cells iterate `x0 <= x < x1`, and the cell BOUNDARY lines at `x0..x1` (inclusive)
-   * are the ones bounding them, which is what a line drawer wants. `camera` is optional: with none,
-   * or before one is sized (`width > 0` dodges the first-frame NaN rect), the whole grid is the
-   * window. The rect is View.groundRect — never camera_get_view_* (it returns 0 for the
-   * matrix-driven camera) — and groundRect owns the pitch stretch, so a tilted view still gets the
-   * cells at the top and bottom of the screen.
+   * are the ones bounding them, which is what a line drawer wants. With no camera, or before one
+   * is sized (`width > 0` dodges the first-frame NaN rect), the whole grid is the window. The
+   * rect is the view's ground rect — never camera_get_view_*, which returns 0 for a matrix-driven
+   * camera.
    */
   viewRange(camera) {
     if (camera === undefined || !(camera.width > 0))
@@ -137,16 +135,15 @@ globalThis.LevelGrid = class LevelGrid {
 
   /**
    * Fill the tile layers from a pack() buffer. `typeOf(layerIndex, id)` maps a cell's stored id
-   * back to the TileType the layer holds (an unknown id → undefined leaves the cell empty, and is
-   * counted in the error the caller sees). The buffer must describe this grid — same cols/rows
-   * and layer count — else nothing is written and false is returned (Log.error'd). The buffer
-   * stays the caller's to free.
+   * back to the TileType the layer holds (an unknown id → undefined leaves the cell empty and is
+   * logged). The buffer must describe this grid — same cols/rows and layer count — else nothing
+   * is written and false is returned. The buffer stays the caller's to free.
    */
   unpack(buf, typeOf) {
     buffer_seek(buf, buffer_seek_start, 0);
     const cols = buffer_read(buf, buffer_u32);
     const rows = buffer_read(buf, buffer_u32);
-    buffer_read(buf, buffer_u32); // cellWidth — the grid's own (shape)
+    buffer_read(buf, buffer_u32); // cellWidth — the grid's own
     buffer_read(buf, buffer_u32); // cellHeight
     const n = buffer_read(buf, buffer_u32);
     if (cols !== this.cols || rows !== this.rows || n !== this.layers.length) {

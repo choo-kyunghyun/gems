@@ -1,15 +1,9 @@
 /**
- * The camera entities and their policy data: `create` mints the entity carrying `Camera` (+
- * `Position`, its look-at), and `follow`/`pan`/`fly` build the data of the policy components an
- * installer mints onto it (`entities.mint` — a policy is the installer's tuning, not the level's
- * data, so no save carries it). What the policies DO each frame is CameraSystem's; what the
- * derived view is, View's.
+ * The camera entities and their policy data. A policy is minted onto a camera by its installer:
+ * it is tuning, not the level's data, so no save carries it.
  */
 globalThis.Cameras = {
-  /**
-   * A camera entity: Position (its look-at — opt `x`/`y`/`z`) + Camera with the defaults of an
-   * overhead ortho view (opt: every Camera field). Returns the id.
-   */
+  /** Position is the look-at; the defaults are an overhead ortho view. Returns the id. */
   create(entities, opt = {}) {
     const id = entities.create();
     entities.add(id, Position, { x: opt.x ?? 0, y: opt.y ?? 0, z: opt.z ?? 0 });
@@ -27,7 +21,7 @@ globalThis.Cameras = {
     return id;
   },
 
-  /** CameraFollow data from its opt (each field of the typedef; `zoom` seeds the targets). */
+  /** `opt.zoom` seeds the zoom targets. */
   follow(opt = {}) {
     const zoom = opt.zoom ?? 1;
     return {
@@ -50,7 +44,6 @@ globalThis.Cameras = {
     };
   },
 
-  /** CameraPan data from its opt. */
   pan(opt = {}) {
     return {
       zoomMin: opt.zoomMin ?? 0.25,
@@ -63,7 +56,7 @@ globalThis.Cameras = {
     };
   },
 
-  /** CameraFly data from its opt. `sens` is calibrated so the shipped sensitivity 2.5 lands on 0.005. */
+  /** `sens` is calibrated so the shipped sensitivity 2.5 lands on 0.005. */
   fly(opt = {}) {
     return {
       speed: opt.speed ?? 600,

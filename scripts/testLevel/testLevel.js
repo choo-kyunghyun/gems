@@ -1,9 +1,8 @@
-// Core/Level, World and Nav cases: a Level's own entity and its rebuild, the grid, the blob
-// codec, the World pool, a ticker over the level (LifetimeSystem), the nav grid's sync and
-// restamp, the remesh, and perf.plan, what one A* expansion costs. Every case here references
-// Core only; the case contract and the perf.* rule are Test's.
+// Level, world and nav cases: a level's own entity and its rebuild, the grid and its blob, the
+// world pool, a ticker over a level, the nav grid's sync and restamp, the remesh, and perf.plan,
+// what one A* expansion costs. Every case references Core only.
 
-const PLAN_COLS = 128; // the overworld's side, the size perf.plan's figure is about
+const PLAN_COLS = 128; // an overworld's side
 
 Test.register(Test.CHECK, [
   {
@@ -71,7 +70,7 @@ Test.register(Test.CHECK, [
     // the grid's own pack/unpack: a blob names its shape, so a fresh grid unpacks it
     setup(ctx) {
       Object.assign(ctx, Test.level(3, 2));
-      // numeric ids — what a blob's u16 cell holds (contentTiles); Test.types' are strings
+      // numeric ids: a blob's cell holds a u16
       ctx.rock = new TileType({ id: 7, pathCost: null });
       ctx.mud = new TileType({ id: 9, pathCost: 3 });
     },
@@ -167,7 +166,7 @@ Test.register(Test.CHECK, [
         const s = c.entities;
         s.mint(c.w, PathRequest, { startX: 0, startY: 0, goalX: 7, goalY: 0 });
         PathfindingSystem.update(c.level);
-        // the twins share the room: only the stepping level's mirrors may answer (ColonyTravel's park)
+        // the twins share the room: only the stepping level's mirrors may answer
         PuppetSystem.thaw(c.level);
         PuppetSystem.park(c === ctx.p ? ctx.q.level : ctx.p.level);
         PuppetSystem.update(c.level);
@@ -179,7 +178,6 @@ Test.register(Test.CHECK, [
         step(ctx.p);
         step(ctx.q);
         if (k === 4) {
-          // solid, nav, separation and camera go
           const q = ctx.q;
           const keys = [PuppetSystem.KEY, PathfindingSystem.KEY, CameraSystem.KEY];
           for (let i = 0; i < keys.length; i++) q.entities.detach(q.level.self, keys[i]);
@@ -322,13 +320,13 @@ Test.register(Test.CHECK, [
         s.mint(ctx.other, PathResponse, { path: [{ x: 0, y: 0 }], index: 0 });
       const ask = () =>
         s.mint(ctx.walker, PathRequest, { startX: 0, startY: 0, goalX: 7, goalY: 0 });
-      PuppetSystem.update(level); // the tick's collider walk snapshots the wall
-      PathfindingSystem.update(level); // seeds the nav grid, stamps the wall, serves the request
+      PuppetSystem.update(level);
+      PathfindingSystem.update(level);
       const r1 = s.get(ctx.walker, PathResponse);
       t.ok(r1 !== undefined, "the request is served");
       t.ok(r1.path.length > 8, "the path detours around the stamped wall: " + r1.path.length);
       t.eq(s.get(ctx.other, PathResponse), undefined, "the first stamp drops every held path");
-      // the wall's `solid` flips in place (a door's leaf): the stamp leaves it out, then takes it back
+      // `solid` flipped in place, as a door's leaf does
       const col = s.get(ctx.wall, Collision);
       col.solid = false;
       ask();
@@ -340,8 +338,7 @@ Test.register(Test.CHECK, [
       PuppetSystem.update(level);
       PathfindingSystem.update(level);
       t.ok(s.get(ctx.walker, PathResponse).path.length > 8, "a closed leaf re-enters the stamp");
-      // the wall goes: the next collider walk moves the generation, and the update after it
-      // restamps with no hook and no call from the writer
+      // the wall goes: the restamp needs no hook and no call from the writer
       hold();
       s.remove(ctx.wall);
       s.flush();
@@ -350,7 +347,7 @@ Test.register(Test.CHECK, [
       PathfindingSystem.update(level);
       t.eq(s.get(ctx.walker, PathResponse).path.length, 8, "with the wall gone the path runs straight");
       t.eq(s.get(ctx.other, PathResponse), undefined, "a restamp drops every held path");
-      // a body spawn never moves the generation (kinematic carriers only): no restamp, paths stay
+      // only kinematic colliders move the generation
       hold();
       const body = s.create();
       s.add(body, Position, { x: 200, y: 200, z: 0 });
@@ -410,18 +407,15 @@ Test.register(Test.CHECK, [
       ctx.level.destroy();
     },
   },
-  // ── perf.plan: what one A* expansion costs ──────────────────────────────
-  // THE record for what an expansion costs, measured on the shape a far plan has: a weighted
-  // 128² field, corner to corner, where the unit heuristic is weak enough that most of the level
-  // expands. `n` is the nav scratch's `iters`, so the row is ns per expansion and not per plan —
-  // multiply by the iters in the log line for what one plan costs a frame.
+  // What one A* expansion costs, on the shape a far plan has: a weighted field corner to corner,
+  // where the unit heuristic is weak enough that most of the level expands. The row is ns per
+  // expansion, not per plan — multiply by the logged n for what one plan costs a frame.
   {
     id: "perf.plan",
     setup(ctx) {
       Object.assign(ctx, Test.level(PLAN_COLS, PLAN_COLS));
       Test.types(ctx);
-      // a weighted field, not a maze: mud in a coarse checker so most cells stay reachable and
-      // the cost spread is what defeats the heuristic
+      // a weighted field, not a maze: the cost spread is what defeats the heuristic
       for (let y = 0; y < PLAN_COLS; y++)
         for (let x = 0; x < PLAN_COLS; x++)
           if (((x >> 3) + (y >> 3)) % 2 === 0) ctx.layer.set(x, y, ctx.mud);
@@ -440,10 +434,8 @@ Test.register(Test.CHECK, [
         iters > PLAN_COLS,
         "the plan expands more than a straight run of cells",
       );
-      // the octile plan must be ADMISSIBLE: with diagonals costing only sqrt(2) it can never
-      // come out dearer than the cardinal one over the same field. An octile search run on the
-      // Manhattan heuristic overestimates and fails this while still returning a path, so the
-      // row is what catches the heuristic losing its `allowDiag` (GMRT.md #15549).
+      // an admissible octile plan never comes out dearer than the cardinal one; an overestimating
+      // heuristic still returns a path, so only this catches it (docs/GMRT.md #15549)
       const walk = (pth) => {
         let cost = 0;
         let broken = 0;
@@ -479,8 +471,7 @@ Test.register(Test.CHECK, [
         () => 0,
         () => MotionPlanner.plan(nav, a, b, opt).length,
       );
-      // the same plan with the heap and the grid reads left in but the neighbour scan cut to
-      // cardinals: the row pairs with the one above to say how much of an expansion is the scan
+      // paired with the row above, says how much of an expansion is the neighbour scan
       const cardinal = { allowDiag: false };
       MotionPlanner.plan(nav, a, b, cardinal);
       t.measure(

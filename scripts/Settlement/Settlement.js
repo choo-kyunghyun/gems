@@ -1,28 +1,21 @@
 /**
- * A settlement IS a level: the map it stands on is its territory whole, and the level's id is
- * its identity (Resident.settlementId matches it). Its record — { factionId, name, color, comp }:
- * the owner faction, a display name, a tint, and a SettlementComponent id array — is the level's
- * whole-map record under KEY on the level's own entity, pooled and saved with its store, the
- * way the climate record pins the sky. A level carries at most one, authored by `meta.settlement`
- * (ColonyMap._buildWorld — a faction hub, a raider camp) or founded at a Survey Post
- * (BuildMode.claim); until then it is unsettled.
+ * A settlement IS a level: the map is its whole territory and the level's id is its identity.
+ * Its record { factionId, name, color, comp } sits on the level's own entity and saves with it;
+ * a level carries at most one, authored or founded in play, and is unsettled until then.
  *
- * Free functions over the level (composition; GMRT has no usable class inheritance) holding NO
- * policy about which faction is "the player" — the consumer decides (BuildMode gates on
- * Diplomacy.isAlly). The RECORD lives here; a settlement's INHABITANTS live in the level's
- * store as entities carrying Resident{ settlementId: <level id> } — resolved by Residency.
- * The seed for the planned Farming + "Defend the settlement" raids.
+ * Free functions over the level (docs/GMRT.md) holding no policy about which faction is the
+ * player's — the consumer decides. Only the record lives here; the inhabitants are entities in
+ * the level's store whose Resident settlementId is the level id.
  */
 globalThis.Settlement = {
-  KEY: "settlement", // its token on the level's own entity — a data key (a save holds it)
-  DEFAULT_COLOR: "#55aa55", // fallback tint (matches the legacy build-zone green)
+  KEY: "settlement", // saved
+  DEFAULT_COLOR: "#55aa55",
 
-  /** The level's settlement record, or undefined while it is unsettled. */
+  /** Undefined while the level is unsettled. */
   of(level) {
     return level.entities.get(level.self, Settlement.KEY);
   },
 
-  /** The settlement's identity — its level's id (Resident.settlementId matches this). */
   id(level) {
     return level.id;
   },
@@ -34,10 +27,8 @@ globalThis.Settlement = {
   },
 
   /**
-   * Found a settlement over the whole level: sets its record and returns it, or returns
-   * undefined without touching an already-settled level. opt: `factionId` (the owner), `name`,
-   * `color`, `comp` (the initial SettlementComponent id array — copied, so the caller's def stays
-   * its own).
+   * Returns the new record, or undefined without touching an already-settled level. `opt.comp`
+   * is copied, so the caller's def stays its own.
    */
   found(level, opt = {}) {
     if (level.entities.has(level.self, Settlement.KEY)) return undefined;
@@ -50,8 +41,6 @@ globalThis.Settlement = {
     level.entities.add(level.self, Settlement.KEY, s);
     return s;
   },
-
-  // ── capability components (a SettlementComponent id array in the record's comp) ──
 
   components(s) {
     return s.comp; // the live array

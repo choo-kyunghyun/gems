@@ -1,6 +1,6 @@
 /**
- * Faction membership; relations live in Diplomacy.
+ * Faction membership only; relations between factions are not stored here.
  * @typedef {Object} Faction
- * @property {string} id  faction id registered in Diplomacy (e.g. "player", "monster")
+ * @property {string} id  a registered faction id
  */
 globalThis.Faction = "Faction";

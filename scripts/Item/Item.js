@@ -1,11 +1,9 @@
-// Item-definition registry. Definitions are data; runtime quantities live in Inventory. Capabilities
-// (Equippable, Weapon, …) compose via `components[]` queried by `instanceof` — composition over inheritance.
+// Item-definition registry. Definitions are data; runtime quantities live elsewhere. Capabilities
+// compose via `components[]`, queried by `instanceof`.
 globalThis.Item = class Item {
   /**
-   * Item def, keyed by `id`: name/description (i18n keys), sprite (the bag icon, a bare asset ref
-   * — ids may share one; -1 = none), stack, weight, value (base — scaled by rarity), rarity
-   * (Rarity id), maker (Manufacturer id, "" = unbranded), components (capability/marker
-   * instances — queried via getComponent). Defaults in the body.
+   * name/description are i18n keys; sprite is the bag icon (-1 = none); value is the base, before
+   * rarity scaling; maker "" = unbranded.
    */
   constructor(def) {
     this.id = def.id;
@@ -38,14 +36,14 @@ globalThis.Item = class Item {
   }
 
   /**
-   * unique gear (uid + mods inline on slot) vs fungible stacks — equippable = always instanced.
-   * Equipment keys by uid, not itemId, because two of one itemId can differ by mods.
+   * Unique gear (uid + mods on its slot) vs fungible stacks; equippable is always instanced,
+   * since two of one itemId can differ by mods.
    */
   isInstanced() {
     return this.hasComponent(Equippable);
   }
 
-  // ── Registry facade — statics, since a def is an Item instance (Registry owns the store)
+  // statics, since a def is itself an Item instance
   static register(defs) {
     Registry.register(Item, defs, Item.make);
   }

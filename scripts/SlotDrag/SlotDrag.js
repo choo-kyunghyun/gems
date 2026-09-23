@@ -1,6 +1,6 @@
 /**
- * The target is PERSISTED, so a small drift off the slot at button-up still drops. Pointer edges come
- * from Input.pointer (frame-latched) — never mouse_check_button* directly (the poll-once rule — Input.poll).
+ * The one slot-item drag in flight. The drop target persists, so a small drift off the slot at
+ * button-up still drops. Pointer edges come from the frame-latched pointer, never polled directly.
  */
 globalThis.SlotDrag = {
   active: false,
@@ -13,9 +13,7 @@ globalThis.SlotDrag = {
   hoverGrid: null,
   hoverSlot: -1,
 
-  /**
-   * Pick up the item in `grid` slot `i` (source slot empties).
-   */
+  /** The source slot shows empty while dragging. */
   begin(grid, i) {
     if (SlotDrag.active) return;
     const it = grid.items[i];
@@ -24,23 +22,18 @@ globalThis.SlotDrag = {
     SlotDrag.source = grid;
     SlotDrag.sourceIndex = i;
     SlotDrag.item = it;
-    SlotDrag.hoverGrid = grid; // seed: release with no move → restore to source
+    SlotDrag.hoverGrid = grid; // a release with no move restores to the source
     SlotDrag.hoverSlot = i;
-    grid.items[i] = null; // source slot shows empty while dragging
+    grid.items[i] = null;
   },
 
-  /**
-   * Record the drop target (the grid reports the slot under the cursor each frame).
-   */
+  /** Per frame, the slot under the cursor. */
   hover(grid, j) {
     SlotDrag.hoverGrid = grid;
     SlotDrag.hoverSlot = j;
   },
 
-  /**
-   * Place the carried item into `grid` slot `j`. Back onto the source slot reads as a click
-   * (restore + select); otherwise swap the occupant back to source.
-   */
+  /** Back onto the source slot reads as a click; otherwise the occupant swaps back to the source. */
   drop(grid, j) {
     if (!SlotDrag.active) return;
     if (grid === SlotDrag.source && j === SlotDrag.sourceIndex) {
@@ -71,7 +64,7 @@ globalThis.SlotDrag = {
     SlotDrag.hoverSlot = -1;
   },
 
-  /** Resolve on the release edge (Step_0, after UI.update): drop onto the last hovered slot, else cancel. */
+  /** On the release edge, after the UI update. */
   update() {
     if (!SlotDrag.active) return;
     if (!Input.pointer.left.released) return;
@@ -82,7 +75,7 @@ globalThis.SlotDrag = {
     }
   },
 
-  /** Draw the carried item's icon at the cursor (Draw_75). */
+  /** The carried icon at the cursor, over the GUI. */
   draw() {
     if (!SlotDrag.active) return;
     const it = SlotDrag.item;

@@ -1,50 +1,34 @@
 /**
  * The colony's presentation over a mounted level.
  *
- * Everything here is a READ of the level — its grid, its layer handles and material table, its
- * whole-map records (indoor, biome, wind) — and a write into `ColonyMap.runtime(level)`; nothing
- * of a map lives here. The camera is an ENTITY of the level's store (Cameras.create) under the
- * follow policy, and every view-dependent pass takes its view record at construction, which is
- * why `activate` builds the camera first. The atmosphere constants (BB_PITCH, PITCH_CURVE,
- * chroma) are this engine's tuning — the pitched 2.5D framing every pass and the camera agree on.
+ * Only reads the level and writes its runtime record; no map state lives here. The camera is an
+ * entity of the level's store, built before the passes because every view-dependent pass takes
+ * its view at construction. The atmosphere constants are this engine's tuning of the pitched 2.5D
+ * framing that every pass and the camera agree on.
  */
 globalThis.ColonyView = {
-  // 2.5D adopted: camera pitch in degrees (0 = flat top-down, debug only — front-view art reads
-  // wrong flat). Read by _renderer (billboard vs flat entity pass) + _camera (pitch + framing
-  // zoom). With the upright-sprite camera this is the frame-0 seed + the pitched-map GATE only —
-  // the LIVE pitch is PITCH_CURVE below (42° zoomed out → 58° zoomed in).
+  // Camera pitch in degrees (0 = flat, debug only — front-view art reads wrong flat): the
+  // frame-0 seed and the pitched-map gate; the live pitch follows PITCH_CURVE.
   BB_PITCH: 42,
-  // Pitch-by-zoom curve (upright-sprite camera), the CameraFollow curve fields: shallow 42° at
-  // the zoom-out floor (~1.25 on a 1920 surface) easing linearly to 58° at max zoom-in (2.625) —
-  // "look further = flatter". Thresholds are the spike values HALVED for the 32px-cell world
-  // (zoom seeds halved, same screen framing); the 42–58° outputs are angles, unchanged.
+  // Pitch by zoom: look further = flatter. Zoom thresholds are tuned for the 32px-cell world.
   PITCH_CURVE: { pitchLo: 42, pitchHi: 58, zoomLo: 1.25, zoomHi: 2.625 },
 
   /**
-   * The world's albedo chroma this frame (shMeshlit's u_chroma, through RenderMesh's provider):
-   * the clock's hour/season schedule times the sky's factor, pulled toward 1 (the authored
-   * colours) by the `worldChroma` setting — 0 turns the atmosphere off, 1 is the full schedule.
+   * The world's albedo chroma this frame, pulled toward 1 (the authored colours) by the
+   * `worldChroma` setting — 0 turns the atmosphere off, 1 is the full schedule.
    */
   chroma() {
     const k = WorldClock.chroma() * Weather.chromaMod();
     return 1 - (1 - k) * Settings.get("worldChroma");
   },
 
-  /**
-   * The presentation over a mounted level — once per level, on its first activation: the follow
-   * camera, then the pass stack (which takes the camera's view at construction).
-   */
+  /** The presentation over a mounted level — once per level, on its first activation. */
   activate(level) {
     ColonyView._camera(level);
     ColonyView._renderer(level);
   },
 
-  /**
-   * RenderGrass clump defs for a material table: per material, its MATERIALS clump (one row,
-   * the profile's `clumpTint` overriding its own) plus its clutter rows, plus the profile's
-   * `clutter` extras for that material — each a { id (the TileType threshold), sprite, min, max,
-   * chance, scaleMin, scaleMax, tint, edge, flat } row the pass scatters.
-   */
+  /** Grass clump defs for a material table; the biome profile's tint and extras override. */
   _clumpDefs(mats, profile) {
     const tintHex = profile !== undefined ? profile.clumpTint : undefined;
     const extra = profile !== undefined ? profile.clutter : undefined;
@@ -86,9 +70,8 @@ globalThis.ColonyView = {
   },
 
   /**
-   * A terrain pass's `wave` option for a contentBiomes material id: its crest tone as 0..1
-   * floats over the weather's sim clock (the crests freeze on pause with the rain), or
-   * undefined for still ground (and for a saved row predating material ids).
+   * A terrain pass's `wave` option for a material id, on the weather's sim clock so the crests
+   * freeze on pause; undefined for still ground.
    */
   _wave(materialId) {
     const def =
@@ -104,30 +87,27 @@ globalThis.ColonyView = {
   },
 
   /**
-   * Assemble the renderer pass stack (ground → tiles → shadows → entities → debug →
-   * sky overlay → lighting).
+   * The renderer pass stack.
    *
-   * The GROUND is the terrain layer either way — the difference is only how many passes read it. A
-   * generated map's biome materials stack as one dual-grid pass per material, lowest first, each
-   * taking the cells whose TileType id reaches its threshold: an upper material's transparent
-   * corners reveal the one below, which is the A-over-B transition the sets are drawn for. Because
-   * the stack is cumulative, `skipAbove` drops the quads the next material covers whole — without it
-   * every material would draw its full extent under the ones above.
+   * A generated map's biome materials stack as one dual-grid pass per material, lowest first: an
+   * upper material's transparent corners reveal the one below, the A-over-B transition the sets
+   * are drawn for. `skipAbove` drops the quads the next material covers whole, so no material
+   * draws its full extent under the ones above.
    */
   _renderer(level) {
     const pitch = ColonyView.BB_PITCH;
     const rt = ColonyMap.runtime(level);
-    const camera = CameraSystem.view(level); // the camera entity is built first (activate): every view-dependent pass takes its view here
-    Grassland.clearBuilt(level); // prefab-built ground sheds its grass before the VBOs bake
+    const camera = CameraSystem.view(level);
+    Grassland.clearBuilt(level); // before the VBOs bake
     const renderer = new Renderer();
     rt.renderer = renderer;
-    // Generated ground UNDER everything (the LAYERS loop below skips `terrain` when this ran).
+    // Generated ground under everything.
     const mats = rt.terrainMats;
     if (mats !== undefined)
       for (let i = 0; i < mats.length; i++) {
         const spr = mats[i].sprite;
         if (!sprite_exists(spr)) {
-          // a saved row whose art is gone since (ColonyLevel._terrainTypes)
+          // a saved row whose art is gone since
           Log.warn(`terrain sprite missing: ${mats[i].material}`);
           continue;
         }
@@ -140,14 +120,12 @@ globalThis.ColonyView = {
         rt.terrainPasses.push(pass);
         renderer.insert(pass);
       }
-    // the grass materials' volume layer (RenderGrass) — upright clumps entering the depth
-    // pool over the finished ground, before the entities; the camera's live pitch drives its
-    // height compensation like the billboards'
+    // Upright grass clumps enter the depth pool over the finished ground, before the entities.
     if (mats !== undefined) {
       const profile = contentBiomes.BIOMES[level.entities.get(level.self, ColonyMap.BIOME)];
       const cdefs = ColonyView._clumpDefs(mats, profile);
       if (cdefs.length > 0) {
-        // wind: the meta constant; a save predating it falls back to the biome profile
+        // a save without the wind record falls back to the biome profile
         let wind = level.entities.get(level.self, ColonyMap.WIND);
         if (wind === undefined)
           wind = profile !== undefined && profile.wind !== undefined ? profile.wind : 0;
@@ -159,17 +137,13 @@ globalThis.ColonyView = {
         renderer.insert(rt.grassPass);
       }
     }
-    // Resident tile layers (terrain/floor) as real tilemaps — bottom→top per contentTiles.LAYERS;
-    // the wall layer draws only as the lit RenderWalls pass below (pitched maps — no flat
-    // fallback); on pitched maps the fence layer joins as RenderFence (its flat fallback
-    // keeps the autotile RenderTileMap). VBO-cached + keyed by layer
-    // so a BuildMode edit markDirty's the matching pass. A generated map holds the floor/fence
-    // layers EMPTY until the player builds — an empty layer emits no quads, so they are free there.
+    // Resident tile layers, bottom to top, keyed by layer so an edit dirties the matching pass.
+    // An empty layer emits no quads, so unbuilt floor/fence layers are free.
     const tilePasses = rt.tilePasses;
     for (let i = 0; i < contentTiles.LAYERS.length; i++) {
       const cfg = contentTiles.LAYERS[i];
-      if (cfg.key === "wall") continue; // RenderWalls (lit boxes) below — no flat fallback
-      if (cfg.key === "fence" && pitch > 0) continue; // RenderFence (post-and-rail boxes) below
+      if (cfg.key === "wall") continue; // lit boxes below; no flat fallback
+      if (cfg.key === "fence" && pitch > 0) continue; // lit boxes below
       if (cfg.key === "terrain" && mats !== undefined) continue; // the material stack above
       const pass = new RenderTileMap(
         rt[cfg.key + "Layer"],
@@ -183,8 +157,7 @@ globalThis.ColonyView = {
       tilePasses[cfg.key] = pass;
       renderer.insert(pass);
     }
-    // the sprite-free cost fill stays as an inspection overlay, inserted off; culled to the
-    // camera view like the grid lines (essential on a large generated map)
+    // inspection overlays, off until toggled; camera-culled for large maps
     const costPass = new RenderDebugTileMap(level.grid, {
       cost: true,
       tiles: false,
@@ -193,12 +166,11 @@ globalThis.ColonyView = {
     });
     costPass.enabled = false;
     renderer.insert(costPass);
-    const gridPass = new RenderGrid(level.grid, { camera: camera }); // cell boundary lines
-    gridPass.enabled = false; // off in normal play
+    const gridPass = new RenderGrid(level.grid, { camera: camera });
+    gridPass.enabled = false;
     renderer.insert(gridPass);
-    // Foot shadows UNDER the entities (runtime ellipse per body, not baked into the sprites).
-    // A body lying FLAT casts none: a corpse (Interaction "corpse" — ColonyCombat._toCorpse; NPCs
-    // carry no Health, so Health can't be the living test) or a downed companion (Downed).
+    // Foot shadows under the entities. A body lying flat casts none; NPCs carry no Health, so a
+    // corpse is known by its interaction kind.
     renderer.insert(
       new RenderEntityShadow({
         filter: (entities, id) => {
@@ -208,17 +180,14 @@ globalThis.ColonyView = {
         },
       }),
     );
-    // Deep-furniture meshes (VOLUME category of the projection contract — see RenderBillboard):
-    // real depth-writing geometry, so it shares the billboard depth pool. Pitched maps only —
-    // a flat map has no depth-writing entity pass to sort against. Sun + point lights injected
-    // like RenderLighting's ambient (the pass is Core; WorldClock and the Light token are not);
-    // the camera is the nearest-point-light selection center. seed = entity id keeps the mesh
-    // flicker in phase with RenderLighting's glow pools.
+    // Deep-furniture meshes share the depth pool, so pitched maps only — a flat map has no
+    // depth-writing entity pass to sort against. Lights are injected because the pass is Core;
+    // seed = entity id keeps the mesh flicker in phase with the glow pools.
     let meshPass;
     if (pitch > 0) {
       meshPass = new RenderMesh({
         sun: () => WorldClock.sunDir(),
-        chroma: () => ColonyView.chroma(), // the atmosphere dial (hour × season × sky × setting)
+        chroma: () => ColonyView.chroma(),
         pointLights: (entities) => {
           const out = [];
           entities.forEach([Light, Position], (id, lt, p) => {
@@ -237,24 +206,16 @@ globalThis.ColonyView = {
         camera: camera,
       });
       renderer.insert(meshPass);
-      // GROUND joins the one lit shader: the terrain material stack + every resident tile pass
-      // read this pass's light gather (up normal — flat ground). Assigned post-construction
-      // because the ground passes are built above, before the mesh pass exists; the wall
-      // passes below take it at construction. Flat maps (pitch 0) stay unlit.
+      // The ground shares this pass's light gather; assigned late because the ground passes
+      // exist before it. Flat maps stay unlit.
       for (let i = 0; i < rt.terrainPasses.length; i++)
         rt.terrainPasses[i].lights = meshPass;
       if (rt.grassPass !== undefined) rt.grassPass.lights = meshPass;
       const tileKeys = Object.keys(tilePasses);
       for (let i = 0; i < tileKeys.length; i++)
         tilePasses[tileKeys[i]].lights = meshPass;
-      // WALLS category (art projection contract): the resident wall layer as lit boxes
-      // (top + exposed south faces) in the same depth pool, sharing the mesh pass's
-      // sun + culled point lights. Keyed into tilePasses so BuildMode's edit
-      // markDirty reaches it.
-      // ONE pass covers every wall on the map — the generator's and the player's both paint the
-      // same layer. PER-CELL MATERIALS from the wall cfg (near-white face texture × tint per
-      // material, bucketed by TileType id — see RenderWalls); materials[0] (brick) doubles as the
-      // default bucket for generated walls.
+      // One lit-box pass covers every wall on the map, keyed into tilePasses so edits dirty it.
+      // The first material doubles as the default bucket for generated walls.
       const wallCfg = contentTiles.get("wall");
       const wallMats = [];
       for (let i = 0; i < wallCfg.materials.length; i++) {
@@ -274,32 +235,25 @@ globalThis.ColonyView = {
         materials: wallMats,
       });
       renderer.insert(tilePasses.wall);
-      // the fence layer as lit post-and-rail boxes in the same depth pool — its occupancy read
-      // is the autotiling (RenderFence); the flat blob4 config stays for the editor
+      // the flat fence config stays for the editor
       tilePasses.fence = new RenderFence(level.grid, rt.fenceLayer, {
         color: Color.parse(contentTiles.get("fence").color),
         lights: meshPass,
       });
       renderer.insert(tilePasses.fence);
     }
-    // Entities via the production sprite pass (per-entity data — name/facing/animator state —
-    // is inspected with entities.dump(), not by world-space label passes).
-    // Pitched maps hand the billboard pass the mesh pass as its light source (sprite sun
-    // response: sprites dim/warm with the sun + catch torchlight like the mesh faces) and the
-    // camera, whose live pitch drives its height compensation (the STANDING category).
+    // Pitched maps light the sprites like the mesh faces.
     renderer.insert(
       pitch > 0
         ? new RenderBillboard({ lights: meshPass, camera: camera })
         : new RenderEntity(),
     );
-    // lime bbox outlines — the debugBBox setting is the toggle (sceneColony.draw syncs it live)
     rt.bboxPass = new RenderDebugEntity();
     rt.bboxPass.enabled = Settings.get("debugBBox");
     renderer.insert(rt.bboxPass);
-    const paths = new RenderDebugPath(level.grid); // enemy A* paths, off until toggled
+    const paths = new RenderDebugPath(level.grid);
     paths.enabled = false;
     renderer.insert(paths);
-    // entity "active range" rings (turret fire / enemy aggro/give-up/attack), off until toggled
     const ranges = new RenderDebugRange({
       ranges: [
         {
@@ -321,15 +275,13 @@ globalThis.ColonyView = {
       ],
     });
     renderer.insert(ranges);
-    // The sky overlay just under the day/night tint, so night darkens the rain: cloud shadows
-    // under the weather (tint + rain/snow), both layers of one RenderOverlay that is cut out over
-    // every room (Rooms.rects, the boxes a wall tall) — no rain, tint or cloud on a floor under a
-    // roof. Skipped indoors (meta.indoor) — no open sky inside a cave.
+    // The sky overlay sits under the day/night tint so night darkens the rain, and is cut out
+    // over every room — no weather under a roof. No open sky indoors.
     if (level.entities.get(level.self, ColonyMap.INDOOR) !== true) {
       const clouds = new RenderCloudShadow({ camera: camera });
-      clouds.enabled = false; // the flat look: no noise field drifting over the ground
+      clouds.enabled = false; // the flat look
       const weather = new RenderWeather({ camera: camera });
-      const wall = tilePasses.wall; // RenderWalls on a pitched map (its height); flat: absent
+      const wall = tilePasses.wall; // absent on a flat map
       const roofH =
         wall !== undefined && wall.height !== undefined ? wall.height : 0;
       const rooms = RoomSystem.rooms(level);
@@ -342,34 +294,27 @@ globalThis.ColonyView = {
         }),
       );
     }
-    // Lighting LAST — a per-frame light map composited over everything. Day/night is its ambient
-    // term ("lighting with no lights"); Light entities + a night vignette layer on top.
+    // Lighting last, composited over everything; day/night is its ambient term.
     renderer.insert(
       new RenderLighting({
         ambient: () => WorldClock.tint(),
-        vignette: 0, // the flat look: night is one even multiply, no corner gradient
+        vignette: 0, // the flat look: night is one even multiply
         camera: camera,
       }),
     );
   },
 
   /**
-   * The level's camera entity under the follow policy; the passes take its view at construction
-   * (_renderer). A restored save already holds the entity (the view it was left at), a
-   * fresh build gets one at the spawn; the policy is minted either way — its tuning is this
-   * engine's, not the save's — seeded so the zoom resumes where it was.
-   * 32px-cell world: base zoom 2 for the pitched 2.5D framing (flat fallback 1) and the wheel
-   * snaps through integer stops — a whole number of screen px per world px keeps every texel
-   * the same size across the screen (a fractional zoom draws them 1 px and 2 px wide by turns).
-   * The pitch still foreshortens rows by cos(pitch); only the horizontal scale is exact.
+   * The level's camera entity under the follow policy. A restored save keeps its entity; the
+   * policy is minted either way — its tuning is this engine's, not the save's — seeded so the
+   * zoom resumes where it was. Zoom snaps through integer stops so every texel is the same size
+   * on screen; only the horizontal scale is exact under pitch.
    */
   _camera(level) {
     const pitch = ColonyView.BB_PITCH;
     const baseZoom = pitch > 0 ? 2 : 1;
     const entities = level.entities;
-    // Cap zoom-OUT to the world: viewCap = max view WIDTH (world px); the policy derives its live
-    // zoom floor from it + the current surface each frame. Horizontal is the binding axis on a
-    // landscape surface.
+    // Cap zoom-out to the world's width, the binding axis on a landscape surface.
     const viewCap = level.grid.cols * level.grid.cellWidth;
     let id = entities.first(Camera);
     if (id === -1) {
@@ -377,9 +322,8 @@ globalThis.ColonyView = {
       id = Cameras.create(entities, {
         x: sp.x,
         y: sp.y,
-        pitch: (pitch * Math.PI) / 180, // frame-0 seed; the curve overwrites it every update
-        // ortho eye distance: the 100 default near-clips close ground at steep pitch
-        // (a black band along the screen bottom); image-identical otherwise under ortho
+        pitch: (pitch * Math.PI) / 180, // frame-0 seed; the curve overwrites it
+        // the default eye distance near-clips close ground at steep pitch
         dist: 2000,
         zoom: baseZoom,
       });
@@ -391,18 +335,16 @@ globalThis.ColonyView = {
       Cameras.follow({
         lerp: 0.15,
         pitch: pitch,
-        // pitch-by-zoom (upright-sprite camera) — see ColonyView.PITCH_CURVE
         pitchLo: curve.pitchLo,
         pitchHi: curve.pitchHi,
         zoomLo: curve.zoomLo,
         zoomHi: curve.zoomHi,
-        zoom: entities.require(id, Camera).zoom, // the target resumes at the persisted zoom
+        zoom: entities.require(id, Camera).zoom, // resume at the persisted zoom
         zoomHome: baseZoom,
-        viewCap: viewCap, // live zoom-out cap: view width ≤ this (no dark void past the map)
+        viewCap: viewCap,
         zoomMax: 3, // one integer stop of zoom-in headroom
         zoomSteps: [0.5, 1, 2, 3],
-        // Edge-clamp the look-at to the finite world so the pitched view never shows past a map
-        // edge. gridToWorld anchors cell 0 at world (0,0).
+        // the pitched view never shows past a map edge
         bounds: {
           x1: 0,
           y1: 0,

@@ -1,14 +1,13 @@
-// Applies quest/event rewards (items only — no XP; power comes from equipment and consumables).
-// Free function over the scene; the scene owns entities/playerId, window (dirty on a bag change), and the report seam.
+// Applies quest and event rewards: items only, no XP, since power comes from equipment and
+// consumables.
 globalThis.Progression = {
-  /** add reward items to the player's bag; no-op if reward is undefined */
   applyReward(scene, reward) {
     if (reward === undefined || reward.items === undefined) return;
     const inv = scene.level.entities.get(scene.playerId, Inventory);
     for (let i = 0; i < reward.items.length; i++) {
       const it = reward.items[i];
       Bag.add(inv, it.itemId, it.qty);
-      // through the seam, so reward items count toward the collect rules like any other pickup
+      // reward items count toward the collect rules like any other pickup
       scene.track("collect", it.itemId, it.qty);
     }
     scene.window.dirty = true;

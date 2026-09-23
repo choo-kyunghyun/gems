@@ -1,22 +1,19 @@
-// In-game world clock — a global time-of-day + day counter every time-aware feature reads. Logic
-// over ONE world record (World.self under KEY — { hour, day }), advanced once per frame by
-// Time.delta (sim time); persists across map changes and rides the save with the world's records.
+// The in-game clock: the time of day and day counter every time-aware feature reads. One world
+// record, advanced on sim time; it persists across map changes and rides the save.
 globalThis.WorldClock = {
-  KEY: "clock", // its token on the world's own entity — a data key (a save holds it)
+  KEY: "clock", // the record's key on the world entity; a save holds it
   dayLength: 240, // real seconds for one full in-game day (at Time.scale 1)
   startHour: 8, // morning when a fresh world starts
   daysPerSeason: 7, // in-game days per season; the four-season "year" is 4× this
-  // four seasons in cycle order; a literal (an initializer can't self-reference). Season is
-  // a pure derivation of `day`, like phase() of hour.
+  // in cycle order; a literal, as an initializer can't self-reference
   _SEASONS: [
     { id: "spring", name: "SEASON_SPRING" },
     { id: "summer", name: "SEASON_SUMMER" },
     { id: "autumn", name: "SEASON_AUTUMN" },
     { id: "winter", name: "SEASON_WINTER" },
   ],
-  // Hand-authored day/night overlay keyframes { h, c tint, a alpha }, sorted by hour and wrapping
-  // (h:0 == h:24). alpha 0 in full daylight (08:00–17:00) so the pass draws nothing then. A literal
-  // (an initializer can't self-reference).
+  // Day/night overlay keyframes { h, c tint, a alpha }, sorted by hour and wrapping (h:0 == h:24).
+  // Alpha 0 in full daylight, so the overlay draws nothing then.
   _KF: [
     { h: 0, c: "#0b1133", a: 0.6 }, // midnight — deep blue
     { h: 5, c: "#0b1133", a: 0.55 }, // late night
@@ -37,8 +34,8 @@ globalThis.WorldClock = {
   },
 
   /**
-   * advance by `dt` (Time.delta), rolling the day at each midnight. `while` not an empty-for — an
-   * empty for-init crashes the GMRT compiler, and a big hitch could cross more than one midnight.
+   * Advance by `dt` sim seconds, rolling the day at each midnight; a big hitch can cross more
+   * than one. BUG: `while`, not an empty-init `for` (docs/GMRT.md #15566).
    */
   update(dt) {
     const c = WorldClock.state();
@@ -50,7 +47,7 @@ globalThis.WorldClock = {
   },
 
   /**
-   * absolute in-game hours since day 1, 00:00 — a monotonic timeline for scheduling (WorldEvents).
+   * Absolute in-game hours since day 1, 00:00 — a monotonic timeline for scheduling.
    */
   absHours() {
     const c = WorldClock.state();
@@ -76,7 +73,7 @@ globalThis.WorldClock = {
     return WorldClock.seasonAt(WorldClock.absHours());
   },
 
-  /** the season of an absolute in-game hour (absHours' timeline) — season() of any day, not just today */
+  /** The season of an absolute in-game hour — season() of any day, not just today. */
   seasonAt(hours) {
     const day = Math.floor(hours / 24) + 1;
     const i = Math.floor((day - 1) / WorldClock.daysPerSeason) % 4;
@@ -88,7 +85,7 @@ globalThis.WorldClock = {
   },
 
   /**
-   * Directional sun for mesh lighting (RenderMesh's injected `sun` provider): a flat
+   * Directional sun for mesh lighting: a flat
    * { x, y, z, strength, r, g, b } — unit vector TOWARD the sun (up = -z), strength 0 at
    * night (meshes fall to ambient + point lights), color warmed toward dawn/dusk. The sun
    * rises east (+x), sets west (-x), with a constant southward lean so the camera-side
@@ -118,10 +115,9 @@ globalThis.WorldClock = {
     };
   },
 
-  // Hand-authored albedo CHROMA keyframes { h, k } (shMeshlit's u_chroma through the scene's
-  // provider), sorted by hour and wrapping like _KF: a dusty noon flattens the world's colour
-  // most, the low sun at dawn and dusk lets it back, night sits between (the blue multiply
-  // owns the night look). A literal (an initializer can't self-reference).
+  // Albedo chroma keyframes { h, k }, sorted by hour and wrapping like _KF: a dusty noon flattens
+  // the world's colour most, the low sun at dawn and dusk lets it back, night sits between (the
+  // blue multiply owns the night look).
   _CHROMA: [
     { h: 0, k: 0.8 },
     { h: 5, k: 0.8 },
@@ -136,9 +132,8 @@ globalThis.WorldClock = {
   _CHROMA_SEASON: { spring: 0, summer: 0.05, autumn: -0.05, winter: -0.1 },
 
   /**
-   * world chroma 0..1 for the current hour and season — _CHROMA lerped between bracketing
-   * keyframes, plus the season's offset, clamped. The SKY's share (weather) is the scene's to
-   * multiply in (Weather is not Core's to read).
+   * World chroma 0..1 for the current hour and season, clamped. The weather's share is the
+   * caller's to multiply in.
    */
   chroma() {
     const kf = WorldClock._CHROMA;
@@ -153,8 +148,8 @@ globalThis.WorldClock = {
   },
 
   /**
-   * day/night overlay { color, alpha } for the current hour, lerped between bracketing keyframes.
-   * Color.parse/merge from a method is fine — a field initializer would be load-order-sensitive.
+   * Day/night overlay { color, alpha } for the current hour. Color.parse/merge from a method is
+   * fine — a field initializer would be load-order-sensitive.
    */
   tint() {
     const kf = WorldClock._KF;

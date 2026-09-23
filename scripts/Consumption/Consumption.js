@@ -1,18 +1,14 @@
-// Use one unit of a Consumable from an entity's Inventory, applying its instant effect.
+// Uses one unit of a Consumable from an entity's Inventory, applying its instant effect.
 globalThis.Consumption = {
   /**
-   * Injected attribute-grant policy (a *_shard). Keeps this module off the stat model — like
-   * Combat.mitigate, sceneColony.create wires it. Default no-op returns false (a shard
-   * does nothing, and use() won't waste it, until wired). Returns true if the attribute changed.
+   * Injected attribute-grant policy, keeping this module off the stat model. Returns true if the
+   * attribute changed; until wired it changes nothing, so use() won't waste the item.
    */
   grantAttr(entities, id, attr, amount) {
     return false;
   },
 
-  /**
-   * Use one unit of itemId from entity `id`. Fails if not consumable, not owned, or the effect would
-   * do nothing now (e.g. healing at full HP — no waste).
-   */
+  /** Refuses, rather than waste the item, when its effect would do nothing now. */
   use(entities, id, itemId) {
     const item = Item.get(itemId);
     if (item === undefined) return false;
@@ -22,17 +18,14 @@ globalThis.Consumption = {
     const inv = entities.require(id, Inventory);
     if (!Bag.has(inv, itemId, 1)) return false;
 
-    if (!Consumption._apply(entities, id, con)) return false; // nothing to do — don't waste it
+    if (!Consumption._apply(entities, id, con)) return false;
     Bag.remove(inv, itemId, 1);
-    // leftover container (an empty can) — best-effort: a full bag just loses the trash
+    // a leftover container is best-effort: a full bag just loses the trash.
     if (con.yields !== "") Bag.add(inv, con.yields, 1);
     return true;
   },
 
-  /**
-   * Apply the consumable's effects. Returns true if anything changed (so use() can refuse a no-op:
-   * a potion at full HP does nothing and IS refused; a shard always changes the attribute).
-   */
+  /** Returns true if anything changed. */
   _apply(entities, id, con) {
     let did = false;
     if (con.heal > 0) {
@@ -52,8 +45,7 @@ globalThis.Consumption = {
       Consumption.grantAttr(entities, id, con.attr, con.amount)
     )
       did = true;
-    // Status grant via StatusSystem. A status-only consumable still counts as "did
-    // something". statusDuration 0 → the def's own duration.
+    // a status always counts as a change; statusDuration 0 keeps the def's own duration.
     if (con.status !== "") {
       Effects.apply(
         entities,
@@ -63,8 +55,6 @@ globalThis.Consumption = {
       );
       did = true;
     }
-    // need restores (drink/eat). restore() returns false when the need is already satisfied, so a
-    // no-op drink/food isn't wasted (same rule as healing at full HP).
     for (const token in con.needs)
       if (
         con.needs[token] > 0 &&

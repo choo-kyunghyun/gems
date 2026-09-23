@@ -1,15 +1,11 @@
-// Item-component: marks an Item wearable in an Equipment slot, carrying flat stat deltas applied while
-// worn. Flat class queried by `instanceof` (composition over inheritance).
+// Item component: marks an Item wearable in an equipment slot, carrying flat stat deltas applied
+// while worn.
 globalThis.Equippable = class Equippable {
   /**
-   * d: slot ("weapon" | "armor" | "trinket" | "backpack"), mods (flat stat deltas, e.g. { attack,
-   * defense, maxHp, speed }), worn (what the wearer's doll shows while this is equipped — a sprite
-   * dresses the gear slot's default doll slot (AppearanceSystem.SLOT), an OBJECT claims doll slots
-   * itself, spine slot -> sprite with `null` occupying a slot bare (a one-piece: { shirt: pixX,
-   * pants: null }); absent claims nothing, though a WEAPON then falls back to the item's own
-   * icon — see AppearanceSystem),
-   * seal (0..1 — the share of the open sky's exposure the wearer is spared while it is worn;
-   * ExposureSystem takes the best worn).
+   * d: slot ("weapon" | "armor" | "trinket" | "backpack"), mods (flat stat deltas), worn (what the
+   * wearer's doll shows: a sprite dresses the slot's default doll slot, an object maps doll slot
+   * -> sprite with `null` leaving a slot bare), seal (0..1, the share of open-sky exposure the
+   * wearer is spared).
    */
   constructor(d) {
     this.slot = d.slot;

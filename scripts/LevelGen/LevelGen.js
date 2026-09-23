@@ -1,7 +1,4 @@
-/**
- * Seeded stream: () => [0,1). Walks the hash field diagonally by a per-draw counter, so each
- * (seed, salt) draws an independent sequence with no shared global-stream state.
- */
+/** Seeded stream () => [0,1): an independent sequence per seed, with no shared global state. */
 function _stream(seed) {
   let i = 0;
   return function () {
@@ -12,51 +9,40 @@ function _stream(seed) {
 
 /**
  * @typedef {Object} GenPass
- * @property {number} [salt]  per-pass stream salt — declare a unique int for order-stable streams
- * @property {function(Object): void} apply  builds into the shared context (below)
+ * @property {number} [salt]  per-pass stream salt — a unique int keeps streams order-stable
+ * @property {function(Object): void} apply
  */
 /**
  * @typedef {Object} GenMaterial
- * @property {string} id                the key passes name it by (`ctx.material(id)` → index)
- * @property {number|null} pathCost     TileType convention: null → impassable, meshed into `solid`
- * @property {boolean} [spawnable]      false bans placement without blocking travel (wadeable water)
+ * @property {string} id                the key passes name it by
+ * @property {number|null} pathCost     null → impassable, meshed into `solid`
+ * @property {boolean} [spawnable]      false bans placement without blocking travel
  */
 /**
- * A level generator shaped like a scene's Renderer: an ORDERED LIST OF PASSES over one shared
- * context, each stage reading what the stages before it laid down — ground, then the lakes carved
- * into it, then the fixed structure, walls, stamped structures, and last the entities strewn over
- * whatever is still open. A PASS is `{ salt?, apply(ctx) }` (a GenPass) or a bare `function(ctx)`
- * (wrapped on insert, like Snapshot). The stages themselves are the consumer's — this class ships
- * none: a level kind is a pass list composed over this context (the colony's is Game/Level).
+ * A level generator: an ordered list of passes over one shared context, each reading what the
+ * passes before it laid down. A pass is a GenPass or a bare `function(ctx)`. The passes are the
+ * consumer's — this class ships none.
  *
- * The context (built per generate) is what makes a stage's output the next stage's input:
- *   terrain   Uint8Array of PALETTE indices, one per cell — the ground the level paints; written
- *             by the ground/lakes stages through setMaterial, read back by every later stage
- *             through materialAt / passable / spawnable
- *   mask      the claimed cells (Uint8Array) — the exclusion channel: a stamp claims its footprint,
- *             a wall its cell, and later passes keep off (free/open/claimed), so nothing scatters
- *             into a building and two stamps can't overlap. Suppression follows the CONTENT — a
- *             claim is what a pass drew, not a region fixed up front
- *   out       the accumulating LevelData (grid coords) — tile rects through `rects(layer,
- *             material)`, which merges by channel so the output stays one entry per (layer,
- *             material) however many passes drew into it; a whole translated LevelData through
- *             `merge`; spawns also directly onto out.spawns
- *   seed/rng  this pass's own folded seed and its stream (below)
- * plus gen, cols, rows, palette and material(id) (the id → index lookup; unknown throws).
+ * The context, built per generate, carries one stage's output to the next:
+ *   terrain   palette index per cell — the ground the level paints
+ *   mask      the claimed cells — the exclusion channel: what a pass drew claims its cells, and
+ *             later passes keep off them, so nothing scatters into a building and stamps can't
+ *             overlap
+ *   out       the accumulating LevelData (grid coords), one tiles entry per (layer, material)
+ *             however many passes drew into it
+ *   seed/rng  this pass's own folded seed and its stream
+ * plus gen, cols, rows, palette and the lookups and tests below.
  *
- * Determinism: each pass draws from its OWN stream and noise seed, folded from (seed, pass salt) —
- * so the same seed lays out the same level on every BUILD (a SAVE keeps only the painted grid and
- * the entity state, so the ground and its layout must come back identical), AND inserting/removing
- * a pass never reshuffles the other passes' output. Declare `salt` (any small int, unique per pass)
- * for that stability — an undeclared salt falls back to the pass INDEX, which re-couples streams to
- * list order.
- * GMRT-safe: index loops, class on globalThis; typed arrays are only ever zero-initialised here
- * (a rangeless `fill` is a no-op — docs/GMRT.md).
+ * Determinism: each pass draws from its own stream and noise seed, folded from (seed, salt), so the
+ * same seed lays out the same level on every build — a save keeps only the painted grid — and
+ * inserting or removing a pass never reshuffles the others. An undeclared salt falls back to the
+ * pass index, which re-couples streams to list order.
+ * BUG: typed arrays are only zero-initialised here — no rangeless `fill` (docs/GMRT.md).
  */
 globalThis.LevelGen = class LevelGen {
   /**
-   * opts: palette (required — the ordered GenMaterial table; index = material id = the terrain
-   * layer's painter order), seed?, passes? (GenPass objects or bare functions).
+   * opts: palette (required — the ordered GenMaterial table; its index is the terrain layer's
+   * painter order), seed?, passes?.
    */
   constructor(opts = {}) {
     if (!Array.isArray(opts.palette) || opts.palette.length === 0)
@@ -82,10 +68,9 @@ globalThis.LevelGen = class LevelGen {
   }
 
   /**
-   * Run every pass over a cols×rows level. Returns the accumulated LevelData (grid coords) plus
-   * `terrain`, the palette index per cell (what paint() writes), and `solid`, the impassable
-   * terrain's collide-only rects — the one channel that is NOT LevelData, because it has no tile
-   * layer to remesh from and so outlives a build-mode edit.
+   * Returns the accumulated LevelData (grid coords) plus `terrain`, the palette index per cell,
+   * and `solid`, the impassable terrain's collide-only rects — not LevelData, since there is no
+   * tile layer to remesh them from, so they outlive a tile edit.
    */
   generate(cols, rows) {
     const palette = this.palette;
@@ -100,7 +85,7 @@ globalThis.LevelGen = class LevelGen {
       terrain: new Uint8Array(cols * rows),
       mask: new Uint8Array(cols * rows),
       out: out,
-      /** palette index of a material id; unknown throws (a typo'd band would paint palette[0]) */
+      /** Unknown throws: a typo would otherwise paint palette[0]. */
       material(id) {
         for (let i = 0; i < palette.length; i++)
           if (palette[i].id === id) return i;
@@ -112,16 +97,14 @@ globalThis.LevelGen = class LevelGen {
       setMaterial(x, y, m) {
         this.terrain[y * this.cols + x] = m;
       },
-      /** walkable (pathCost !== null) */
       passable(x, y) {
         return palette[this.terrain[y * this.cols + x]].pathCost !== null;
       },
-      /** placeable: walkable and not flagged spawnable:false */
       spawnable(x, y) {
         const e = palette[this.terrain[y * this.cols + x]];
         return e.pathCost !== null && e.spawnable !== false;
       },
-      /** mark a cell rect claimed (clipped to the level) */
+      /** Clipped to the level. */
       claim(x, y, w, h) {
         const x1 = Math.max(x, 0);
         const y1 = Math.max(y, 0);
@@ -130,7 +113,7 @@ globalThis.LevelGen = class LevelGen {
         for (let cy = y1; cy < y2; cy++)
           for (let cx = x1; cx < x2; cx++) this.mask[cy * this.cols + cx] = 1;
       },
-      /** true if the cell rect lies inside the level and overlaps no claim */
+      /** Inside the level and overlapping no claim. */
       free(x, y, w, h) {
         if (x < 0 || y < 0 || x + w > this.cols || y + h > this.rows)
           return false;
@@ -139,7 +122,7 @@ globalThis.LevelGen = class LevelGen {
             if (this.mask[cy * this.cols + cx] === 1) return false;
         return true;
       },
-      /** true if the cell rect is free AND spawnable throughout — the placement test for a stamp */
+      /** The placement test for a stamp. */
       open(x, y, w, h) {
         if (!this.free(x, y, w, h)) return false;
         for (let cy = y; cy < y + h; cy++)
@@ -147,14 +130,11 @@ globalThis.LevelGen = class LevelGen {
             if (!this.spawnable(cx, cy)) return false;
         return true;
       },
-      /** true if the cell sits inside a claim — the per-cell test for a scatter */
+      /** The per-cell test for a scatter. */
       claimed(x, y) {
         return this.mask[y * this.cols + x] === 1;
       },
-      /**
-       * The rect array of `out`'s (layer, material) tiles entry, created on first use — every pass
-       * drawing the same channel appends to ONE entry.
-       */
+      /** The (layer, material) channel's one rect array, created on first use. */
       rects(layer, material) {
         const tiles = this.out.tiles;
         for (let i = 0; i < tiles.length; i++)
@@ -164,7 +144,7 @@ globalThis.LevelGen = class LevelGen {
         tiles.push(entry);
         return entry.rects;
       },
-      /** append every channel of an already-translated LevelData (a stamped prefab) to `out` */
+      /** Append an already-translated LevelData to `out`. */
       merge(data) {
         const tiles = data.tiles ?? [];
         for (let i = 0; i < tiles.length; i++) {
@@ -178,8 +158,7 @@ globalThis.LevelGen = class LevelGen {
     };
     for (let i = 0; i < this.passes.length; i++) {
       const p = this.passes[i];
-      // independent per-pass seed: salt folded into the level seed (prime-spread so seed+salt
-      // combinations don't alias adjacent level seeds); the stream and the noise both key on it
+      // prime-spread so a salted seed doesn't alias an adjacent level seed
       const salt = p.salt ?? i + 1;
       ctx.seed = this.seed + salt * 101159;
       ctx.rng = _stream(ctx.seed);
@@ -191,9 +170,8 @@ globalThis.LevelGen = class LevelGen {
   }
 
   /**
-   * Paint a generate() result's terrain into a layer — `types` is one TileType per palette entry.
-   * After this the ground IS tile data: LevelGrid.costAt prices nav from it and the render passes
-   * draw it, so nothing samples the generator at play time.
+   * Paint a generate() result's terrain into a layer, one TileType per palette entry. After this
+   * the ground is tile data, so nothing samples the generator at play time.
    */
   paint(out, layer, types) {
     const cols = out.cols;
@@ -203,9 +181,8 @@ globalThis.LevelGen = class LevelGen {
   }
 
   /**
-   * Greedy-mesh the impassable cells into the fewest [gx,gy,w,h] rects, so the caller makes one
-   * collider per rect not a per-cell box (per-cell seams snag sliding bodies). These stay
-   * COLLIDE-ONLY: the material is drawn as ground, so nothing renders them. [] when nothing is.
+   * The impassable cells as the fewest [gx,gy,w,h] rects — per-cell seams snag sliding bodies.
+   * Collide-only: the material is drawn as ground.
    */
   static _solid(palette, terrain, cols, rows) {
     let any = false;

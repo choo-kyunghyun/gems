@@ -1,9 +1,8 @@
-// Shared widget primitives — glyph draws (arrow/check/outline/bar), draw-state save/restore, and the
-// update-time idioms every widget repeats (font/text, pointer latch, contain fit, self-size). One home.
+// Shared widget primitives: glyph draws, draw-state save/restore, and the update-time idioms
+// every widget repeats.
 
 /**
- * filled triangle pointing `dir`, centered at (cx, cy), half-size `h`. draw_triangle_color
- * (renders on GMRT 0.20).
+ * `h` is the half-size.
  */
 globalThis.drawUIArrow = function drawUIArrow(cx, cy, dir, h, col) {
   const b = h * 0.85; // base half-extent, perpendicular to the point
@@ -58,14 +57,12 @@ globalThis.drawUIArrow = function drawUIArrow(cx, cy, dir, h, col) {
       col,
       col,
       false,
-    ); // down
+    );
   }
 };
 
 /**
- * the ◀ ▶ pair chrome shared by UISelect/UIStepper: arrows inset a fixed pad from each
- * end, at the row's vertical center. The caller supplies per-arrow colors (hover vs
- * disabled dimming differs) and draws its own centered label at the returned cy.
+ * The ◀ ▶ pair chrome; the caller draws its own centered label at the returned cy.
  */
 globalThis.drawUIArrowPair = function drawUIArrowPair(pos, leftCol, rightCol) {
   const cy = pos.top + pos.height * 0.5;
@@ -77,9 +74,9 @@ globalThis.drawUIArrowPair = function drawUIArrowPair(pos, leftCol, rightCol) {
 };
 
 /**
- * which half of `element` the pointer is over: -1 left / +1 right / 0 not hovering (or
- * blocked). The ◀/▶ side latch UISelect/UIStepper stash BEFORE running their FSM, so the
- * release-edge onClick commits from the same frame's side.
+ * Which half of `element` the pointer is over: -1 left / +1 right / 0 not hovering or
+ * blocked. Latch it before the click FSM runs, so the release-edge click commits from the
+ * same frame's side.
  */
 globalThis.uiPointerSide = function uiPointerSide(element, block) {
   if (block) return 0;
@@ -90,11 +87,8 @@ globalThis.uiPointerSide = function uiPointerSide(element, block) {
 };
 
 /**
- * fake-thickness outline: `thick` nested 1px roundrect strokes insetting inward (GM
- * roundrect outlines are always 1px). Shared by UIPanel's border, the UISlider thumb ring,
- * UISlots' selection, UIRebind's armed ring, and UINav's focus ring (which passes its
- * outer rect so the inward insets land on the same pixels as its old outward growth).
- * `rad` is constant across insets.
+ * Fake-thickness outline: `thick` nested 1px strokes inset inward, since a GM roundrect
+ * outline is always 1px. `rad` is constant across insets.
  */
 globalThis.drawUIOutline = function drawUIOutline(
   x1,
@@ -121,11 +115,9 @@ globalThis.drawUIOutline = function drawUIOutline(
 };
 
 /**
- * rounded panel + 1px border — the chrome the GUI singletons (Tooltip/Toast/Dialogue) draw
- * around themselves, outside the UIElement tree where a facet* factory can't reach. `style`
- * supplies the four fields the singletons already hold ({ panelColor, panelAlpha, borderColor,
- * borderAlpha? }), so each can pass itself; `a` scales BOTH alphas (Toast's fade). Leaves the
- * draw alpha at the border's — every caller restores its own draw state.
+ * Rounded panel + 1px border for chrome drawn outside the UIElement tree. `style` is
+ * { panelColor, panelAlpha, borderColor, borderAlpha? }; `a` scales both alphas. Leaves the
+ * draw alpha at the border's; the caller restores its own draw state.
  */
 globalThis.drawUIPanel = function drawUIPanel(
   x1,
@@ -163,12 +155,9 @@ globalThis.drawUIPanel = function drawUIPanel(
 };
 
 /**
- * capsule track + fill bar — the shared body of UISlider and UIProgress. Draws the track
- * roundrect, the fill from x1 to `fillTo` (skipped when fillTo <= x1 — pass x1 for an
- * empty bar; the CALLER clamps fillTo so the rounded caps can't invert), and the 1px
- * border when `track.border` is set. `borderOver` picks the stacking: UIProgress strokes
- * the border OVER the fill (frames the whole track); UISlider strokes it under (the fill
- * covers its left span). Styles: track { color, border?, borderColor? }, fill { color }.
+ * Capsule track + fill bar. Pass x1 as `fillTo` for an empty bar; the caller clamps `fillTo`
+ * so the rounded caps can't invert. `borderOver` strokes the border over the fill rather than
+ * under it. Styles: track { color, border?, borderColor? }, fill { color }.
  */
 globalThis.drawUIBar = function drawUIBar(
   x1,
@@ -195,10 +184,8 @@ globalThis.drawUIBar = function drawUIBar(
 };
 
 /**
- * aspect-preserving CONTAIN fit: scale a sw×sh sprite into the (x, y, w, h) box and
- * center it — the draw rect for draw_sprite_stretched_ext. Shared by UIImage
- * (CONTAIN/SCALE_DOWN) and UISlots' cell icons. `maxScale` > 0 additionally caps the
- * scale (SCALE_DOWN); 0 = no cap.
+ * Aspect-preserving contain fit of a sw×sh sprite, centered in the (x, y, w, h) box.
+ * `maxScale` > 0 caps the scale; 0 = no cap.
  */
 globalThis.uiContainRect = function uiContainRect(
   sw,
@@ -217,10 +204,9 @@ globalThis.uiContainRect = function uiContainRect(
 };
 
 /**
- * flexpanel self-size: apply a measured content size to the element's fixed width/height
- * styles, as a no-op when unchanged so re-running it never dirties the tree. THE
- * style-mutation self-size mechanism (measure callbacks are unsupported on GMRT —
- * docs/GMRT.md → Known Incompatibilities); setWidth/setHeight mark the root dirty themselves.
+ * The self-size mechanism: a measured content size set as fixed width/height styles, a no-op
+ * when unchanged so re-running it never dirties the tree. BUG: measure callbacks are
+ * unsupported (docs/GMRT.md).
  */
 globalThis.uiResizeTo = function uiResizeTo(element, width, height) {
   if (
@@ -233,19 +219,16 @@ globalThis.uiResizeTo = function uiResizeTo(element, width, height) {
 };
 
 /**
- * normalize a `string | () => string` label into a live textRef fn — the Core twin of
- * facetTextRef (which delegates here), reachable by Core widgets (UITooltip/UIProgress/
- * UIRebind). Normalize once at construction; don't call per frame (it allocates).
+ * Normalizes a `string | () => string` label into a live fn. Call once at construction, not
+ * per frame: it allocates.
  */
 globalThis.uiTextRef = function uiTextRef(label) {
   return typeof label === "function" ? label : () => label;
 };
 
 /**
- * the { name, value }[] item-list accessors shared by UISelect/UIDropdown — one home for
- * the out-of-range fallbacks (value → undefined, name → ""), so the two widgets' selection
- * contracts can't drift. The list/index stay plain fields on the widgets (consumers read
- * `dropdown.items` directly).
+ * { name, value }[] item-list accessors: one home for the out-of-range fallbacks, so every
+ * list widget's selection contract agrees.
  */
 globalThis.uiItemValue = function uiItemValue(items, i) {
   const item = items[i];
@@ -258,8 +241,7 @@ globalThis.uiItemName = function uiItemName(items, i) {
 };
 
 /**
- * checkmark (two width-lines) centered at (cx, cy), scaled by `s`; `w` overrides the stroke
- * width. draw_line_width_color (renders on GMRT 0.20).
+ * `w` overrides the stroke width.
  */
 globalThis.drawUICheck = function drawUICheck(cx, cy, s, col, w) {
   const lw = w ?? Math.max(2, s * 0.12);
@@ -284,23 +266,16 @@ globalThis.drawUICheck = function drawUICheck(cx, cy, s, col, w) {
 };
 
 /**
- * resolve a widget font option at DRAW time: an I18n font KEY (string) resolves live
- * (a cached handle dangles after a locale reload — I18n.load deletes the old handles);
- * a raw handle (or -1 = inherit) passes through. Every font-taking widget routes through
- * this, so the Facet kit convention of passing key strings works uniformly. NEVER cache the
- * handle at construction: besides the dangle, I18n.font falls back to draw_get_font() for an
- * undeclared key, so a construction-time resolve can freeze whatever font happened to be set.
- * (World-space render passes are the deliberate exception — they take a handle and rebuild on
- * map reload, not on a locale switch.)
+ * Resolves a widget font option at draw time: a font key resolves live, a raw handle (or
+ * -1 = inherit) passes through. Never cache the handle at construction: a locale reload
+ * deletes the old handles, and an undeclared key resolves to whatever font is current.
  */
 globalThis.resolveUIFont = function resolveUIFont(f) {
   return typeof f === "string" ? I18n.font(f) : f;
 };
 
 /**
- * capture the draw-state quintet a widget onDraw mutates; pair with uiDrawRestore.
- * Stateless — returns a plain snapshot object — so sequential/nested use can't corrupt
- * a shared slot.
+ * Returns a fresh snapshot rather than filling a shared slot, so nested use can't corrupt it.
  */
 globalThis.uiDrawSave = function uiDrawSave() {
   return {
@@ -312,9 +287,6 @@ globalThis.uiDrawSave = function uiDrawSave() {
   };
 };
 
-/**
- * restore a uiDrawSave snapshot (unconditional — restoring an untouched field is a no-op).
- */
 globalThis.uiDrawRestore = function uiDrawRestore(st) {
   draw_set_font(st.font);
   draw_set_halign(st.halign);

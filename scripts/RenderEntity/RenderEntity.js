@@ -10,9 +10,8 @@ globalThis.RenderEntity = class RenderEntity {
     entities.forEach([Visual, Position], (entity, visual, rp) => {
       const rx = rp.x;
       const ry = rp.y;
-      // an invalid sprite — or an SVG one, which exists but reports 0 frames on GMRT — draws
-      // as the pixMissing placeholder. Stretched over the BBox when present (so a body keeps
-      // its physical extent legible), else at Position.
+      // an invalid or frameless (SVG, docs/GMRT.md) sprite draws as the placeholder, stretched
+      // over the BBox when present so the body keeps its extent legible.
       if (
         !sprite_exists(visual.sprite) ||
         sprite_get_number(visual.sprite) < 1

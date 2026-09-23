@@ -1,14 +1,13 @@
 /**
- * The "just like faction" layer: a settlement carries a SettlementComponent id array in its record
- * (Settlement.components/hasComponent/addComponent), and this registry describes each id. Behavior (a
- * system acting on "settlements that have X") layers on later.
+ * Registry describing the component ids a settlement's record carries.
+ * TODO systems acting on "settlements that have X".
  */
 globalThis.SettlementComponent = {
   register(defs) {
     Registry.register(SettlementComponent, defs, SettlementComponent.make);
   },
 
-  /** { id, name, color } — color a colour int or "#rrggbb" hex. */
+  /** `color` is a colour int or "#rrggbb" hex. */
   make(d) {
     return {
       id: d.id,

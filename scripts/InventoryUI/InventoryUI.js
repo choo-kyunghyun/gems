@@ -1,19 +1,14 @@
 /**
- * Bag page of the scene's Window — the tabbed character window.
+ * Bag page of the tabbed character window.
  *
- * The Items tab is a slot GRID (UISlots) beside a detail pane — icons carry recognition, the pane
- * carries the metadata a table would spread across columns (chest/trade keep their tables).
- * Opened under "bag" with no target — the inventory key toggles it (sceneColony.update), it
- * replaces any station page and a station opened over it replaces it back; Esc is the shell's.
- * State on the page: sel (the selected row model), click (the InvTable.reclick latch), cat (the
- * category filter code), grid / gridEl / view (the UISlots, its element, the filtered row models
- * parallel to its items), and the rebuilt hosts detailHost / equipHost / extraHost / followerHost.
+ * The Items tab is a slot grid beside a detail pane: icons carry recognition, the pane carries
+ * the metadata a table would spread across columns. The page is built once and rebuilt only in
+ * its live data, so sort, filter, scroll and the active tab survive a rebuild.
  */
 globalThis.InventoryUI = {
   /**
-   * Build the page once: the persistent tabbed structure over the shell's card (build-once +
-   * the shell's `enabled` flip is what lets a rebuild keep sort/filter/scroll). `opts` are the
-   * genre's per-rebuild hooks: { equipSlots: [{ slot, labelKey }], extraRows?(scene, host) }.
+   * `opts` are the genre's per-rebuild hooks: { equipSlots: [{ slot, labelKey }],
+   * extraRows?(scene, host) }.
    */
   build(scene, opts) {
     const page = {
@@ -25,9 +20,9 @@ globalThis.InventoryUI = {
         gap: FacetTheme.gapSm,
       }),
       sel: null, // selected row model
-      click: { key: "", time: 0 }, // InvTable.reclick latch (double-click-to-use)
+      click: { key: "", time: 0 }, // double-click-to-use latch
       cat: "", // active category filter code ("" = all)
-      grid: null, // UISlots
+      grid: null,
       gridEl: null,
       view: [], // filtered row models, parallel to the grid's items
       detailHost: null,
@@ -60,14 +55,13 @@ globalThis.InventoryUI = {
           content: InventoryUI._buildQuestsTab(),
         },
         {
-          // eight equal segments: the long label overran its neighbour, so the strip draws the
-          // abbreviation and the full name is its hover tooltip (UITabs.short)
+          // eight equal segments: the full label would overrun its neighbour, so the strip draws
+          // the abbreviation and the full name is its hover tooltip
           label: I18n.textRef("INV_TAB_ACH"),
           short: I18n.textRef("INV_TAB_ACH_ABBR"),
           content: InventoryUI._buildAchievementsTab(),
         },
         {
-          // the BGM dial — the player's tempo knob (RadioUI owns the page; all-live, no rebuild)
           label: I18n.textRef("INV_TAB_RADIO"),
           content: RadioUI.build(scene),
         },
@@ -76,18 +70,17 @@ globalThis.InventoryUI = {
           content: InventoryUI._buildSettingsTab(),
         },
       ],
-      { grow: true }, // fill the card; the Items tab + bag grid grow with it
+      { grow: true },
     );
     page.el.insertChild(tabs);
     return page;
   },
 
-  // Items-tab grid geometry + detail-pane tuning (plain data on the namespace object)
   GRID_COLS: 6,
   GRID_CELL: 64,
   GRID_GAP: 6,
-  DETAIL_WRAP: 520, // wrap width for lore/description text in the detail pane
-  // Equippable.mods stat keys → i18n labels for the detail pane bonus lines
+  DETAIL_WRAP: 520,
+  // equip-bonus stat key -> i18n label
   STAT_KEYS: {
     attack: "STAT_ATK",
     defense: "STAT_DEF",
@@ -96,11 +89,7 @@ globalThis.InventoryUI = {
     maxStamina: "STAT_STA",
   },
 
-  // ── tab pages
-  // Items: usage + category filter + sort, the bag slot GRID (icons; rarity borders, worn/fav
-  // badges) beside a detail pane (name, maker + lore, description, stats), select/action row.
   _buildItemsTab(scene, page) {
-    // fill the tab host so the grid+detail row takes the leftover height
     const tab = new UIElement({
       width: "100%",
       flexGrow: 1,
@@ -117,8 +106,7 @@ globalThis.InventoryUI = {
     });
     const usageCell = new UIElement({ flexGrow: 1, flexBasis: 0 });
     usageCell.insertChild(
-      // read scene.level.entities LIVE (not a captured const): ColonyTravel.go swaps scene.level.entities on a map
-      // change while the window is open, so a captured ref would read the parked old store.
+      // read the store live: a map change swaps it while the window is open
       facetLabel(
         () => {
           const v = scene.level.entities.get(scene.playerId, Inventory);
@@ -146,7 +134,7 @@ globalThis.InventoryUI = {
       { name: I18n.text("INV_CAT_CONSUMABLE"), value: "consumable" },
       { name: I18n.text("INV_CAT_MISC"), value: "misc" },
     ];
-    // fixed-width wrapper — facetSelect is width:100% and would else squish the usage label
+    // fixed width: a full-width select would squish the usage label
     const filterCell = new UIElement({ width: 170, flexShrink: 0 });
     filterCell.insertChild(
       facetSelect(cats, {
@@ -158,7 +146,7 @@ globalThis.InventoryUI = {
       }),
     );
     top.insertChild(filterCell);
-    // tidy the REAL bag order (merge stacks, category → rarer-first); the grid mirrors it
+    // sorts the real bag, not the view; the grid mirrors it
     top.insertChild(
       facetButton(
         I18n.textRef("COMMON_SORT"),
@@ -173,9 +161,8 @@ globalThis.InventoryUI = {
     );
     tab.insertChild(top);
 
-    // grid (left, sized to the bag) + detail pane (right, fills the rest & stretches).
-    // No facetScroll around the grid — a clipped scroll beside a non-clipped sibling is the
-    // GMRT batch-flush trap (see CraftingUI); the grid fits the tall card instead.
+    // BUG: no scroll around the grid: a clipped scroll beside a non-clipped sibling hits the
+    // scissor flush quirk (docs/GMRT.md); the grid fits the tall card instead.
     const content = new UIElement({
       width: "100%",
       flexGrow: 1,
@@ -218,7 +205,6 @@ globalThis.InventoryUI = {
     content.insertChild(detail);
     tab.insertChild(content);
 
-    // selected item name + a context action (Use/Equip/Unequip)
     const action = new UIElement({
       width: "100%",
       height: 32,
@@ -253,9 +239,7 @@ globalThis.InventoryUI = {
     );
     tab.insertChild(action);
 
-    // Hotbar manage strip: click a slot to bind the selected bag item, or clear when none selected.
-    // The number keys 1..N USE the bound item in play (bound by PlayerSystem, dispatched by
-    // sceneColony._useHotbar). Labels read the live Hotbar.
+    // hotbar strip: a slot click binds the selected item, or clears the slot when none is selected
     const hbTitle = new UIElement({ width: "100%", height: 20 });
     hbTitle.insertChild(
       facetLabel(I18n.textRef("INV_HOTBAR"), { color: "warn" }),
@@ -277,9 +261,6 @@ globalThis.InventoryUI = {
     return tab;
   },
 
-  /**
-   * one hotbar manage button: "[n] Name" (or "[n]" when empty), read live
-   */
   _hotbarBtn(scene, page, i) {
     return facetButton(
       () => {
@@ -306,9 +287,6 @@ globalThis.InventoryUI = {
     scene.showHotbar(); // pop the HUD bar so the change is visible
   },
 
-  /**
-   * favorite action-button verb ("Favorite" / "Unfavorite"; "-" when none)
-   */
   _favLabel(scene, page) {
     if (page.sel === null) return I18n.text("INV_NOACTION");
     const fav = scene.level.entities.require(scene.playerId, Favorites);
@@ -324,9 +302,6 @@ globalThis.InventoryUI = {
     scene.window.dirty = true;
   },
 
-  /**
-   * Equipment: worn-slot rows, repopulated per rebuild into this host.
-   */
   _buildEquipTab(page) {
     const tab = new UIElement({ width: "100%", gap: FacetTheme.gapSm });
     const title = new UIElement({ width: "100%", height: 22 });
@@ -342,10 +317,6 @@ globalThis.InventoryUI = {
     return tab;
   },
 
-  /**
-   * Party: companion roster host + a binding-aware recall hint. Roster repopulated per rebuild
-   * (present companions change across maps); per-row text + Dismiss state read the live Follower.
-   */
   _buildFollowerTab(page) {
     const tab = new UIElement({ width: "100%", gap: FacetTheme.gapSm });
     const title = new UIElement({ width: "100%", height: 22 });
@@ -359,7 +330,7 @@ globalThis.InventoryUI = {
     });
     tab.insertChild(page.followerHost);
 
-    // recall hint, binding-aware (reads the follow action's live key, like facetKeyHints)
+    // the hint reads the live binding, so a rebind shows without a rebuild
     tab.insertChild(facetDivider());
     const hint = new UIElement({ width: "100%", height: 20 });
     hint.insertChild(
@@ -373,8 +344,7 @@ globalThis.InventoryUI = {
   },
 
   /**
-   * One card per squad companion, by live membership query (empty notice when none). Called from
-   * rebuild(), not build() — the squad isn't seeded until after the window is built.
+   * Runs per rebuild, not at build: the squad is seeded only after the window is built.
    */
   _buildFollowerRows(scene, host) {
     const squad = scene.level.entities.require(scene.playerId, Squad);
@@ -401,11 +371,10 @@ globalThis.InventoryUI = {
   },
 
   /**
-   * one companion card: name, live status + carry-bonus line, Kick button (leaves the squad
-   * PERMANENTLY, in place — rehire by walking up and talking)
+   * Its dismiss leaves the companion out of the squad permanently, in place; rehiring is by talk.
    */
   _followerRow(scene, fid) {
-    // a well, not a card — the row sits inside the window's card
+    // a well, not a card: the row sits inside the window's card
     const card = facetPanel({
       color: FacetTheme.panelLo,
       rad: FacetTheme.radiusSm,
@@ -433,7 +402,7 @@ globalThis.InventoryUI = {
           if (f === undefined) return "";
           let state;
           if (scene.level.entities.has(fid, Downed))
-            state = I18n.text("FOLLOWER_STATE_DOWN"); // incapacitated, recovering to base
+            state = I18n.text("FOLLOWER_STATE_DOWN");
           else if (f.state === "follow")
             state = I18n.text("FOLLOWER_STATE_FOLLOW");
           else state = I18n.text("FOLLOWER_STATE_WAIT");
@@ -460,8 +429,8 @@ globalThis.InventoryUI = {
           height: 30,
           disabled: () => {
             return (
-              !scene.level.entities.has(fid, Squad) || // already out
-              scene.level.entities.has(fid, Downed) // can't kick while down
+              !scene.level.entities.has(fid, Squad) ||
+              scene.level.entities.has(fid, Downed)
             );
           },
         },
@@ -470,9 +439,6 @@ globalThis.InventoryUI = {
     return card;
   },
 
-  /**
-   * Stats: live character sheet + the genre's extra records (the Tracker's line) host.
-   */
   _buildStatsTab(scene, page) {
     const tab = new UIElement({ width: "100%", gap: FacetTheme.gapSm });
     const statRow = (labelKey, getter) =>
@@ -484,8 +450,7 @@ globalThis.InventoryUI = {
     tab.insertChild(statRow("STAT_DEF", (st) => st.defense));
     tab.insertChild(statRow("STAT_SPD", (st) => Math.round(st.speed)));
 
-    // primary attributes — the inputs the derived stats come from. Data-driven from
-    // StatModel.ATTRS, reading the live Attributes bag, so a *_shard grant shows on next rebuild.
+    // primary attributes: the inputs the derived stats come from
     tab.insertChild(facetDivider());
     tab.insertChild(
       facetLabel(I18n.textRef("INV_ATTRIBUTES"), { color: "warn" }),
@@ -508,9 +473,6 @@ globalThis.InventoryUI = {
     return tab;
   },
 
-  /**
-   * Quests: live tracker bound to the global Tracker (defs come from QuestLog behind it).
-   */
   _buildQuestsTab() {
     const tab = new UIElement({ width: "100%", gap: FacetTheme.gapSm });
     tab.insertChild(
@@ -523,9 +485,8 @@ globalThis.InventoryUI = {
   },
 
   /**
-   * Achievements: one card per registered def. Built ONCE (the set is static after registration,
-   * which precedes the window build); the status label reads Tracker live, so an unlock shows
-   * with no rebuild.
+   * Built once: the achievement set is fixed before the window builds, and each status reads
+   * live, so an unlock shows with no rebuild.
    */
   _buildAchievementsTab() {
     const tab = new UIElement({ width: "100%", gap: FacetTheme.gapSm });
@@ -535,11 +496,8 @@ globalThis.InventoryUI = {
     return tab;
   },
 
-  /**
-   * one achievement card: name + live unlock status on the head row, description under
-   */
   _achievementRow(a) {
-    // a well, not a card — the row sits inside the window's card
+    // a well, not a card: the row sits inside the window's card
     const card = facetPanel({
       color: FacetTheme.panelLo,
       rad: FacetTheme.radiusSm,
@@ -579,8 +537,7 @@ globalThis.InventoryUI = {
   },
 
   /**
-   * Settings: per-column visibility toggles, persisted. The chest page re-applies its columns on
-   * every open (StorageUI), and only one page shows at a time, so a toggle needs no sync here.
+   * Toggles only persist: only one page shows at a time, and each reads the settings on open.
    */
   _buildSettingsTab() {
     const tab = new UIElement({ width: "100%", gap: FacetTheme.gapSm });
@@ -589,8 +546,7 @@ globalThis.InventoryUI = {
       facetLabel(I18n.textRef("INV_SET_COLS"), { color: "warn" }),
     );
     tab.insertChild(title);
-    // UICheckbox.onToggle passes NO argument — flip off the live value, not a `v` arg (which
-    // would be undefined and made the toggles one-way: disable but never re-enable).
+    // the toggle callback gets no argument, so flip the live value
     const toggle = (labelKey, settingKey) =>
       facetCheckbox(
         I18n.textRef(labelKey),
@@ -607,8 +563,7 @@ globalThis.InventoryUI = {
     tab.insertChild(toggle("INV_COL_WT", "invColWeight"));
     tab.insertChild(toggle("INV_COL_VAL", "invColValue"));
 
-    // Units: ambient-temperature display unit. The HUD reads Temperature.display() live, so
-    // persisting updates it next frame — no rebuild.
+    // display settings are read live each frame, so persisting is enough
     tab.insertChild(facetDivider());
     const unitsTitle = new UIElement({ width: "100%", height: 22 });
     unitsTitle.insertChild(
@@ -631,8 +586,6 @@ globalThis.InventoryUI = {
       ),
     );
 
-    // HUD: player-centered radar (RadarArrows, drawn live in sceneColony.draw, reads the setting
-    // each frame) — just flip + persist.
     tab.insertChild(facetDivider());
     const hudTitle = new UIElement({ width: "100%", height: 22 });
     hudTitle.insertChild(
@@ -654,15 +607,12 @@ globalThis.InventoryUI = {
   },
 
   /**
-   * Refresh live data only (so the view/filter/active tab survive): swap the grid's items,
-   * re-map the selection, refresh the detail pane, rebuild equipment + extra + party sections.
-   *   opts: { equipSlots: [{ slot, labelKey }], extraRows?(scene, host) }
+   * Refreshes live data only, so the view, filter and active tab survive. `opts` as for build.
    */
   rebuild(scene, page, opts) {
     InventoryUI._refreshGrid(scene, page);
     InventoryUI._refreshDetail(scene, page);
 
-    // equipment rows: clear + re-add for the new contents
     const eh = page.equipHost;
     facetClear(eh);
     for (let i = 0; i < opts.equipSlots.length; i++)
@@ -674,21 +624,18 @@ globalThis.InventoryUI = {
         ),
       );
 
-    // genre extra rows (the Tracker's records line) into the Stats tab
     const xh = page.extraHost;
     facetClear(xh);
     if (opts.extraRows !== undefined) opts.extraRows(scene, xh);
 
-    // party roster rebuilt here (not live) because present companions change across maps
-    // (a "follow" one travels, a "wait" one is map-local). Per-row state is live off the Follower.
+    // the roster is rebuilt, not live: present companions change across maps
     const fh = page.followerHost;
     facetClear(fh);
     InventoryUI._buildFollowerRows(scene, fh);
   },
 
   /**
-   * Build row models from the live bag. `worn` marks by INSTANCE uid (exact), so with two of the
-   * same equippable only the worn instance lights.
+   * `worn` matches by instance uid, so of two identical equippables only the worn one lights.
    */
   _buildRows(scene) {
     const inv = scene.level.entities.get(scene.playerId, Inventory);
@@ -715,9 +662,7 @@ globalThis.InventoryUI = {
   },
 
   /**
-   * Rebuild the grid view from the live bag: filter row models by category, map to UISlots
-   * items (icon + rarity border + worn/fav badge), pad the unfiltered view with empty cells up
-   * to capacity (the bag's size reads at a glance), re-map the selection, resize the element.
+   * The unfiltered view pads to capacity with empty cells, so the bag's size reads at a glance.
    */
   _refreshGrid(scene, page) {
     const rows = InventoryUI._buildRows(scene);
@@ -725,7 +670,7 @@ globalThis.InventoryUI = {
     const view = [];
     for (let i = 0; i < rows.length; i++) {
       const r = rows[i];
-      // "fav" is a pseudo-category (the favorited flag, not item type); the rest match r.cat
+      // "fav" is a pseudo-category: the favorited flag, not an item type
       if (cat === "" || (cat === "fav" ? r.fav : r.cat === cat)) view.push(r);
     }
     page.view = view;
@@ -739,7 +684,7 @@ globalThis.InventoryUI = {
       items.push({
         sprite: it !== undefined ? it.sprite : -1,
         count: r.qty > 1 ? r.qty : null,
-        borderColor: r.color, // rarity tint
+        borderColor: r.color,
         badge: r.worn ? "E" : r.fav ? "*" : null,
         badgeColor: r.worn ? accent : gold,
       });
@@ -752,7 +697,7 @@ globalThis.InventoryUI = {
     const g = page.grid;
     g.items = items;
 
-    // re-map the selection by uid/itemId (row models are fresh objects each refresh)
+    // re-map the selection by identity: row models are fresh objects each refresh
     let sel = -1;
     if (page.sel !== null) {
       for (let i = 0; i < view.length; i++) {
@@ -765,7 +710,6 @@ globalThis.InventoryUI = {
     }
     g.selected = sel;
 
-    // fit the host element to the item count (flexpanel point mutation — the UIText idiom)
     const rowsN = Math.max(1, Math.ceil(items.length / g.cols));
     uiResizeTo(
       page.gridEl,
@@ -775,8 +719,7 @@ globalThis.InventoryUI = {
   },
 
   /**
-   * Grid click → select the backing row model; a re-click acts on it (InvTable.reclick owns the
-   * gesture). Clicking an empty/padding cell clears the selection.
+   * A re-click acts on the row; an empty cell clears the selection.
    */
   _onGridSelect(scene, page, i) {
     const row = i >= 0 && i < page.view.length ? page.view[i] : null;
@@ -787,7 +730,7 @@ globalThis.InventoryUI = {
       return;
     }
     if (InvTable.reclick(page.click, row, "bag")) {
-      InventoryUI._activate(scene, row); // sets scene.window.dirty → rebuild refreshes grid+detail
+      InventoryUI._activate(scene, row); // dirties the window; its rebuild refreshes the pane
       return;
     }
     page.sel = row;
@@ -795,10 +738,8 @@ globalThis.InventoryUI = {
   },
 
   /**
-   * Rebuild the detail pane for the current selection: icon + name + rarity, maker + lore,
-   * description, the instance's COMPOSED weapon stats (maker ops + attachments included),
-   * ammo ballistics, equip bonuses, installed attachments, qty/weight/value. Rebuilt on
-   * selection change + rebuild() — cheap (a dozen elements), same pattern as CraftingUI.
+   * Rebuilt whole on each selection change: a dozen elements is cheap. Weapon stats are the
+   * instance's composed profile, not the base item's.
    */
   _refreshDetail(scene, page) {
     const host = page.detailHost;
@@ -820,7 +761,6 @@ globalThis.InventoryUI = {
         ? Bag.findByUid(inv, row.uid)
         : undefined;
 
-    // head: icon + name over rarity
     const head = new UIElement({
       width: "100%",
       flexDirection: "row",
@@ -849,7 +789,6 @@ globalThis.InventoryUI = {
     head.insertChild(hcol);
     host.insertChild(head);
 
-    // maker: company name in brand color + its lore line
     const mk = it !== undefined ? Manufacturer.get(it.maker) : undefined;
     if (mk !== undefined) {
       host.insertChild(facetLabel(I18n.textRef(mk.name), { color: mk.color }));
@@ -875,7 +814,6 @@ globalThis.InventoryUI = {
     const statLine = (key, v) =>
       facetLabel(I18n.text(key) + ": " + v, { color: FacetTheme.textMuted });
 
-    // weapon: this INSTANCE's composed profile (maker ops + installed attachments applied)
     const prof =
       inst !== undefined && it !== undefined && it.hasComponent(Weapon)
         ? Loadout.composeWeapon(inst)
@@ -910,7 +848,6 @@ globalThis.InventoryUI = {
       }
     }
 
-    // ammo item: the base ballistics a gun fires
     const ammo = it !== undefined ? it.getComponent(Ammo) : undefined;
     if (ammo !== undefined) {
       host.insertChild(statLine("MOD_MASS", ammo.mass));
@@ -919,7 +856,6 @@ globalThis.InventoryUI = {
       host.insertChild(statLine("MOD_PEN", ammo.penetration));
     }
 
-    // equip stat bonuses (Equippable.mods folded into the sheet while worn)
     const eqp = it !== undefined ? it.getComponent(Equippable) : undefined;
     if (eqp !== undefined && eqp.mods !== undefined) {
       for (const k in eqp.mods) {
@@ -937,7 +873,6 @@ globalThis.InventoryUI = {
       }
     }
 
-    // installed attachments on this instance ("+N" in the name)
     if (inst !== undefined && inst.mods !== undefined) {
       for (const sid in inst.mods) {
         const m = Item.get(inst.mods[sid]);
@@ -970,9 +905,6 @@ globalThis.InventoryUI = {
     );
   },
 
-  /**
-   * same item — InvTable.rowId owns the uid-over-itemId rule
-   */
   _sameRow(a, b) {
     return InvTable.rowId(a) === InvTable.rowId(b);
   },
@@ -982,9 +914,6 @@ globalThis.InventoryUI = {
     InventoryUI.useItem(scene, row.itemId, row.worn, row.uid);
   },
 
-  /**
-   * context action verb for the selected item ("-" when none)
-   */
   _actionLabel(page) {
     if (page.sel === null) return I18n.text("INV_NOACTION");
     const it = Item.get(page.sel.itemId);
@@ -996,8 +925,7 @@ globalThis.InventoryUI = {
   },
 
   /**
-   * One equipment slot: a click-to-unequip button when worn, else a muted label. The slot holds
-   * the equipped INSTANCE uid; resolve it to the live bag slot for the itemId + mods.
+   * An equipment slot holds the worn instance's uid, resolved through the live bag.
    */
   _equipRow(scene, slot, labelKey) {
     const eq = scene.level.entities.require(scene.playerId, Equipment);
@@ -1008,7 +936,7 @@ globalThis.InventoryUI = {
       const itemId = inst !== undefined ? inst.itemId : "";
       const it = Item.get(itemId);
       const base = it !== undefined ? I18n.text(it.name) : itemId;
-      // `mods` is the named-slot MAP { slotId -> attachmentItemId }; count its filled slots for "+N".
+      // `mods` is a map { slotId -> attachmentItemId }
       let modCount = 0;
       if (inst !== undefined && inst.mods !== undefined)
         for (const slotId in inst.mods) modCount++;
@@ -1037,9 +965,9 @@ globalThis.InventoryUI = {
   },
 
   /**
-   * Act on an item: equippables toggle equip/unequip, consumables use one unit. `wasWorn` is the
-   * row's shown state (so with two identical equippables only the shown-equipped row unequips).
-   * `uid` equips that exact instance; without it (the hotbar) equipFirst picks the first owned.
+   * Equippables toggle, consumables use one unit. `wasWorn` is the row's shown state, so of two
+   * identical equippables only the shown-worn one unequips. Without `uid` the first owned
+   * instance equips.
    */
   useItem(scene, itemId, wasWorn, uid) {
     const item = Item.get(itemId);
@@ -1063,7 +991,6 @@ globalThis.InventoryUI = {
       }
     } else if (item.hasComponent(Consumable)) {
       if (Consumption.use(scene.level.entities, scene.playerId, itemId)) {
-        // per-effect cue: food/drink consumption, bandaging a heal, magic for buffs/attr grants
         const c = item.getComponent(Consumable);
         if ((c.thirst ?? 0) > 0 || (c.hunger ?? 0) > 0)
           Audio.play({ sound: sndDrink });

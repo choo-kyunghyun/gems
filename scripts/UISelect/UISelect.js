@@ -16,8 +16,7 @@ globalThis.UISelect = class UISelect {
     this.valign = select.valign ?? fa_middle;
     // -1 = cursor over left arrow, 1 = right, 0 = not hovering.
     this._side = 0;
-    // internal FSM delegate (UITrigger); its onClick fires on release-inside and reads the
-    // _side latched earlier in the same onUpdate.
+    // its onClick reads the _side latched earlier in the same onUpdate
     this._fsm = new UITrigger({
       onClick: () => {
         if (this._side < 0) this.retreat();
@@ -26,7 +25,6 @@ globalThis.UISelect = class UISelect {
     });
   }
 
-  // METHODS not accessors — house style (mirrors UIDropdown.getIndex/getValue/getName).
   getIndex() {
     return this._index;
   }
@@ -41,9 +39,7 @@ globalThis.UISelect = class UISelect {
     return uiItemName(this.items, this._index);
   }
 
-  /**
-   * Step forward one item (wraps).
-   */
+  /** Wraps. */
   advance() {
     if (this.items.length === 0) return this;
     this._index = (this._index + 1) % this.items.length;
@@ -51,9 +47,7 @@ globalThis.UISelect = class UISelect {
     return this;
   }
 
-  /**
-   * Step back one item (wraps).
-   */
+  /** Wraps. */
   retreat() {
     if (this.items.length === 0) return this;
     this._index = (this._index - 1 + this.items.length) % this.items.length;
@@ -61,9 +55,7 @@ globalThis.UISelect = class UISelect {
     return this;
   }
 
-  /**
-   * Select index `i` (clamped).
-   */
+  /** Clamped. */
   setIndex(i) {
     this._index = clamp(i, 0, this.items.length - 1);
     this.onChange(this._index, this.getValue());
@@ -76,8 +68,7 @@ globalThis.UISelect = class UISelect {
   }
 
   onUpdate(element, block) {
-    // latch the arrow side BEFORE the FSM runs — its onClick (fired inside onUpdate on the
-    // release edge) commits by reading this frame's _side.
+    // latched before the trigger runs: its onClick commits by this frame's side
     this._side = uiPointerSide(element, block);
     return this._fsm.onUpdate(element, block);
   }

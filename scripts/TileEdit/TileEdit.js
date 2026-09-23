@@ -1,8 +1,7 @@
 /**
- * There is no nav resync call — a cell write bumps the layer's `edits`, which NavGrid resamples
- * on, and the remeshed colliders reach it through the collider generation PathfindingSystem polls; the debug cost shading
- * computes grid.costAt on demand. Cells store TileType objects (or 0 for empty — Grid.get returns
- * 0, not undefined), so occupancy is a truthy test, never `!== undefined`.
+ * Tile layer edits and their colliders. No nav resync call is needed: a cell write bumps the
+ * layer's `edits` and remeshed colliders move the collider generation, both of which nav polls.
+ * An empty cell reads 0, not undefined, so occupancy is a truthy test, never `!== undefined`.
  */
 globalThis.TileEdit = {
   occupied(layer, gx, gy) {
@@ -18,13 +17,12 @@ globalThis.TileEdit = {
     layer.set(gx, gy, undefined);
   },
 
-  /** A layer's solid cells as the fewest [gx,gy,wCells,hCells] rects (Grid.meshRects). */
+  /** A layer's solid cells as the fewest [gx,gy,wCells,hCells] rects. */
   meshRects(grid, layer) {
-    // Grid.get returns 0 for empty (not undefined) — test truthiness, not !== undefined
     return Grid.meshRects(grid.cols, grid.rows, (x, y) => !!layer.get(x, y));
   },
 
-  /** One kinematic-solid collider per meshRects rectangle; ids pushed onto `out`. */
+  /** One kinematic-solid collider per rect; ids pushed onto `out`. */
   meshSolid(entities, grid, layer, out) {
     Colliders.boxes(
       entities,

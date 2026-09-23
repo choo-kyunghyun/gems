@@ -1,29 +1,25 @@
-// Colony prefabs — the level fragments the generator places. Registered at level create() (NOT
-// top-level — GMRT load-order), before the generator is built (GenAnchor/PrefabStamp resolve
-// them). A def body is a LevelData in footprint-local coords — see Prefab.
-//
-// Two kinds by how they are placed: ANCHORS (untagged — a site names one by id, GenAnchor fixes it
-// once on dry ground near the centre; each carries the site's travel beacon and its `entry`
-// arrival marker) and the TAGGED set PrefabStamp scatters at a biome's density ("overworld" for
-// the open wilds, "cave" for the tube's pockets).
+/**
+ * The colony's prefabs — the level fragments the generator places. Registered on demand, never at
+ * top level (docs/GMRT.md), before the generator is built.
+ *
+ * Two kinds: anchors (untagged — a site names one by id and it is placed once; each carries the
+ * site's travel beacon and its `entry` arrival marker) and the tagged set scattered at a biome's
+ * density.
+ */
 globalThis.contentPrefabs = {
   register() {
     Prefab.register([
       // ---- anchors ----
 
-      // the colony compound — the home site's whole hand-built ground: the Elder's quest post with
-      // the landing beacon and radio, the trader row outside the DEPOT (a closed room around the
-      // stockpile chest and workbench, its door to the south), the QUARTERS (the walled ruin, its
-      // door to the north, two cots and a lantern — the only safe beds on the planet), and the
-      // "reach" quest marker on the ruin walls. Both buildings are rooms (Rooms): a roof over the
-      // air and the cold, warmed by their lanterns. No raider — the site is safe (danger 0).
+      // The home site's hand-built ground. Both buildings are closed rooms, sheltered from the air
+      // and the cold; the quarters hold the only safe beds on the planet. No raider — the site is
+      // safe.
       {
         id: "colony_hub",
         cols: 45,
         rows: 30,
         tiles: [
-          // the compound's LAWNS — the post yard and the quarters' front pad: maintained
-          // ground, so the flat lawn sheet and no grass clumps (contentBiomes `lawn`)
+          // maintained ground: the flat lawn sheet, no grass clumps
           {
             layer: "terrain",
             material: "lawn",
@@ -76,11 +72,9 @@ globalThis.contentPrefabs = {
           { preset: "reach", gx: 17, gy: 2, half: 88 },
           { preset: "radio", gx: 2, gy: 5 },
           { preset: "prop", gx: 2, gy: 3, kind: "travel", label: "Beacon" },
-          // the depot's door (an E-W wall run: walls left and right, so the leaf lies flat) and
-          // lantern
+          // walls left and right, so the leaf lies flat
           { preset: "prop", gx: 12, gy: 12, kind: "door", label: "Door" },
           { preset: "lantern", gx: 14, gy: 11 },
-          // the quarters: door, two cots, lantern
           { preset: "prop", gx: 37, gy: 20, kind: "door", label: "Door" },
           { preset: "prop", gx: 32, gy: 23, kind: "bed", furn: "cot", label: "Cot" },
           { preset: "prop", gx: 35, gy: 23, kind: "bed", furn: "cot", label: "Cot" },
@@ -184,9 +178,8 @@ globalThis.contentPrefabs = {
           },
         ],
       },
-      // a wild site's landing pad: the beacon on a 3×3 tile apron, a Survey Post beside it (the
-      // site is unsettled until the player founds an outpost there — BuildMode.claim), the
-      // arrival a cell below the beacon
+      // a wild site's landing pad; the site is unsettled until the player founds an outpost at
+      // its Survey Post
       {
         id: "landing_pad",
         cols: 3,
@@ -198,7 +191,7 @@ globalThis.contentPrefabs = {
           { preset: "entry", gx: 1, gy: 2 },
         ],
       },
-      // the tube's mouth: the beacon on bare rock, the arrival a cell below
+      // the tube's mouth: the beacon on bare rock
       {
         id: "cave_mouth",
         cols: 3,
@@ -211,8 +204,7 @@ globalThis.contentPrefabs = {
 
       // ---- overworld ----
 
-      // terrain flavor, no enemies — rock mesh entities (same rects the old collide-only
-      // walls covered; the `rock` adapter branch rebuilds the identical solid footprint)
+      // terrain flavor, no enemies
       {
         id: "boulder_cluster",
         tags: ["overworld"],
@@ -226,7 +218,7 @@ globalThis.contentPrefabs = {
           { preset: "rock", gx: 3, gy: 3, w: 1, h: 1 },
         ],
       },
-      // sheltered corner with a raider pack (one tougher)
+      // sheltered corner with a raider pack
       {
         id: "raider_camp",
         tags: ["overworld"],
@@ -281,7 +273,7 @@ globalThis.contentPrefabs = {
 
       // ---- cave ----
 
-      // a raider stash in a tube pocket: the keycard chest behind a walled corner, two guards
+      // a raider stash in a tube pocket: the keycard chest behind a walled corner
       {
         id: "cave_stash",
         tags: ["cave"],

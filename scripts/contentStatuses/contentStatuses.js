@@ -1,8 +1,4 @@
-/**
- * Colony status defs.
- *
- * A DoT poison is symmetric to regen — one def + an applier away if needed.
- */
+/** Colony status defs. */
 globalThis.contentStatuses = {
   register() {
     Status.register([
@@ -11,7 +7,7 @@ globalThis.contentStatuses = {
         name: "STATUS_ENCUMBERED",
         color: "#c79a5b",
         beneficial: false,
-        mult: { speed: 0.5 }, // fallback — EncumbranceSystem overrides per-instance live
+        mult: { speed: 0.5 }, // a fallback: the live factor is set per instance
       },
       {
         id: "regen",
@@ -30,7 +26,7 @@ globalThis.contentStatuses = {
         duration: 12,
         mods: { attack: 3, defense: 2 },
       },
-      // survival debuffs — applied/cleared by need systems at critical threshold
+      // the survival needs' critical debuffs
       {
         id: "dehydrated",
         name: "STATUS_DEHYDRATED",
@@ -54,7 +50,7 @@ globalThis.contentStatuses = {
         beneficial: false,
         mult: { speed: 0.6 },
       },
-      // the environmental needs' critical debuffs (ExposureSystem / ColdSystem)
+      // the environmental needs' critical debuffs
       {
         id: "hypoxic",
         name: "STATUS_HYPOXIC",

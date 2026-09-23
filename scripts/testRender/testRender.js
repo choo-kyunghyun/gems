@@ -1,19 +1,14 @@
-// Core/Render and Scene cases: the camera entity (unproject, the follow policy, the fly
-// controller) and the draw passes (the silhouette, the batch). Every case here references Core
-// only; the case contract is Test's.
+// Core/Render and Scene cases: the camera entity and the draw passes. Every case references Core
+// only.
 
 Test.register(Test.CHECK, [
   {
-    // The camera entity's VIEW: apply derives the frame's basis from the component — the
-    // pitched ortho view the follow policy frames swings up out of the ground plane by the
-    // tilt and backs the eye off `dist` — and the pitched view's PLANE CHOICE over it:
-    // project/unproject invert each other on any world-z plane, and reading one screen point
-    // on a raised plane instead of the ground shifts the answer h·tan(pitch) toward the eye —
-    // the correction that puts a cursor covering a standing body back onto that body's
-    // footprint (View.cursorWorld, sceneColony AIM_H).
+    // The view's basis derives from the component, and project/unproject invert each other on
+    // any world-z plane; a raised plane reads h·tan(pitch) nearer the eye — the correction that
+    // puts a cursor covering a standing body back onto its footprint.
     id: "camera.unproject",
     setup(ctx) {
-      const p = (42 * Math.PI) / 180; // the colony's shallow end (ColonyView.PITCH_CURVE)
+      const p = (42 * Math.PI) / 180;
       ctx.pitch = p;
       ctx.level = new Level({ id: "test", capacity: 4 });
       Cameras.create(ctx.level.entities, {
@@ -22,10 +17,10 @@ Test.register(Test.CHECK, [
         pitch: p,
         dist: 2000,
       });
-      CameraSystem.apply(ctx.level); // unassigned: derives the view, applies nothing
+      CameraSystem.apply(ctx.level); // unassigned, so it derives the view and applies nothing
       ctx.camera = CameraSystem.view(ctx.level);
       ctx.flatLevel = new Level({ id: "flat", capacity: 4 });
-      Cameras.create(ctx.flatLevel.entities); // pitch 0 — top-down
+      Cameras.create(ctx.flatLevel.entities); // top-down
       CameraSystem.apply(ctx.flatLevel);
       ctx.flat = CameraSystem.view(ctx.flatLevel);
     },
@@ -63,15 +58,14 @@ Test.register(Test.CHECK, [
       );
     },
     teardown(ctx) {
-      ctx.level.destroy(); // frees the native view with the cache
+      ctx.level.destroy();
       ctx.flatLevel.destroy();
     },
   },
   {
-    // The follow policy over the camera entity: the look-at eases onto the CameraFocus carrier
-    // (resolved live, never a stored id), pixel-snapped, and clamps so the ground rect never
-    // leaves `bounds` — the tilt stretching the N-S reach the clamp measures against; the pitch
-    // follows the zoom curve. Input reads idle here, so the zoom holds its target.
+    // The follow policy: the look-at eases onto the focus carrier, resolved live, and clamps so
+    // the ground rect never leaves `bounds`; the pitch follows the zoom curve. Input reads idle
+    // here, so the zoom holds its target.
     id: "camera.follow",
     setup(ctx) {
       ctx.level = new Level({ id: "test", capacity: 4 });
@@ -103,12 +97,11 @@ Test.register(Test.CHECK, [
       t.eq(pos.y, 500, "the look-at lands on the focus (lerp 1)");
       t.near(cam.pitch, (50 * Math.PI) / 180, 1e-9, "the pitch reads the zoom curve at zoom 2");
       t.eq(cam.projection, CAMERA_PROJECTION.ORTHO, "the follow policy pins ortho");
-      // the focus walks past the edge: the clamp holds the view inside the world
       const bp = s.get(ctx.body, Position);
       bp.x = -1000;
       bp.y = -1000;
       CameraSystem.update(ctx.level);
-      CameraSystem.apply(ctx.level); // the view record reads the clamped look-at
+      CameraSystem.apply(ctx.level);
       const v = CameraSystem.view(ctx.level);
       const r = v.groundRect();
       t.near(r.x1, 0, 1, "the west edge of the ground rect stops at the world's");
@@ -117,7 +110,6 @@ Test.register(Test.CHECK, [
         pos.y > v.height / 2,
         "the tilt stretches the N-S reach, so the clamp holds the look-at further in",
       );
-      // the focus moves on: resolved live, so a re-minted id is just found again
       s.remove(ctx.body);
       s.flush();
       const again = s.create();
@@ -132,9 +124,8 @@ Test.register(Test.CHECK, [
     },
   },
   {
-    // The fly policy shares the pose with the others: taking over with no input leaves the
-    // look-at where it was (the eye is derived from the same angles both ways), it pins the
-    // perspective projection, and it overrides the sim-clock follow while attached.
+    // The fly policy shares the pose: taking over with no input leaves the look-at where it was,
+    // and it overrides the follow policy while attached.
     id: "camera.fly",
     setup(ctx) {
       ctx.level = new Level({ id: "test", capacity: 4 });
@@ -176,27 +167,24 @@ Test.register(Test.CHECK, [
     },
   },
   {
-    // SILHOUETTE SPACE, both sources: a drawn body's box stands up, so the world cursor that
-    // reaches a given height on it moves with the pitch, while a flat collider's box is the
-    // footprint and answers the same under any view. Plus the frontmost rule a pick arbitrates
-    // overlapping shapes by. pixMissing is the placeholder Core's own render passes bind, so no
-    // Game art is assumed — the case reads the box back and tests the space, not the art.
+    // A drawn body's box stands up, so the cursor reaching a given height on it moves with the
+    // pitch, while a flat collider's box is its footprint under any view; a pick takes the
+    // frontmost. The placeholder sprite keeps Game art out: the case tests the space, not the art.
     id: "render.silhouette",
     setup(ctx) {
       const s = new Table(8);
       ctx.entities = s;
       ctx.body = s.create();
       s.add(ctx.body, Position, { x: 100, y: 100, z: 0 });
-      // only the three fields ofInto reads — the draw scale and the sheet
       s.add(ctx.body, Visual, { sprite: pixMissing, xscale: 2, yscale: 2 });
-      // two flat colliders whose footprints OVERLAP, so one cursor sits on both
+      // overlapping footprints, so one cursor sits on both
       ctx.near = s.create();
       s.add(ctx.near, Position, { x: 300, y: 310 });
       s.add(ctx.near, BBox, { x: -8, y: -8, width: 16, height: 16 });
       ctx.far = s.create();
       s.add(ctx.far, Position, { x: 300, y: 300 });
       s.add(ctx.far, BBox, { x: -8, y: -8, width: 16, height: 16 });
-      ctx.bare = s.create(); // neither sprite nor collider — no shape to see
+      ctx.bare = s.create(); // no shape to see
       s.add(ctx.bare, Position, { x: 500, y: 500 });
     },
     verify(ctx, t) {
@@ -205,8 +193,7 @@ Test.register(Test.CHECK, [
       const box = Silhouette.of(s, ctx.body);
       t.ok(box !== undefined, "a drawn body has a standing box");
       t.ok(box.top > box.bottom && box.right > box.left, "the box is a rect");
-      // the ground cursor that lands at (dx, a) on the silhouette — hit()'s own mapping, run
-      // backwards, which is what pins the two to one space
+      // hit()'s mapping run backwards, which pins the two to one space.
       const at = (dx, a, pitch) => ({
         x: pos.x + dx,
         y: pos.y - a / Math.cos(pitch),
@@ -222,12 +209,10 @@ Test.register(Test.CHECK, [
       t.ok(!hit(at(box.left - 1, midA, p)), "a px left of the box misses");
       t.ok(!hit(at(box.right + 1, midA, p)), "a px right of the box misses");
       t.ok(hit(at(midX, midA, 0), 0), "the mapping inverts at pitch 0 too");
-      // a standing box reaches FURTHER across the ground the steeper the view foreshortens it,
-      // so the cursor one px past its flat reach is inside it under the pitched camera
+      // a foreshortened standing box reaches further across the ground.
       const past = { x: pos.x + midX, y: pos.y - box.bottom + 1 };
       t.ok(!hit(past, 0), "a px past the flat reach misses at pitch 0");
       t.ok(hit(past, p), "the same cursor is inside the box under the pitch");
-      // a flat collider IS its footprint: the same world cursor, any pitch
       const onBox = { x: 300, y: 305 };
       const fpos = s.get(ctx.far, Position);
       t.ok(
@@ -244,7 +229,7 @@ Test.register(Test.CHECK, [
         false,
         "an entity with no shape is never hit",
       );
-      // both footprints hold the cursor; the pick answers the nearer body (larger world y)
+      // the frontmost is the larger world y.
       t.eq(
         Silhouette.pick(s, onBox, p),
         ctx.near,

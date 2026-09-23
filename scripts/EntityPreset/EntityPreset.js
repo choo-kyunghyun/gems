@@ -2,28 +2,24 @@
  * Named entity templates with variant inheritance.
  * @typedef {Object} EntityPresetDef
  * @property {string} id
- * @property {string} [extends]  base preset id, resolved at REGISTER time (base registers first;
- *   unknown base throws). Per-component FIELD merge — this def's fields win, new components add.
- * @property {number} [scale]    DESIGN size factor (default 1; inherited from the base) — the
- *   preset's BASIC factor, scaling BBox + Visual + Mesh. A per-spawn `opts.size` scalar
- *   multiplies on top (the dedicated Alpha/boss knob — see spawn()).
+ * @property {string} [extends]  base preset id, resolved at register time (the base registers
+ *   first; unknown throws). Per-component FIELD merge — this def's fields win.
+ * @property {number} [scale]    design size factor, inherited from the base; scales the collider
+ *   and the look together. A per-spawn `opts.size` multiplies on top.
  * @property {Object<string,Object>} [components]  component token -> data, authored at design
  *   scale 1 in world units; DEEP-copied per spawn so instances never share nested data.
- *   Visual.xscale/yscale are DERIVED (design scale / AssetMeta density), never authored.
- * @property {function} [post]   post(entities, id, ctx) spawn hook for what data can't express
- *   (AI attach, computed colors…); ctx = { x, y, z, scale, opts }. Inherited unless overridden.
- * Any further field is stored as authored and inherited through `extends` the same way — a
- * spawner's own hook lives there (ColonySpawn's `adapt`), never here.
+ *   A look's xscale/yscale are derived, never authored.
+ * @property {function} [post]   post(entities, id, ctx) spawn hook for what data can't express;
+ *   ctx = { x, y, z, scale, opts }. Inherited unless overridden.
+ * Any further field is stored as authored and inherited through `extends` the same way.
  */
 globalThis.EntityPreset = {
-  /** Register defs in order; `extends` flattens against the already-registered base, so a
-   *  chain works top-down. Re-registering an id replaces it. */
+  /** Register defs in order, so a chain works top-down. Re-registering an id replaces it. */
   register(presets) {
     Registry.register(EntityPreset, presets, EntityPreset.make);
   },
 
-  /** The stored def is FLATTENED: `extends` resolves against what is already stored (defs land
-   *  in list order, so a base registered earlier in the same call is visible here). */
+  /** The stored def is flattened against the already-stored base. */
   make(def) {
     if (def.extends === undefined) return def;
     const base = EntityPreset.get(def.extends);
@@ -37,13 +33,10 @@ globalThis.EntityPreset = {
   },
 
   /**
-   * Spawn a preset at (x, y, z). Throws for unknown ids.
-   * `opts`: { size?, components? } — `size` is the per-spawn SCALAR for special entities
-   * (bosses/alpha mobs), multiplying the def's basic `scale` factor; it bakes BBox + Visual +
-   * Mesh uniformly, so a sized entity's look never diverges from its collider. `components`
-   * are per-spawn field overrides merged like `extends` (e.g. { Health: { hp: 12 } }). Any
-   * further field rides through untouched to `post` as `ctx.opts` (a spawner's grid, its
-   * descriptor). Returns the entity id.
+   * Spawn a preset at (x, y, z); throws for an unknown id. `opts.size` multiplies the def's
+   * `scale` uniformly over collider and look, so they never diverge; `opts.components` are
+   * per-spawn field overrides merged like `extends`. Any further field reaches `post` untouched
+   * as `ctx.opts`.
    */
   spawn(entities, presetId, x, y, z = 0, opts = {}) {
     const preset = EntityPreset.get(presetId);
@@ -84,9 +77,8 @@ globalThis.EntityPreset = {
   },
 
   /**
-   * Field-level component merge: `over`'s components merge INTO `base`'s per field (over wins),
-   * unseen components add. Returns fresh per-component objects; nested values may still be
-   * shared with the defs — fine, spawn deep-clones per instance.
+   * Field-level merge, `over` winning. Nested values may still be shared with the defs — spawn
+   * deep-clones per instance.
    */
   _merge(base, over) {
     const out = {};
@@ -101,10 +93,8 @@ globalThis.EntityPreset = {
   },
 
   /**
-   * GMRT-safe deep copy. Recurses arrays and PLAIN data objects only: a GM asset ref (sprite
-   * handle) also reports typeof "object", but its constructor !== Object (Object.keys(ref) is 0
-   * without throwing, so recursing would silently turn it into {}) —
-   * refs, scalars, and functions pass through BY REFERENCE.
+   * Deep copy of arrays and PLAIN objects only: an asset ref is also typeof "object" but has no
+   * enumerable keys, so recursing would silently turn it into {} — it passes by reference.
    */
   _clone(v) {
     if (Array.isArray(v)) {
@@ -121,9 +111,8 @@ globalThis.EntityPreset = {
   },
 
   /**
-   * Normalize an authored Visual (sprite/color + optional overrides) into the full runtime
-   * shape and bake the size split: `scale` = design size (also on the BBox), xscale/yscale =
-   * scale / density (see AssetMeta — art resolution never touches the BBox).
+   * Fill an authored Visual's defaults and bake the size split: `scale` is the design size,
+   * xscale/yscale fit the art to it, so art resolution never touches the collider.
    */
   _bakeVisual(vis, k) {
     vis.visible = vis.visible ?? true;
@@ -140,10 +129,8 @@ globalThis.EntityPreset = {
   },
 
   /**
-   * Normalize an authored Skeleton (sprite + anim + optional overrides) and bake the same size
-   * split a Visual gets. No strip fields — the puppet keeps the clock (SkeletonSystem), and
-   * `speed` 1 is authored time. `anim` has no default — Core knows no rig's set names — so the
-   * preset authors it per rig.
+   * Fill an authored Skeleton's defaults and bake the Visual's size split. `anim` has no
+   * default — Core knows no rig's animation names — so a missing one throws.
    */
   _bakeSkeleton(sk, k) {
     if (sk.anim === undefined)
@@ -160,9 +147,6 @@ globalThis.EntityPreset = {
     sk.yscale = f;
   },
 
-  /**
-   * Design scale on the collision footprint (authored world units at scale 1).
-   */
   _bakeBox(box, k) {
     box.x *= k;
     box.y *= k;
@@ -171,10 +155,8 @@ globalThis.EntityPreset = {
   },
 
   /**
-   * Size a mesh look with the same factor as its BBox, so a sized (boss/alpha) mesh entity's
-   * model never diverges from its collider. The authored Mesh fields stay the preset's
-   * basic per-axis factor; k folds in exactly once per render axis (a per-axis override wins
-   * over `scale` in RenderMesh, so both get it) plus the analytic-box world-px dimensions.
+   * Size a mesh with its collider's factor. A per-axis factor overrides `scale`, so both get
+   * k, as do the world-px box dimensions.
    */
   _bakeMesh(mesh, k) {
     if (k === 1) return;

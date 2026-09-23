@@ -24,16 +24,12 @@ globalThis.UIText = class UIText {
     this.alpha = text.alpha ?? 1;
     this.sep = text.sep ?? -1;
     this.w = text.w ?? -1;
-    // number handle OR I18n font key (string). must NOT be pre-resolved: I18n.load deletes old
-    // handles on a locale switch, so a cached handle dangles. see "resolve I18n.font at draw time".
+    // never pre-resolved: a locale switch deletes the old font handles, so a cached one dangles
     this.font = text.font ?? -1;
     this.cache = "";
     this.cacheFont = -1; // resolved handle used for cached measure; re-measure if it changes
   }
 
-  /**
-   * re-resolve each call so it survives a locale reload.
-   */
   _font() {
     return resolveUIFont(this.font);
   }

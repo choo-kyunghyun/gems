@@ -1,19 +1,16 @@
-// boot scene + dev launcher (F2). flat button list of all registered scenes, then
-// global actions (Credits/Settings/Quit via GameOverlay). no separate title/credits scene.
+// Boot scene + dev launcher: a flat button list of every registered scene, then the global
+// actions. There is no separate title/credits scene.
 
 globalThis.sceneLobby = () =>
   Object.assign(new Scene(), {
     label: "Lobby",
 
     create(openScene) {
-      this._openScene = openScene; // stashed so retheme() can rebuild the button callbacks
+      this._openScene = openScene; // kept so retheme() can rebuild the button callbacks
       this._buildUI();
     },
 
-    /**
-     * Live theme swap (the Game object's retheme): tear down + rebuild the UI so it bakes the new
-     * palette. The lobby holds no world/gameplay state, so a plain UI rebuild is enough.
-     */
+    /** The lobby holds no world state, so a plain UI rebuild bakes the new palette. */
     retheme() {
       UI.remove(this.ui);
       this.ui.destroy();
@@ -36,7 +33,7 @@ globalThis.sceneLobby = () =>
       const entries = [];
       const groups = Scene.byCategory();
       // the dev category is filtered HERE, not at registration: the catalogue fills at script
-      // load, before Create_0 sets DEV_MODE
+      // load, before DEV_MODE is set
       for (let g = 0; g < groups.length; g++) {
         if (groups[g].category === "SCENE_CAT_DEV" && !DEV_MODE) continue;
         for (let e = 0; e < groups[g].entries.length; e++)
@@ -62,7 +59,7 @@ globalThis.sceneLobby = () =>
         );
       }
 
-      // Credits opens GameOverlay About tab (index 2)
+      // the About tab
       col.insertChild(
         facetButton(I18n.textRef("TITLE_CREDITS"), () => GameOverlay.open(2)),
       );

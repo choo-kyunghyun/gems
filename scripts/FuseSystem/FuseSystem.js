@@ -1,7 +1,7 @@
-// Counts every Fuse down and detonates it in place: a radial Combat.explode from the charge's
-// Position, the blast cues (psExplosion, sndExplosionLarge), then the entity is removed. Runs after
-// ProjectileSystem, so a charge landing this frame detonates where it stopped. Lobbing one is
-// Combat.lob.
+/**
+ * Counts every Fuse down and detonates it in place, removing the charge. Runs after projectiles
+ * move, so a charge landing this frame detonates where it stopped.
+ */
 globalThis.FuseSystem = {
   update(level) {
     const entities = level.entities;

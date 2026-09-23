@@ -3,7 +3,6 @@
  * @implements {UIComponent}
  */
 globalThis.UIStepper = class UIStepper {
-  /** stepper: { min, max, step, wrap, value, onChange, format, color, arrowColor, arrowHover, arrowDisabled, font, halign, valign } */
   constructor(stepper = {}) {
     this.min = stepper.min ?? 0;
     this.max = stepper.max ?? 10;
@@ -22,7 +21,6 @@ globalThis.UIStepper = class UIStepper {
     this.valign = stepper.valign ?? fa_middle;
 
     this._side = 0; // -1 = over left arrow, 1 = right, 0 = not hovering
-    // internal FSM delegate (UITrigger); onClick reads the _side latched in onUpdate.
     this._fsm = new UITrigger({
       onClick: () => {
         if (this._side < 0) this.decrement();
@@ -31,18 +29,13 @@ globalThis.UIStepper = class UIStepper {
     });
   }
 
-  /**
-   * snap onto the step grid from min; round to kill float drift (0.1 → 0.30000000000000004).
-   */
+  /** Snap onto the step grid from min, rounded to kill float drift. */
   _snap(v) {
     const snapped =
       this.min + Math.round((v - this.min) / this.step) * this.step;
     return clamp(Math.round(snapped * 1e6) / 1e6, this.min, this.max);
   }
 
-  /**
-   * Snap + clamp `v` and fire onChange if it changed.
-   */
   setValue(v) {
     const next = this._snap(v);
     if (next === this.value) return this;
@@ -51,9 +44,6 @@ globalThis.UIStepper = class UIStepper {
     return this;
   }
 
-  /**
-   * Step down by `step` (wraps to max if `wrap`).
-   */
   decrement() {
     if (this.value <= this.min) {
       if (!this.wrap) return this;
@@ -62,9 +52,6 @@ globalThis.UIStepper = class UIStepper {
     return this.setValue(this.value - this.step);
   }
 
-  /**
-   * Step up by `step` (wraps to min if `wrap`).
-   */
   increment() {
     if (this.value >= this.max) {
       if (!this.wrap) return this;
@@ -74,7 +61,7 @@ globalThis.UIStepper = class UIStepper {
   }
 
   onUpdate(element, block) {
-    // latch the arrow side BEFORE the FSM runs — its onClick commits from this frame's _side.
+    // latched before the trigger runs, as its click commits from this frame's side
     this._side = uiPointerSide(element, block);
     return this._fsm.onUpdate(element, block);
   }
@@ -90,8 +77,8 @@ globalThis.UIStepper = class UIStepper {
     const canDec = this.wrap || this.value > this.min;
     const canInc = this.wrap || this.value < this.max;
 
-    // step arrows — dimmed when they can't step, brightened on hover.
-    const cy = drawUIArrowPair(
+    const cy
+ = drawUIArrowPair(
       pos,
       !canDec
         ? this.arrowDisabled

@@ -1,10 +1,9 @@
 /**
- * Survival need: thirst — a rising meter (`value` climbs by `rate`/sec; drinking lowers it). NeedSystem
- * applies the `status` debuff at/above `critical`. OPT-IN; flat scalars → entities.export-safe.
+ * Survival need: a rising meter that drinking lowers, with a debuff at `critical`. Opt-in.
  *
  * @typedef {Object} Thirst
- * @property {number} value     current need, 0..max (rises over time)
- * @property {number} max       cap
+ * @property {number} value     0..max
+ * @property {number} max
  * @property {number} rate      per-second rise
  * @property {number} critical  fraction of max (0..1) at/above which `status` is applied
  * @property {string} status    Status id applied while critical ("" = no debuff)

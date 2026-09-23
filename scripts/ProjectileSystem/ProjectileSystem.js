@@ -1,9 +1,7 @@
-// Move-and-cast for free projectiles (guns are hitscan). Each tick casts the motion (Query.cast):
-// a bullet damages a hit Health and is spent on any impact (wall, ally, or hit); a lob arcs over
-// bodies and stops where it meets a structure (Combat.isStructure) or where its range runs out,
-// and lies there for its Fuse. A projectile carries no Collision, so neither a cast nor the solid
-// pass sees it.
-const LAND_GAP = 1; // px a lob rests off the surface it struck, along the surface normal
+// Move-and-cast for free projectiles. A bullet damages a hit Health and is spent on any impact; a
+// lob arcs over bodies and stops where it meets a structure or its range runs out, and lies there.
+// A projectile carries no Collision, so neither a cast nor the solid pass sees it.
+const LAND_GAP = 1; // px a lob rests off the surface it struck, along its normal
 
 globalThis.ProjectileSystem = {
   update(level) {
@@ -13,7 +11,7 @@ globalThis.ProjectileSystem = {
       if (vel.x === 0 && vel.y === 0) return; // a landed lob
       let sx = vel.x * dt;
       let sy = vel.y * dt;
-      // range-limited: the last step is the remainder, so a lob lands ON its target point
+      // the last step is the remainder, so a lob lands on its target point
       if (proj.range !== undefined) {
         const step = Math.sqrt(sx * sx + sy * sy);
         if (step >= proj.range) {
@@ -35,7 +33,6 @@ globalThis.ProjectileSystem = {
         pos.x = x1;
         pos.y = y1;
         if (proj.range === 0) {
-          // flight over: a lob lands here, a bullet is dropped
           if (proj.lob === true) {
             vel.x = 0;
             vel.y = 0;
@@ -45,8 +42,7 @@ globalThis.ProjectileSystem = {
       }
 
       if (proj.lob === true) {
-        // land a hair off the struck surface, so the blast's line-of-sight casts (Combat.explode)
-        // don't start inside the collider the charge rests against
+        // a hair off the surface, so a line-of-sight cast from here doesn't start inside it
         pos.x = hit.x + hit.nx * LAND_GAP;
         pos.y = hit.y + hit.ny * LAND_GAP;
         vel.x = 0;
@@ -58,7 +54,7 @@ globalThis.ProjectileSystem = {
       pos.y = hit.y;
 
       const hp = entities.get(hit.id, Health);
-      // damage a hit Health unless allied (ally blocks like a wall); death reaction is central
+      // an ally blocks like a wall
       if (
         hp !== undefined &&
         !Diplomacy.allied(entities, proj.owner, hit.id)
@@ -70,13 +66,13 @@ globalThis.ProjectileSystem = {
           proj.penetration ?? 0,
         );
       }
-      entities.remove(id); // the bullet is spent on any impact (wall, ally, or hit)
+      entities.remove(id);
     });
   },
 
   /**
-   * a lob's impact: the nearest structure (Combat.isStructure) on the step, or null — bodies are
-   * flown over. castAll allocates per step; only a lob in flight pays it.
+   * The nearest structure on the step, or null — bodies are flown over. Allocates per step; only a
+   * lob in flight pays it.
    */
   _structure(level, x0, y0, x1, y1, owner) {
     const all = Query.castAll(level.entities, x0, y0, x1, y1, { ignore: owner });

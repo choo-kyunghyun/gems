@@ -1,27 +1,24 @@
 /**
  * @implements {UIComponent}
- * Quest tracker — live list bound to an injected quest source (`t.source`, e.g. the colony's
- * `Tracker`), so this Core widget stays genre-agnostic. The source exposes `activeIds()`,
+ * Quest tracker — a live list bound to an injected quest source, so the widget stays
+ * genre-agnostic. The source exposes `activeIds()`,
  * `def(id) → { name, objLabel, objectives:[{count}] }`, `status(id) → { ready, progress:[] }`.
- * Drawn entirely in onDraw over one element (immediate-mode, like UISlots), reading the source
- * live each frame — no per-frame child rebuild. A null source renders empty.
- *
- * GMRT: status read live each frame (no cached primitive to clobber).
+ * Immediate-mode over one element, reading the source live each frame — no child rebuild. A null
+ * source renders empty.
  */
 globalThis.UIQuestTracker = class UIQuestTracker {
   constructor(t = {}) {
-    // injected source so this Core widget doesn't reference the colony's Tracker; null = empty
     this.source = t.source ?? null;
-    // Font KEYS (resolved via I18n.font at DRAW time), not handles: a handle captured at
-    // construction freezes a stale/invalid font that renders nothing later. null = inherit.
+    // font keys resolved at draw time, not handles: a handle captured at construction goes stale
+    // and renders nothing. null = inherit.
     this.titleFontKey = t.titleFontKey ?? null;
     this.bodyFontKey = t.bodyFontKey ?? null;
     this.padX = t.padX ?? 14;
     this.padY = t.padY ?? 12;
-    this.titleH = t.titleH ?? 24; // row height of a quest title
-    this.objH = t.objH ?? 20; // row height of an objective line
+    this.titleH = t.titleH ?? 24;
+    this.objH = t.objH ?? 20;
     this.objIndent = t.objIndent ?? 10;
-    this.questGap = t.questGap ?? 10; // space between quests
+    this.questGap = t.questGap ?? 10;
 
     this.titleColor = t.titleColor ?? c_white;
     this.readyColor = t.readyColor ?? make_colour_rgb(255, 209, 102);
@@ -31,7 +28,7 @@ globalThis.UIQuestTracker = class UIQuestTracker {
     this.emptyText = t.emptyText ?? ""; // string or () => string
   }
 
-  /** Total pixel height of all active quests — the factory sizes the element to this for UIScroll overflow. */
+  /** Total pixel height of the list, for sizing the element to scroll. */
   contentHeight() {
     const ids = this.source ? this.source.activeIds() : [];
     if (ids.length === 0) return this.padY * 2 + this.objH;
@@ -73,16 +70,15 @@ globalThis.UIQuestTracker = class UIQuestTracker {
         const def = this.source.def(ids[i]);
         const status = this.source.status(ids[i]);
 
-        // title — gold once ready to turn in
+        // highlighted once ready to turn in
         if (titleFont !== -1) draw_set_font(titleFont);
         draw_set_color(status.ready ? this.readyColor : this.titleColor);
         draw_text(x, y, I18n.text(def.name));
         y += this.titleH;
 
-        // one line per objective: marker (check when met, dash when pending) + label, lime when met
         if (bodyFont !== -1) draw_set_font(bodyFont);
-        const markW = 16; // marker column width before the label
-        const fh = string_height("0"); // body line height, to center the marker
+        const markW = 16;
+        const fh = string_height("0");
         for (let o = 0; o < def.objectives.length; o++) {
           const obj = def.objectives[o];
           const prog = status.progress[o];

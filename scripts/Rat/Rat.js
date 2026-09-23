@@ -1,8 +1,6 @@
 /**
- * Marker component: this entity is a Rat (wildlife enemy species). Presence — not a value — is the
- * identity, queried via `entities.query(Rat)` / `entities.has(id, Rat)`. Feeds the radar
- * blip color + the kill-quest type (rat vs Raider); allegiance is separate (`Faction`). Attached
- * with an empty payload `entities.add(id, Rat, {})`. Replaces the old Tag "rat".
+ * Marker component for the rat species: presence, not a value, is the identity, attached with an
+ * empty payload. Allegiance is separate (`Faction`).
  * @typedef {Object} Rat
  */
 globalThis.Rat = "Rat";

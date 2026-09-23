@@ -1,34 +1,25 @@
 /**
- * A Table's storage: one SPARSE SET per registered token (SoA). Per token: `column[i]` is the data of row index i
- * (`undefined` = absent — presence stays a plain slot test, so `get`/`has` cost a column read),
- * `dense` lists the indices carrying the token, and `sparse[i]` is index i's position in `dense`
- * (-1 = absent). A walk runs down the LEAD token's dense list and joins the rest by column read,
- * so it visits the lead's carriers and never the index space: the lead token is the contract —
- * the rarest token leads, since it alone decides the walk's length (testData perf.layout).
+ * A Table's storage: one sparse set per registered token (SoA). Per token, `column[i]` is row
+ * index i's data (`undefined` = absent, so `get`/`has` cost a column read), `dense` lists the
+ * indices carrying the token, and `sparse[i]` is index i's position in `dense` (-1 = absent). A
+ * walk runs down the LEAD token's dense list and joins the rest by column read, so the rarest
+ * token should lead: it alone decides the walk's length.
  *
- * Order: a dense list is insertion order until a removal, which swap-removes (the last carrier
- * takes the hole), so `query`/`first`/`forEach` run in an order that is stable between mutations
- * and otherwise unspecified — never by index. Fairness over that order is a POSITION cursor
- * (PathfindingSystem): a carrier only ever moves toward the front, so a forward sweep reaches it.
+ * Order: a dense list is insertion order until a removal, which swap-removes, so walks run in an
+ * order stable between mutations and otherwise unspecified — never by index. A carrier only ever
+ * moves toward the front, so a forward position cursor reaches it.
  *
- * Removal safety: `detach`/`clear` empty the column slot at once (`get`/`has` read it immediately)
- * and, while a walk is on that token, defer the swap-remove until the outermost such walk ends —
- * the walk skips the emptied slot by its column read, so a callback may detach the lead token
- * from ANY entity. A carrier added mid-walk lands past the walk's end and is visited from the
- * next walk. Entity removal stays deferred (Table.remove).
+ * Removal safety: `detach`/`clear` empty the slot at once and, while a walk is on that token,
+ * defer the swap-remove until the outermost walk ends, so a callback may detach the lead token
+ * from any entity. A carrier added mid-walk is visited from the next walk.
  *
- * Persistence: a set is TRANSIENT once its token is minted (`mint`) — runtime-rebuilt by the
- * minting system, so `export` and `persistentOf` skip it, and a later `add` keeps it so. The mint
- * site owns that fact; no consumer names a transient token by hand. A mint may also hand the set
- * its RELEASE hook — `destroy(data)`, called as the data leaves its slot (a detach, the entity's
- * clear at flush, a replacing add, an import over the store, the store's destroy) — so a
- * component holding a native handle (a Puppet instance, a particle system) frees it with no
- * roster and no reap pass.
+ * Persistence: a set is transient once its token is minted — rebuilt at runtime, so `export` and
+ * `persistentOf` skip it. A mint may hand the set a release hook, `destroy(data)`, called as data
+ * leaves its slot by any path, so a component holding a native handle frees it with no reap pass.
  *
- * A set may carry a binary CODEC (`codec`) — `pack(data)` → a buffer, `unpack(buffer)` → data:
- * its entries cross `export`/`import` as buffers through the caller's sink and source (a name
- * in the JSON, the bytes in a blob), the channel for what is dense (a tile grid) and JSON on this
- * runtime can't carry (docs/GMRT.md #15565). An import fills the codec sets LAST, so an unpack
+ * A set may carry a binary codec (`pack(data)` → buffer, `unpack(buffer)` → data): its entries
+ * cross `export`/`import` as buffers through the caller's sink and source, for what is dense and
+ * what JSON can't carry (docs/GMRT.md #15565). An import fills the codec sets last, so an unpack
  * may read a record the same import restored.
  */
 globalThis.Columns = class Columns {
@@ -36,8 +27,8 @@ globalThis.Columns = class Columns {
     this.maxEntities = maxEntities;
     this.ids = ids;
     this._byToken = new Map();
-    // #15095: iterate _tokens/_sets (Map mirror, registration order), never a Map iterator;
-    // the Map is only O(1) token lookup.
+    // BUG: iterate _tokens/_sets (the Map's mirror, registration order), never a Map iterator
+    // (docs/GMRT.md #15095); the Map is only O(1) token lookup.
     this._tokens = [];
     this._sets = [];
   }
@@ -69,9 +60,9 @@ globalThis.Columns = class Columns {
         sparse: new Array(this.maxEntities).fill(-1),
         walking: 0, // forEach nesting depth with this token as the lead
         pending: [], // indices whose swap-remove waits for the walk to end
-        transient: false, // minted — skipped by export/persistentOf
-        destroy: undefined, // a transient token's release hook (mint), called as data leaves a slot
-        codec: undefined, // { pack, unpack } — the set's entries cross an export as buffers (codec)
+        transient: false, // minted: skipped by export/persistentOf
+        destroy: undefined, // release hook, called as data leaves a slot
+        codec: undefined, // { pack, unpack }
       };
       this._byToken.set(token, set);
       this._tokens.push(token);
@@ -89,7 +80,7 @@ globalThis.Columns = class Columns {
     const i = Handle.index(id);
     if (set.destroy !== undefined) {
       const prev = set.column[i];
-      if (prev !== undefined) if (prev !== data) set.destroy(prev); // replaced: the old handle goes
+      if (prev !== undefined) if (prev !== data) set.destroy(prev); // replaced: the old data is released
     }
     set.column[i] = data;
     if (set.sparse[i] === -1) {
@@ -99,8 +90,7 @@ globalThis.Columns = class Columns {
   }
 
   /** `add`, and mark the token transient: the caller rebuilds it at runtime, so no export
-   *  carries it. `destroy(data)`, when given, is the set's release hook (header) — one per token,
-   *  the first mint's. */
+   *  carries it. `destroy(data)` is the set's release hook — one per token, the first mint's. */
   mint(id, token, data, destroy) {
     this.add(id, token, data);
     const set = this._byToken.get(token);
@@ -108,7 +98,7 @@ globalThis.Columns = class Columns {
     if (destroy !== undefined) if (set.destroy === undefined) set.destroy = destroy;
   }
 
-  /** Give a token its binary codec (header) — registered before the store is exported or imported. */
+  /** Give a token its binary codec — before the store is exported or imported. */
   codec(token, c) {
     this.register(token);
     this._byToken.get(token).codec = c;
@@ -121,8 +111,7 @@ globalThis.Columns = class Columns {
   }
 
   /** The token's column, registered if new — a per-tick reader hoists it once and indexes it by
-   *  `id & Handle.INDEX_MASK` in place of a `get` per entity (testRuntime perf.measured
-   *  store.get.cached), never holding it past the tick. */
+   *  `id & Handle.INDEX_MASK` in place of a `get` per entity, never holding it past the tick. */
   column(token) {
     this.register(token);
     return this._byToken.get(token).column;
@@ -138,7 +127,7 @@ globalThis.Columns = class Columns {
     return data;
   }
 
-  /** No `&&`: a short-circuit corrupts its left operand on this runtime (GMRT.md #15549). */
+  /** BUG: no `&&` (docs/GMRT.md #15549). */
   has(id, token) {
     const set = this._byToken.get(token);
     if (set === undefined) return false;
@@ -212,7 +201,7 @@ globalThis.Columns = class Columns {
     const i = Handle.index(id);
     for (let c = 0; c < this._tokens.length; c++) {
       const set = this._sets[c];
-      // comparisons as the operands: a bare flag on the left of && is clobbered (#15549)
+      // BUG: comparisons as the operands, never a bare flag left of && (docs/GMRT.md #15549)
       if (skipTransient === true && set.transient === true) continue;
       const data = set.column[i];
       if (data !== undefined) out[this._tokens[c]] = data;
@@ -220,7 +209,7 @@ globalThis.Columns = class Columns {
     return out;
   }
 
-  /** Closure-free: `c === n` stands in for `.every()` to avoid the GMRT boolean-local clobber. */
+  /** BUG: closure-free, `c === n` in place of `.every()` (docs/GMRT.md #15549). */
   query(tokens) {
     const n = tokens.length;
     const lead = this._byToken.get(tokens[0]);
@@ -274,17 +263,14 @@ globalThis.Columns = class Columns {
   }
 
   /**
-   * The allocation-free counterpart to `query`, and the form a per-tick system wants: no
-   * result array, and the callback is handed the component data the walk ALREADY resolved,
-   * so the loop body pays no `get` per entity (testData perf.layout, `query.get`).
+   * The allocation-free form of `query`, the one a per-tick system wants: the callback is handed
+   * the data the walk already resolved, so the body pays no `get` per entity.
    *
-   * `fn(id, data0, data1, data2, data3)` — data in token order, up to the FOURTH token;
-   * a match on a fifth or later token still gates the visit, but read its data with `get`
-   * (nothing in the project queries more than four).
+   * `fn(id, data0, data1, data2, data3)` — data in token order, up to the fourth token; a fifth
+   * or later token still gates the visit, but its data is read with `get`.
    *
    * Visits the lead's carriers as of the walk's start, minus those that lose the lead token
-   * meanwhile (the header's removal-safety contract); a callback may add, detach, or queue a
-   * removal freely.
+   * meanwhile; a callback may add, detach, or queue a removal freely.
    */
   forEach(tokens, fn) {
     const n = tokens.length;
@@ -396,7 +382,7 @@ globalThis.Columns = class Columns {
    * registered is registered on the way in (a fresh store restoring a whole export), so nothing
    * an export held is dropped. A codec set's entry is resolved through `source(value)` (the blob
    * under the name the sink gave; the buffer stays the source's to free) — the value itself with
-   * no source — and unpacked last (header); an unpack returning undefined leaves the slot empty.
+   * no source — and unpacked last; an unpack returning undefined leaves the slot empty.
    */
   import(components, source) {
     const toks = Object.keys(components);

@@ -1,18 +1,18 @@
-// Timed-notification stack — standalone singleton (not UIComponent). Ages by Time.raw (the clock
-// split); newest at bottom. opts: { duration (s), type ("info"|"success"|"warn"|"error"), accent }.
+// Timed-notification stack — a standalone singleton, not a UIComponent. Ages on Time.raw, so it
+// runs while the sim is paused; newest at the bottom.
 globalThis.Toast = {
   _items: [], // { text, accent, life, age }; oldest first
 
-  duration: 3.0, // seconds on screen (incl. fades)
-  fade: 0.3, // fade in/out time (seconds)
-  maxItems: 4, // cap; oldest dropped past this
+  duration: 3.0, // seconds on screen, fades included
+  fade: 0.3, // seconds
+  maxItems: 4, // oldest dropped past this
 
   width: 320,
   paddingX: 14,
   paddingY: 10,
   gap: 8,
   marginBottom: 24,
-  stripeW: 4, // left accent stripe
+  stripeW: 4,
   rad: 8,
   sep: -1,
   font: -1,
@@ -29,7 +29,7 @@ globalThis.Toast = {
     error: Color.parse("#e0584f"),
   },
 
-  /** opts: { duration, type, accent }. */
+  /** opts: { duration (s), type ("info"|"success"|"warn"|"error"), accent }. */
   push(str, opts = {}) {
     const accent =
       opts.accent ?? Toast.accents[opts.type ?? "info"] ?? Toast.accents.info;
@@ -39,19 +39,18 @@ globalThis.Toast = {
       life: opts.duration ?? Toast.duration,
       age: 0,
     });
-    while (Toast._items.length > Toast.maxItems) Toast._items.shift(); // drop oldest past cap
+    while (Toast._items.length > Toast.maxItems) Toast._items.shift();
   },
 
   clear() {
     Toast._items = [];
   },
 
-  /** age + cull + draw (Draw_75, after Tooltip). */
+  /** Ages and culls as well as drawing. */
   draw() {
     const items = Toast._items;
     if (items.length === 0) return;
 
-    // cull expired; build survivors array to avoid mutation mid-iterate
     const dt = Time.raw;
     const live = [];
     for (let i = 0; i < items.length; i++) {
@@ -74,7 +73,6 @@ globalThis.Toast = {
     const x = cx - Toast.width * 0.5;
     let baseline = display_get_gui_height() - Toast.marginBottom;
 
-    // newest at bottom, older above
     for (let i = live.length - 1; i >= 0; i--) {
       const t = live[i];
       const h =

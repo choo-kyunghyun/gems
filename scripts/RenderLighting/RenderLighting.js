@@ -1,30 +1,22 @@
 /**
- * Day/night is "ambient with no lights"; point lights punch bright holes in the night.
- *   1. ambient fill — clear to the injected ambient provider (WorldClock.tint) → level * ambient
- *   2. light blobs  — each Light adds a soft radial glow with bm_add (overlaps sum)
- *   2b. vignette    — multiply corners down so night frames in at the edges (off in daylight)
- *   3. composite    — draw the light map over the world with multiply (final = level * light)
- * Self-balancing: in full daylight the ambient is white, the multiply is a no-op, so we early-out
- * (zero surface work). Surfaces + bm_add + multiply — NO shadows, falloff only.
- *
- * Inserted LAST in the colony renderer; the scene draws its bright cues AFTER so they stay above the tint.
- * View extent from the view record's OWN fields, NOT camera_get_view_* (a matrix-driven camera returns 0).
+ * Day/night as a multiplied light map: the ambient fill with additive point-light blobs and an
+ * edge vignette, multiplied over the world. In full daylight the multiply is a no-op, so the pass
+ * does no surface work. Falloff only, no shadows. Insert it last; anything drawn after stays
+ * above the tint.
  * @implements {RenderPass}
  */
 globalThis.RenderLighting = class RenderLighting {
   constructor(opt = {}) {
     this.enabled = true;
-    this.camera = opt.camera; // the level's view record (CameraSystem.view); ColonyView._renderer passes it
-    // INJECTED ambient provider () => { color, alpha } — keeps this Core pass day/night-agnostic
-    // (demo wires WorldClock.tint). Default full daylight (alpha 0) early-outs below.
+    this.camera = opt.camera; // the level's view record
+    // an injected () => { color, alpha }, keeping the pass day/night-agnostic
     this.ambient = opt.ambient ?? (() => ({ color: c_white, alpha: 0 }));
-    // scales the cycle's overlay alpha; higher = darker nights. clamped to 1 (never fully black).
+    // scales the ambient alpha; higher = darker nights, clamped to 1
     this.darkness = opt.darkness ?? 1.5;
-    // corner-darkening fraction at full night, scaled by the cycle. 0 disables.
+    // corner-darkening fraction at full night; 0 disables
     this.vignette = opt.vignette ?? 0.25;
-    this._surf = -1; // light-map surface, (re)created lazily (surface_exists(-1) is false)
-    // cumulative SIM seconds the flicker phase rides on (the Weather.time() pattern): freezes on
-    // pause and dilates with Time.scale — the clock-split invariant for world-space effects.
+    this._surf = -1; // created lazily
+    // sim seconds, so the flicker freezes on pause and dilates with the time scale
     this._flickerT = 0;
   }
 
@@ -36,20 +28,19 @@ globalThis.RenderLighting = class RenderLighting {
     if (this.camera === undefined) return;
     this._flickerT += Time.delta;
 
-    // ambient → multiply model. k=0 → white (daylight): composite is a no-op, so skip all surface
-    // work (lights stay invisible, correct for an outdoor cycle vs a dungeon torch).
+    // at k = 0 the ambient is white and the composite a no-op, so lights stay invisible by day
     const tint = this.ambient();
     const k = Math.min(1, tint.alpha * this.darkness);
     if (k <= 0) return;
     const ambient = Color.merge(c_white, tint.color, k);
 
-    // SCREEN-space overlay (surface = application-surface size) so it survives a pitched 2.5D camera:
-    // blobs are PROJECTED to surface px via View.project (a world-rect surface would foreshorten).
+    // screen space, with blobs projected to surface px, so it survives a pitched camera where a
+    // world-rect surface would foreshorten
     const w = Math.floor(surface_get_width(application_surface));
     const h = Math.floor(surface_get_height(application_surface));
     if (!(w > 0) || !(h > 0)) return;
 
-    // (re)create when missing (surfaces are volatile — lost on resize/focus) or size changed
+    // surfaces are volatile: recreate when lost or resized
     if (
       !surface_exists(this._surf) ||
       surface_get_width(this._surf) !== w ||
@@ -62,28 +53,25 @@ globalThis.RenderLighting = class RenderLighting {
     const prevColor = draw_get_color();
     const prevAlpha = draw_get_alpha();
 
-    // 1 + 2. Build the light map: ambient fill, then additive light blobs at projected screen px.
     surface_set_target(this._surf);
     draw_clear_alpha(ambient, 1);
     gpu_set_blendmode(bm_add);
-    const zx = w / this.camera.width; // world→screen scale for the blob radius
+    const zx = w / this.camera.width; // world-to-screen scale for the blob radius
     entities.forEach([Light, Position], (id, lt, pos) => {
       const s = this.camera.project(pos.x, pos.y, 0);
       let intensity = lt.intensity ?? 1;
-      // flicker: sim-time sine per light (see _flickerT), id-offset so torches don't sync.
+      // id-offset so torches don't flicker in sync
       if (lt.flicker)
         intensity *=
           1 -
           lt.flicker *
             (0.5 + 0.5 * Math.sin((this._flickerT * 1000) / 90 + id));
       draw_set_alpha(intensity);
-      // hue center → black at radius; bm_add sums overlaps
       draw_circle_color(s.x, s.y, lt.radius * zx, lt.color, c_black, false);
     });
     gpu_set_blendmode(bm_normal);
 
-    // 2b. Vignette — multiplicative (bm_dest_colour, bm_zero), like the composite, so it DEEPENS
-    // level colors rather than alpha-blending a flat-black wash. white-center → dark-edge radial.
+    // multiplicative, so the vignette deepens colors rather than washing them flat black
     if (this.vignette > 0) {
       const cx = w / 2;
       const cy = h / 2;
@@ -102,23 +90,18 @@ globalThis.RenderLighting = class RenderLighting {
 
     surface_reset_target();
 
-    // 3. Composite multiplicatively (final = level * light). NO bm_multiply constant — src×dest via
-    //    blendmode_ext. reset view/projection to surface-pixel ortho so it covers the screen at any pitch.
+    // surface-pixel ortho, so the composite covers the screen at any pitch
     const sv = matrix_get(matrix_view);
     const sp = matrix_get(matrix_projection);
-    // SCREEN-SPACE OVERLAY ORIENTATION — the contract for any pass that resets view/projection to
-    // surface-pixel ortho (RenderOverlay cites this): up +1 AND a NEGATIVE ortho
-    // height. The overlay path carries an inherent Y-flip vs the world camera, which the negative
-    // height cancels. Negating the UP vector instead is a 180° ROLL: it X-MIRRORS the content about
-    // screen center — invisible for symmetric content (ambient fill, vignette, a centered blob), so
-    // it reads as correct until something off-center flips sides (the lantern at a clamped border).
+    // up +1 and a negative ortho height: the height cancels the overlay's Y-flip against the world
+    // camera. Negating the up vector instead rolls 180°, X-mirroring off-center content.
     matrix_set(
       matrix_view,
       matrix_build_lookat(w / 2, h / 2, -1, w / 2, h / 2, 0, 0, 1, 0),
     );
     matrix_set(matrix_projection, matrix_build_projection_ortho(w, -h, 0, 2));
-    // disable depth TEST: entities wrote depth in the world projection, so with the test on this
-    // screen-space composite is REJECTED over every opaque entity pixel (sprites stay full-bright).
+    // entities wrote depth in the world projection, which would reject this composite over them
+
     gpu_set_ztestenable(false);
     gpu_set_blendmode_ext(bm_dest_colour, bm_zero);
     draw_set_alpha(1);

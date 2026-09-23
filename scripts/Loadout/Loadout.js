@@ -1,23 +1,14 @@
 /**
- * Pure equipment operations; an equipped item stays in the Inventory.
+ * Pure equipment operations; an equipped item stays in the Inventory. The wearer must carry
+ * Inventory and Equipment, or an entry point fails at once. A refusal is stated, never folded into
+ * false: `equip` returns "" when equipped, else the i18n key of why.
  *
- * The wearer CARRIES Inventory and Equipment — every entry point reads them with `require`, so a
- * caller handing a bare entity fails at once. A refusal is stated, never folded into false: `equip`
- * returns "" when equipped, else the i18n key of why (the TradeSystem shape), which the view shows.
- *
- * On equip/unequip the derived Stats are REBUILT from source via StatModel.recompute (folds every
- * equipped item's mods onto the attribute base) — no +/- delta to keep balanced, so it can't drift.
- * Wearer must carry Attributes for mods to apply (today only the player). A +maxHp item raises the cap
- * but does NOT auto-heal (recompute only clamps over-max down). A Container's capacity bonus stays a
- * direct Inventory.capacity delta.
+ * Equip/unequip rebuild the derived Stats from source rather than applying a delta, so they can't
+ * drift; mods apply only to a wearer with Attributes, and a raised max HP does not heal. A
+ * Container's capacity bonus is the one direct delta.
  */
 globalThis.Loadout = {
-  /**
-   * Equip the instance `uid` onto `id` (item stays in Inventory); a different occupant is
-   * unequipped first. Returns "" when equipped, else the refusal: INV_NOT_OWNED (no such instance
-   * in the bag), INV_UNKNOWN_ITEM (the slot names no registered item), INV_NOT_EQUIPPABLE,
-   * INV_ALREADY_WORN. (For "some instance of an itemId" — e.g. the hotbar — use equipFirst.)
-   */
+  /** A different occupant of the slot is unequipped first. */
   equip(entities, id, uid) {
     const inv = entities.require(id, Inventory);
     const eq = entities.require(id, Equipment);
@@ -32,16 +23,13 @@ globalThis.Loadout = {
     if (eq.slots[eqp.slot] !== "")
       Loadout.unequip(entities, id, eqp.slot);
     eq.slots[eqp.slot] = uid;
-    StatModel.recompute(entities, id); // re-derive with the equipped mods folded in
-    AppearanceSystem.rebuild(entities, id); // worn gear shows on the doll (no-op sans Appearance)
+    StatModel.recompute(entities, id);
+    AppearanceSystem.rebuild(entities, id);
     Loadout._applyContainer(entities, id, item, 1);
     return "";
   },
 
-  /**
-   * Equip the FIRST owned instance of `itemId` (the itemId-keyed entry point: starting-gear seed +
-   * hotbar, which only know an itemId). Returns as `equip`; INV_NOT_OWNED when none is owned.
-   */
+  /** Equips the first owned instance of `itemId`; returns as `equip`. */
   equipFirst(entities, id, itemId) {
     const inv = entities.require(id, Inventory);
     for (let i = 0; i < inv.slots.length; i++) {
@@ -51,29 +39,25 @@ globalThis.Loadout = {
     return "INV_NOT_OWNED";
   },
 
-  /**
-   * Unequip whatever occupies `slot` — item stays in Inventory; only the reference + Stat mods clear.
-   * Returns the unequipped uid, or "" if empty.
-   */
+  /** Returns the unequipped uid, or "" if the slot was empty. */
   unequip(entities, id, slot) {
     const eq = entities.require(id, Equipment);
     const uid = eq.slots[slot];
     if (uid === undefined || uid === "") return "";
 
-    eq.slots[slot] = ""; // clear FIRST so the re-derive drops the removed item's mods
+    eq.slots[slot] = ""; // cleared first so the re-derive drops the removed item's mods
     StatModel.recompute(entities, id);
-    AppearanceSystem.rebuild(entities, id); // bare the removed item's doll slot
+    AppearanceSystem.rebuild(entities, id);
     const s = Bag.findByUid(entities.require(id, Inventory), uid);
     const item = s !== undefined ? Item.get(s.itemId) : undefined;
     if (item !== undefined)
-      Loadout._applyContainer(entities, id, item, -1); // capacity stays a direct delta
+      Loadout._applyContainer(entities, id, item, -1);
     return uid;
   },
 
   /**
-   * Unequip every slot whose instance is no longer in the bag (it was stored, sold or dropped),
-   * so no slot — and no folded-in Stat mods — dangles; a caller runs it after a bag mutation
-   * that can take a worn instance out. Returns the number of slots cleared.
+   * Unequips every slot whose instance left the bag, so no slot or folded-in mod dangles; run it
+   * after any bag mutation that can take a worn instance out. Returns the number cleared.
    */
   reconcile(entities, id) {
     const eq = entities.require(id, Equipment);
@@ -89,15 +73,11 @@ globalThis.Loadout = {
     return n;
   },
 
-  // Weapon composition. Kinetic-power tuning (gun): power = ammoPower + KIN_K * mass *
-  // (velocity/KIN_REF)^2 — velocity squared rewards speed. Content-tunable.
+  // gun kinetic power: velocity squared rewards speed.
   KIN_K: 0.75,
-  KIN_REF: 1200, // doubled with the 32px-cell ammo velocities so (v/KIN_REF)² — and damage — is unchanged
+  KIN_REF: 1200, // scaled with ammo velocities so damage is scale-independent
 
-  /**
-   * The equipped weapon's live Inventory slot (carrying uid/mods/ammo/rounds), or null. The
-   * controller needs the real slot — not a copy — to decrement `rounds` on a shot.
-   */
+  /** The equipped weapon's live Inventory slot — not a copy, so a shot can spend its rounds. */
   weaponSlot(entities, id) {
     const eq = entities.require(id, Equipment);
     const uid = eq.slots.weapon;
@@ -106,20 +86,13 @@ globalThis.Loadout = {
     return slot ?? null;
   },
 
-  /**
-   * Composed profile of the equipped weapon, or null when unarmed → the controller falls back to its
-   * unarmed defaults. Convenience over weaponSlot + composeWeapon.
-   */
+  /** Null when unarmed. */
   weaponProfile(entities, id) {
     const slot = Loadout.weaponSlot(entities, id);
     return slot !== null ? Loadout.composeWeapon(slot) : null;
   },
 
-  /**
-   * Fold a weapon slot into a FRESH composed profile (never mutates the item def). Gun branch:
-   * ammo base → gun ops → attachment ops → kinetic power → { kind:"gun", ... }. Melee branch:
-   * damage/fireCd → attachment ops, hitbox as authored → { kind:"melee", ... }.
-   */
+  /** A fresh profile each call; the item def is never mutated. */
   composeWeapon(slot) {
     const item = Item.get(slot.itemId);
     if (item === undefined) return null;
@@ -130,30 +103,24 @@ globalThis.Loadout = {
     return Loadout._composeMelee(slot, wpn);
   },
 
-  /**
-   * Top up the equipped gun's magazine from the bag (R / auto-reload). Returns rounds loaded.
-   */
+  /** Returns the rounds loaded. */
   reload(entities, id) {
     const slot = Loadout.weaponSlot(entities, id);
     if (slot === null) return 0;
     return Loadout.reloadSlot(entities.require(id, Inventory), slot);
   },
 
-  /**
-   * Top up a specific gun instance's magazine from `inv`'s ammo reserve (min(need, owned)). The slot
-   * variant so the workbench panel can reload a SELECTED weapon that isn't equipped.
-   */
+  /** Reloads any gun instance, equipped or not, from `inv`'s ammo. Returns the rounds loaded. */
   reloadSlot(inv, slot) {
     const item = Item.get(slot.itemId);
     const gun = item !== undefined ? item.getComponent(Gun) : undefined;
     if (gun === undefined) return 0;
-    // fresh gun (no ammo TYPE chosen yet): auto-load the first caliber-compatible ammo in the
-    // bag, so R fires a new gun without the Toolkit panel (deliberate type switching stays there).
+    // a gun with no ammo type chosen takes the first compatible one, so a new gun fires at once.
     if (slot.ammo === undefined || slot.ammo === "")
       slot.ammo = Loadout._firstAmmo(inv, gun.caliber);
     if (slot.ammo === "") return 0;
     if (slot.rounds === undefined) slot.rounds = 0;
-    const cap = Loadout.composeWeapon(slot).magazine; // composed clip (incl. extended-mag attachment)
+    const cap = Loadout.composeWeapon(slot).magazine;
     const need = cap - slot.rounds;
     if (need <= 0) return 0;
     const have = Bag.count(inv, slot.ammo);
@@ -164,9 +131,7 @@ globalThis.Loadout = {
     return take;
   },
 
-  /**
-   * Load an ammo type into the equipped gun (caliber-gated), then top up.
-   */
+  /** Caliber-gated, then tops up. */
   loadAmmo(entities, id, ammoItemId) {
     const slot = Loadout.weaponSlot(entities, id);
     if (slot === null) return false;
@@ -174,8 +139,8 @@ globalThis.Loadout = {
   },
 
   /**
-   * Load an ammo type into a specific gun instance (caliber-gated), then top up. Switching type
-   * refunds the chambered rounds to `inv` first so a swap doesn't lose them. The slot variant.
+   * Caliber-gated, then tops up. Switching type refunds the chambered rounds first; a refund that
+   * doesn't fit refuses the swap rather than destroy them.
    */
   loadAmmoSlot(inv, slot, ammoItemId) {
     const item = Item.get(slot.itemId);
@@ -188,11 +153,9 @@ globalThis.Loadout = {
     if (slot.rounds === undefined) slot.rounds = 0;
     if (slot.ammo !== ammoItemId) {
       if (slot.ammo !== undefined && slot.ammo !== "" && slot.rounds > 0) {
-        // refund the old chambered rounds — all-or-nothing: an unfit refund refuses the swap
-        // rather than silently destroying the rounds (make room, then switch).
         const unfit = Bag.add(inv, slot.ammo, slot.rounds);
         if (unfit > 0) {
-          Bag.remove(inv, slot.ammo, slot.rounds - unfit); // take back the partial refund
+          Bag.remove(inv, slot.ammo, slot.rounds - unfit);
           return false;
         }
       }
@@ -203,9 +166,6 @@ globalThis.Loadout = {
     return true;
   },
 
-  /**
-   * First caliber-compatible Ammo itemId in `inv` (slot order), or "" when none owned.
-   */
   _firstAmmo(inv, caliber) {
     for (let i = 0; i < inv.slots.length; i++) {
       const it = Item.get(inv.slots[i].itemId);
@@ -216,10 +176,7 @@ globalThis.Loadout = {
     return "";
   },
 
-  /**
-   * Installed-attachment ops layers for an instance slot (order-independent), plus the item
-   * maker's signature ops layer (Manufacturer.ops) — brand identity composes like an attachment.
-   */
+  /** The maker's signature ops compose like an attachment. */
   _modLayers(slot) {
     const layers = [];
     const item = Item.get(slot.itemId);
@@ -257,8 +214,7 @@ globalThis.Loadout = {
     const ammo =
       ammoItem !== undefined ? ammoItem.getComponent(Ammo) : undefined;
 
-    // Base = loaded ammo stats (0 with no ammo) + gun fireCd/magazine. fireCd may be undefined
-    // (controller defaults it), so _applyOps leaves it undefined.
+    // fireCd may be undefined, and stays so for the wielder's default.
     const base = {
       mass: ammo !== undefined ? ammo.mass : 0,
       velocity: ammo !== undefined ? ammo.velocity : 0,
@@ -268,7 +224,7 @@ globalThis.Loadout = {
       magazine: gun.magazine,
     };
     const layers = Loadout._modLayers(slot);
-    layers.unshift(gun.ops); // gun-base ops first (before attachments; order-independent anyway)
+    layers.unshift(gun.ops);
     const c = Loadout._applyOps(base, layers, [
       "mass",
       "velocity",
@@ -282,7 +238,6 @@ globalThis.Loadout = {
     const fireCd =
       c.fireCd !== undefined ? Math.max(0, c.fireCd) : undefined;
     const penetration = Math.max(0, Math.round(c.penetration));
-    // Kinetic power: flat ammo power + k·mass·(velocity/REF)². 0 with no ammo loaded.
     let power = 0;
     if (ammo !== undefined) {
       const v = c.velocity / Loadout.KIN_REF;
@@ -303,9 +258,8 @@ globalThis.Loadout = {
   },
 
   /**
-   * Apply operator layers over a base map: per field, (base + Σadd) · Πmul (order-independent). A
-   * field whose base is undefined stays undefined — ops can't fabricate a value the base never
-   * declared (the controller defaults it). Index loops only — GMRT-safe.
+   * Order-independent per field. A field whose base is undefined stays undefined: ops can't
+   * fabricate a value the base never declared.
    */
   _applyOps(base, layers, fields) {
     const out = {};
@@ -329,10 +283,7 @@ globalThis.Loadout = {
     return out;
   },
 
-  /**
-   * Add (+1) / remove (-1) an item's Container capacity bonus to Inventory.capacity. No-op without a
-   * Container. equip/unequip pair, so the delta stays balanced; items over a reduced cap just stay.
-   */
+  /** `sign` ±1. Items over a reduced capacity just stay. */
   _applyContainer(entities, id, item, sign) {
     const con = item.getComponent(Container);
     if (con === undefined) return;

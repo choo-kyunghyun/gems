@@ -1,8 +1,8 @@
 /**
  * @typedef {Object} RenderGridOptions
- * @property {number} [color] - grid line color (default c_gray)
- * @property {number} [alpha] - line alpha (default 1)
- * @property {object} [camera] - the level's view record (CameraSystem.view); when set, view-culls lines for large grids (LevelGrid.viewRange). Settable via `pass.camera`.
+ * @property {number} [color]
+ * @property {number} [alpha]
+ * @property {object} [camera] - the level's view record; when set, lines are view-culled.
  */
 
 /** @implements {RenderPass} */
@@ -12,7 +12,7 @@ globalThis.RenderGrid = class RenderGrid {
     this.grid = grid;
     this.color = opt.color ?? c_gray;
     this.alpha = opt.alpha ?? 1;
-    this.camera = opt.camera; // optional view-cull source (see draw)
+    this.camera = opt.camera;
   }
 
   destroy() {}
@@ -23,8 +23,7 @@ globalThis.RenderGrid = class RenderGrid {
 
     const { cellWidth, cellHeight } = this.grid;
 
-    // the visible cells' BOUNDARY lines: x0..x1 inclusive, x1 being the window's exclusive
-    // cell bound — the line closing its last cell (LevelGrid.viewRange).
+    // x1 is the window's exclusive cell bound, so the inclusive loop draws the closing line
     const r = this.grid.viewRange(this.camera);
 
     draw_set_alpha(this.alpha);

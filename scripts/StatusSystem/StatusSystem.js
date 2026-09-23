@@ -1,9 +1,8 @@
-// Runs an entity's buffs/debuffs per tick — dot/hot over time, duration countdown/expiry. The
-// on-demand verbs (apply/remove/maintain/list/scale) and the re-derive hook are Effects'.
+// Runs an entity's buffs/debuffs per tick — dot/hot over time, duration countdown/expiry.
 globalThis.StatusSystem = {
   /**
-   * Per-tick: advance dot/hot + durations, expire finished. Iterate BACKWARDS — in-place splice on expiry.
-   * Re-derive once per entity if any expiring status carried `mods`.
+   * Iterates BACKWARDS for the in-place splice on expiry. Stats re-derive once per entity if any
+   * expiring status carried `mods`.
    */
   update(level) {
     const entities = level.entities;
@@ -14,7 +13,7 @@ globalThis.StatusSystem = {
         const inst = eff.list[j];
         const def = Status.get(inst.id);
         if (def === undefined) {
-          eff.list.splice(j, 1); // unknown id (content unloaded) — drop it
+          eff.list.splice(j, 1); // unknown id (content unloaded)
           continue;
         }
         if (def.dot > 0 || def.hot > 0) {
@@ -37,8 +36,8 @@ globalThis.StatusSystem = {
   },
 
   /**
-   * One interval's dot/hot on Health. DoT subtracts directly (bypasses Combat.mitigate — poison ignores
-   * armor); HoT clamps to Stats.maxHp. Only changes hp — the <=0 reaction is the Mortal death pass.
+   * DoT bypasses mitigation — poison ignores armor; HoT clamps to max hp. Only changes hp — the
+   * reaction to <=0 is not here.
    */
   _applyTick(entities, id, def) {
     const hp = entities.get(id, Health);

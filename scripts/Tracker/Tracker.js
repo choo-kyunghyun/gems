@@ -1,31 +1,23 @@
 /**
  * The progression state of one world, behind one report seam.
  *
- * Names NO key and states NO rule: the counter names, the unlock thresholds, and the objective
- * counts all belong to content, reached through the injected `rules` hook (the same idiom as
- * `Combat.mitigate`). That is what keeps this a store rather than a game — `Achievement`/`QuestLog`
- * stay pure def registries beside it, and the engine still never sweeps a condition.
+ * It names no key and states no rule: counter names, unlock thresholds and objective counts
+ * belong to content, reached through the injected `rules` hook, which keeps this a store rather
+ * than a game. With no `rules` the counter and achievement stages are inert and quests still
+ * advance.
  *
- * `rules` is OPTIONAL: with none wired the counter and achievement stages simply don't run and
- * quests still advance (sceneFacet demos the tracker widget with no achievement content at all).
- *
- * Logic over ONE world record (World.self under KEY — { counters, unlocked, quests }), so the
- * progression starts blank with the world (World.reset) and rides the save with its records —
- * nothing here touches disk.
+ * The state is one record on the world's own entity, so it starts blank with the world and rides
+ * its save; nothing here touches disk.
  */
 globalThis.Tracker = {
-  KEY: "tracker", // its token on the world's own entity — a data key (a save holds it)
+  KEY: "tracker", // saved
 
-  /**
-   * injected by the scene that owns the rules — { counterOf(kind), report(key, total) → ids }.
-   * null leaves the counter/achievement stages inert.
-   */
+  /** { counterOf(kind), report(key, total) → ids }, injected by the scene that owns the rules. */
   rules: null,
 
   /**
-   * The progression record: `counters` key -> number (lifetime tallies; every key is the
-   * caller's), `unlocked` achievement id -> true, `quests` quest id -> { progress: number[],
-   * ready, done }.
+   * `counters` key -> lifetime tally (every key is the caller's), `unlocked` achievement id ->
+   * true, `quests` quest id -> { progress: number[], ready, done }.
    */
   state() {
     return World.table.of(World.self, Tracker.KEY, () => ({
@@ -35,17 +27,11 @@ globalThis.Tracker = {
     }));
   },
 
-  // ── THE seam ──
-
   /**
-   * Report one gameplay fact and fan it out: bump the counter content maps this `kind` to, offer
-   * the new total to the threshold rules, then advance every matching quest objective. `kind` is
-   * the event ("kill"/"collect"/"reach"/"talk"/"quest"/"sleepSkip"), `target` the specific thing
-   * (species, item id, marker, NPC id) an objective matches on.
-   *
-   * Returns what the caller has to act on: `unlocked` (toast them) and `ready` (quests that became
-   * turn-in-able THIS call). A kind with no counter and a kind no objective matches are both
-   * normal — each stage skips independently.
+   * Report one gameplay fact: bump its counter, offer the total to the unlock rules, and advance
+   * every matching quest objective. `target` is what an objective matches on. Returns what the
+   * caller acts on: `unlocked` and `ready` (quests that became turn-in-able this call). Each
+   * stage skips independently when nothing matches.
    */
   report(kind, target, n = 1) {
     const rules = Tracker.rules;
@@ -61,30 +47,21 @@ globalThis.Tracker = {
     return { unlocked: unlocked, ready: Tracker._advance(kind, target, n) };
   },
 
-  // ── counters ──
-
   count(key) {
     return Tracker.state().counters[key] ?? 0;
   },
-
-  // ── achievements (defs live in the Achievement registry) ──
 
   isUnlocked(id) {
     return Tracker.state().unlocked[id] === true;
   },
 
-  /**
-   * the unlock REQUEST: honor it if the id is registered and still locked. Returns true only when
-   * newly unlocked (dedup — safe to request repeatedly).
-   */
+  /** Idempotent; true only when newly unlocked. An unregistered id is refused. */
   unlock(id) {
     const unlocked = Tracker.state().unlocked;
     if (!Registry.has(Achievement, id) || unlocked[id] === true) return false;
     unlocked[id] = true;
     return true;
   },
-
-  // ── quests (defs live in the QuestLog registry) ──
 
   accept(id) {
     const def = QuestLog.def(id);
@@ -97,8 +74,8 @@ globalThis.Tracker = {
   },
 
   /**
-   * Mark done and return rewards for the caller to apply; undefined if not ready. `done` is set
-   * BEFORE the rewards go out, so applying them can re-enter report() without the quest re-firing.
+   * Returns the rewards for the caller to apply, or undefined if not ready. `done` is set first,
+   * so applying them can re-enter report() without the quest re-firing.
    */
   complete(id) {
     const st = Tracker.state().quests[id];
@@ -122,8 +99,6 @@ globalThis.Tracker = {
     return st !== undefined && st.done;
   },
 
-  // ── the UIQuestTracker source contract (status/def/activeIds — see UIQuestTracker) ──
-
   status(id) {
     return Tracker.state().quests[id];
   },
@@ -132,7 +107,7 @@ globalThis.Tracker = {
     return QuestLog.def(id);
   },
 
-  /** in registration order — for UI. */
+  /** In registration order. */
   activeIds() {
     const quests = Tracker.state().quests;
     const order = QuestLog.ids();
@@ -144,12 +119,7 @@ globalThis.Tracker = {
     return out;
   },
 
-  // ── internals ──
-
-  /**
-   * Advance every active objective matching {kind, target} by `n` (clamped to its count); returns
-   * the ids of quests that became READY on this call.
-   */
+  /** Returns the ids of quests that became ready on this call. */
   _advance(kind, target, n) {
     const quests = Tracker.state().quests;
     const order = QuestLog.ids();

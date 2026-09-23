@@ -1,34 +1,29 @@
 /**
- * The rooms of a level — enclosure and warmth over the Core `Rooms` mirror. Feeds the mirror its
- * doors (the built door props, Interaction kind "door", stamped by footprint so a doorway closes a
- * room whether the leaf is open or shut) and holds one TEMPERATURE per room in Kelvin, off one
- * whole-map record (KEY → { lastHour, temps } on the level's own entity). A lumped model — one heat capacity per
- * room, no cell field: the outside is Temperature.now() (the sky, the season, the map's climate);
- * a room converges to it at LEAK per in-game hour plus DOOR_LEAK per open door, raised by the
- * Heat sources standing in it (equilibrium = outside + Σpower / (leak × cells), so a source warms a
- * closet more than a hall). Each step is the closed form T_eq + (T − T_eq)·e^(−k·dh), so a parked
- * map's whole absence is the same call as one frame — no off-focus sim, like FloraSystem's flora
- * clock (the outside over the absence is taken as the arrival's). `temps` keys by the room's
- * `first` cell (Rooms), so a wall edit that keeps a room's top-left cell keeps its warmth; a room
- * that vanishes drops off the record on the next step.
+ * The rooms of a level: enclosure and warmth over a room mirror of the wall layer. Feeds the
+ * mirror its doors, stamped by footprint so a doorway closes a room whether the leaf is open or
+ * shut, and holds one temperature per room in Kelvin under KEY.
  *
- * Takes the level: the mirror is a derived entry of its own entity (MIRROR — a Rooms over the
- * map's wall layer, seeded on the first read), the temperatures its record there (under KEY).
- * `update` runs once per frame BEFORE the sim: the mirror first (the doors standing in the store
- * are the stamped footprints, then the walls are resampled if edited — the environmental needs
- * read it this frame), then the temperatures. What a world point reads off them (under a roof?
- * how warm?) is Shelter's.
+ * A lumped model — one heat capacity per room, no cell field: a room converges to the outside at
+ * LEAK per in-game hour plus DOOR_LEAK per open door, raised by the heat sources standing in it
+ * (equilibrium = outside + Σpower / (leak × cells), so a source warms a closet more than a hall).
+ * Each step is the closed form T_eq + (T − T_eq)·e^(−k·dh), so a parked map's whole absence is the
+ * same call as one frame, with the outside over the absence taken as the arrival's. A room's
+ * warmth keys by its first cell, so a wall edit that keeps that cell keeps its warmth; a room that
+ * vanishes drops off the record on the next step.
+ *
+ * `update` runs once per frame before the sim, the mirror first so this frame's readers see it.
  */
 globalThis.RoomSystem = {
-  KEY: "rooms", // its temperature record's token on the level's own entity — a data key (a save holds it)
-  MIRROR: "rooms_mirror", // the Rooms mirror's derived token there — never saved
-  LEAK: 0.6, // 1/h — a sealed room closes 1 − e^-0.6 ≈ 45% of its gap to the outside each in-game hour
+  KEY: "rooms", // a data key: a save holds it
+  MIRROR: "rooms_mirror", // derived, never saved
+  LEAK: 0.6, // 1/h — a sealed room closes ≈ 45% of its gap to the outside each in-game hour
   DOOR_LEAK: 1.5, // 1/h more per open door
-  _rects: [], // scratch: the doors' footprints handed to Rooms.stamp (the rect objects are reused)
-  _power: [], // scratch: per-room Heat sum for the step
-  _leak: [], // scratch: per-room leak rate for the step
+  // scratch, reused every step
+  _rects: [],
+  _power: [],
+  _leak: [],
 
-  /** The level's room mirror — the wall layer bounds a room (a fence has no roof). */
+  /** Only the wall layer bounds a room: a fence has no roof. */
   rooms(level) {
     return level.entities.derive(
       level.self,
@@ -37,7 +32,6 @@ globalThis.RoomSystem = {
     );
   },
 
-  /** The doors standing in the store are the stamped footprints, then the walls resample if edited. */
   _sync(level, rooms) {
     const entities = level.entities;
     const rects = RoomSystem._rects;
@@ -53,10 +47,7 @@ globalThis.RoomSystem = {
     rooms.sync();
   },
 
-  /**
-   * The mirror, then every room's temperature stepped up to now (WorldClock.absHours); a first
-   * call on a map without the record starts its clock, every room at the outside temperature.
-   */
+  /** A first call on a map starts its clock, every room at the outside temperature. */
   update(level) {
     const rooms = RoomSystem.rooms(level);
     RoomSystem._sync(level, rooms);
@@ -81,7 +72,7 @@ globalThis.RoomSystem = {
       const r = rooms.atWorld(pos.x, pos.y);
       if (r > 0) power[r] += h.power;
     });
-    // an open door leaks every room it touches (its cell is a wall — read the four neighbours)
+    // a door's own cell is a wall, so it leaks the rooms around it
     entities.forEach([Interaction, Position], (id, it, pos) => {
       if (it.kind !== "door") return;
       if (it.open !== 1) return;
@@ -108,7 +99,7 @@ globalThis.RoomSystem = {
       const eq = out + power[r] / (k * room.cells);
       temps[key] = eq + (t - eq) * Math.exp(-k * dh);
     }
-    rec.temps = temps; // rebuilt each step: a vanished room's key goes with it
+    rec.temps = temps; // rebuilt, so a vanished room's key goes with it
   },
 
 };

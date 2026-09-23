@@ -1,23 +1,20 @@
 /**
- * Moves the dynamic solid bodies and keeps them out of the kinematic solids: every solid body
- * with a Velocity moves through its mirror (PuppetSystem.move — the runtime against the
- * kinematic mirrors, one axis at a time) in sub-steps of at most `maxStep`. A body slides along
- * a face by its own tangential velocity (x blocked, y free), and its Velocity is rewritten as the
- * displacement it actually made, so a reader of speed (Doll.pace) sees a body pressed into a
- * wall stand still. Every displacement a body takes goes through the runtime (SeparationSystem's
- * push too), so no body is ever inside a solid. The bare static collider is Colliders'.
+ * Moves the dynamic solid bodies and keeps them out of the kinematic solids, in sub-steps of at
+ * most `maxStep`. A body slides along a face by its own tangential velocity, and its Velocity is
+ * rewritten as the displacement it actually made, so a body pressed into a wall reads as still.
+ * Every displacement goes through the runtime, so no body is ever inside a solid.
  */
 globalThis.SolidSystem = {
-  maxStep: 8, // the runtime's sub-step (px): keep below the thinnest collider to prevent tunneling
+  maxStep: 8, // px; below the thinnest collider to prevent tunneling
 
   update(level) {
     const dt = Time.step;
     const maxStep = SolidSystem.maxStep;
-    // Velocity leads: the movers, not the walls
+    // Velocity leads the query: the movers, not the walls
     level.entities.forEach([Velocity, Collision, Instance, Position], (id, vel, col, h, pos) => {
       if (!col.solid) return;
-      if (!h.shaped) return; // no mirror yet — PuppetSystem's next update shapes it
-      if (h.still) return; // a kinematic never moves (PuppetSystem's premise)
+      if (!h.shaped) return; // no mirror yet
+      if (h.still) return; // a kinematic never moves
       const dx = vel.x * dt;
       const dy = vel.y * dt;
       const m = Math.max(Math.abs(dx), Math.abs(dy));

@@ -1,41 +1,27 @@
 /**
  * Interaction engine for the colony scene.
  *
- * THE ONE-PICK INVARIANT: everything E can act on — a station, a ripe plant, a quest NPC, a
- * merchant, a companion hired or not — carries `Interaction`, so there is exactly one candidate set
- * and one pick per frame (the handle's `target`), and the highlight, the prompt (the pill, or an
- * NPC's dialogue panel) and the E activation all derive from it. Never add a second picker over
- * another channel (an NPC query beside this one, say): the moment a press arbitrates between two
- * picks, what is highlighted and what E does can disagree.
+ * The one-pick invariant: everything E can act on carries `Interaction`, so there is exactly one
+ * candidate set and one pick per frame, and the highlight, the prompt and the activation all
+ * derive from it. Never add a second picker over another channel: once a press arbitrates between
+ * two picks, what is highlighted and what E does can disagree.
  *
- * The action itself is data (InteractAction registry, colony set in contentInteractions), so this engine is
- * generic dispatch, not a per-kind switch — from opening a window to feeding the player. Activation
- * is E, not left-click (combat fires on left-click; the mouse only CHOOSES the target). The world
- * cursor is scene.mouseWorld (the scene's per-frame pitch-aware latch, see Camera).
- *
- * build() returns the PICK HANDLE holding this engine's whole per-frame state (`el` the pill,
- * `target`/`kind` the frame's pick, `text` its resolved pill text) — the scene keeps that one
- * field and hands it back to every member, the shape a `*UI` page already takes (see Window).
- * Build once in create() after player + ui; update() each step, drawTarget() in draw() (world).
- *
- * THE STATION PAGES: a window action's run() opens its page through the scene's Window with the
- * target entity (`scene.window.open("storage", { target: ctx.id })`); update() range-closes the
- * open page when that target leaves reach (or is gone) and hides the pill while any page shows.
- * The pages themselves, their refresh and their Esc are the Window's (see Window).
+ * The action is data in the InteractAction registry, so this is generic dispatch, not a per-kind
+ * switch. Activation is E; the mouse only chooses the target. build() returns the pick handle
+ * holding the engine's whole per-frame state, which the scene hands back to every member. An open
+ * station page closes when its target leaves reach.
  */
 globalThis.Interactable = {
-  RADIUS: 72, // interact range (px); 32px-cell scale
+  RADIUS: 72, // px
 
   build(scene) {
     const pick = {
-      el: null, // the proximity pill
+      el: null,
       target: -1,
       kind: "",
-      text: "", // the pick's resolved pill text this frame ("" = no pill)
+      text: "", // "" = no pill
     };
 
-    // proximity prompt — shown only while a station is in range and no window is open;
-    // label re-resolves each draw to track the target's kind
     const prompt = new UIElement({
       positionType: "absolute",
       left: 0,
@@ -71,11 +57,7 @@ globalThis.Interactable = {
     return pick;
   },
 
-  /**
-   * the pill's text for the pick: the def's prompt — an I18n key, or a function of the run()
-   * ctx returning one, resolved now — "" for none (no pick, or a def that prompts through its
-   * own UI). update() resolves it once per frame into the handle's `text`.
-   */
+  /** "" for no pick, or a def that prompts through its own UI. */
   _promptText(scene, pick) {
     const def = InteractAction.get(pick.kind);
     if (def === undefined) return "";
@@ -86,7 +68,6 @@ globalThis.Interactable = {
     return key === "" ? "" : I18n.text(key);
   },
 
-  /** the ctx a def's prompt()/run() receives, over the frame's pick */
   _ctx(scene, pick) {
     const entities = scene.level.entities;
     return {
@@ -99,22 +80,18 @@ globalThis.Interactable = {
   },
 
   /**
-   * Per-frame: pick target, drive prompt/highlight, range-close the open station page. E is NOT
-   * read here — the scene reads it after this and closes the page or calls activate(), so the
-   * press always lands on the pick this frame made.
+   * E is not read here: the scene reads it afterwards, so the press always lands on the pick this
+   * frame made.
    */
   update(scene, pick) {
     Interactable._choose(scene, pick);
 
-    // the open page's target left range (or is gone) → close
     const target = scene.window.target;
     if (target !== -1) {
       if (!Interactable._inRange(scene, target)) scene.window.close();
     }
 
-    // hidden under build mode too: E is not bound in the build context, and the build HUD
-    // stands where the prompt does. A def without a prompt draws no pill — its target prompts
-    // through its own UI (an NPC's dialogue panel).
+    // hidden under build mode too: E is not bound there, and its HUD stands where the prompt does.
     pick.text = Interactable._promptText(scene, pick);
     pick.el.enabled =
       pick.text !== "" &&
@@ -122,17 +99,14 @@ globalThis.Interactable = {
       !scene.build.active;
   },
 
-  // ── Scene hook (the scene's E dispatch: a station page open → close it, else activate)
-  /** run the pick's action — THE E press; a no-op with nothing picked */
+  /** A no-op with nothing picked. */
   activate(scene, pick) {
     Interactable._open(scene, pick);
   },
 
   /**
-   * THE pick over every Interaction-carrying entity in range: the one under the cursor, else by
-   * proximity — the highest def priority, then the nearest (a companion at your side, priority
-   * -1, never shadows the station you stopped at). NPCs are candidates like any station (their
-   * Interaction is ColonySpawn's).
+   * The entity under the cursor, else by proximity: the highest def priority, then the nearest,
+   * so a low-priority companion at your side never shadows the station you stopped at.
    */
   _choose(scene, pick) {
     const entities = scene.level.entities;
@@ -143,7 +117,7 @@ globalThis.Interactable = {
       return;
     }
     const rSq = Interactable.RADIUS * Interactable.RADIUS;
-    const pitch = CameraSystem.view(scene.level).pitch; // the cursor test reads the view, not the sim (Silhouette)
+    const pitch = CameraSystem.view(scene.level).pitch; // the cursor tests what is drawn
     let nearest = -1;
     let nearestSq = rSq;
     let nearestPri = -Infinity;
@@ -152,7 +126,7 @@ globalThis.Interactable = {
 
     entities.forEach([Interaction, Position], (id, it, pos) => {
       const dPlayer = (pos.x - p.x) ** 2 + (pos.y - p.y) ** 2;
-      if (dPlayer >= rSq) return; // out of interact range
+      if (dPlayer >= rSq) return;
       const def = InteractAction.get(it.kind);
       const pri =
         def !== undefined && def.priority !== undefined ? def.priority : 0;
@@ -164,9 +138,8 @@ globalThis.Interactable = {
         nearestSq = dPlayer;
         nearest = id;
       }
-      // the cursor names the SHAPE THE PLAYER SEES — a standing body's silhouette, a flat
-      // prop's footprint (Silhouette) — and among overlapping shapes the frontmost, which is
-      // the one whose pixels the player actually clicked
+      // the cursor names the shape the player sees, and among overlapping shapes the frontmost —
+      // the one whose pixels were clicked.
       if (
         pos.y > mouseFront &&
         Silhouette.hit(entities, id, pos, scene.mouseWorld, pitch)
@@ -196,12 +169,7 @@ globalThis.Interactable = {
     return (pos.x - p.x) ** 2 + (pos.y - p.y) ** 2 < rSq;
   },
 
-  /**
-   * dispatch the target's Interaction via the registry: look up its `kind` and run the def. A window
-   * action's run() opens its page through scene.window with the target itself (so this stays
-   * generic — instant vs window is the def's concern, not the engine's). New interactions are a
-   * data entry in InteractAction, not here.
-   */
+  /** Instant vs window is the def's concern, not the engine's. */
   _open(scene, pick) {
     const ctx = Interactable._ctx(scene, pick);
     if (ctx.comp === undefined) return;
@@ -211,10 +179,8 @@ globalThis.Interactable = {
   },
 
   /**
-   * world-space highlight outline around the target, called from scene.draw() after the world:
-   * around the SILHOUETTE the pick named, in the very plane RenderBillboard stood the body up in
-   * (so the box lands on the body, not at its feet), and around the footprint for a flat prop
-   * that has no silhouette.
+   * World-space outline: around a standing body's silhouette in the plane it stands in, else
+   * around a flat prop's footprint.
    */
   drawTarget(scene, pick) {
     const id = pick.target;
@@ -225,16 +191,14 @@ globalThis.Interactable = {
     const box = Silhouette.of(entities, id);
     draw_set_color(c_yellow);
     if (box !== undefined) {
-      // an outline is an affordance, not geometry: the depth the standing passes wrote would
-      // clip the far edges behind the very bodies it marks, so it draws over them (restore the
-      // Game-wide default after — Game Create_0)
+      // an affordance, not geometry: depth would clip its far edges behind the body it marks.
       gpu_set_ztestenable(false);
       const tall = RenderBillboard.tall(CameraSystem.view(scene.level).pitch);
       matrix_set(
         matrix_world,
         matrix_build(pos.x, pos.y, 0, -90, 0, 0, 1, 1, tall),
       );
-      // silhouette height runs UP, the sprite's local y down — the box flips into the plane
+      // silhouette height runs up, the plane's local y down.
       draw_rectangle(
         box.left - 4,
         -box.top - 4,

@@ -15,8 +15,7 @@ globalThis.File = {
   },
 
   /**
-   * The file as a string, or with `binary` as a fresh buffer the caller owns (buffer_delete
-   * when done); undefined when the file is missing.
+   * A string, or with `binary` a fresh buffer the caller owns; undefined when the file is missing.
    */
   read(fname, binary = false) {
     const buffer = buffer_load(fname);
@@ -31,9 +30,8 @@ globalThis.File = {
   },
 
   /**
-   * Write a string, or with `binary` a buffer's used bytes (the caller keeps the buffer).
-   * Answers nothing: buffer_save_ext reports no result, and a read-back is the only check
-   * (docs/GMRT.md #15733).
+   * A string, or with `binary` a buffer's used bytes (the caller keeps the buffer). Returns
+   * nothing: a read-back is the only check (docs/GMRT.md #15733).
    */
   write(fname, data, binary = false) {
     if (binary) {

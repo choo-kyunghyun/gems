@@ -1,15 +1,12 @@
 /**
  * Radio tab of the inventory window.
  *
- * Built ONCE by InventoryUI.build; every label and `selected` reads Radio/Music/Time live, so a
- * tune shows the frame it lands and the tab needs no rebuild hook.
+ * Built once; every label and selection reads live, so a tune shows the frame it lands and the tab
+ * needs no rebuild hook.
  */
 globalThis.RadioUI = {
-  COLS: 2, // dial columns — the whole dial at rowHSm would overrun the card in one
+  COLS: 2, // the whole dial would overrun the card in one column
 
-  /**
-   * The tab page: the now-playing rows (track, tempo), a hint, then the dial dealt across COLS.
-   */
   build(scene) {
     const page = new UIElement({ width: "100%", gap: FacetTheme.gapSm });
     const title = new UIElement({ width: "100%", height: 22 });
@@ -62,10 +59,7 @@ globalThis.RadioUI = {
     return page;
   },
 
-  /**
-   * one dial button: "Name · 120 BPM · 120 TPS" (an untimed bed shows only its TPS), lit
-   * while tuned
-   */
+  /** One dial button, lit while tuned. */
   _stationBtn(scene, def) {
     return facetButton(
       () => {
@@ -82,9 +76,7 @@ globalThis.RadioUI = {
     );
   },
 
-  /**
-   * the playing track's name — the bed is marked as the map's, a nameless or no track is "-"
-   */
+  /** The playing track's name, the map's bed marked as such; silent for a nameless or no track. */
   _playing() {
     const def = AssetMeta.of(Music.track());
     if (def === undefined) return I18n.text("RADIO_SILENT");
@@ -93,9 +85,7 @@ globalThis.RadioUI = {
     return Radio.on() ? name : name + "  " + I18n.text("RADIO_BED");
   },
 
-  /**
-   * "120 BPM · x2 · 120 TPS" for a track — the scene's tempo rule, previewed
-   */
+  /** The scene's tempo rule for a track, previewed. */
   _tempo(scene, sound) {
     const bpm = AssetMeta.bpm(sound);
     const t = Math.round(scene.tempo(sound) * 100) / 100;

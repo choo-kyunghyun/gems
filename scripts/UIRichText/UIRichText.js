@@ -1,21 +1,21 @@
 /**
  * @implements {UIComponent}
- * Multi-run text: colored spans + inline icons from one markup string (richer UIText sibling).
+ * Multi-run text: colored spans and inline icons from one markup string.
  *
  * Markup:
  *   [c=#ff5555]…[/c]   colored span ([/] closes too); #rrggbb hex or an `opts.palette` name.
- *   [spr=<name>]       inline icon; [spr=<name>:2] picks a subimage. sprite MUST be raster
- *                      (SVG reports 0 frames on GMRT and faults draw_sprite — see CLAUDE.md).
+ *   [spr=<name>]       inline icon; [spr=<name>:2] picks a subimage. BUG: the sprite must be
+ *                      raster, not SVG (docs/GMRT.md).
  *   \n                 hard line break.
- * Spans nest; unknown tags dropped. Self-sizes to parsed content; draws from pos.left/top + own
- * advances, never reading the element width. halign resolves against the widest line, independent
- * of element width. Parse result is cached, rebuilt only on a source-string change.
+ * Spans nest; unknown tags are dropped. Self-sizes to the parsed content and never reads the
+ * element width; halign resolves against the widest line. The parse is rebuilt only on a
+ * source-string change.
  */
 globalThis.UIRichText = class UIRichText {
   /** s: { textRef: () => string, color, alpha, halign, font, iconSize, palette } */
   constructor(s = {}) {
     this.textRef = s.textRef ?? (() => "");
-    this.color = s.color ?? c_white; // default / span-less color
+    this.color = s.color ?? c_white; // outside any span
     this.alpha = s.alpha ?? 1;
     this.halign = s.halign ?? fa_left;
     this.font = s.font ?? -1;
@@ -31,9 +31,6 @@ globalThis.UIRichText = class UIRichText {
     this._height = 0;
   }
 
-  /**
-   * re-parse + self-size on a source-string change.
-   */
   onUpdate(element, block) {
     const str = this.textRef();
     if (this.cache !== str) {
@@ -97,21 +94,15 @@ globalThis.UIRichText = class UIRichText {
     uiDrawRestore(st);
   }
 
-  /**
-   * left edge of `line` for halign against the widest line — independent of the element rect.
-   */
   _lineOffset(line) {
     if (this.halign === fa_left) return 0;
     const slack = this._width - this._lineWidths[line];
     return this.halign === fa_center ? slack * 0.5 : slack;
   }
 
-  /**
-   * Parse
-   */
   _parse(str) {
     const items = [];
-    const stack = [this.color]; // color stack; top is the active span color
+    const stack = [this.color]; // top is the active span color
     let i = 0;
     let runStart = 0;
 
@@ -138,9 +129,6 @@ globalThis.UIRichText = class UIRichText {
     this._items = items;
   }
 
-  /**
-   * split a literal run on newlines into text segments + break markers.
-   */
   _pushText(items, text, color) {
     let start = 0;
     for (let k = 0; k < text.length; k++) {
@@ -168,13 +156,12 @@ globalThis.UIRichText = class UIRichText {
       items.push(this._icon(tag.substring(4), stack[stack.length - 1]));
       return;
     }
-    // Unknown tag — drop it.
   }
 
   _color(v) {
     if (this.palette[v] != null) return this.palette[v];
     if (v.charAt(0) === "#") return Color.parse(v);
-    return this.color; // unrecognized name → keep the current color
+    return this.color;
   }
 
   _icon(v, color) {
@@ -186,12 +173,11 @@ globalThis.UIRichText = class UIRichText {
       const n = parseInt(v.substring(colon + 1), 10);
       if (!isNaN(n)) sub = n;
     }
-    // asset_get_index returns an opaque sprite ref on GMRT (not a number), so a `>= 0` test fails —
-    // validity checked via sprite_exists at draw time.
+    // a ref, not a number (docs/GMRT.md): validity is checked at draw time
     return { kind: "icon", spr: asset_get_index(name), sub, c: color };
   }
 
-  /** Measure (font already set by the caller) */
+  /** Expects the font already set. */
   _measure() {
     this._lineHeight = string_height("Mg");
     this._iconPx = this.iconSize > 0 ? this.iconSize : this._lineHeight;

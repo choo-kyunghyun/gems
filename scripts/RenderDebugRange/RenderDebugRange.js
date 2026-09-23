@@ -1,12 +1,10 @@
 /**
- * Ring radius is entity[component][field]. colony wires Brain ranges (see ColonyMap). Inserted disabled.
+ * Debug rings around entities, each radius read from entity[component][field]. Starts disabled:
+ * a toggled overlay.
  * @implements {RenderPass}
  */
 globalThis.RenderDebugRange = class RenderDebugRange {
-  /**
-   * opt: ranges ({component,field,color,alpha?}[]), alpha (default ring alpha when a spec omits its
-   * own), enabled (start drawn — default false, a toggled overlay).
-   */
+  /** opt: ranges ({component,field,color,alpha?}[]), alpha (for a spec without its own), enabled. */
   constructor(opt = {}) {
     this.enabled = opt.enabled ?? false;
     this.ranges = opt.ranges ?? [];
@@ -27,7 +25,7 @@ globalThis.RenderDebugRange = class RenderDebugRange {
       for (let i = 0; i < ids.length; i++) {
         const id = ids[i];
         const radius = entities.get(id, spec.component)[spec.field];
-        if (!(radius > 0)) continue; // skip 0/NaN radii
+        if (!(radius > 0)) continue; // also skips NaN
         const rp = entities.get(id, Position);
         const x = rp.x;
         const y = rp.y;

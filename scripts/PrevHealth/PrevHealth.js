@@ -1,7 +1,6 @@
 /**
- * Health at the last observation — what ColonyCombat.trackDamage
- * diffs it to pop a floating number on a change, then re-seeds it. Absent = no baseline yet, so
- * the first observation pops nothing (a spawn, a load, a revive).
+ * Health at the last observation, the baseline a damage readout diffs against. Absent means no
+ * baseline yet, so a first observation (a spawn, a load, a revive) shows nothing.
  * @typedef {Object} PrevHealth
  * @property {number} hp
  */

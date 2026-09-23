@@ -1,16 +1,13 @@
 /**
- * Marks THE input-driven entity (PlayerSystem queries it — the player is found live, never a
- * stored id) and carries the brain's per-frame state. Flat scalars only, so it rides
- * Row/map transfer with the rest of the player sheet.
+ * Marks the input-driven entity — the player is found live, never by a stored id — and carries
+ * its per-frame input state. Flat scalars only, so it travels with the player.
  *
  * @typedef {Object} Playable
  * @property {number} fireCd   seconds until the next shot/swing
- * @property {number} attackCd seconds the attack pose stays up (drives the attack animation)
- * @property {string} attackAnim melee anim latched at swing ("attack"|"kick"; "" = none yet) —
- *                   the unarmed fist fallback alternates punch/kick by flipping this
- * @property {number} cursorX  the AIM point, latched once per frame by the scene — what the
- *                   cursor visibly covers resolved to a world point (ColonyPlayer.aim), NOT the
- *                   ground cursor the build/pick code reads
+ * @property {number} attackCd seconds the attack pose stays up
+ * @property {string} attackAnim "attack"|"kick", latched at the swing; "" = none yet
+ * @property {number} cursorX  the aim point, latched once per frame: what the cursor visibly
+ *                   covers, not the ground cursor
  * @property {number} cursorY
  */
 globalThis.Playable = "Playable";

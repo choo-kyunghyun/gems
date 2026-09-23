@@ -13,7 +13,7 @@ globalThis.UIPanel = class UIPanel {
     this.color = panel.color ?? c_white;
     this.alpha = panel.alpha ?? 1;
     this.rad = panel.rad ?? 0;
-    this.border = panel.border ?? 0; // outline thickness px; 0 = none
+    this.border = panel.border ?? 0; // 0 = none
     this.borderColor = panel.borderColor ?? c_white;
   }
 

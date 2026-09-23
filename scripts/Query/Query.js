@@ -1,23 +1,16 @@
 /**
- * Spatial lookup over entities. Three families: `inRect`/`inCircle` test a POSITION — any
- * entity, a plant or a beacon included, the JS walk — `maskRect`/`maskCircle` ask the runtime
- * for the colliders whose MASK overlaps the shape (the mirrors, PuppetSystem — a solid collider
- * only, since a solid-off one wears the empty mask), so a body whose centre lies outside but
- * whose box reaches in counts, and `cast`/`castAll` are the segment casts over the same mirrors:
- * one `collision_line_list` over `Puppet` — every collider's instance, a Solid's included — then
- * each hit's bbox through the slab test for the entry point, the normal and `t`, since the
- * runtime's list orders by an instance's ORIGIN distance and carries no point. Every runtime form
- * runs from the parked probe (PuppetSystem.probe) and drains the one hit list (PuppetSystem.list)
- * before anything else can ask; the mirrors are as of this tick's PuppetSystem.update, so a hit's
- * id is still validated against the store, and a parked level's mirrors are deactivated. The id
- * forms return ids, `has` narrowing to a component's carriers; a cast's hit is
- * { id, x, y, nx, ny, t }, nx/ny the surface normal pointing back along the ray, t the segment
- * parameter (0 = start, clamped to 0 when the start is inside).
+ * Spatial lookup over entities. `inRect`/`inCircle` test any entity's position; `maskRect`/
+ * `maskCircle` ask the runtime for the solid colliders whose mask overlaps the shape, so a body
+ * whose centre lies outside but whose box reaches in counts; `cast`/`castAll` cast a segment over
+ * every collider, each hit's box slab-tested for its entry point, since the runtime's list carries
+ * no point. The runtime forms see colliders as of this tick, so every hit id is re-validated
+ * against the store. A cast's hit is { id, x, y, nx, ny, t }: nx/ny the surface normal pointing
+ * back along the ray, t the segment parameter (clamped to 0 when the start is inside).
  * @typedef {Object} QueryOpts
  *   @property {number} [ignore] skip this entity (the asker itself)
  *   @property {string} [has] the id forms only: require this component (its token)
  *   @property {boolean} [ordered] maskCircle only: nearest first, by the distance from the
- *   centre to each mirror's origin — its box centre (PuppetSystem)
+ *   centre to each collider's box centre
  */
 globalThis.Query = {
   _nx: 0, // _slab's entry normal, read right after the hit it returned
@@ -71,11 +64,11 @@ globalThis.Query = {
     for (let k = 0; k < found; k++) {
       const inst = ds_list_find_value(list, k);
       const id = inst.eid;
-      if (id === undefined) continue; // a Puppet that mirrors no entity (a probe, a test's doll)
+      if (id === undefined) continue; // an instance that mirrors no entity
       if (id === ignore) continue;
       const t = Query._slab(x0, y0, dx, dy, inst.bbox_left, inst.bbox_top, inst.bbox_right, inst.bbox_bottom);
       if (t < 0 || t >= bestT) continue;
-      if (!entities.isValid(id)) continue; // removed since the mirror's sync (PuppetSystem)
+      if (!entities.isValid(id)) continue; // removed since the mirror's sync
       bestT = t;
       bestId = id;
       nx = Query._nx;
@@ -85,7 +78,7 @@ globalThis.Query = {
     return { id: bestId, x: x0 + dx * bestT, y: y0 + dy * bestT, nx, ny, t: bestT };
   },
 
-  /** Every hit the segment crosses, ASCENDING by entry distance `t` — multi-hit counterpart to cast(). */
+  /** Every hit the segment crosses, ascending by entry distance `t`. */
   castAll(entities, x0, y0, x1, y1, opts = {}) {
     const ignore = opts.ignore;
     const dx = x1 - x0;
@@ -96,22 +89,21 @@ globalThis.Query = {
     for (let k = 0; k < found; k++) {
       const inst = ds_list_find_value(list, k);
       const id = inst.eid;
-      if (id === undefined) continue; // a Puppet that mirrors no entity
+      if (id === undefined) continue; // an instance that mirrors no entity
       if (id === ignore) continue;
       const t = Query._slab(x0, y0, dx, dy, inst.bbox_left, inst.bbox_top, inst.bbox_right, inst.bbox_bottom);
       if (t < 0) continue;
       if (!entities.isValid(id)) continue;
       hits.push({ id, x: x0 + dx * t, y: y0 + dy * t, nx: Query._nx, ny: Query._ny, t });
     }
-    // BUG: [#15593] sort by t with a SIGN comparator, NOT `a.t - b.t`.
+    // BUG: #15593 — a sign comparator, never `a.t - b.t` (docs/GMRT.md)
     hits.sort((a, b) => (a.t < b.t ? -1 : a.t > b.t ? 1 : 0));
     return hits;
   },
 
   /**
-   * Visit the candidate set as `(id, pos)`. `has` JOINs the query instead of filtering after
-   * it, and the marker leads the token list so the scan gates on the RAREST column first —
-   * finding the one NPC among 475 entities stops costing a `has` per entity (docs/ARCHITECTURE.md → Hot-path idioms).
+   * Visit the candidate set as `(id, pos)`. `has` joins the query rather than filtering after it,
+   * leading the token list so the scan gates on the rarest column first (docs/ARCHITECTURE.md).
    */
   _each(entities, opts, fn) {
     const extra = opts.has;
@@ -134,7 +126,7 @@ globalThis.Query = {
     const result = [];
     for (let k = 0; k < found; k++) {
       const id = ds_list_find_value(list, k).eid;
-      if (id === undefined) continue; // a Puppet that mirrors no entity
+      if (id === undefined) continue; // an instance that mirrors no entity
       if (id === ignore) continue;
       if (!entities.isValid(id)) continue;
       if (has !== undefined) {
@@ -145,7 +137,8 @@ globalThis.Query = {
     return result;
   },
 
-  /** The runtime's line list over every mirror into `list`, unordered; returns the count. */
+  /** The runtime's line list over every collider into `list`, unordered; returns the count. */
+
   _line(x0, y0, x1, y1, list) {
     return PuppetSystem.probe().collision_line_list(x0, y0, x1, y1, Puppet, false, true, list, false);
   },

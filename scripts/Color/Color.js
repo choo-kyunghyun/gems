@@ -8,10 +8,7 @@ globalThis.Color = {
     return make_color_hsv(h, s, v);
   },
 
-  /**
-   * One-shot lerp; #15546: don't ease a packed int per frame (floors to
-   * black) — ease r/g/b as floats, approach per channel.
-   */
+  /** One-shot only: never ease a packed int per frame (docs/GMRT.md). */
   merge(col1, col2, amount) {
     return merge_color(col1, col2, amount);
   },
@@ -23,7 +20,7 @@ globalThis.Color = {
     return make_color_rgb(r, g, b);
   },
 
-  /** Alpha [0,1] from a 32-bit `$AABBGGRR` IDE color literal. Plain RGB ints have no alpha byte. */
+  /** Alpha [0,1] from a `$AABBGGRR` IDE color literal; plain RGB ints have no alpha byte. */
   alpha(color) {
     return (color >> 24) / 0xff;
   },

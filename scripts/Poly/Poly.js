@@ -1,18 +1,17 @@
 /**
  * Low-poly volume meshes, baked offline so loading does no meshing.
  *
- * File format (little-endian, poly-kit polylib is the writer):
+ * File format (little-endian):
  *   header 24 B: "PMSH" + u32 version (1) + u32 vertex count + f32 content w, d, h
- *   vertex 24 B: f32 x, y, z (canvas-centered, up = -z, feet at 0 — Vox's game space)
- *                + u8 r, g, b, 255 + f32 nx, ny (shMeshlit.vsh's packed normal:
- *                nz = -sqrt(1 - nx^2 - ny^2), bottomless like Vox)
+ *   vertex 24 B: f32 x, y, z (canvas-centered, up = -z, feet at 0)
+ *                + u8 r, g, b, 255 + f32 nx, ny (a packed normal:
+ *                nz = -sqrt(1 - nx^2 - ny^2), so no face points down)
  */
 globalThis.Poly = {
-  _cache: {}, // name -> { content, count } | null (null = missing/malformed, checked once)
+  _cache: {}, // name -> { content, count } | null (missing or malformed, checked once)
 
   /**
-   * Cached header of meshes/<name>.mesh; undefined when the file is missing or malformed
-   * (the caller owns the fallback — usually the name's .vox).
+   * Undefined when the file is missing or malformed; the caller owns the fallback.
    * @returns {{ content: number[], count: number } | undefined}
    */
   load(name) {
@@ -28,7 +27,7 @@ globalThis.Poly = {
     return m === null ? undefined : m;
   },
 
-  /** Header fields off a loaded buffer, or null (malformed files are errors, missing is not). */
+  /** Null when malformed; a malformed file is an error, a missing one is not. */
   _parse(buf, name) {
     if (
       buffer_get_size(buf) < 24 ||
@@ -61,9 +60,8 @@ globalThis.Poly = {
   },
 
   /**
-   * The baked stream as a NEW vertex buffer (caller owns it: freeze/delete); -1 when the
-   * .mesh is missing or malformed. `format` is RenderMesh's lockstep layout (position_3d +
-   * colour + texcoord), identical to Vox.mesh's contract.
+   * A new vertex buffer the caller owns; -1 when the .mesh is missing or malformed. `format`
+   * must declare position_3d + colour + texcoord, in lockstep with the vertex layout above.
    */
   mesh(name, format) {
     const m = Poly.load(name);

@@ -1,22 +1,14 @@
 /**
- * One world, one queue — logic over ONE world record (World.self under KEY — { q }); kept off
- * WorldClock so the clock stays the pure temporal authority (same split as Temperature).
+ * The world's event queue: off-focus world state (a trader crossing maps, a scheduled raid, a
+ * timed respawn) advances by DISCRETE scheduled events, not by simulating a scene every frame.
+ * `update(now)` fires every due event whatever map is active.
  *
- * The point: off-focus world state (a wandering trader crossing maps, a scheduled raid, a timed
- * respawn) advances by DISCRETE scheduled events, not by simulating a scene every frame. `update(now)`
- * fires every event whose time has come, whatever map is active — the queue is blind to which scene is
- * loaded. Handlers do the work (they touch the active World only at a hydrate/dehydrate boundary).
- *
- * Time is an absolute in-game hour count (WorldClock.absHours() = (day-1)*24 + hour), so sleeping
- * (Time.scale) fast-forwards schedules for free and the queue freezes in the lobby (WorldClock only
- * advances while the colony scene steps). Generic on `now` — it never reads WorldClock itself.
- *
- * The queue is data (it rides the save with the world's records); the handlers are wiring — a
- * scene registers them at create (after World.reset, which drops them with the rest of the
- * world), and a kind with no handler is dropped when due.
+ * Time is an absolute in-game hour count, so a fast-forward advances schedules for free; the
+ * queue never reads the clock itself. The queue is data and rides the save; the handlers are
+ * wiring a scene registers at create, and a due kind with no handler is dropped.
  */
 globalThis.WorldEvents = {
-  KEY: "events", // its token on the world's own entity — a data key (a save holds it)
+  KEY: "events", // the record's key on the world entity; a save holds it
   _handlers: {}, // kind -> fn(data) ; wiring, not data
 
   /** The queue record — `{ q: [{ at, kind, data }] }`, kept sorted ascending by `at` (soonest first). */
@@ -25,7 +17,7 @@ globalThis.WorldEvents = {
   },
 
   /**
-   * Register the handler for an event kind (last registration wins). Do this once at scene setup.
+   * Register the handler for an event kind (last registration wins).
    */
   on(kind, fn) {
     WorldEvents._handlers[kind] = fn;
@@ -33,13 +25,13 @@ globalThis.WorldEvents = {
 
   /**
    * Queue an event to fire at absolute in-game hour `at`. `data` is a flat scalar payload (kept
-   * save-safe — no nested objects/arrays; the JSON nested-value fault). Insertion-sorted so update()
-   * can stop at the first not-yet-due event.
+   * save-safe — no nested objects/arrays, docs/GMRT.md #15565). Insertion-sorted so update() can
+   * stop at the first not-yet-due event.
    */
   schedule(at, kind, data) {
     const q = WorldEvents.state().q;
     const e = { at: at, kind: kind, data: data };
-    // find the insertion point (ascending `at`); linear is fine — the queue holds a handful of events
+    // linear is fine — the queue holds a handful of events
     let i = q.length;
     while (i > 0 && q[i - 1].at > at) i--;
     q.splice(i, 0, e);
@@ -48,8 +40,8 @@ globalThis.WorldEvents = {
   /**
    * Fire every event whose time has come (at <= now), in time order, dispatching to its handler.
    * Handlers may schedule follow-ups; a follow-up dated in the past (or == now) fires next frame,
-   * not this one — the due events are spliced out BEFORE dispatch (a shift-per-dispatch loop would
-   * re-enter a same-frame follow-up and a repeat scheduler could hang the game).
+   * not this one — the due events are spliced out BEFORE dispatch, so a repeat scheduler can't
+   * hang the game.
    */
   update(now) {
     const q = WorldEvents.state().q;
@@ -75,7 +67,7 @@ globalThis.WorldEvents = {
     return n;
   },
 
-  /** Drop the handlers (World.reset) — the queue goes with the world's records. */
+  /** Drop the handlers; the queue goes with the world's records. */
   reset() {
     WorldEvents._handlers = {};
   },

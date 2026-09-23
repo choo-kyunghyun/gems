@@ -2,12 +2,11 @@
  * A row handle — index (20 bits) plus generation (12 bits) packed into one number — and the
  * allocator that hands them out: a freed index comes back at the next generation, so a stale
  * handle fails `isValid` instead of naming the slot's new owner. The static half packs and
- * unpacks a handle; the instance half is a Table's allocation table (Table.ids).
+ * unpacks a handle; the instance half is an allocation table.
  */
 globalThis.Handle = class Handle {
   static INDEX_BITS = 20;
-  // Literal 20, not (1 << INDEX_BITS): GMRT static field initializers can't reference the
-  // class's own name — keep the two in sync by hand.
+  // BUG: a literal, not INDEX_BITS (docs/GMRT.md) — keep the two in sync by hand.
   static INDEX_MASK = (1 << 20) - 1;
   static GENERATION_MASK = 0xfff;
 
@@ -26,13 +25,11 @@ globalThis.Handle = class Handle {
   constructor(maxEntities) {
     this.generations = new Uint16Array(maxEntities);
     /**
-     * packed[index] = the id `alloc()` hands out for that index at its CURRENT generation.
-     * A derived mirror of `generations` (rebuilt by _repack), kept so a query can emit an id
-     * by one plain-array read instead of recomposing make(index, generation) per match — a
-     * typed-array read costs ~20x a plain one here (testRuntime perf.access), and this sits on every
-     * matched entity of every query. A freed index holds the id its NEXT owner will get,
-     * which no query can reach: flush() clears the component slots before freeing the id.
-     * TODO retire the mirror (query reads `generations`) when `read.typed` reaches `read.array`.
+     * The id each index hands out at its current generation: a mirror of `generations` so a
+     * query emits an id by one plain-array read, a typed-array read costing ~20x on this runtime.
+     * A freed index holds its next owner's id, which no query can reach, since component slots
+     * are cleared before the id is freed.
+     * TODO retire the mirror when a typed-array read costs what a plain one does.
      */
     this.packed = new Array(maxEntities);
     this.freeIndices = [];
@@ -89,14 +86,14 @@ globalThis.Handle = class Handle {
   }
 
   reset() {
-    // Range is explicit: a typed array's fill() is a silent no-op without it (GMRT.md).
+    // BUG: the range is explicit (docs/GMRT.md).
     this.generations.fill(0, 0, this.generations.length);
     this.freeIndices = [];
     this.next = 0;
     this._repack();
   }
 
-  /** Re-derive `packed` from `generations` — after any BULK write to the generation table. */
+  /** Required after any bulk write to `generations`. */
   _repack() {
     const g = this.generations;
     const p = this.packed;

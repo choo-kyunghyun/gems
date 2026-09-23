@@ -1,28 +1,24 @@
 /**
- * The colony's plant species.
- *
- * Pure data plus its by-id lookup, no registration step (a plain top-level literal). A species:
- *   name       i18n key (the entity's Name)
- *   preset     the ColonySpawn preset it spawns as — "tree" (a solid trunk under a canopy) or
- *              "plant" (walk-through)
- *   sprite     the sprite (Visual.sprite, a STANDING upright sprite) — one sheet per species,
- *              its frames the stages in order (frame = stage)
+ * The colony's plant species: pure data plus its by-id lookup, with no registration step.
+ * A species:
+ *   name       i18n key
+ *   preset     spawn preset: "tree" (a solid trunk under a canopy) or "plant" (walk-through)
+ *   sprite     an upright sprite, one sheet per species, frame = stage
  *   growHours  in-game hours from seedling to ripe at season weight 1
  *   stages     visual steps seedling→ripe (≥ 2); the stage is floor(progress × (stages−1))
- *   season     growth weight per WorldClock season id — 0 halts growth (and, on a non-`hardy`
- *              species, kills the plant: the frost); also weights the spread rolls
+ *   season     growth weight per season id; 0 halts growth (and kills a non-`hardy` species);
+ *              also weights the spread rolls
  *   hardy?     false = a frost kills it (default true)
- *   ground     contentBiomes.MATERIALS ids it roots on — the placement test for generation, spread
- *              and build alike
- *   solidFrom? "tree" only: the stage from which the trunk collides (a seedling is walked over)
- *   action     the InteractAction a ripe plant carries ("harvest" | "chop" — contentInteractions)
+ *   ground     ground material ids it roots on, the placement test for generation, spread and
+ *              build alike
+ *   solidFrom? "tree" only: the stage from which the trunk collides
+ *   action     the interaction a ripe plant carries ("harvest" | "chop")
  *   yield      { itemId, qty } the harvest gives
- *   regrow?    progress the plant falls back to after a harvest (a perennial); absent = the
- *              harvest removes it (a felled tree, an annual crop)
+ *   regrow?    progress a perennial falls back to after a harvest; absent = the harvest removes it
  */
 globalThis.contentFlora = {
   SPECIES: {
-    // the wilderness pine — the biome scatter's tree, felled for the build resource
+    // the wilderness tree, felled for the build resource
     pine: {
       name: "FLORA_PINE",
       preset: "tree",
@@ -35,7 +31,7 @@ globalThis.contentFlora = {
       action: "chop",
       yield: { itemId: "wood", qty: 4 },
     },
-    // a perennial shrub — picked over and over, dormant through winter
+    // a perennial shrub, dormant through winter
     berry_bush: {
       name: "FLORA_BERRY_BUSH",
       preset: "plant",
@@ -48,7 +44,7 @@ globalThis.contentFlora = {
       yield: { itemId: "berries", qty: 3 },
       regrow: 0.5,
     },
-    // the farm crop — quick, soil-bound, and the first frost takes it
+    // the farm crop: quick, and the first frost takes it
     wheat: {
       name: "FLORA_WHEAT",
       preset: "plant",
@@ -63,7 +59,6 @@ globalThis.contentFlora = {
     },
   },
 
-  /** the species def for an id, or undefined */
   get(id) {
     return contentFlora.SPECIES[id];
   },

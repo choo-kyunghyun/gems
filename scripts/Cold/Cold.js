@@ -1,12 +1,11 @@
 /**
- * Survival need: cold. A rising meter while the temperature where the body stands
- * (Shelter.tempAt) is under `comfort` — `value` climbs by up to `rate`/sec, in proportion to the
- * shortfall over `span` Kelvin — and a FALLING one in warmth (by `recover`/sec). ColdSystem applies
- * the `status` debuff at/above `critical`. OPT-IN; flat scalars → entities.export-safe.
+ * Survival need: cold. The meter rises while the temperature where the body stands is under
+ * `comfort`, in proportion to the shortfall, and falls in warmth. Opt-in; flat scalars, so
+ * export-safe.
  *
  * @typedef {Object} Cold
- * @property {number} value     current need, 0..max
- * @property {number} max       cap
+ * @property {number} value     0..max
+ * @property {number} max
  * @property {number} rate      per-second rise at the full shortfall (comfort − span and below)
  * @property {number} recover   per-second fall at or above comfort
  * @property {number} critical  fraction of max (0..1) at/above which `status` is applied

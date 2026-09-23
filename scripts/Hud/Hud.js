@@ -1,28 +1,24 @@
 /**
  * HUD and overlay panels for the colony scene.
  *
- * build() returns the HUD HANDLE — the four panels this module keeps TOGGLING (`card` the top-right
- * card, `bar` the hotbar, `dialogue` the NPC card, `sleep` the veil) beside the hotbar's own timing
- * (`timer`/`slide`) — and the scene keeps that one field, handing it back to update(), the shape a
- * `*UI` page already takes (see Window). update() is the panels' whole frame job, so no scene
- * field mirrors what a panel shows; an open scene.window hides all but the sleep veil.
+ * build() returns the HUD handle — the panels this module toggles and the hotbar's timing — which
+ * the scene hands back to update(). update() is the panels' whole frame job, so no scene field
+ * mirrors what a panel shows; an open window hides all but the sleep veil.
  */
-const HOTBAR_HUD_SECS = 3; // wall-clock seconds the hotbar HUD stays up after a hotbar keypress
-const HOTBAR_SLIDE = 150; // GUI px the hotbar bar slides DOWN (off the bottom edge) when hidden
-const HOTBAR_SLIDE_SPD = 16; // approach speed for the slide (higher = snappier pop)
+const HOTBAR_HUD_SECS = 3; // wall-clock seconds the hotbar stays up after a hotbar keypress
+const HOTBAR_SLIDE = 150; // GUI px the hotbar slides down off the bottom edge when hidden
+const HOTBAR_SLIDE_SPD = 16; // higher = snappier
 
 globalThis.Hud = {
-  /**
-   * build the persistent panels once (scene create) and hand back the handle
-   */
+  /** Once per scene. */
   build(scene) {
     const hud = {
-      card: null, // the top-right HP/quest card
-      bar: null, // the hotbar row
-      dialogue: null, // the bottom-center NPC card
-      sleep: null, // the "Sleeping..." veil
-      timer: HOTBAR_HUD_SECS, // counts down on Time.raw; the bar shows while > 0
-      slide: 0, // 0 = tucked below the screen, 1 = fully up; eased toward show/hide
+      card: null,
+      bar: null,
+      dialogue: null,
+      sleep: null,
+      timer: HOTBAR_HUD_SECS, // wall clock; the bar shows while > 0
+      slide: 0, // 0 = tucked below the screen, 1 = fully up
     };
     hud.card = Hud._hud(scene);
     hud.bar = Hud._hotbar(scene);
@@ -32,9 +28,8 @@ globalThis.Hud = {
   },
 
   /**
-   * Once per frame, AFTER the scene has resolved what the panels report (the frame's pick, build
-   * mode): the hotbar's auto-hide ease and the two veils' visibility. UI timing runs on Time.raw
-   * (wall clock), so the ease is unaffected by a paused or fast-forwarded sim.
+   * Once per frame, after the scene has resolved what the panels report. On the wall clock, so a
+   * paused or fast-forwarded sim leaves the ease alone.
    */
   update(scene, hud) {
     if (hud.timer > 0) hud.timer -= Time.raw;
@@ -44,28 +39,24 @@ globalThis.Hud = {
     // build mode owns the bottom-center HUD, so the bar tucks away for it whatever the timer says
     const show = !scene.build.armed && hud.timer > 0;
     hud.slide = approach(hud.slide, show ? 1 : 0, HOTBAR_SLIDE_SPD);
-    hud.bar.dragY = (1 - hud.slide) * HOTBAR_SLIDE; // offset, not mutation (see UIElement.getLayoutPosition)
-    hud.bar.enabled = !open && hud.slide > 0.001; // skip drawing once fully tucked away
+    hud.bar.dragY = (1 - hud.slide) * HOTBAR_SLIDE; // an offset, leaving the layout alone
+    hud.bar.enabled = !open && hud.slide > 0.001;
     hud.dialogue.enabled = !open && scene.nearNpc;
     hud.sleep.enabled = scene.sleeping;
   },
 
-  /** reveal the hotbar HUD and refresh its auto-hide countdown (a hotbar press, a slot rebind) */
+  /** Reveal the hotbar and restart its auto-hide countdown. */
   showHotbar(hud) {
     hud.timer = HOTBAR_HUD_SECS;
   },
 
-  /**
-   * Bottom-center quick-use bar — one card per Hotbar slot, a LIVE "[n] Name (qty)" label read off
-   * the player each frame. Display-only (binding is in InventoryUI, using is sceneColony._useHotbar);
-   * update() slides it away while build mode owns the bottom-center HUD.
-   */
+  /** Display-only: one card per hotbar slot, read live off the player. */
   _hotbar(scene) {
     const wrap = new UIElement({
       positionType: "absolute",
       left: 0,
       right: 0,
-      bottom: 64, // clear of the dialogue box (bottom:24); above the key-hint footer
+      bottom: 64, // clear of the dialogue card and above the key-hint footer
       flexDirection: "row",
       justifyContent: "center",
       gap: FacetTheme.gapSm,
@@ -83,7 +74,7 @@ globalThis.Hud = {
       flexDirection: "row",
       alignItems: "center",
     });
-    // live item icon left of the label; "" (→ 0 width, no gap) when the slot is empty
+    // an empty slot's "" takes no width
     row.insertChild(
       facetRichText(
         () => {
@@ -116,10 +107,7 @@ globalThis.Hud = {
     return card;
   },
 
-  /**
-   * one survival-need RESERVE bar: facetProgress of (1 - value/max), so full = satiated, read live;
-   * tinted like the need's critical debuff (its Status color)
-   */
+  /** A need as a reserve bar — full is satiated — tinted like its critical debuff. */
   _needBar(scene, need) {
     const status = Status.get(need.seed.status);
     const row = new UIElement({ width: "100%", height: 20 });
@@ -139,9 +127,6 @@ globalThis.Hud = {
     return row;
   },
 
-  /**
-   * centered "Sleeping…" overlay, shown by update() while a bed fast-forwards time (scene.sleeping)
-   */
   _sleepOverlay(scene) {
     const wrap = new UIElement({
       positionType: "absolute",
@@ -166,9 +151,6 @@ globalThis.Hud = {
     return wrap;
   },
 
-  /**
-   * Top-right HUD card: HP / ammo / stamina / needs / clock / weather / status + quest tracker.
-   */
   _hud(scene) {
     const hud = new UIElement({
       positionType: "absolute",
@@ -189,8 +171,7 @@ globalThis.Hud = {
       ),
     );
     card.insertChild(hpRow);
-    // equipped-gun ammo readout (live): "<ammo>  rounds/magazine", unloaded hint, or "" for melee/
-    // unarmed (the row self-sizes, so it collapses to ~0 height then)
+    // self-sized, so the row collapses when there is no gun
     const ammoRow = new UIElement({ width: "100%" });
     ammoRow.insertChild(
       facetLabel(
@@ -200,7 +181,7 @@ globalThis.Hud = {
             scene.level.entities,
             scene.playerId,
           );
-          if (prof === null || prof.kind !== "gun") return ""; // melee/unarmed → hide
+          if (prof === null || prof.kind !== "gun") return "";
           if (prof.noAmmo) return I18n.text("MOD_UNLOADED");
           const it = Item.get(prof.ammo);
           const nm = it !== undefined ? I18n.text(it.name) : prof.ammo;
@@ -210,8 +191,7 @@ globalThis.Hud = {
       ),
     );
     card.insertChild(ammoRow);
-    // stamina bar (sprint) — fraction of Stats.maxStamina, read live. Tall enough to seat the
-    // centered "description"-font label inside the bar.
+    // tall enough to seat the label inside the bar
     const staRow = new UIElement({ width: "100%", height: 20 });
     staRow.insertChild(
       facetProgress(
@@ -230,12 +210,9 @@ globalThis.Hud = {
       ),
     );
     card.insertChild(staRow);
-    // the survival needs as reserve bars, in registry order; the critical debuff shows in the
-    // status row below
     const needs = Need.all();
     for (let i = 0; i < needs.length; i++)
       card.insertChild(Hud._needBar(scene, needs[i]));
-    // world clock: "Season · Day N  HH:MM", read live
     const timeRow = new UIElement({ width: "100%", height: 20 });
     timeRow.insertChild(
       facetLabel(
@@ -250,8 +227,7 @@ globalThis.Hud = {
       ),
     );
     card.insertChild(timeRow);
-    // weather condition + the temperature where the player stands (the room's, or the sky's),
-    // both derived live
+    // the temperature where the player stands, indoors or out
     const tempRow = new UIElement({ width: "100%", height: 20 });
     tempRow.insertChild(
       facetLabel(
@@ -268,8 +244,7 @@ globalThis.Hud = {
       ),
     );
     card.insertChild(tempRow);
-    // active buffs/debuffs — each name tinted by its def color, read live; rich-text [c=#hex] spans
-    // so several statuses tint independently ("" when none)
+    // rich text, so each status tints independently
     const statusRow = new UIElement({ width: "100%", height: 20 });
     statusRow.insertChild(
       facetRichText(
@@ -300,9 +275,6 @@ globalThis.Hud = {
     return hud;
   },
 
-  /**
-   * Bottom-center dialogue card, shown by update() while the frame's pick is an NPC (scene.nearNpc).
-   */
   _dialogue(scene) {
     const wrap = new UIElement({
       positionType: "absolute",

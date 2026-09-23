@@ -3,7 +3,7 @@
  * @implements {UIComponent}
  */
 globalThis.UISlider = class UISlider {
-  static VALUE_W = 58; // right-side width reserved for the value readout (showValue); wide enough that "100%" at the 16px body font clears the thumb
+  static VALUE_W = 58; // readout width: "100%" in the body font clears the thumb
 
   /** slider: { min, max, value, step, values, readOnly, onChange, showValue, format, valueColor, font, track, fill, thumb } */
   constructor(slider = {}) {
@@ -15,7 +15,6 @@ globalThis.UISlider = class UISlider {
     this.readOnly = slider.readOnly ?? false;
     this.onChange = slider.onChange ?? noop;
 
-    // readout at the right end; track reserves VALUE_W so text never overlaps the thumb.
     this.showValue = slider.showValue ?? true;
     this.format = slider.format ?? null;
     this.valueColor = slider.valueColor ?? c_white;
@@ -26,8 +25,8 @@ globalThis.UISlider = class UISlider {
     this._fillStyle = slider.fill ?? {};
     this._thumbStyle = slider.thumb ?? {};
 
-    // internal FSM delegate (UITrigger) — no callbacks; the drag below reads its hold flag. It
-    // owns readOnly (which never latches hold), so this field only gates the nav path below.
+    // the drag reads the delegate's hold flag; read-only never latches it, so this.readOnly
+    // only gates the nav path
     this._fsm = new UITrigger({ readOnly: this.readOnly });
   }
 
@@ -51,7 +50,7 @@ globalThis.UISlider = class UISlider {
   }
 
   /**
-   * Snap + clamp `value` into range and fire onChange if it changed.
+   * Snaps and clamps; fires onChange only on a change.
    */
   setValue(value) {
     const next = clamp(this._snap(value), this.min, this.max);
@@ -62,7 +61,8 @@ globalThis.UISlider = class UISlider {
   }
 
   /**
-   * shared geometry so the hit-test matches the draw; thumb inset by its radius so it never clips the track.
+   * Shared geometry, so the hit-test matches the draw; the thumb is inset by its radius so it
+   * never clips the track.
    */
   _metrics(pos) {
     const r = Math.max(7, pos.height * 0.45);
@@ -82,7 +82,7 @@ globalThis.UISlider = class UISlider {
   }
 
   /**
-   * decimal places for the default readout, from `step` (continuous → 2).
+   * Readout decimals follow `step`; continuous shows 2.
    */
   _decimals() {
     if (typeof this.step !== "number" || this.step <= 0) return 2;
@@ -104,8 +104,7 @@ globalThis.UISlider = class UISlider {
     const pos = element.getLayoutPosition();
     const result = this._fsm.onUpdate(element, block);
 
-    // drag: the FSM latches hold on the press frame (value jumps immediately) and clears it
-    // during the release-frame update (no set on release) — same order as before delegation.
+    // hold latches on the press frame, so the value jumps at once, and clears on release
     if (this._fsm.hold) {
       const mx = Input.pointer.x;
       const m = this._metrics(pos);
@@ -127,7 +126,7 @@ globalThis.UISlider = class UISlider {
     const a0 = draw_get_alpha();
     draw_set_alpha(1);
 
-    // border (if any) strokes UNDER the fill — the fill capsule covers its left span.
+    // the border strokes under the fill, which covers its left span
     const fillR = Math.max(x1 + rad, m.thumbX);
     drawUIBar(
       x1,
@@ -141,7 +140,6 @@ globalThis.UISlider = class UISlider {
       false,
     );
 
-    // thumb grows slightly while hovered/dragged for feedback.
     const tr = m.r * (element.state.held || element.state.hover ? 1.12 : 1);
     const thumbCol = this._thumbStyle.color ?? c_white;
     draw_roundrect_color_ext(

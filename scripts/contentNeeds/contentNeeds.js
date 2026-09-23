@@ -1,11 +1,11 @@
-// Colony need defs — the content for the Need registry: the needs a body carries, in HUD order.
-// Registered by content.register (NOT top-level — GMRT load-order). A bar's tint is its debuff's
-// Status color, so a need adds nothing here that the status already states.
+// Colony need defs: the needs a body carries, in HUD order. Registered at boot, not top-level, as
+// top-level code runs in script load order (docs/GMRT.md). A bar's tint is its debuff status's
+// color, so a need adds nothing here that the status already states.
 globalThis.contentNeeds = {
   register() {
     Need.register([
-      // the clock needs — each a rising meter 0..max; at `critical` the named debuff Status
-      // applies. rate per second, tuned to deplete over minutes.
+      // clock needs: rising meters, the named debuff applying at `critical`; rate per second,
+      // tuned to deplete over minutes
       {
         id: Thirst,
         name: "SURVIVAL_THIRST",
@@ -21,8 +21,7 @@ globalThis.contentNeeds = {
         name: "SURVIVAL_DROWSINESS",
         seed: { value: 0, max: 100, rate: 0.4, critical: 0.85, status: "drowsy" },
       },
-      // the environmental needs — rise under the open sky / in the cold, recover in a room (or a
-      // suited body, for exposure); the same core, the rate signed by where the body stands
+      // environmental needs: the rate is signed by where the body stands
       {
         id: Exposure,
         name: "SURVIVAL_EXPOSURE",

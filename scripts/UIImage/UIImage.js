@@ -27,9 +27,6 @@ globalThis.UIImage = class UIImage {
     this.fit = image.fit ?? OBJECT_FIT.FILL;
   }
 
-  /**
-   * advance the subimage if `speed` is set.
-   */
   onUpdate(element, block) {
     if (!sprite_exists(this.sprite)) return block;
     if (this.speed != 0) {
@@ -41,7 +38,7 @@ globalThis.UIImage = class UIImage {
 
   onDraw(element) {
     if (!sprite_exists(this.sprite)) return;
-    // getLayoutPosition so the image inherits ancestor scroll offset.
+    // the layout position carries the ancestors' scroll offset
     const pos = element.getLayoutPosition();
     const sw = sprite_get_width(this.sprite);
     const sh = sprite_get_height(this.sprite);

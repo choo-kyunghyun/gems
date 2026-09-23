@@ -1,17 +1,16 @@
 /**
  * @typedef {Object} RenderDebugTileMapOptions
- * @property {boolean} [cost] - shade cells by tile nav cost (grid.costAt, default true)
- * @property {boolean} [tiles] - label occupied cells with the topmost TileType (default true)
- * @property {boolean} [coords] - label every cell with its grid (x, y) (default false)
- * @property {boolean} [names] - show TileType.name instead of id when labelling tiles (default false)
- * @property {number} [alpha] - fill alpha for cost shading (default 0.25)
- * @property {number} [font] - font for cell labels (default: leaves the current font)
- * @property {object} [camera] - the level's view record (CameraSystem.view); when set, view-culls cells for large grids (LevelGrid.viewRange). Settable via `pass.camera`.
+ * @property {boolean} [cost] - shade cells by nav cost
+ * @property {boolean} [tiles] - label occupied cells with the topmost tile type
+ * @property {boolean} [coords] - label every cell with its grid (x, y)
+ * @property {boolean} [names] - label tiles by name instead of id
+ * @property {number} [alpha] - fill alpha for cost shading
+ * @property {number} [font] - omitted leaves the current font
+ * @property {object} [camera] - view record; when set, culls cells outside the view
  */
 
 /**
- * overlay for inspecting Level tile costs + types (grid lines are a separate RenderGrid pass).
- * cost shading reads grid.costAt(x, y) live — computed from the layers on demand, no sync step.
+ * Debug overlay of a level's tile costs and types, read live with no sync step.
  * @implements {RenderPass}
  */
 globalThis.RenderDebugTileMap = class RenderDebugTileMap {
@@ -24,12 +23,12 @@ globalThis.RenderDebugTileMap = class RenderDebugTileMap {
     this.names = opt.names ?? false;
     this.alpha = opt.alpha ?? 0.25;
     this.font = opt.font;
-    this.camera = opt.camera; // optional view-cull source (LevelGrid.viewRange)
+    this.camera = opt.camera;
   }
 
   destroy() {}
 
-  /** Topmost tile across all layers (matches Level nav resolution). */
+  /** Topmost tile across all layers, as nav resolves it. */
   _topTile(x, y) {
     const layers = this.grid.layers;
     for (let i = layers.length - 1; i >= 0; i--) {
@@ -48,15 +47,14 @@ globalThis.RenderDebugTileMap = class RenderDebugTileMap {
     if (this.font !== undefined) draw_set_font(this.font);
 
     const { cellWidth, cellHeight } = this.grid;
-    const r = this.grid.viewRange(this.camera); // x1/y1 EXCLUSIVE
+    const r = this.grid.viewRange(this.camera); // x1/y1 exclusive
 
-    // cost shading: blocking cells red, costlier-than-default orange
     if (this.cost) {
       draw_set_alpha(this.alpha);
       for (let y = r.y0; y < r.y1; y++) {
         for (let x = r.x0; x < r.x1; x++) {
           const c = this.grid.costAt(x, y);
-          if (c === 1) continue; // default walkable
+          if (c === 1) continue;
           draw_set_color(c === Infinity ? c_red : c_orange);
           const wx = x * cellWidth;
           const wy = y * cellHeight;
@@ -65,7 +63,6 @@ globalThis.RenderDebugTileMap = class RenderDebugTileMap {
       }
     }
 
-    // per-cell text labels
     if (this.tiles || this.coords) {
       draw_set_alpha(1);
       draw_set_halign(fa_center);

@@ -1,10 +1,9 @@
-// Re-fires each SoundEmitter's cue at its Position — dispatch once per frame, after the sim.
+/** Re-fires each SoundEmitter's cue at its Position — once per frame, after the sim. */
 globalThis.SoundEmitterSystem = {
   /**
-   * Counts down on Time.delta (world-space effect: pause/dilation silence it, per the clock
-   * split). On fire the timer resets to `every` — never += the remainder — so a sleep
-   * fast-forward caps at one cue per frame. An unknown sound name warns once and detaches
-   * the component (fail fast, no per-interval spam).
+   * On world time, so pause and dilation silence it. The timer resets rather than carrying the
+   * remainder, so a fast-forward caps at one cue per frame. An unknown sound detaches the
+   * component (fail fast, no per-interval spam).
    */
   update(level) {
     const entities = level.entities;

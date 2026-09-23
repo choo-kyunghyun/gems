@@ -1,37 +1,18 @@
 /**
- * Owner of the VOLUME mesh format contract (the art projection contract is RenderBillboard's).
- * `load` parses `meshes/<name>.vox` (an included file, committed as-is — the editable source IS
- * the shipped asset) into a cached VoxModel; `mesh` greedy-meshes one into a vertex buffer for
- * RenderMesh. First model per file only (a multi-model file warns and uses the first).
+ * Owner of the volume mesh format: parses `meshes/<name>.vox` into a cached VoxModel and
+ * greedy-meshes it into a vertex buffer. Only a file's first model is used.
  *
- * Emitted vertex stream (24 B/vertex, pr_trianglelist) — a LOCKSTEP pair with the consumer's
- * declared format (RenderMesh._format; RenderWalls emits the same layout for wall quads):
- * position 3×f32 | colour RGBA u8 | texcoord 2×f32. The colour is the raw palette ALBEDO
- * (the palette is the texture; no bitmap assets), UNSHADED — shMeshlit lights it live. The
- * texcoord carries the PACKED FACE NORMAL (u = nx, v = ny; the shader derives
- * nz = -sqrt(max(0, 1 - u² - v²)) — valid because no BOTTOM face is ever emitted, so nz ≤ 0
- * in the up-is-negative-z convention).
+ * Vertex stream (24 B/vertex, triangle list), in lockstep with the format the caller declares:
+ * position 3×f32 | colour RGBA u8 | texcoord 2×f32. The colour is the unshaded palette albedo;
+ * the texcoord packs the face normal's x/y, with z recovered as -sqrt(max(0, 1 - u² - v²)) —
+ * sound only because bottom faces are never emitted, so nz ≤ 0.
  *
- * Coordinate map (MagicaVoxel is z-up): game x = vox x, game y = vox y (+y = south/front),
- * game z = -vox z (up = -z, the RenderBillboard convention). 1 voxel = 1 world px; the mesh is
- * centered on the footprint (Position = footprint center), feet at z = 0.
- *
- * TOP + all FOUR side orientations are emitted, so a runtime `Mesh.yaw` shows a solid model
- * from any facing (shMeshlit rotates the packed normals by mat3(world)):
- *   TOP (air above, packed (0,0)) · SOUTH (air +y, (0,1)) · NORTH (air -y, (0,-1))
- *   EAST (air +x, (1,0)) · WEST (air -x, (-1,0))
- * BOTTOM faces never (nz > 0 is unrepresentable in the packing; only visible past a ~90° tip).
- *
- * Exposed faces are GREEDY-MESHED per orientation plane: coplanar same-color faces merge into
- * one quad (flat vertex color + constant normal — identical render at a fraction of the vertex
- * count). Plane iteration and the in-plane row-major scan are ordered, so output is
- * deterministic for a given .vox.
- *
- * `content` (tight non-empty voxel extent) replaces the old baked meshes.json manifest —
- * ColonySpawn.footprint derives mesh-prop colliders from it.
+ * Coordinates: .vox is z-up, the game is up = -z, so game z = -vox z. 1 voxel = 1 world px; the
+ * mesh is centered on its footprint with its feet at z = 0. The top and all four sides are
+ * emitted, so a yawed model stays solid from any facing. Output is deterministic for a given file.
  */
 globalThis.Vox = {
-  _cache: {}, // name -> VoxModel | null (null = missing/malformed, checked once per run)
+  _cache: {}, // name -> VoxModel | null (missing or malformed, checked once per run)
 
   /**
    * @typedef {Object} VoxModel
@@ -39,13 +20,13 @@ globalThis.Vox = {
    * @property {number[]} content tight non-empty voxel extent [w, h, d]
    * @property {number[]} grid    dense canvas, x + sx*(y + sy*z) -> 1-based palette index (0 = empty)
    * @property {number[]} palR    palette red 0-255, indexed by palette index - 1
-   * @property {number[]} palG    palette green 0-255
-   * @property {number[]} palB    palette blue 0-255
+   * @property {number[]} palG
+   * @property {number[]} palB
    */
 
   /**
-   * Cached parse of meshes/<name>.vox; undefined when the file is missing (the caller owns the
-   * miss report — RenderMesh warns once per model) or malformed (logged here once).
+   * Undefined when the file is missing (the caller reports the miss) or malformed (logged here
+   * once).
    */
   load(name) {
     const hit = Vox._cache[name];
@@ -60,10 +41,7 @@ globalThis.Vox = {
     return m === null ? undefined : m;
   },
 
-  /**
-   * Greedy-mesh a model into a NEW vertex buffer (caller owns it: freeze/delete);
-   * -1 when the .vox is missing or malformed. `format` is the lockstep layout above.
-   */
+  /** A new vertex buffer the caller owns; -1 when the .vox is missing or malformed. */
   mesh(name, format) {
     const m = Vox.load(name);
     if (m === undefined) return -1;
@@ -83,9 +61,8 @@ globalThis.Vox = {
   },
 
   /**
-   * Linear chunk walk (children sit directly after a parent's content, so one forward scan
-   * visits every chunk): first SIZE + XYZI pair + the RGBA palette. Malformed -> null + one
-   * Log.error (a bad committed asset must fail loudly, not draw nothing silently).
+   * Children sit directly after a parent's content, so one forward scan visits every chunk.
+   * A malformed file logs an error and returns null: a bad asset fails loudly, not silently.
    */
   _parse(buf, name) {
     const len = buffer_get_size(buf);
@@ -106,7 +83,7 @@ globalThis.Vox = {
     let maxY = 0;
     let maxZ = 0;
     let count = 0;
-    let off = 8; // past "VOX " + version; MAIN's n = 0, so the scan steps into its children
+    let off = 8; // MAIN's content size is 0, so the scan steps into its children
     while (off + 12 <= len) {
       const id = Vox._fourcc(buf, off);
       const n = buffer_peek(buf, off + 4, buffer_s32);
@@ -178,11 +155,7 @@ globalThis.Vox = {
     };
   },
 
-  /**
-   * Merge a plane's cells into maximal same-color rects: row-major scan (v outer), extend
-   * along +u first, then grow +v while the whole run matches; consumed cells are zeroed
-   * (`cells` is CONSUMED). Deterministic for a given cell set. emit: (u0, v0, w, h, colorIndex).
-   */
+  /** Merges a plane's cells into maximal same-color rects; `cells` is consumed. */
   _rects(cells, U, V, emit) {
     for (let v = 0; v < V; v++) {
       for (let u = 0; u < U; u++) {
@@ -210,11 +183,7 @@ globalThis.Vox = {
     }
   },
 
-  /**
-   * Emit the model's exposed faces as a raw 24 B/vertex stream in a NEW fixed buffer (caller
-   * deletes). Orientation blocks run TOP, SOUTH, NORTH, EAST, WEST; planes ascend — the same
-   * order as the retired vox2vbuf.py bake, so output is byte-identical to the old .vbuf.
-   */
+  /** The exposed faces as a raw vertex stream in a new buffer the caller deletes. */
   _verts(m) {
     const sx = m.size[0];
     const sy = m.size[1];
@@ -224,7 +193,7 @@ globalThis.Vox = {
     const oy = sy / 2;
     const verts = []; // x, y, z, r, g, b, nu, nv per vertex
 
-    /** Quad corners in consistent order (cull is off in-engine); c is a 1-based palette index. */
+    /** `c` is a 1-based palette index. */
     const quad = (p1, p2, p3, p4, c, nu, nv) => {
       const r = m.palR[c - 1];
       const g = m.palG[c - 1];
@@ -236,7 +205,7 @@ globalThis.Vox = {
       }
     };
 
-    // TOP: plane per z, cells keyed (x, y), exposed when the voxel above is air
+    // TOP
     for (let z = 0; z < sz; z++) {
       const cells = new Array(sx * sy).fill(0);
       for (let y = 0; y < sy; y++) {
@@ -253,7 +222,7 @@ globalThis.Vox = {
         quad([gx, gy, hh], [gx + w, gy, hh], [gx + w, gy + h, hh], [gx, gy + h, hh], c, 0, 0);
       });
     }
-    // SOUTH: plane per y, cells keyed (x, z), face lies at y+1
+    // SOUTH
     for (let y = 0; y < sy; y++) {
       const cells = new Array(sx * sz).fill(0);
       for (let z = 0; z < sz; z++) {
@@ -270,7 +239,7 @@ globalThis.Vox = {
         quad([gx, gy, -(z0 + h)], [gx + w, gy, -(z0 + h)], [gx + w, gy, zt], [gx, gy, zt], c, 0, 1);
       });
     }
-    // NORTH: plane per y, cells keyed (x, z), face lies at y
+    // NORTH
     for (let y = 0; y < sy; y++) {
       const cells = new Array(sx * sz).fill(0);
       for (let z = 0; z < sz; z++) {
@@ -287,7 +256,7 @@ globalThis.Vox = {
         quad([gx + w, gy, -(z0 + h)], [gx, gy, -(z0 + h)], [gx, gy, zt], [gx + w, gy, zt], c, 0, -1);
       });
     }
-    // EAST: plane per x, cells keyed (y, z), face lies at x+1
+    // EAST
     for (let x = 0; x < sx; x++) {
       const cells = new Array(sy * sz).fill(0);
       for (let z = 0; z < sz; z++) {
@@ -304,7 +273,7 @@ globalThis.Vox = {
         quad([gx, gy + w, -(z0 + h)], [gx, gy, -(z0 + h)], [gx, gy, zt], [gx, gy + w, zt], c, 1, 0);
       });
     }
-    // WEST: plane per x, cells keyed (y, z), face lies at x
+    // WEST
     for (let x = 0; x < sx; x++) {
       const cells = new Array(sy * sz).fill(0);
       for (let z = 0; z < sz; z++) {

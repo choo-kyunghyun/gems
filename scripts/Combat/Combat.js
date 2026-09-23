@@ -1,17 +1,15 @@
 /**
- * The one stat-agnostic damage applier for every damage path.
- *
- * The colony wires its defense formula in sceneColony.create, so the applier itself never reads a stat
- * sheet — hitscan needs only Health + Faction. A cast (hitscan, explode) takes the LEVEL; the
- * segment cast (Query.castAll) and the appliers take its store.
+ * The one stat-agnostic damage applier for every damage path. A game injects its defense formula
+ * as `mitigate`, so the applier never reads a stat sheet. A cast (hitscan, explode) takes the
+ * level; the appliers take its store.
  */
 globalThis.Combat = {
-  // injected defense formula — default identity; colony overrides with max(1, amount-max(0,defense-pen))
+  // injected defense formula; identity until a game overrides it
   mitigate(entities, targetId, amount, penetration = 0) {
     return amount;
   },
 
-  // apply damage through the mitigate hook; 0 if target has no Health (wall/prop)
+  // 0 when the target has no Health
   applyDamage(entities, targetId, amount, penetration = 0) {
     const hp = entities.get(targetId, Health);
     if (hp === undefined) return 0;
@@ -21,9 +19,8 @@ globalThis.Combat = {
   },
 
   /**
-   * instant hitscan along (x0,y0)→(x1,y1). walks hits in order; ally/wall blocks, hostile takes
-   * damage. `pierce` = max targets hit (default 1). returns { x, y, hits } (endpoint + struck ids).
-   *   opts: { owner, damage, penetration? (default 0), pierce? (default 1) }
+   * An ally or a Health-less collider blocks; `opts.pierce` caps the targets hit. Returns the
+   * endpoint and the struck ids.
    */
   hitscan(level, x0, y0, x1, y1, opts) {
     const entities = level.entities;
@@ -38,7 +35,6 @@ globalThis.Combat = {
       const h = all[i];
       const hp = entities.get(h.id, Health);
       if (hp === undefined || Diplomacy.allied(entities, owner, h.id)) {
-        // wall/prop or ally blocks — stop here, no damage
         endX = h.x;
         endY = h.y;
         break;
@@ -56,11 +52,8 @@ globalThis.Combat = {
   },
 
   /**
-   * radial blast at (x,y): every Health within `radius` takes damage — full at the centre, halving
-   * toward the edge — unless allied with the owner (like a swing: no friendly fire) or shadowed by
-   * a structure (isStructure) between the centre and its Position; bodies never shadow each
-   * other. returns the struck ids.
-   *   opts: { owner, damage, penetration? (default 0) }
+   * Damage falls to half at the edge. No friendly fire, and a structure between the centre and a
+   * target shadows it; bodies never shadow each other. Returns the struck ids.
    */
   explode(level, x, y, radius, opts) {
     const entities = level.entities;
@@ -86,9 +79,8 @@ globalThis.Combat = {
   },
 
   /**
-   * a STRUCTURE — what a lob lands against and what shadows a blast: a kinematic collider that is
-   * not a standing person (no Skeleton) — walls, furniture, the map border, a built turret. Bodies
-   * (the squad, raiders, an NPC) are flown over and looked through.
+   * A structure — what a lob lands against and what shadows a blast — is a kinematic collider
+   * that is not a standing person; bodies are flown over and looked through.
    */
   isStructure(entities, id) {
     const col = entities.get(id, Collision);
@@ -96,7 +88,6 @@ globalThis.Combat = {
     return !entities.has(id, Skeleton);
   },
 
-  /** true when a structure lies on the segment; bodies are looked through */
   _shadowed(level, x0, y0, x1, y1, owner) {
     const all = Query.castAll(level.entities, x0, y0, x1, y1, { ignore: owner });
     for (let i = 0; i < all.length; i++) {
@@ -106,9 +97,8 @@ globalThis.Combat = {
   },
 
   /**
-   * Lob a fused charge from `ownerId`'s Position toward (tx, ty): a lobbed Projectile whose range
-   * is the distance, so it lands ON the target point (or against the first collider on the way),
-   * carrying the Fuse FuseSystem counts down. Returns the charge's id.
+   * A fused charge whose range is the distance, so it lands on the target point or against the
+   * first structure on the way. Returns the charge's id.
    *   spec: { speed (px/s), secs, radius, damage, penetration? }
    */
   lob(entities, ownerId, tx, ty, spec) {

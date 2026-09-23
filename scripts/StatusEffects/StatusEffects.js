@@ -1,14 +1,14 @@
 /**
- * Component: active buffs/debuffs (StatusSystem owns the list, adds it lazily). `list` is flat scalars
- * → entities.export/Row-safe; DISK save serializes yourself (nested fault). def = Status.get(id).
+ * Component: active buffs/debuffs, added lazily. Entries are flat scalars, so they export as
+ * plain data.
  *
  * @typedef {Object} StatusEffects
  * @property {Array<ActiveStatus>} list
  *
  * @typedef {Object} ActiveStatus
- * @property {string} id        Status def id (static data via Status.get)
- * @property {number} remaining seconds left; -1 = maintained/permanent (driven externally, e.g. encumbrance)
- * @property {number} accum     dot/hot accumulator (seconds since last interval application)
- * @property {Object} [mult]    per-instance live multiplier override — a maintained status's dynamic magnitude
+ * @property {string} id        status def id
+ * @property {number} remaining seconds left; -1 = maintained, driven externally
+ * @property {number} accum     seconds since the last periodic application
+ * @property {Object} [mult]    a maintained status's live magnitude override
  */
 globalThis.StatusEffects = "StatusEffects";

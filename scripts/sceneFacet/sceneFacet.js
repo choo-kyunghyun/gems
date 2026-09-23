@@ -1,5 +1,7 @@
-// Facet kit widget showcase. pure UI — no entities/renderer/step/draw.
-// tab host flex-grows; each page is a facetScroll({ grow:true }) to reflow at any GUI size.
+/**
+ * The Facet kit's widget showcase — pure UI, no world. Each tab page grows with its host so it
+ * reflows at any GUI size.
+ */
 
 globalThis.sceneFacet = () => new _SceneFacetClass();
 Scene.register(sceneFacet, {
@@ -7,12 +9,10 @@ Scene.register(sceneFacet, {
   category: "SCENE_CAT_UI",
 });
 
-/** standalone SCREEN class — duck-typed contract, see Scene. */
 class _SceneFacetClass {
   label = "Facet";
 
   create(openScene) {
-    // widget state — echoed live via textRefs
     this.typed = "";
     this.clicks = 0;
     this.toggleOn = true;
@@ -34,8 +34,7 @@ class _SceneFacetClass {
       new InputAction().bindButton(INPUT_SOURCE.KEYBOARD, ord("F")),
     );
 
-    // reset the Tracker first to clear any state a gameplay level left; must run before
-    // the tracker widget, which reads it at construction
+    // before the tracker widget, which reads the quest state at construction
     this._setupQuests();
 
     this.ui = facetRoot();
@@ -46,7 +45,6 @@ class _SceneFacetClass {
     body.insertChild(facetHint(I18n.textRef("FACET_HINT")));
     body.insertChild(facetHint(I18n.textRef("FACET_NAV_HINT")));
 
-    // Widgets tab
     const widgets = facetScroll({ grow: true });
     widgets.scrollBody.insertChild(this._buttonsSection());
     widgets.scrollBody.insertChild(this._togglesSection());
@@ -54,24 +52,22 @@ class _SceneFacetClass {
     widgets.scrollBody.insertChild(this._motionSection());
     widgets.scrollBody.insertChild(this._questSection());
 
-    // Inputs & Values tab
     const values = facetScroll({ grow: true });
     values.scrollBody.insertChild(this._fieldsSection());
     values.scrollBody.insertChild(this._controlsSection());
     values.scrollBody.insertChild(this._rebindSection());
     values.scrollBody.insertChild(this._vkSection());
 
-    // Containers tab — left column scrolls so accordion sections can't overflow
+    // the left column scrolls so accordion sections can't overflow
     const left = facetScroll({ grow: true });
     left.scrollBody.insertChild(this._skinSection());
     left.scrollBody.insertChild(this._accordionSection());
     const containers = this._twoCol(left, this._scrollSection());
 
-    // Inventory tab
     const inventory = facetScroll({ grow: true });
     inventory.scrollBody.insertChild(this._inventorySection());
 
-    // Table tab — table self-scrolls, no enclosing facetScroll needed
+    // the table self-scrolls
     const table = this._tableTab();
 
     // the tabs sit on one card, the sections inside it boxless (the kit's one-pane rule)
@@ -97,9 +93,7 @@ class _SceneFacetClass {
     );
   }
 
-  /**
-   * flexGrow:1/flexBasis:0 shares width evenly; row grows so scroll children fill the host
-   */
+  /** Two equal columns; the row grows so scroll children fill the host. */
   _twoCol(leftChild, rightChild) {
     const cols = new UIElement({
       width: "100%",
@@ -234,10 +228,7 @@ class _SceneFacetClass {
     return toggles;
   }
 
-  /**
-   * UIRichText: colored spans + inline icons. markup is i18n so it localizes.
-   * fixed-height rows for uniform spacing (UIRichText self-sizes but we override here).
-   */
+  /** Fixed-height rows for uniform spacing. */
   _richTextSection() {
     const sec = facetSection(I18n.textRef("FACET_RICH"));
     sec.insertChild(
@@ -259,15 +250,12 @@ class _SceneFacetClass {
     return sec;
   }
 
-  /**
-   * one ping-pong clock through three easing curves, side by side
-   */
+  /** One ping-pong clock through three easing curves, side by side. */
   _motionSection() {
     const sec = facetSection(I18n.textRef("FACET_MOTION"));
-    // wall-clock ping-pong [0,1] over ~3.6 s
     const clock = () => {
-      const t = (current_time % 3600) / 1800; // 0..2
-      return t < 1 ? t : 2 - t; // fold to 0..1..0
+      const t = (current_time % 3600) / 1800;
+      return t < 1 ? t : 2 - t;
     };
     sec.insertChild(
       facetRow(
@@ -290,7 +278,7 @@ class _SceneFacetClass {
     return sec;
   }
 
-  /** fixed progress for a representative mix: one ready, one partial, two untouched */
+  /** A fixed mix of progress: one ready, one partial, two untouched. */
   _setupQuests() {
     QuestLog.register([
       {
@@ -318,11 +306,9 @@ class _SceneFacetClass {
         objectives: [{ kind: "talk", target: "sage", count: 1 }],
       },
     ]);
-    // the kit has no achievement content: drop any rules hook a prior gameplay scene left (it is a
-    // static hook, like Combat.mitigate) so report() runs its quest stage alone — the hook is
-    // optional by design, whatever order the scenes were visited in.
+    // no achievement content here: drop any rules hook a prior scene left
     Tracker.rules = null;
-    World.reset(); // the demo progression starts blank (Tracker is a world record)
+    World.reset(); // the demo progression starts blank
     Tracker.accept("uikit_q1");
     Tracker.accept("uikit_q2");
     Tracker.accept("uikit_q3");
@@ -331,10 +317,7 @@ class _SceneFacetClass {
     Tracker.report("collect", "moonherb", 2); // q2 → 2/3
   }
 
-  /**
-   * placed directly in the section — widgets tab already scrolls; a second clip surface
-   * would lose draw_text's matrix offset (see CLAUDE.md). one enclosing scroll is enough.
-   */
+  /** Placed directly in the section: the tab page already scrolls. */
   _questSection() {
     const sec = facetSection(I18n.textRef("FACET_QUESTS"));
     sec.insertChild(
@@ -397,9 +380,6 @@ class _SceneFacetClass {
     return fields;
   }
 
-  /**
-   * VirtualKeyboard: facetButton keys → UINav navigable with dpad; Done commits to field
-   */
   _vkSection() {
     const sec = facetSection(I18n.textRef("FACET_VK"));
     const field = facetInput({
@@ -418,9 +398,6 @@ class _SceneFacetClass {
     return sec;
   }
 
-  /**
-   * UIRebind: click to arm, next key rebinds. readout shows live held state.
-   */
   _rebindSection() {
     const sec = facetSection(I18n.textRef("FACET_REBIND"));
     const prompt = I18n.textRef("FACET_REBIND_PROMPT");
@@ -503,7 +480,6 @@ class _SceneFacetClass {
       ),
     );
 
-    // dropdown for longer option lists — popup navigable by mouse/keyboard/gamepad
     const resolutions = [
       { name: "1280 x 720", value: 0 },
       { name: "1366 x 768", value: 1 },
@@ -544,9 +520,6 @@ class _SceneFacetClass {
     return controls;
   }
 
-  /**
-   * nine-sliced border stays crisp while the body stretches
-   */
   _skinSection() {
     const skin = facetSection(I18n.textRef("FACET_SKIN"));
     const box = facetNineSlice();
@@ -557,9 +530,6 @@ class _SceneFacetClass {
     return skin;
   }
 
-  /**
-   * sortable+filterable table; Type select drives setFilter; confirm enters browse mode
-   */
   _tableTab() {
     const gold = facetColor("warn");
     const cols = [
@@ -607,7 +577,7 @@ class _SceneFacetClass {
       rows: 4,
       rowH: 24,
       headerH: 28,
-      sortBy: 1, // start sorted by Name
+      sortBy: 1,
       onSelect: (row) => (this.tableSel = row),
       onActivate: (row) =>
         Toast.push(I18n.text("FACET_TABLE_USE") + " " + row.name, {
@@ -650,9 +620,7 @@ class _SceneFacetClass {
     return tab;
   }
 
-  /**
-   * demo data spread across types/rarities to exercise sort + filter
-   */
+  /** Demo data spread across types and rarities to exercise sort and filter. */
   _items() {
     const spr = pixTile16;
     const R = {
@@ -689,9 +657,6 @@ class _SceneFacetClass {
     ];
   }
 
-  /**
-   * two draggable 3×3 grids; cross-grid drag works; drop on empty restores to source
-   */
   _inventorySection() {
     const sec = facetSection(I18n.textRef("FACET_INV_TITLE"));
     const grids = new UIElement({
@@ -728,9 +693,7 @@ class _SceneFacetClass {
     return sec;
   }
 
-  /**
-   * alternating filled/empty; offset per bag so the two grids differ
-   */
+  /** Offset per bag so the two grids differ. */
   _bag(which) {
     const icon = pixTile16;
     const items = [];
@@ -762,9 +725,7 @@ class _SceneFacetClass {
     return sec;
   }
 
-  /**
-   * A fresh body element per section (the same element can't live in two places).
-   */
+  /** A fresh body per section: one element can't live in two places. */
   _accBody() {
     const body = facetList();
     body.insertChild(
@@ -775,10 +736,7 @@ class _SceneFacetClass {
     return body;
   }
 
-  /**
-   * A list taller than its 160px window — the scroll keystone, here nested under a
-   * tab page.
-   */
+  /** A list taller than its window, nested under a tab page. */
   _scrollSection() {
     const scrollSec = facetSection(I18n.textRef("FACET_SCROLL"));
     const sc = facetScroll({ height: 160 });
@@ -793,8 +751,7 @@ class _SceneFacetClass {
     return scrollSec;
   }
 
-  // pure UI — no sim/world view; declared because the Game object calls them unconditionally
-  // (standalone class: these were previously inherited Scene stubs)
+  // no world; declared because every scene is updated and drawn unconditionally
   update() {}
   draw() {}
 

@@ -1,20 +1,17 @@
 /**
  * The player's BGM dial; a timed station sets the sim tempo.
  *
- * Singleton (Game/System). The dial is every AssetMeta def carrying a `name` — declared in
- * contentSounds, so a new station is one data line there. Logic over ONE world record (World.self
- * under KEY — { station }, the tuned track's ASSET NAME, "" = off), so the dial starts off with
- * the world and rides the save: what plays is Music's, the tempo the scene's, the bed to fall
- * back to the injected `ambient` hook's. The record holds the name, never the asset (a record is
- * plain data); `station()` resolves it back through the dial, so the ref every consumer
- * compares is the declared one (AssetMeta scans refs by identity).
+ * The dial is every declared track carrying a `name`, so a new station is one data line. Its one
+ * world record starts off with the world and rides the save. The record holds the track's asset
+ * name, never the asset (a record is plain data); `station()` resolves it back to the declared
+ * ref, which is compared by identity.
  */
 globalThis.Radio = {
-  KEY: "radio", // its token on the world's own entity — a data key (a save holds it)
+  KEY: "radio", // a data key: a save holds it
 
   /**
-   * Injected: () => the bed to resume when the dial goes off — sceneColony.create wires
-   * ColonyTravel.bed over the live level. null until wired; off() then just stops the music.
+   * Injected: () => the bed to resume when the dial goes off. null until wired; off() then just
+   * stops the music.
    */
   ambient: null,
 
@@ -23,9 +20,7 @@ globalThis.Radio = {
     return World.table.of(World.self, Radio.KEY, () => ({ station: "" }));
   },
 
-  /**
-   * The dial: every declared track with a name, in declaration order (AssetMeta defs).
-   */
+  /** Every declared track with a name, in declaration order. */
   stations() {
     const all = AssetMeta.all();
     const out = [];
@@ -34,18 +29,12 @@ globalThis.Radio = {
     return out;
   },
 
-  /**
-   * true while a station is tuned — its track plays through map arrivals (ColonyTravel._applyBgm
-   * defers to it).
-   */
+  /** True while a station is tuned — its track plays through map arrivals. */
   on() {
     return Radio.state().station !== "";
   },
 
-  /**
-   * The tuned track asset — the dial's own ref for the record's name — or -1 when off (or when
-   * the named track left the dial).
-   */
+  /** The tuned track's declared ref, or -1 when off or when the named track left the dial. */
   station() {
     const name = Radio.state().station;
     if (name === "") return -1;
@@ -56,8 +45,8 @@ globalThis.Radio = {
   },
 
   /**
-   * Tune a station: its track cross-fades in (Music.play) and stays on through map arrivals.
-   * Re-tuning the tuned one is a no-op; an asset that is gone is refused. Returns true if tuned.
+   * The track cross-fades in and stays on through map arrivals. Re-tuning the tuned one is a
+   * no-op; an asset that is gone is refused. Returns true if tuned.
    */
   tune(sound) {
     if (!audio_exists(sound)) return false;
@@ -70,10 +59,7 @@ globalThis.Radio = {
     return true;
   },
 
-  /**
-   * Dial off: the map's bed resumes through the `ambient` hook (silence when none is wired).
-   * A no-op when already off.
-   */
+  /** The map's bed resumes through the `ambient` hook. A no-op when already off. */
   off() {
     const w = Radio.state();
     if (w.station === "") return;
@@ -84,8 +70,8 @@ globalThis.Radio = {
   },
 
   /**
-   * Drop the bed hook (scene create + destroy) — the dial itself goes with the world's records
-   * (World.reset), and the track stops with the scene (Audio.restart), so no fade runs here.
+   * Drop the bed hook. The dial itself goes with the world's records and the track with the
+   * scene, so no fade runs here.
    */
   reset() {
     Radio.ambient = null;

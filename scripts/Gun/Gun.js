@@ -1,13 +1,11 @@
 /**
  * Item component marking a weapon as a gun.
  *
- * Firing pipeline: loaded Ammo base → this gun-base `ops` layer → each attachment's ops, so a gun-base
- * can pre-bias a round before attachments.
- *   • caliber   — which Ammo chambers (must match Ammo.caliber).
- *   • magazine  — base clip size; attachments scale it via ops.
- *   • ops       — gun-base operators { field: { add?, mul? } } over velocity/mass/power/penetration/
- *                 fireCd/magazine. Default {} = inert.
- * Flat class queried by `instanceof` (composition over inheritance).
+ * The loaded round's stats pass through this gun's `ops` layer before each attachment's, so a gun
+ * can pre-bias a round.
+ *   • caliber   — which ammo chambers.
+ *   • magazine  — base clip size.
+ *   • ops       — operators { field: { add?, mul? } }; {} is inert.
  */
 globalThis.Gun = class Gun {
   constructor(d = {}) {

@@ -1,6 +1,6 @@
 /**
  * @typedef {Object} State
- * @property {string} current  active state id in the StateSystem pool ("" = none)
- * @property {string} next     queued state id ("" = none) — StateSystem.update applies it
+ * @property {string} current  active state id ("" = none)
+ * @property {string} next     queued state id ("" = none), applied on the next update
  */
 globalThis.State = "State";
