@@ -12,7 +12,8 @@
  *
  * Storage is a Map keyed by string, safe as long as nothing iterates it. BUG: a Map iterator
  * hangs the runtime (docs/GMRT.md), so `all` index-loops `order`. `order` is append-only:
- * re-registering an id overwrites its def and keeps its position.
+ * re-registering an id overwrites its def and keeps its position, with a warning — a repeat is
+ * two defs claiming one id.
  */
 globalThis.Registry = {
   _of(facade) {
@@ -33,6 +34,7 @@ globalThis.Registry = {
     for (let i = 0; i < list.length; i++) {
       const def = make === undefined ? list[i] : make(list[i]);
       if (!s.defs.has(def.id)) s.order.push(def.id);
+      else Log.warn(`Registry.register: "${def.id}" registered again — the later def wins`);
       s.defs.set(def.id, def);
     }
   },
