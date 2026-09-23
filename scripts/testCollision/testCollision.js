@@ -192,6 +192,12 @@ Test.register(Test.CHECK, [
         "inRadius counts inside only",
       );
       t.eq(Query.inRect(s, 0, -1, 200, 1).length, 2, "inRect counts both");
+      t.eq(Query.inRect(s, 0, -1, 200, 1, { ignore: ctx.near })[0], ctx.far, "ignore: drops the asker");
+      t.eq(
+        Query.inRadius(s, 0, 0, 200, { has: "TestMarker", ignore: ctx.far }).length,
+        0,
+        "ignore: drops it from a joined walk too",
+      );
     },
     teardown(ctx) {
       ctx.entities.destroy();
@@ -294,6 +300,7 @@ Test.register(Test.CHECK, [
       t.eq(Query.maskRadius(s, 60, 40, 20).length, 1, "a circle reaches a box");
       t.eq(Query.maskRadius(s, 0, 0, 1000, { has: "TestMarker" }).length, 1, "has: narrows to the marker's carrier");
       t.eq(Query.maskRadius(s, 40, 100, 4).length, 0, "a solid-off body wears no mask");
+      t.eq(Query.maskRect(s, 0, 0, 36, 60, { ignore: ctx.near }).length, 0, "ignore: drops the asker's mask");
       const order = Query.maskRadius(s, 0, 40, 1000, { ordered: true });
       t.eq(order.length, 3, "ordered: every solid mask in reach");
       t.ok(

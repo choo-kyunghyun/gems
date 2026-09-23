@@ -93,10 +93,9 @@ globalThis.Diplomacy = {
   nearestHostile(entities, id, x, y, range) {
     const fa = Diplomacy.factionOf(entities, id);
     if (fa === undefined) return -1;
-    const ids = Query.maskRadius(entities, x, y, range, { has: Health, ordered: true });
+    const ids = Query.maskRadius(entities, x, y, range, { has: Health, ignore: id, ordered: true });
     for (let i = 0; i < ids.length; i++) {
       const oid = ids[i];
-      if (oid === id) continue;
       const fb = Diplomacy.factionOf(entities, oid);
       if (fb === undefined) continue;
       if (Diplomacy.isHostile(fa, fb)) return oid;

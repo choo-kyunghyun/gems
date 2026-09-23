@@ -13,10 +13,11 @@
  * forms return ids, `has` narrowing to a component's carriers; a cast's hit is
  * { id, x, y, nx, ny, t }, nx/ny the surface normal pointing back along the ray, t the segment
  * parameter (0 = start, clamped to 0 when the start is inside).
- * @typedef {Object} QueryOpts @property {string} [has] require this component (its token)
+ * @typedef {Object} QueryOpts
+ *   @property {number} [ignore] skip this entity (the asker itself)
+ *   @property {string} [has] the id forms only: require this component (its token)
  *   @property {boolean} [ordered] maskRadius only: nearest first, by the distance from the
  *   centre to each mirror's origin — its box centre (PuppetSystem)
- * @typedef {Object} CastOpts @property {number} [ignore] skip this entity (the shooter)
  */
 globalThis.Query = {
   _hits: [], // cast()'s scratch — holds the one nearest hit while collecting
@@ -44,7 +45,7 @@ globalThis.Query = {
   maskRect(entities, x1, y1, x2, y2, opts = {}) {
     const list = PuppetSystem.list();
     const found = PuppetSystem.probe().collision_rectangle_list(x1, y1, x2, y2, Puppet, false, true, list, false);
-    return Query._ids(entities, list, found, opts.has);
+    return Query._ids(entities, list, found, opts);
   },
 
   /** The solid colliders whose mask overlaps the circle, nearest first when `ordered`. */
@@ -52,7 +53,7 @@ globalThis.Query = {
     const list = PuppetSystem.list();
     const ordered = opts.ordered === true;
     const found = PuppetSystem.probe().collision_circle_list(x, y, radius, Puppet, false, true, list, ordered);
-    return Query._ids(entities, list, found, opts.has);
+    return Query._ids(entities, list, found, opts);
   },
 
   /** Nearest hit along (x0,y0)->(x1,y1), or null. */
@@ -79,19 +80,27 @@ globalThis.Query = {
    */
   _each(entities, opts, fn) {
     const extra = opts.has;
+    const ignore = opts.ignore;
     if (extra !== undefined) {
-      entities.forEach([extra, Position], (id, _e, pos) => fn(id, pos));
+      entities.forEach([extra, Position], (id, _e, pos) => {
+        if (id !== ignore) fn(id, pos);
+      });
       return;
     }
-    entities.forEach([Position], (id, pos) => fn(id, pos));
+    entities.forEach([Position], (id, pos) => {
+      if (id !== ignore) fn(id, pos);
+    });
   },
 
-  /** The list's entities: a live mirror's id, carrying `has` when asked. */
-  _ids(entities, list, found, has) {
+  /** The list's entities: a live mirror's id other than `ignore`, carrying `has` when asked. */
+  _ids(entities, list, found, opts) {
+    const has = opts.has;
+    const ignore = opts.ignore;
     const result = [];
     for (let k = 0; k < found; k++) {
       const id = ds_list_find_value(list, k).eid;
       if (id === undefined) continue; // a Puppet that mirrors no entity
+      if (id === ignore) continue;
       if (!entities.isValid(id)) continue;
       if (has !== undefined) {
         if (!entities.has(id, has)) continue;

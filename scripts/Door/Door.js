@@ -36,9 +36,9 @@ globalThis.Door = {
     const box = AABB.of(entities, id);
     const ids = Query.maskRect(entities, box.x1 - 4, box.y1 - 4, box.x2 + 4, box.y2 + 4, {
       has: Collision,
+      ignore: id,
     });
     for (let i = 0; i < ids.length; i++) {
-      if (ids[i] === id) continue;
       if (entities.require(ids[i], Collision).kinematic === false) return true; // solid: a solid-off body has no mask
     }
     return false;

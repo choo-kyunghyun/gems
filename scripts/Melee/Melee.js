@@ -25,10 +25,10 @@ globalThis.Melee = {
     const hits = [];
     const ids = Query.maskRect(entities, cx - hw, cy - hh, cx + hw, cy + hh, {
       has: Health,
+      ignore: attackerId,
     });
     for (let i = 0; i < ids.length; i++) {
       const id = ids[i];
-      if (id === attackerId) continue;
       if (Diplomacy.allied(entities, attackerId, id)) continue; // no friendly fire
       // shared applier mitigates + subtracts; death reaction is central
       Combat.applyDamage(entities, id, damage);
