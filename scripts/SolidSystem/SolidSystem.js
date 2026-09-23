@@ -2,25 +2,31 @@
  * Moves the dynamic solid bodies and keeps them out of the kinematic solids: each tick the
  * level's Colliders (`colliders` — a derived entry of the level's own entity, seeded on the first read and
  * refreshed here, THE collider walk of a tick) list the bodies, and every solid body with a
- * Velocity integrates it in sub-steps of at most `maxStep`, pushed out of any static it enters
- * along one axis at a time (_resolve). Bodies it moves must NOT also be in MovementSystem. The
- * bake's premise, the segment queries over it and the bare static collider are Colliders'.
+ * Velocity moves through its mirror (PuppetSystem) — `move_and_collide` against `Solid`, the
+ * kinematic mirrors, one axis at a time in sub-steps of at most `maxStep`, the other axis's
+ * move capped to 0 so the runtime's perpendicular try never creeps a body along a face it is
+ * pressed into — and reads its Position back off the instance. A body slides along a face by
+ * its own tangential velocity (x blocked, y free), and its Velocity is rewritten as the
+ * displacement it actually made, so a reader of speed (Doll.pace) sees a body pressed into a
+ * wall stand still. The runtime never pushes a body OUT of a solid it already overlaps (a
+ * separation push can land one there), so a body found inside one takes the bake's push-out
+ * (_resolve) before it moves. Bodies it moves must NOT also be in MovementSystem. The bake's
+ * premise and the bare static collider are Colliders'.
  */
 globalThis.SolidSystem = {
   KEY: "solid", // its derived token on the level's own entity — the Colliders
-  maxStep: 8, // keep below thinnest collider to prevent tunneling
+  maxStep: 8, // the runtime's sub-step (px): keep below the thinnest collider to prevent tunneling
   // the static grid's cell (px): insert AND query by AABB SPAN (every cell an AABB overlaps), so
   // there's no cell-size constraint (unlike the center-bucket Broadphase) and huge statics just
   // occupy many cells — a pure perf knob
   cell: 64,
 
-  // Scratch reused every tick: the mover's rect (_resolve runs twice per sub-step per body —
-  // docs/ARCHITECTURE.md → Hot-path idioms).
+  // Scratch reused every tick: the mover's rect for the push-out (docs/ARCHITECTURE.md → Hot-path idioms).
   _rect: AABB.rect(),
 
   /**
    * The level's Colliders, baked: a level this system has not updated yet (a map's first tick, a
-   * reader before the first update) is refreshed here, so a reader (Raycast, SeparationSystem,
+   * reader before the first update) is refreshed here, so a reader (SeparationSystem,
    * PathfindingSystem) never sees an empty bake.
    */
   colliders(level) {
@@ -35,42 +41,55 @@ globalThis.SolidSystem = {
 
   update(level) {
     const dt = Time.step;
-    const c = level.entities.derive(level.self, SolidSystem.KEY, SolidSystem._seed);
+    const entities = level.entities;
+    const c = entities.derive(level.self, SolidSystem.KEY, SolidSystem._seed);
 
-    c.refresh(level.entities);
+    c.refresh(entities);
     const statics = c.statics;
 
-    // integrate the bodies the refresh listed (non-kinematic already) — the moving solid ones
+    // integrate the bodies the refresh listed (non-kinematic already) — the moving solid ones,
+    // each through its mirror (hoisted column — one index read per body)
+    const held = entities.column(Instance);
+    const mask = Handle.INDEX_MASK;
+    const ids = c.bodyIds;
     const cols = c.bodyCols;
     const poss = c.bodyPos;
     const boxes = c.bodyBoxes;
     const vels = c.bodyVels;
     const n = c.bodyCount;
+    const maxStep = SolidSystem.maxStep;
     for (let i = 0; i < n; i++) {
       const vel = vels[i];
       if (vel === undefined) continue;
       if (!cols[i].solid) continue;
+      const h = held[ids[i] & mask];
+      if (h === undefined) continue; // no mirror yet — PuppetSystem's next update mints it
+      if (!h.shaped) continue;
       const pos = poss[i];
       const box = boxes[i];
+      const inst = h.inst;
 
       const dx = vel.x * dt;
       const dy = vel.y * dt;
-      const steps = Math.max(
-        1,
-        Math.ceil(Math.max(Math.abs(dx), Math.abs(dy)) / SolidSystem.maxStep),
-      );
-      const sx = dx / steps;
-      const sy = dy / steps;
-
-      for (let s = 0; s < steps; s++) {
-        pos.x += sx;
-        if (SolidSystem._resolve(c, pos, box, statics, sx, true) !== 0)
-          vel.x = 0;
-
-        pos.y += sy;
-        if (SolidSystem._resolve(c, pos, box, statics, sy, false) !== 0)
-          vel.y = 0;
+      if (inst.place_meeting(inst.x, inst.y, Solid)) {
+        // inside a solid already (a separation push): the bake's push-out, then the mirror follows
+        SolidSystem._resolve(c, pos, box, statics, dx, true);
+        SolidSystem._resolve(c, pos, box, statics, dy, false);
+        inst.x = pos.x + h.ox;
+        inst.y = pos.y + h.oy;
       }
+      const m = Math.max(Math.abs(dx), Math.abs(dy));
+      if (m === 0) continue;
+      const iters = Math.max(1, Math.ceil(m / maxStep));
+      const x0 = pos.x;
+      const y0 = pos.y;
+      // the return is a GML array: read through array_length or not at all (docs/GMRT.md)
+      if (dx !== 0) inst.move_and_collide(dx, 0, Solid, iters, 0, 0, -1, 0);
+      if (dy !== 0) inst.move_and_collide(0, dy, Solid, iters, 0, 0, 0, -1);
+      pos.x = inst.x - h.ox;
+      pos.y = inst.y - h.oy;
+      vel.x = (pos.x - x0) / dt;
+      vel.y = (pos.y - y0) / dt;
     }
   },
 
@@ -78,8 +97,7 @@ globalThis.SolidSystem = {
    * push body out of overlapping statics along one axis (deepest correction wins).
    * `statics` is the cached bake (precomputed edges), so the loop is
    * flat field reads — keep it free of entities.get / AABB.of (the profiled hot spot). Scans only the
-   * statics in the grid cells the body's post-move AABB overlaps (sub-stepping caps the move to
-   * maxStep, so the current AABB captures every static this sub-step could hit). A multi-cell static
+   * statics in the grid cells the body's AABB overlaps. A multi-cell static
    * may be tested more than once — harmless: the overlap/deepest-correction body is idempotent.
    * returns sign of correction (+1 = pushed toward -, i.e. up/left; -1 = toward +; 0 = none).
    */

@@ -706,6 +706,7 @@ globalThis.testCore = {
           const s = c.entities;
           s.mint(c.w, PathRequest, { startX: 0, startY: 0, goalX: 7, goalY: 0 });
           PathfindingSystem.update(c.level);
+          PuppetSystem.update(c.level);
           SolidSystem.update(c.level);
           SeparationSystem.update(c.level);
           CameraSystem.apply(c.level);
@@ -846,12 +847,15 @@ globalThis.testCore = {
       },
       verify(ctx, t) {
         const s = ctx.entities;
-        for (let k = 0; k < 20; k++) SolidSystem.update(ctx.level);
+        for (let k = 0; k < 20; k++) {
+          PuppetSystem.update(ctx.level); // the scene's order: the mirror first
+          SolidSystem.update(ctx.level);
+        }
         const pos = s.get(ctx.body, Position);
         const vel = s.get(ctx.body, Velocity);
-        t.ok(pos.x + 16 <= 100 + 1e-6, "body never enters the wall");
-        t.ok(pos.x >= 80, "body reaches the wall");
-        t.eq(vel.x, 0, "blocked axis zeroes velocity");
+        t.ok(pos.x + 16 <= 100 + 0.5, "body never enters the wall past the half pixel the runtime rounds (docs/GMRT.md): " + pos.x);
+        t.ok(pos.x >= 80, "body reaches the wall: " + pos.x);
+        t.eq(vel.x, 0, "a blocked body's velocity is what it moved: none");
         const wallPos = s.get(ctx.wall, Position);
         t.eq(wallPos.x, 100, "kinematic solid never moves");
         t.eq(
@@ -883,12 +887,16 @@ globalThis.testCore = {
         const s = ctx.entities;
         const level = ctx.level;
         const col = s.get(ctx.wall, Collision);
+        PuppetSystem.update(level); // the mirrors, ahead of the solid pass as in the scene
         SolidSystem.update(level);
         const c = SolidSystem.colliders(level);
         t.eq(c.statics.length, 1, "the wall bakes");
         t.eq(c.gen, 1, "the first bake counts");
         col.solid = false; // the leaf opens
-        for (let k = 0; k < 20; k++) SolidSystem.update(level);
+        for (let k = 0; k < 20; k++) {
+          PuppetSystem.update(level); // the leaf's mirror empties its mask
+          SolidSystem.update(level);
+        }
         t.eq(c.statics.length, 0, "an open leaf leaves the bake");
         t.eq(c.gen, 2, "the flip moved the generation");
         t.ok(s.get(ctx.body, Position).x > 100, "the body walks through the open leaf");

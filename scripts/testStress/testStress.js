@@ -20,8 +20,9 @@ const SHOT_FRAME = 150;
 const OVERLAP_EVERY = 60; // frames between the body-vs-wall sweeps (500 × ~80 rect tests each)
 
 /**
- * Bodies overlapping a static, past a sub-pixel tolerance (the resolver parks a body ON a face).
- * Read after the solid pass and before the separation push — the one point where zero must hold.
+ * Bodies overlapping a static past half a pixel — the runtime's collision test rounds a mask's
+ * edges to whole pixels (docs/GMRT.md), so a body may rest that deep in a face. Read after the
+ * solid pass and before the separation push — the one point where zero must hold.
  */
 function _stressOverlaps(level) {
   const statics = SolidSystem.colliders(level).statics;
@@ -32,10 +33,10 @@ function _stressOverlaps(level) {
     for (let k = 0; k < statics.length; k++) {
       const st = statics[k];
       if (
-        rect.x2 > st.x1 + 0.01 &&
-        st.x2 > rect.x1 + 0.01 &&
-        rect.y2 > st.y1 + 0.01 &&
-        st.y2 > rect.y1 + 0.01
+        rect.x2 > st.x1 + 0.5 &&
+        st.x2 > rect.x1 + 0.5 &&
+        rect.y2 > st.y1 + 0.5 &&
+        st.y2 > rect.y1 + 0.5
       )
         overlaps += 1;
     }
