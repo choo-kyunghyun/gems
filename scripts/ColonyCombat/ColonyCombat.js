@@ -12,8 +12,6 @@
  * authority that removes/respawns/incapacitates/leaves a body.
  */
 globalThis.ColonyCombat = {
-  _rect: AABB.rect(), // reused by collectDrops per drop tested (docs/ARCHITECTURE.md → Hot-path idioms)
-
   /**
    * live enemy set: Health-bearing bodies hostile to the player (by Faction). Player allies
    * (followers/turrets, player faction) and neutral props (no Faction) are excluded.
@@ -274,14 +272,18 @@ globalThis.ColonyCombat = {
   },
 
   /**
-   * `src` (optional) source slot — an instance (has uid) records uid+mods so pickup re-inserts the same one
+   * A ground drop: an Interaction "pickup" target (contentInteractions → pickup) the player
+   * picks and takes on E like any station. `src` (optional) source slot — an instance (has uid)
+   * records uid+mods so pickup re-inserts the same one.
    */
   spawnDrop(scene, itemId, qty, x, y, src) {
     const entities = scene.level.entities;
     const id = entities.create();
     entities.add(id, Position, { x: x, y: y, z: 0 });
-    // the 32px icon WorldOverlay draws 1:1 — the pickup box lines up with the drop
+    // the 32px icon WorldOverlay draws 1:1 — the cursor footprint (Silhouette) and the pick
+    // outline line up with the drop
     entities.add(id, BBox, { x: -16, y: -16, width: 32, height: 32 });
+    entities.add(id, Interaction, { kind: "pickup" });
     const drop = { itemId: itemId, qty: qty };
     if (src !== undefined && src.uid !== undefined) {
       drop.uid = src.uid;
@@ -299,43 +301,34 @@ globalThis.ColonyCombat = {
   },
 
   /**
-   * pick up ItemDrops overlapping the player into the bag; onCollect for genre effects.
-   * Scans the drops directly (a handful per map) against the player's AABB — no sensor
-   * component and no per-tick pair sweep behind it.
+   * The "pickup" action: drop `id`'s payload to `playerId`'s bag — an instance drop re-inserts
+   * whole (uid + mods preserved), a fungible one by qty, the remainder left on the ground when
+   * the bag fills — and the drop goes once emptied (deferred — the tick's flush commits it).
+   * Returns `{ itemId, qty, reason }`: `qty` taken, 0 with `reason` "INV_FULL" for a refused
+   * bag — the view's to show (contentInteractions).
    */
-  collectDrops(scene, onCollect) {
-    const entities = scene.level.entities;
-    const p = AABB.of(entities, scene.playerId);
-    const inv = entities.get(scene.playerId, Inventory);
-    const box = ColonyCombat._rect;
-    entities.forEach([ItemDrop, Position, BBox], (id, d, pos, bb) => {
-      if (!AABB.overlap(p, AABB.edgesInto(pos, bb, box))) return;
-      // An instance drop re-inserts whole (uid + mods preserved); a fungible drop adds by qty.
-      if (d.uid !== undefined) {
-        const slot = {
-          itemId: d.itemId,
-          qty: 1,
-          uid: d.uid,
-          mods: d.mods ?? {},
-        };
-        if (d.ammo !== undefined) slot.ammo = d.ammo;
-        if (d.rounds !== undefined) slot.rounds = d.rounds;
-        const ok = Bag.addSlot(inv, slot) === 0;
-        if (ok) {
-          scene.window.dirty = true;
-          if (onCollect !== undefined) onCollect(d.itemId, 1);
-          entities.remove(id); // deferred — the tick's flush commits it
-        }
-        return; // bag full → leave the instance on the ground
+  pickup(entities, id, playerId) {
+    const d = entities.require(id, ItemDrop);
+    const inv = entities.require(playerId, Inventory);
+    if (d.uid !== undefined) {
+      const slot = {
+        itemId: d.itemId,
+        qty: 1,
+        uid: d.uid,
+        mods: d.mods ?? {},
+      };
+      if (d.ammo !== undefined) slot.ammo = d.ammo;
+      if (d.rounds !== undefined) slot.rounds = d.rounds;
+      if (Bag.addSlot(inv, slot) !== 0) {
+        return { itemId: d.itemId, qty: 0, reason: "INV_FULL" };
       }
-      const left = Bag.add(inv, d.itemId, d.qty);
-      const got = d.qty - left;
-      if (got > 0) {
-        scene.window.dirty = true; // bag changed — refresh the open page
-        if (onCollect !== undefined) onCollect(d.itemId, got);
-      }
-      if (left <= 0) entities.remove(id);
-      else d.qty = left; // bag full — leave the remainder on the ground
-    });
+      entities.remove(id);
+      return { itemId: d.itemId, qty: 1, reason: "" };
+    }
+    const left = Bag.add(inv, d.itemId, d.qty);
+    const got = d.qty - left;
+    if (left <= 0) entities.remove(id);
+    else d.qty = left;
+    return { itemId: d.itemId, qty: got, reason: got > 0 ? "" : "INV_FULL" };
   },
 };

@@ -412,9 +412,6 @@ class _SceneColonyClass {
     ColonyCombat.resolveHealth(this, this._mortalRules);
     ColonyCombat.updateDowned(this, this._downedRules); // a downed companion's revive timer
     ColonyCombat.reapCorpses(this); // looted-empty corpses vanish (lootless kills reap at once)
-    ColonyCombat.collectDrops(this, (itemId, got) =>
-      this.onCollect(itemId, got),
-    );
     this._checkReach(); // reach-quest zone
 
     this.level.entities.flush();
@@ -492,8 +489,9 @@ class _SceneColonyClass {
   }
 
   /**
-   * pickup credit — ground-drop collection AND corpse looting (StorageUI's take hook, set by the
-   * "corpse" InteractAction) land here so collect quests/achievements can't diverge by loot path
+   * pickup credit — a ground drop's E (the "pickup" InteractAction) AND corpse looting
+   * (StorageUI's take hook, set by the "corpse" one) land here so collect quests/achievements
+   * can't diverge by loot path
    */
   onCollect(itemId, got) {
     const pp = this.level.entities.require(this.playerId, Position);

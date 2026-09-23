@@ -101,6 +101,25 @@ globalThis.contentInteractions = {
         },
       },
       {
+        // a ground drop (ColonyCombat.spawnDrop): its payload to the bag, the pickup credit the
+        // same as corpse looting's (scene.onCollect); the refusal (a full bag) is shown here
+        id: "pickup",
+        prompt: "INV_PICKUP_PROMPT",
+        run(ctx) {
+          const r = ColonyCombat.pickup(ctx.entities, ctx.id, ctx.playerId);
+          if (r.qty === 0) {
+            Toast.push(I18n.text(r.reason), { type: "info" });
+            return;
+          }
+          ctx.scene.onCollect(r.itemId, r.qty);
+          ctx.scene.window.dirty = true;
+          Toast.push(
+            I18n.text("INV_PICKED_UP", r.qty, I18n.text(Item.get(r.itemId).name)),
+            { type: "success" },
+          );
+        },
+      },
+      {
         // built door (woodenDoor prop): the leaf flip is Door's; its refusal (a body in the
         // frame) is shown here
         id: "door",

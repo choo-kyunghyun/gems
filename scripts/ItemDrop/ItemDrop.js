@@ -1,5 +1,6 @@
 /**
- * World pickup payload on a non-solid sensor entity, collected on overlap.
+ * World pickup payload on a ground entity — an Interaction "pickup" target the player picks and
+ * takes on E (ColonyCombat.spawnDrop / pickup, the action in contentInteractions).
  * A dropped instance carries the source slot's instance fields so pickup re-inserts the same
  * instance; fungible drops omit them. Instance-field shapes mirror InventorySlot (Inventory).
  *

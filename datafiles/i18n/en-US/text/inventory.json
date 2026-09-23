@@ -14,6 +14,8 @@
   "INV_SLOTS": "Slots",
   "INV_WEIGHT": "Weight",
   "INV_FULL": "Bag full — make room first",
+  "INV_PICKUP_PROMPT": "[E] Pick up",
+  "INV_PICKED_UP": "Picked up {0}× {1}",
   "SLOT_WEAPON": "Weapon",
   "SLOT_ARMOR": "Armor",
   "SLOT_TRINKET": "Trinket",

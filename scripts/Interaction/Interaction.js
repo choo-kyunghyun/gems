@@ -7,7 +7,8 @@
  * `Interactable` module. Replaces the old Core `Station` component.
  * @typedef {Object} Interaction
  * @property {string} kind      registered InteractAction id. The colony's set: "storage" |
- *   "workbench" | "corpse" (a stripped body, looted over its own Inventory) | "door" | "rehire"
+ *   "workbench" | "corpse" (a stripped body, looted over its own Inventory) | "pickup" (a
+ *   ground drop — its ItemDrop to the bag) | "door" | "rehire"
  *   (recruit an unhired companion) | "claim" | "bed" | "hydrate" | "feed" | "buff" | "harvest" |
  *   "chop" (a ripe plant — FloraSystem) | "talk" (a quest NPC: offer / turn-in) | "trade" (a
  *   merchant NPC: its shop) — the NPC pair is ColonySpawn's, so an NPC is picked beside a station |
