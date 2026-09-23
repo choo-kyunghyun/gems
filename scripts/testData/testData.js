@@ -46,6 +46,43 @@ Test.register(Test.CHECK, [
     },
   },
   {
+    // a slot churned through every generation is retired, so no stale handle revalidates
+    id: "entity.retire",
+    setup(ctx) {
+      ctx.entities = new Table(8);
+      ctx.copy = new Table(8);
+    },
+    verify(ctx, t) {
+      const s = ctx.entities;
+      const first = s.create();
+      let id = first;
+      for (let k = 0; k <= Handle.GENERATION_MASK; k++) {
+        s.remove(id);
+        s.flush();
+        id = s.create();
+      }
+      t.ok(Handle.index(id) !== Handle.index(first), "the wrapped index is not handed out");
+      t.ok(!s.isValid(first), "the generation-0 handle stays invalid");
+      t.eq(s.count(), 1, "a retired index does not count");
+      const live = s.query();
+      t.eq(live.length, 1, "a retired index is not live");
+      t.eq(live[0], id, "the live id is the fresh one");
+
+      const c = ctx.copy;
+      c.import(s.export());
+      t.eq(c.count(), 1, "the retirement survives a round trip");
+      t.ok(!c.isValid(first), "the stale handle stays invalid after import");
+      t.ok(
+        Handle.index(c.create()) !== Handle.index(first),
+        "an imported retired index is not handed out",
+      );
+    },
+    teardown(ctx) {
+      ctx.entities.destroy();
+      ctx.copy.destroy();
+    },
+  },
+  {
     id: "entity.flush",
     setup(ctx) {
       ctx.entities = new Table(8);

@@ -39,7 +39,6 @@
 - ECS: `Table.flush` mid-walk is unguarded — throw when any set's `walking > 0`, since a recycled index is visited by the same walk
 - ECS: `forEach`/`query`/`first` allocate `new Array(n)` per call — a reused scratch (`array.push` 86 ns/op, per walk not per entity)
 - ECS: presence is encoded twice (`column[i]` undefined and `sparse[i]` -1) and data sits by index, not by dense position — the standard packs data beside `dense`; kept for the one-read `get` (`dense.loop` 36 vs `column.loop` 22 ns/op), at `capacity × 2` slots per token
-- ECS: 12-bit generation over a LIFO free list — a slot reused 4096 times revalidates a stale handle; every held id passes `isValid`, so no fix yet
 
 ## Assets
 

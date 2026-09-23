@@ -1,14 +1,17 @@
 /**
  * A row handle — index (20 bits) plus generation (12 bits) packed into one number — and the
  * allocator that hands them out: a freed index comes back at the next generation, so a stale
- * handle fails `isValid` instead of naming the slot's new owner. The static half packs and
- * unpacks a handle; the instance half is an allocation table.
+ * handle fails `isValid` instead of naming the slot's new owner, and an index whose generation
+ * would wrap is retired, never handed out again. The static half packs and unpacks a handle; the
+ * instance half is an allocation table.
  */
 globalThis.Handle = class Handle {
   static INDEX_BITS = 20;
   // BUG: a literal, not INDEX_BITS (docs/GMRT.md) — keep the two in sync by hand.
   static INDEX_MASK = (1 << 20) - 1;
   static GENERATION_MASK = 0xfff;
+  /** A retired index's generation — past the mask, so no handle carries it. */
+  static RETIRED = 0x1000;
 
   static make(index, generation) {
     return (generation << this.INDEX_BITS) | index;
@@ -34,6 +37,7 @@ globalThis.Handle = class Handle {
     this.packed = new Array(maxEntities);
     this.freeIndices = [];
     this.next = 0;
+    this.retired = 0;
     this._repack();
   }
 
@@ -53,7 +57,12 @@ globalThis.Handle = class Handle {
     const index = Handle.index(id);
     const generation = Handle.generation(id);
     if (this.generations[index] !== generation) return false;
-    const bumped = (generation + 1) & Handle.GENERATION_MASK;
+    if (generation === Handle.GENERATION_MASK) {
+      this.generations[index] = Handle.RETIRED;
+      this.retired++;
+      return true;
+    }
+    const bumped = generation + 1;
     this.generations[index] = bumped;
     this.packed[index] = Handle.make(index, bumped);
     this.freeIndices.push(index);
@@ -61,7 +70,7 @@ globalThis.Handle = class Handle {
   }
 
   count() {
-    return this.next - this.freeIndices.length;
+    return this.next - this.freeIndices.length - this.retired;
   }
 
   isValid(id) {
@@ -72,16 +81,18 @@ globalThis.Handle = class Handle {
 
   /**
    * Every live id, ascending by index — the token-less whole-store query. Liveness is the free
-   * list, not a generation test: a freed index's `packed` entry is its NEXT owner's id, which
-   * passes `isValid`.
+   * list and the retired mark, not a generation test: a freed index's `packed` entry is its NEXT
+   * owner's id, which passes `isValid`.
    */
   live() {
     const hi = this.next;
     const free = new Array(hi).fill(false);
     const fi = this.freeIndices;
     for (let k = 0; k < fi.length; k++) free[fi[k]] = true;
+    const g = this.generations;
     const out = [];
-    for (let i = 0; i < hi; i++) if (!free[i]) out.push(this.packed[i]);
+    for (let i = 0; i < hi; i++)
+      if (!free[i]) if (g[i] !== Handle.RETIRED) out.push(this.packed[i]);
     return out;
   }
 
@@ -97,7 +108,12 @@ globalThis.Handle = class Handle {
   _repack() {
     const g = this.generations;
     const p = this.packed;
-    for (let i = 0; i < p.length; i++) p[i] = Handle.make(i, g[i]);
+    let retired = 0;
+    for (let i = 0; i < p.length; i++) {
+      p[i] = Handle.make(i, g[i]);
+      if (g[i] === Handle.RETIRED) retired++;
+    }
+    this.retired = retired;
   }
 
   export() {
