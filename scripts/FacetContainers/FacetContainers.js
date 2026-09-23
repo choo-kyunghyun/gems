@@ -231,22 +231,24 @@ globalThis.facetModal = function facetModal(opts = {}) {
 /**
  * Near-fullscreen overlay window — facetModal's non-modal sibling for the gameplay Window
  * shell (bag / workbench / chest / trade pages). Absolute dim host that veils the HUD, a
- * centered full-height card capped for ultra-wide, and a title row (title + close "x")
+ * centered 16:9 card inside a side margin, and a title row (title + close "x")
  * over a divider. Built ONCE and toggled via `.enabled` (starts hidden) so rebuilt-in-place
  * content keeps sort/filter/selection; the caller inserts it into its scene root itself.
  * Content goes into the returned host's `.body` (the card, under the divider); an extra
  * title-row item (a page's `titleExtra`, the Window shell mounts it) goes into `.titleRow` before
- * its close button. `opts`: { onClose, maxWidth }.
+ * its close button. `opts`: { onClose }.
  */
 globalThis.facetOverlay = function facetOverlay(title, opts = {}) {
-  // absolute → fills the screen ignoring the scene root's padding; 28px margin around the card.
+  // absolute → fills the screen ignoring the scene root's padding; the side margin sizes the card.
   const host = new UIElement({
     positionType: "absolute",
     left: 0,
     top: 0,
     right: 0,
     bottom: 0,
-    padding: 28,
+    paddingLeft: 96,
+    paddingRight: 96,
+    justifyContent: "center",
     alignItems: "center",
   });
   // a light veil: the card is translucent, so the world stays legible behind the window
@@ -254,11 +256,12 @@ globalThis.facetOverlay = function facetOverlay(title, opts = {}) {
   host.addComponent(new UITrigger({})); // swallow backdrop clicks so they don't reach the world
   host.enabled = false; // owner shows/hides via .enabled
 
-  // full-height card, capped on ultra-wide displays
+  // full-width 16:9 card, its height derived from the width: flexpanel clamps a max without
+  // re-deriving the other side, so width leads and fits by the GUI's own 16:9 (UI.designW/H)
   const inner = new UIElement({
     width: "100%",
-    maxWidth: opts.maxWidth ?? 1100,
-    height: "100%",
+    aspectRatio: 16 / 9,
+    maxHeight: "100%",
   });
   const card = facetCard({
     width: "100%",
