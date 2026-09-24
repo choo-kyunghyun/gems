@@ -417,6 +417,35 @@ Test.register(Test.CHECK, [
     },
   },
   {
+    // a bare fn is a capture-only pass, and a pass is removed by what was inserted
+    id: "snapshot.passes",
+    setup(ctx) {
+      ctx.log = [];
+      ctx.bare = (c) => {
+        ctx.log.push("bare:" + c.mode);
+      };
+      const note = (c) => {
+        ctx.log.push("full:" + c.mode);
+      };
+      ctx.full = { id: "full", capture: note, restore: note };
+      ctx.snap = new Snapshot().insert(ctx.full).insert(ctx.bare, 0);
+    },
+    verify(ctx, t) {
+      const snap = ctx.snap;
+      const bundle = snap.capture(undefined);
+      snap.restore(undefined, bundle.manifest, {});
+      t.eq(
+        ctx.log.join(","),
+        "bare:capture,full:capture,full:restore",
+        "passes run in insertion order, a bare fn on capture only",
+      );
+      snap.remove(ctx.bare);
+      t.eq(snap.passes.length, 1, "remove finds a bare fn");
+      snap.remove(ctx.full);
+      t.eq(snap.passes.length, 0, "remove finds a pass");
+    },
+  },
+  {
     // an import replaces the store whole, so a removal queued before it names nothing after it
     id: "entity.import.pending",
     setup(ctx) {

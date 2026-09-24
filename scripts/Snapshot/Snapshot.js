@@ -21,15 +21,9 @@ globalThis.Snapshot = class Snapshot {
     this.passes = [];
   }
 
-  _wrap(pass) {
-    if (typeof pass === "function")
-      return { id: "", capture: pass, restore: () => {} };
-    return pass;
-  }
-
   /** Order is the capture and restore order. */
   insert(pass, index = this.passes.length) {
-    this.passes.splice(index, 0, this._wrap(pass));
+    this.passes.splice(index, 0, pass);
     return this;
   }
 
@@ -56,7 +50,11 @@ globalThis.Snapshot = class Snapshot {
       getBlob: (_name) => undefined,
       takeBlob: (_name) => undefined,
     };
-    for (let i = 0; i < this.passes.length; i++) this.passes[i].capture(ctx);
+    for (let i = 0; i < this.passes.length; i++) {
+      const p = this.passes[i];
+      if (typeof p === "function") p(ctx);
+      else p.capture(ctx);
+    }
     return { manifest, blobs };
   }
 
@@ -78,6 +76,9 @@ globalThis.Snapshot = class Snapshot {
         return b;
       },
     };
-    for (let i = 0; i < this.passes.length; i++) this.passes[i].restore(ctx);
+    for (let i = 0; i < this.passes.length; i++) {
+      const p = this.passes[i];
+      if (typeof p !== "function") p.restore(ctx);
+    }
   }
 };
