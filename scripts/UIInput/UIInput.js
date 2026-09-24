@@ -115,6 +115,15 @@ globalThis.UIInput = class UIInput {
     return i;
   }
 
+  /** The caret's neighbour one step in `dir`: a word with ctrl held, else a character. */
+  _step(dir) {
+    if (Input.keyDown(vk_control))
+      return dir < 0
+        ? this._wordLeft(this._cursor)
+        : this._wordRight(this._cursor);
+    return this._cursor + dir;
+  }
+
   _wordStart(i) {
     while (i > 0 && !this._isSpace(this.value[i - 1])) i--;
     return i;
@@ -281,10 +290,9 @@ globalThis.UIInput = class UIInput {
 
   _processKeyboard() {
     const len = this.value.length;
-    const ctrl = Input.keyDown(vk_control);
 
     // shortcuts return early so the key doesn't also type.
-    if (ctrl) {
+    if (Input.keyDown(vk_control)) {
       if (Input.keyPressed(ord("A"))) {
         this._anchor = 0;
         this._setCursor(len, true);
@@ -305,31 +313,15 @@ globalThis.UIInput = class UIInput {
     }
 
     if (this._repeat(vk_left)) {
-      if (Input.keyDown(vk_shift))
-        this._setCursor(
-          ctrl ? this._wordLeft(this._cursor) : this._cursor - 1,
-          true,
-        );
+      if (Input.keyDown(vk_shift)) this._setCursor(this._step(-1), true);
       else if (this._hasSel()) this._setCursor(this._selLow(), false);
-      else
-        this._setCursor(
-          ctrl ? this._wordLeft(this._cursor) : this._cursor - 1,
-          false,
-        );
+      else this._setCursor(this._step(-1), false);
       return;
     }
     if (this._repeat(vk_right)) {
-      if (Input.keyDown(vk_shift))
-        this._setCursor(
-          ctrl ? this._wordRight(this._cursor) : this._cursor + 1,
-          true,
-        );
+      if (Input.keyDown(vk_shift)) this._setCursor(this._step(1), true);
       else if (this._hasSel()) this._setCursor(this._selHigh(), false);
-      else
-        this._setCursor(
-          ctrl ? this._wordRight(this._cursor) : this._cursor + 1,
-          false,
-        );
+      else this._setCursor(this._step(1), false);
       return;
     }
     if (this._repeat(vk_home)) {
@@ -344,7 +336,7 @@ globalThis.UIInput = class UIInput {
     if (!this.readOnly && this._repeat(vk_backspace)) {
       if (this._deleteSelection()) this.onChange(this.value);
       else if (this._cursor > 0) {
-        const to = ctrl ? this._wordLeft(this._cursor) : this._cursor - 1;
+        const to = this._step(-1);
         this.value = this.value.slice(0, to) + this.value.slice(this._cursor);
         this._setCursor(to, false);
         this.onChange(this.value);
@@ -354,7 +346,7 @@ globalThis.UIInput = class UIInput {
     if (!this.readOnly && this._repeat(vk_delete)) {
       if (this._deleteSelection()) this.onChange(this.value);
       else if (this._cursor < len) {
-        const to = ctrl ? this._wordRight(this._cursor) : this._cursor + 1;
+        const to = this._step(1);
         this.value = this.value.slice(0, this._cursor) + this.value.slice(to);
         this._setCursor(this._cursor, false);
         this.onChange(this.value);
@@ -374,7 +366,7 @@ globalThis.UIInput = class UIInput {
       return;
     }
 
-    if (ctrl) {
+    if (Input.keyDown(vk_control)) {
       return;
     }
     const typed = Input.typed;
