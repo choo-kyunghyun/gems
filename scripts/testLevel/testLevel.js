@@ -103,8 +103,8 @@ Test.register(Test.CHECK, [
   },
   {
     id: "world.pool",
-    // the world's store: a pooled map is an entity carrying its id and its Level (minted, freed
-    // with it), and the roster survives an import without the Levels
+    // the world's store: a pooled level is an entity carrying its map id and the Level (minted,
+    // freed with it), and the roster survives an import without the Levels
     setup(ctx) {
       World.reset();
     },

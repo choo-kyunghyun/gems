@@ -24,8 +24,8 @@
  * @property {Array|undefined} terrainMats  the material table as live rows
  */
 globalThis.ColonyMap = {
-  KEY: "map", // saved
-  RUNTIME: "map_runtime", // derived, never saved
+  KEY: "colony_map", // saved
+  RUNTIME: "colony_map_runtime", // derived, never saved
   // Saved whole-map records on the level's own entity.
   INDOOR: "indoor",
   CLIMATE: "climate",
@@ -72,7 +72,7 @@ globalThis.ColonyMap = {
   build(mapId, entryId, player) {
     const loaded = ColonyMap._loadData(mapId, entryId);
     Log.info(`colony map: ${loaded.mapId} (entry ${loaded.entryId})`);
-    const r = ColonyMap._buildWorld(loaded.data, loaded.mapId, loaded.entryId, player);
+    const r = ColonyMap._buildLevel(loaded.data, loaded.mapId, loaded.entryId, player);
     World.add(loaded.mapId, r.level); // pooled before populate so arrivals can land through the pool
     ColonyMap.populate(r.level, r.built.spawns);
     return r.level;
@@ -111,7 +111,7 @@ globalThis.ColonyMap = {
   restoreLevel(m, source) {
     const level = new Level({ id: m.id, capacity: m.capacity });
     level.entities.codec(Level.GRID, ColonyMap._gridCodec(level));
-    level.entities.import(m.world, source);
+    level.entities.import(m.level, source);
     if (ColonyMap.of(level) === undefined)
       Log.error(`map "${m.id}": save entry carries no map record`);
     else if (level.grid !== null) {
@@ -149,7 +149,7 @@ globalThis.ColonyMap = {
    * The Level with its data record filled and runtime mounted; returns { level, built }. A map is
    * fully resident, so its entity cap scales with the grid.
    */
-  _buildWorld(data, mapId, entryId, player) {
+  _buildLevel(data, mapId, entryId, player) {
     const level = new Level({
       id: mapId,
       capacity: Math.max(1024, Math.ceil((data.cols * data.rows) / 4)),

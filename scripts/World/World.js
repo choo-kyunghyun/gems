@@ -1,18 +1,19 @@
 /**
  * THE WORLD — the level pool and the world's own data, the one write place above a Level: one
  * Table, `table`. Its row `self` carries the world-scope records, each as a component under its
- * owner's key, and every RESIDENT map is an entity carrying its identity (`MAP`, saved) and its
+ * owner's key, and every pooled level is an entity carrying its map id (`MAP`, saved) and the
  * minted `Level`, so a save's world half is `table.export()` and nothing world-scope lives in a
  * singleton. The record owners reach it by their own global, never mirrored into a member here.
- * World holds no screen state — which map is active is the scene's — and never draws.
+ * World is data: it holds no screen state — which map is active is the scene's — and runs no
+ * logic of its own.
  *
  * A pooled level stays alive for the session: a map is built exactly once, then only parks and
  * thaws. take/put move a WHOLE entity between two resident levels; a map id with no resident
  * level throws, since the caller names a pooled map it owns.
  *
- * A store import restores the map entities without their Levels (minted data is not saved);
- * `add` hands each its Level back by map id. `self` is index 0 of a store holding nothing else
- * yet, so it keeps its id across that import.
+ * A store import restores the pooled levels' entities without their Levels (minted data is not
+ * saved); `add` hands each its Level back by map id. `self` is index 0 of a store holding nothing
+ * else yet, so it keeps its id across that import.
  */
 globalThis.World = {
   CAPACITY: 64, // self plus one entity per resident map
@@ -21,7 +22,7 @@ globalThis.World = {
   table: null,
   self: -1, // the entity carrying the world-scope records
 
-  /** The map entity under `mapId`, or -1. */
+  /** The pooled level's entity under `mapId`, or -1. */
   _find(mapId) {
     let found = -1;
     World.table.forEach([World.MAP], (id, m) => {

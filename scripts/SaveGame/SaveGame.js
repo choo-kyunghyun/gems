@@ -11,7 +11,7 @@
  * VERSION is refused — no migration.
  */
 globalThis.SaveGame = {
-  VERSION: 15, // bump when the manifest/blob layout changes incompatibly
+  VERSION: 16, // bump when the manifest/blob layout changes incompatibly
   DIR: "saves/",
   INDEX: "saves/index.json",
   _index: null,
@@ -23,7 +23,7 @@ globalThis.SaveGame = {
     if (SaveGame._frame === null) {
       SaveGame._frame = new Snapshot();
       SaveGame._frame.insert(SaveGame._metaPass);
-      SaveGame._frame.insert(SaveGame._simPass);
+      SaveGame._frame.insert(SaveGame._worldPass);
       SaveGame._frame.insert(SaveGame._mapsPass);
     }
     return SaveGame._frame;
@@ -182,23 +182,24 @@ globalThis.SaveGame = {
   },
 
   // the world's store whole; the roster's Levels are minted, so the maps pass hands each back.
-  _simPass: {
-    id: "sim",
+  _worldPass: {
+    id: "world",
     capture(ctx) {
-      ctx.manifest.sim = World.table.export();
+      ctx.manifest.world = World.table.export();
     },
     restore(ctx) {
-      const sim = ctx.manifest.sim;
-      if (sim === undefined) return;
+      const world = ctx.manifest.world;
+      if (world === undefined) return;
       // a load is not a merge: nothing the previous slot left in memory survives. Records that
       // name a map's entity re-link by id once that map is up.
-      World.table.import(sim);
+      World.table.import(world);
     },
   },
 
   /**
-   * One entry per resident map, active or parked: its store export, enough to pool the map back
-   * without its file. `world` is an on-disk manifest key; renaming it orphans existing saves.
+   * One entry per resident map, active or parked: its level's store export, enough to pool the
+   * map back without its file. `level` is an on-disk manifest key; renaming it orphans existing
+   * saves.
    */
   _mapsPass: {
     id: "maps",
@@ -214,7 +215,7 @@ globalThis.SaveGame = {
           ctx.putBlob(name, buffer);
           return name;
         });
-        maps.push({ id: mapId, capacity: entities.maxEntities, world: exp });
+        maps.push({ id: mapId, capacity: entities.maxEntities, level: exp });
       }
       ctx.manifest.maps = maps;
     },
