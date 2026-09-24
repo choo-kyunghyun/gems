@@ -165,11 +165,11 @@ globalThis.SaveGame = {
       const health = pid !== undefined ? w.get(pid, Health) : undefined;
       const stats = pid !== undefined ? w.get(pid, Stats) : undefined;
       const inv = pid !== undefined ? w.get(pid, Inventory) : undefined;
-      ctx.manifest.activeMap = World.activeId;
+      ctx.manifest.activeMap = scene.level.id;
       ctx.manifest.meta = {
         version: SaveGame.VERSION,
         savedAt: new Date().toISOString(), // date_datetime_string is garbled (docs/GMRT.md)
-        map: World.activeId,
+        map: scene.level.id,
         day: WorldClock.state().day,
         season: Season.now().id,
         clock: WorldClock.clockText(),

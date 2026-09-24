@@ -114,8 +114,6 @@ Test.register(Test.CHECK, [
       t.ok(World.get("test_a") === lv, "get resolves the pooled level");
       t.eq(World.get("test_b"), null, "a map not pooled reads null");
       t.eq(World.ids().join(","), "test_a", "ids lists the resident maps");
-      World.activeId = "test_a";
-      t.ok(World.active() === lv, "active resolves through the pool");
       const exp = World.table.export();
       t.eq(exp.components.level, undefined, "the Level is minted — no export carries it");
       t.eq(exp.components.map.length, 1, "the map entity rides the export");
@@ -131,7 +129,6 @@ Test.register(Test.CHECK, [
       World.reset();
       t.eq(lv2.entities.count(), 0, "reset destroyed the pooled level");
       t.eq(World.ids().length, 0, "the pool is empty after reset");
-      t.eq(World.activeId, null, "no map is active after reset");
     },
   },
   {

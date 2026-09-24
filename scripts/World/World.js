@@ -4,7 +4,7 @@
  * owner's key, and every RESIDENT map is an entity carrying its identity (`MAP`, saved) and its
  * minted `Level`, so a save's world half is `table.export()` and nothing world-scope lives in a
  * singleton. The record owners reach it by their own global, never mirrored into a member here.
- * World holds no screen state and never draws.
+ * World holds no screen state — which map is active is the scene's — and never draws.
  *
  * A pooled level stays alive for the session: a map is built exactly once, then only parks and
  * thaws. take/put move a WHOLE entity between two resident levels; a map id with no resident
@@ -18,7 +18,6 @@ globalThis.World = {
   CAPACITY: 64, // self plus one entity per resident map
   LEVEL: "level", // minted, freed with the entity
   MAP: "map", // { id: mapId }; saved
-  activeId: null, // the map the active scene steps + draws
   table: null,
   self: -1, // the entity carrying the world-scope records
 
@@ -47,11 +46,6 @@ globalThis.World = {
     if (id === -1) return null;
     const lv = World.table.get(id, World.LEVEL);
     return lv === undefined ? null : lv;
-  },
-
-  /** The active level, or null between maps. */
-  active() {
-    return World.activeId === null ? null : World.get(World.activeId);
   },
 
   ids() {
@@ -90,7 +84,6 @@ globalThis.World = {
    * event wiring, whose handlers are the scene's to re-register.
    */
   reset() {
-    World.activeId = null;
     World.table.destroy();
     World.self = World.table.create();
     WorldEvents.reset();

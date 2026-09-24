@@ -83,8 +83,7 @@ globalThis.ColonyTravel = {
   build(scene, mapId, entryId, squad) {
     const level = ColonyMap.build(mapId, entryId, squad === null);
     Trader.deliver(level);
-    scene.level = level;
-    World.activeId = level.id; // building a map activates it (the id may have fallen back)
+    scene.level = level; // its id may have fallen back from the one asked for
     ColonyTravel._arriveSquad(scene, squad, ColonyMap.of(level).spawn); // already entry-resolved
     ColonyTravel._latch(scene);
     ColonyView.activate(level);
@@ -98,7 +97,6 @@ globalThis.ColonyTravel = {
   resume(scene, mapId, entryId, squad) {
     const level = World.get(mapId);
     scene.level = level;
-    World.activeId = mapId;
     PuppetSystem.thaw(level); // activates every mirror in the room, so the other pooled maps park again
     const pooled = World.ids();
     for (let i = 0; i < pooled.length; i++) {
