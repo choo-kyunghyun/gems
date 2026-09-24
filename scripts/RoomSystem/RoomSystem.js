@@ -51,13 +51,14 @@ globalThis.RoomSystem = {
   update(level) {
     const rooms = RoomSystem.rooms(level);
     RoomSystem._sync(level, rooms);
+    const map = rooms.map;
     const now = WorldClock.absHours();
     const rec = level.entities.of(level.self, RoomSystem.KEY, () => ({ lastHour: now, temps: {} }));
     const dh = now - rec.lastHour;
     if (dh <= 0) return;
     rec.lastHour = now;
 
-    const list = rooms.rooms;
+    const list = map.zones;
     const n = list.length;
     const power = RoomSystem._power;
     const leak = RoomSystem._leak;
@@ -69,19 +70,19 @@ globalThis.RoomSystem = {
     }
     const entities = level.entities;
     entities.forEach([Heat, Position], (id, h, pos) => {
-      const r = rooms.atWorld(pos.x, pos.y);
+      const r = map.atWorld(pos.x, pos.y);
       if (r > 0) power[r] += h.power;
     });
     // a door's own cell is a wall, so it leaks the rooms around it
     entities.forEach([Interaction, Position], (id, it, pos) => {
       if (it.kind !== "door") return;
       if (it.open !== 1) return;
-      const gx = Math.floor(pos.x / rooms.cellW);
-      const gy = Math.floor(pos.y / rooms.cellH);
-      const a = rooms.at(gx - 1, gy);
-      const b = rooms.at(gx + 1, gy);
-      const c = rooms.at(gx, gy - 1);
-      const e = rooms.at(gx, gy + 1);
+      const gx = Math.floor(pos.x / map.cellWidth);
+      const gy = Math.floor(pos.y / map.cellHeight);
+      const a = map.at(gx - 1, gy);
+      const b = map.at(gx + 1, gy);
+      const c = map.at(gx, gy - 1);
+      const e = map.at(gx, gy + 1);
       if (a > 0) leak[a] += RoomSystem.DOOR_LEAK;
       if (b > 0 && b !== a) leak[b] += RoomSystem.DOOR_LEAK;
       if (c > 0 && c !== a && c !== b) leak[c] += RoomSystem.DOOR_LEAK;

@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"Rooms",
+  "%Name":"ZoneMap",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"Rooms",
+  "name":"ZoneMap",
   "parent":{
-    "name":"System",
-    "path":"folders/Game/System.yy",
+    "name":"Level",
+    "path":"folders/Core/Level.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"Rooms.js",
+  "scriptSource":"ZoneMap.js",
 }

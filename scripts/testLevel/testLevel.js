@@ -1,6 +1,6 @@
 // Level, world and nav cases: a level's own entity and its rebuild, the grid and its blob, the
-// world pool, a ticker over a level, the nav grid's sync and restamp, the remesh, and perf.plan,
-// what one A* expansion costs. Every case references Core only.
+// world pool, a ticker over a level, the nav grid's sync and restamp, the remesh, the zone map's
+// labeling, and perf.plan, what one A* expansion costs. Every case references Core only.
 
 const PLAN_COLS = 128; // an overworld's side
 
@@ -430,6 +430,60 @@ Test.register(Test.CHECK, [
     },
     teardown(ctx) {
       ctx.level.destroy();
+    },
+  },
+  {
+    id: "level.zones",
+    // a wall ring with a one-cell gap: open, the border floods in; stamped shut, it is a zone
+    setup(ctx) {
+      const ring = ["......", ".####.", ".#....", ".####.", "......"];
+      ctx.ring = (x, y) => ring[y].charAt(x) === "#";
+      // edge-closed, with every diagonal of the centre open
+      const cross = [".#..", "#.#.", ".#..", "...."];
+      ctx.cross = (x, y) => cross[y].charAt(x) === "#";
+      ctx.map = new ZoneMap(6, 5, 32, 32);
+    },
+    verify(ctx, t) {
+      const map = ctx.map;
+      map.label(ctx.ring);
+      t.eq(map.zones.length, 1, "an open gap leaves only the outside");
+      t.eq(map.at(2, 2), ZoneMap.OUTSIDE, "the border floods through the gap");
+      t.eq(map.at(1, 1), ZoneMap.BLOCKED, "a blocked cell reads blocked");
+      t.eq(map.zones[0].cells, 21, "the outside counts every open cell");
+
+      map.label(ctx.ring, [
+        [4, 2, 1, 1],
+        [5, 4, 3, 3],
+      ]);
+      t.eq(map.zones.length, 2, "a stamped gap closes one zone");
+      t.eq(map.at(4, 2), ZoneMap.BLOCKED, "a rect blocks its cells");
+      t.eq(map.at(5, 4), ZoneMap.BLOCKED, "a rect past the edge is clipped, not dropped");
+      t.ok(map.at(2, 2) === 1 && map.at(3, 2) === 1, "the enclosed cells are zone 1");
+      t.eq(map.zones[1].first, 2 * 6 + 2, "first is the zone's lowest cell index");
+      t.eq(map.zones[1].cells, 2, "cells counts the zone");
+      t.eq(map.at(-1, 0), ZoneMap.OUTSIDE, "off-grid reads outside");
+      t.eq(map.atWorld(2 * 32 + 5, 2 * 32 + 31), 1, "atWorld reads the cell under the point");
+
+      const rects = map.rects();
+      t.eq(rects.length, 1, "the zone meshes into one rect");
+      const r = rects[0];
+      t.ok(
+        r.x1 === 64 && r.y1 === 64 && r.x2 === 128 && r.y2 === 96,
+        "the rect is world px with exclusive far edges",
+      );
+      t.ok(map.rects() === rects, "rects is cached");
+      map.label(ctx.ring);
+      t.ok(map.rects() !== rects, "a label drops the cache");
+      t.eq(map.rects().length, 0, "an unlabeled ring has no zone rects");
+
+      const cross = new ZoneMap(4, 4, 32, 32);
+      cross.label(ctx.cross);
+      t.eq(cross.at(1, 1), 1, "open diagonals leave an edge-closed cell a zone");
+      t.eq(cross.zones.length, 2, "and only that cell");
+      cross.destroy();
+    },
+    teardown(ctx) {
+      ctx.map.destroy();
     },
   },
   // What one A* expansion costs, on the shape a far plan has: a weighted field corner to corner,
