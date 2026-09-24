@@ -135,6 +135,33 @@ Test.register(Test.CHECK, [
     },
   },
   {
+    id: "world.carry",
+    // an entity in no level rides a queued event's payload through the save codec into a level
+    setup(ctx) {
+      World.reset();
+      World.add("test_a", new Level({ id: "test_a", capacity: 4 }));
+    },
+    verify(ctx, t) {
+      const a = World.get("test_a");
+      const id = a.entities.create();
+      a.entities.add(id, Position, { x: 3, y: 4, z: 0 });
+      WorldEvents.schedule(1, "test_carry", { rec: World.take("test_a", id) });
+      a.entities.flush();
+      t.eq(a.entities.count(), 1, "the take left only the level's own entity");
+      World.table.import(Json.decode(Json.encode(World.table.export())));
+      const b = new Level({ id: "test_b", capacity: 4 });
+      World.add("test_b", b);
+      const held = WorldEvents.queued("test_carry");
+      t.eq(held.length, 1, "the event rides the save");
+      const p = b.entities.get(World.put("test_b", held[0].rec), Position);
+      t.ok(p !== undefined, "the carried entity lands");
+      if (p !== undefined) t.ok(p.x === 3 && p.y === 4, "with its components whole");
+    },
+    teardown(ctx) {
+      World.reset();
+    },
+  },
+  {
     id: "level.self.rebuild",
     // the derived rule itself: every derived entry is rebuilt from the level's data, so a level
     // whose derived entries are all freed mid-run ends where its untouched twin does

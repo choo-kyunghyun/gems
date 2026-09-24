@@ -136,10 +136,9 @@ class _SceneColonyClass {
       Companions.hire(this.level.entities, this.playerId, companion);
     }
 
-    // a wandering trader, embodied only in the player's map; a load restores its records, so
-    // registering again would land a second one
+    // a wandering trader; a load restores its records, so registering again would land a second one
     if (!loaded)
-      Trader.register(this.level, {
+      Trader.register({
         id: "peddler",
         name: "NPC_TRADER_NAME",
         travelH: 2, // in-game hours in transit between stops

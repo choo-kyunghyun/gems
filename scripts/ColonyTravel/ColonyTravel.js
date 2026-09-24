@@ -39,13 +39,11 @@ globalThis.ColonyTravel = {
           );
         squad.push(World.take(scene.level.id, members[i]));
       }
-      Trader.onSuspend(scene.level); // before the park
       scene.level.entities.flush(); // commit the taken members' removals before parking
       ColonyTravel.suspend(scene);
     }
     if (World.get(mapId) !== null) ColonyTravel.resume(scene, mapId, entryId, squad);
     else ColonyTravel.build(scene, mapId, entryId, squad);
-    Trader.onActivate(scene.level);
   },
 
   /**
@@ -84,6 +82,7 @@ globalThis.ColonyTravel = {
   /** Enter a map for the first time; a null `squad` (boot) spawns the player with it. */
   build(scene, mapId, entryId, squad) {
     const level = ColonyMap.build(mapId, entryId, squad === null);
+    Trader.deliver(level);
     scene.level = level;
     World.activeId = level.id; // building a map activates it (the id may have fallen back)
     ColonyTravel._arriveSquad(scene, squad, ColonyMap.of(level).spawn); // already entry-resolved

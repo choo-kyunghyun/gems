@@ -6,6 +6,9 @@
  * Time is an absolute in-game hour count, so a fast-forward advances schedules for free; the
  * queue never reads the clock itself. The queue is data and rides the save; the handlers are
  * wiring a scene registers at create, and a due kind with no handler is dropped.
+ *
+ * An entity that belongs to no level lives here, as a whole-entity record in an event's payload,
+ * until a handler moves it into a level.
  */
 globalThis.WorldEvents = {
   KEY: "events", // the record's key on the world entity; a save holds it
@@ -24,9 +27,9 @@ globalThis.WorldEvents = {
   },
 
   /**
-   * Queue an event to fire at absolute in-game hour `at`. `data` is a flat scalar payload (kept
-   * save-safe — no nested objects/arrays, docs/GMRT.md #15565). Insertion-sorted so update() can
-   * stop at the first not-yet-due event.
+   * Queue an event to fire at absolute in-game hour `at`. `data` is plain data — objects, arrays
+   * and asset refs, never a `Set`/`Map` (docs/GMRT.md). Insertion-sorted so update() can stop at
+   * the first not-yet-due event.
    */
   schedule(at, kind, data) {
     const q = WorldEvents.state().q;
@@ -54,6 +57,14 @@ globalThis.WorldEvents = {
       const h = WorldEvents._handlers[e.kind];
       if (h !== undefined) h(e.data);
     }
+  },
+
+  /** The payloads of every queued `kind`, soonest first; live, so a caller may edit one in place. */
+  queued(kind) {
+    const q = WorldEvents.state().q;
+    const out = [];
+    for (let i = 0; i < q.length; i++) if (q[i].kind === kind) out.push(q[i].data);
+    return out;
   },
 
   clearKind(kind) {
