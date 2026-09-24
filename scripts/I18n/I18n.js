@@ -109,24 +109,22 @@ globalThis.I18n = {
   },
 
   /**
-   * Live `() => string` that re-resolves on a language swap or changing params. `params` are all
-   * values or all `() => value` getters; the first decides.
+   * Live `() => string` that re-resolves on a language swap or changing params. Each param is a
+   * value or a `() => value` getter, in any mix.
    */
-
   textRef(key, ...params) {
     if (params.length === 0) {
       return () => {
         return I18n.texts.get(key) ?? key;
       };
     } else {
-      const resolve =
-        typeof params[0] === "function"
-          ? () => {
-              return params.map((p) => p());
-            }
-          : () => {
-              return params;
-            };
+      const resolve = params.some((p) => typeof p === "function")
+        ? () => {
+            return params.map((p) => (typeof p === "function" ? p() : p));
+          }
+        : () => {
+            return params;
+          };
 
       return () => {
         return string_ext(I18n.texts.get(key) ?? key, resolve());

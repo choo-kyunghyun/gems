@@ -1,5 +1,5 @@
-// Core/Render and Scene cases: the camera entity and the draw passes. Every case references Core
-// only.
+// Core/Render, Scene and UI cases: the camera entity, the draw passes and the live text refs.
+// Every case references Core only.
 
 Test.register(Test.CHECK, [
   {
@@ -338,6 +338,27 @@ Test.register(Test.CHECK, [
       ctx.pass.destroy();
       ctx.level.destroy();
       sprite_delete(ctx.spr);
+    },
+  },
+  {
+    // each param resolves on its own, so values and getters mix in any order
+    id: "i18n.textRef",
+    setup(ctx) {
+      ctx.n = 1;
+    },
+    verify(ctx, t) {
+      const key = "TEST_ABSENT {0} {1} {2}"; // an absent key renders as itself
+      const mixed = I18n.textRef(key, "a", () => "n" + ctx.n, "c");
+      const lead = I18n.textRef(key, () => "n" + ctx.n, "b", "c");
+      t.eq(mixed(), "TEST_ABSENT a n1 c", "a value leading a getter");
+      t.eq(lead(), "TEST_ABSENT n1 b c", "a getter leading values");
+      ctx.n = 2;
+      t.eq(mixed(), "TEST_ABSENT a n2 c", "a getter re-resolves");
+      t.eq(
+        I18n.textRef(key, "a", "b", "c")(),
+        "TEST_ABSENT a b c",
+        "values alone",
+      );
     },
   },
 ]);
