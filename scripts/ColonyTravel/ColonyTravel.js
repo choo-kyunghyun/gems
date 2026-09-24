@@ -7,8 +7,8 @@
  * the squad always travels together, and kicked/unhired companions stay as map residents. A
  * crossing costs in-game hours by chart distance.
  *
- * Contract: the scene owns `level`, `playerId`, `build`, `nearNpc` and `window`; this engine
- * writes them on arrival and reads nothing else of it.
+ * Contract: the scene owns `level`, `playerId`, `stages` (map id → its ColonyStage), `build`,
+ * `nearNpc` and `window`; this engine writes them on arrival and reads nothing else of it.
  */
 globalThis.ColonyTravel = {
   // in-game hours per world-map chart unit (corner to corner is ~1.4 units)
@@ -86,13 +86,13 @@ globalThis.ColonyTravel = {
     scene.level = level; // its id may have fallen back from the one asked for
     ColonyTravel._arriveSquad(scene, squad, ColonyMap.of(level).spawn); // already entry-resolved
     ColonyTravel._latch(scene);
-    ColonyView.activate(level);
+    scene.stages[level.id] = ColonyView.stage(level);
     ColonyTravel._arrive(scene);
   },
 
   /**
-   * Resume a pooled level — parked earlier, or restored from a save and not yet presented, in
-   * which case its presentation is built here as on a first visit.
+   * Resume a pooled level — parked earlier, or restored from a save and not yet staged, in which
+   * case its stage is built here as on a first visit.
    */
   resume(scene, mapId, entryId, squad) {
     const level = World.get(mapId);
@@ -103,13 +103,11 @@ globalThis.ColonyTravel = {
       if (pooled[i] !== mapId) PuppetSystem.park(World.get(pooled[i]));
     }
     const data = ColonyMap.of(level);
-    const rt = ColonyMap.runtime(level);
-
     const sp = data.entries[entryId] ?? data.spawn;
     ColonyTravel._arriveSquad(scene, squad, sp);
     ColonyTravel._latch(scene);
 
-    if (rt.renderer === undefined) ColonyView.activate(level);
+    if (scene.stages[mapId] === undefined) scene.stages[mapId] = ColonyView.stage(level);
     else {
       CameraSystem.view(level).assign(0);
       // snap the look-at to the entry so it doesn't pan from the parked position; the target

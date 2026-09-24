@@ -44,7 +44,7 @@ globalThis.RenderTileMap = class RenderTileMap {
     this.sprite = sprite;
     this.alpha = opt.alpha ?? 1;
     this.color = opt.color ?? c_white;
-    this.dirty = true;
+    this._baked = -1; // the layer's `edits` at the last bake; -1 = never
     this._batch = new VertexBatch();
     this.lights = opt.lights; // unset = unlit
     this.wave = opt.wave;
@@ -66,11 +66,6 @@ globalThis.RenderTileMap = class RenderTileMap {
         return t ? t.id : 0;
       };
     }
-  }
-
-  markDirty() {
-    this.dirty = true;
-    return this;
   }
 
   _isSolid(x, y) {
@@ -104,6 +99,7 @@ globalThis.RenderTileMap = class RenderTileMap {
   }
 
   _rebuild() {
+    this._baked = this.layer.edits;
     if (this._dual) {
       this._rebuildDual();
       return;
@@ -130,7 +126,6 @@ globalThis.RenderTileMap = class RenderTileMap {
       }
     }
     batch.end();
-    this.dirty = false;
   }
 
   /** Dual grid: a display tile centered on each data-grid corner, its frame the corner mask. */
@@ -162,7 +157,6 @@ globalThis.RenderTileMap = class RenderTileMap {
       }
     }
     batch.end();
-    this.dirty = false;
   }
 
   /**
@@ -186,7 +180,7 @@ globalThis.RenderTileMap = class RenderTileMap {
   }
 
   draw(entities) {
-    if (this.dirty) this._rebuild();
+    if (this.layer.edits !== this._baked) this._rebuild();
     // lit as flat ground (normal straight up); z-write stays off, so only the shading changes
 
     const lit = this.lights !== undefined && this.lights.litOk;

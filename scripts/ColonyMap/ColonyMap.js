@@ -3,9 +3,8 @@
  *
  * A map IS a Level in the World pool, and everything the colony holds of it is a component of
  * that Level's own entity (`level.self`): the saved data record under KEY and the runtime under
- * RUNTIME, derived on the map's first activation and freed with the level. Nothing of a map lives
- * here or on the scene, so parking and resuming a map cost no rebuild. This engine knows the level,
- * never the scene.
+ * RUNTIME, derived when the level is mounted and freed with it. Nothing of a map lives here, so
+ * parking and resuming a map cost no rebuild. This engine knows the level, never the scene.
  *
  * A Level comes to be one of two ways: build() on a map's first visit (the only place procedural
  * content is made) and restoreLevel() for a saved map (no seed, spawn or remesh). Both pool the
@@ -23,11 +22,6 @@
  * TileType) and, on a materials-bearing layer, `<key>Types` (material key → TileType).
  * @typedef {Object} ColonyMapRuntime
  * @property {Array|undefined} terrainMats  the material table as live rows
- * @property {Renderer|undefined} renderer  the pass stack; undefined until the first activation
- * @property {Object<string,RenderPass>} tilePasses  the tile pass per layer key
- * @property {RenderTileMap[]} terrainPasses  the ground stack, lowest material first
- * @property {RenderGrass|undefined} grassPass
- * @property {RenderDebugEntity} bboxPass
  */
 globalThis.ColonyMap = {
   KEY: "map", // saved
@@ -58,19 +52,8 @@ globalThis.ColonyMap = {
     };
   },
 
-  /** Freed with the level through `destroy`. */
   _runtime() {
-    return {
-      terrainMats: undefined,
-      renderer: undefined,
-      tilePasses: {},
-      terrainPasses: [],
-      grassPass: undefined,
-      bboxPass: undefined,
-      destroy() {
-        if (this.renderer !== undefined) this.renderer.destroy(); // frees the tile/terrain VBOs
-      },
-    };
+    return { terrainMats: undefined };
   },
 
   /** Grid-coord entries converted to world coords, so a resume can reposition without a rebuild. */
@@ -185,6 +168,7 @@ globalThis.ColonyMap = {
         rec.colliders[key] = built[key + "Colliders"];
     }
     ColonyMap._mount(level, built);
+    Grassland.clearBuilt(level);
     // A trip arrival transfers the existing player instead.
     if (player) ColonyPlayer.spawn(level.entities, built.spawn);
 

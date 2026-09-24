@@ -98,6 +98,7 @@ class _SceneColonyClass {
 
     this._buildUI();
 
+    this.stages = {}; // map id -> its ColonyStage, built on the map's first activation
     const bootMap = ColonyLevel.START;
     // a pending save replaces the fresh map, loadout and seeding below
     const loaded = SaveGame.pending();
@@ -663,11 +664,11 @@ class _SceneColonyClass {
   draw() {
     // the camera's wall-clock policy, so a free camera keeps moving while the sim is paused,
     // then this frame's matrices — before the renderer reads the view
-    const rt = ColonyMap.runtime(this.level);
+    const stage = this.stages[this.level.id];
     CameraSystem.apply(this.level);
     const camera = CameraSystem.view(this.level);
-    rt.bboxPass.enabled = Settings.get("debugBBox");
-    rt.renderer.draw(this.level.entities);
+    stage.bbox.enabled = Settings.get("debugBBox");
+    stage.renderer.draw(this.level.entities);
     // after the renderer: the ground passes paint an opaque fill that would cover it
     WorldOverlay.drawWorld(this);
     if (Settings.get("hudRadar"))
@@ -691,6 +692,7 @@ class _SceneColonyClass {
   destroy() {
     Radio.reset();
     ColonyTravel.suspend(this); // release the view before its camera is freed with the level
+    for (const id in this.stages) this.stages[id].renderer.destroy();
     World.reset();
     if (this.ui) {
       UI.remove(this.ui);

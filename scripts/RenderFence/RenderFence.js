@@ -10,7 +10,7 @@
  * texcoord = the PACKED face normal: top (0,0), south (0,1)), so one buffer holds every
  * orientation. Without `opt.lights` (or its shader) the buffer submits unlit.
  *
- * VBO-cached: markDirty() after any tile edit. Coords are absolute world px.
+ * VBO-cached, rebaked when the layer's `edits` moves. Coords are absolute world px.
  * @implements {RenderPass}
  */
 globalThis.RenderFence = class RenderFence {
@@ -39,16 +39,12 @@ globalThis.RenderFence = class RenderFence {
     vertex_format_add_texcoord();
     this._format = vertex_format_end();
     this._vb = -1;
-    this._dirty = true;
+    this._baked = -1; // the layer's `edits` at the last bake; -1 = never
   }
 
   destroy() {
     this._free();
     vertex_format_delete(this._format);
-  }
-
-  markDirty() {
-    this._dirty = true;
   }
 
   _free() {
@@ -77,7 +73,7 @@ globalThis.RenderFence = class RenderFence {
    * be made from a 0-byte buffer).
    */
   _rebuild() {
-    this._dirty = false;
+    this._baked = this.layer.edits;
     this._free();
     const cols = this.grid.cols;
     const rows = this.grid.rows;
@@ -163,7 +159,7 @@ globalThis.RenderFence = class RenderFence {
   }
 
   draw(entities) {
-    if (this._dirty) this._rebuild();
+    if (this.layer.edits !== this._baked) this._rebuild();
     if (this._vb === -1) return;
     // global default is off
     gpu_set_zwriteenable(true);

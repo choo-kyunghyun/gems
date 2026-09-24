@@ -8,8 +8,7 @@
  * texcoord. Faces stay opaque (depth-writing). Without the lit shader both draw unlit.
  *
  * Cells are bucketed into materials by TileType id; an unmatched or id-less cell takes the
- * default material. The layer is VBO-cached in absolute world px: call markDirty() after any
- * tile edit.
+ * default material. The layer is VBO-cached in absolute world px, rebaked when its `edits` moves.
  * @implements {RenderPass}
  */
 globalThis.RenderWalls = class RenderWalls {
@@ -58,16 +57,12 @@ globalThis.RenderWalls = class RenderWalls {
       this._vbTops.push(-1);
       this._vbSouths.push(-1);
     }
-    this._dirty = true;
+    this._baked = -1; // the layer's `edits` at the last bake; -1 = never
   }
 
   destroy() {
     this._free();
     vertex_format_delete(this._format);
-  }
-
-  markDirty() {
-    this._dirty = true;
   }
 
   _free() {
@@ -92,7 +87,7 @@ globalThis.RenderWalls = class RenderWalls {
    * An empty bucket stays -1 (vertex_create_buffer_from_buffer can't take a 0-byte buffer).
    */
   _rebuild() {
-    this._dirty = false;
+    this._baked = this.layer.edits;
     this._free();
     const cols = this.grid.cols;
     const rows = this.grid.rows;
@@ -229,7 +224,7 @@ globalThis.RenderWalls = class RenderWalls {
   }
 
   draw(entities) {
-    if (this._dirty) this._rebuild();
+    if (this.layer.edits !== this._baked) this._rebuild();
     let any = false;
     for (let i = 0; i < this._mats.length; i++)
       if (this._vbTops[i] !== -1) any = true;

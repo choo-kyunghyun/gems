@@ -1,8 +1,7 @@
 /**
  * The grass ground as a live resource, edited as terrain cells. Grass regrows only from the
  * front of a field, so ground cut to the root stays bald: depletion is real. There is no entity
- * per cell; the state is the terrain layer, so every edit is a cell write plus `mark`, one
- * batched rebuild per pass however many edits a frame makes.
+ * per cell; the state is the terrain layer, so every edit is a cell write.
  */
 globalThis.Grassland = {
   HOST: "soil", // the material grass creeps into — and what a cut cell reverts to
@@ -18,14 +17,10 @@ globalThis.Grassland = {
     const layer = ColonyMap.runtime(level).terrainLayer;
     if (layer.get(gx, gy) !== grass) return false;
     layer.set(gx, gy, host);
-    Grassland.mark(level);
     return true;
   },
 
-  /**
-   * One build-time sweep clearing the grass under every built cell. Runs before the passes
-   * exist, so there is nothing to mark.
-   */
+  /** One build-time sweep clearing the grass under every built cell. */
   clearBuilt(level) {
     const grass = Grassland.type(level, "grass");
     const host = Grassland.type(level, Grassland.HOST);
@@ -52,13 +47,5 @@ globalThis.Grassland = {
     for (let i = 0; i < mats.length; i++)
       if (mats[i].material === material) return mats[i].type;
     return undefined;
-  },
-
-  /** The ground passes rebuild on their next draw. */
-  mark(level) {
-    const rt = ColonyMap.runtime(level);
-    for (let i = 0; i < rt.terrainPasses.length; i++)
-      rt.terrainPasses[i].markDirty();
-    if (rt.grassPass !== undefined) rt.grassPass.markDirty();
   },
 };

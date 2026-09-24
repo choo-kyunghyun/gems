@@ -26,7 +26,7 @@ globalThis.RenderGrass = class RenderGrass {
     this.wind = opt.wind ?? 0;
     this.time = opt.time;
     this._batches = []; // parallel to defs; undefined where a def placed nothing
-    this._dirty = true;
+    this._baked = -1; // the layer's `edits` at the last bake; -1 = never
     this._lit = shMeshlit;
     this._litOk = shaders_are_supported() && shader_is_compiled(this._lit);
     this._uAlphaRef = this._litOk
@@ -40,11 +40,6 @@ globalThis.RenderGrass = class RenderGrass {
 
   destroy() {
     this._free();
-  }
-
-  markDirty() {
-    this._dirty = true;
-    return this;
   }
 
   _free() {
@@ -71,7 +66,7 @@ globalThis.RenderGrass = class RenderGrass {
   }
 
   _rebuild() {
-    this._dirty = false;
+    this._baked = this.layer.edits;
     this._free();
     const cols = this.grid.cols;
     const rows = this.grid.rows;
@@ -142,7 +137,7 @@ globalThis.RenderGrass = class RenderGrass {
   }
 
   draw(entities) {
-    if (this._dirty) this._rebuild();
+    if (this.layer.edits !== this._baked) this._rebuild();
     // pitch compensation is a z-scale about the ground plane, so every clump grows from its own
     // foot and a flat def is untouched
     const lit = this.lights !== undefined && this.lights.litOk && this._litOk;

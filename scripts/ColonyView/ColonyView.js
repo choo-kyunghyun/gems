@@ -1,10 +1,14 @@
 /**
- * The colony's presentation over a mounted level.
+ * The colony's presentation over a mounted level: a pass stack its caller owns and frees.
  *
- * Only reads the level and writes its runtime record; no map state lives here. The camera is an
- * entity of the level's store, built before the passes because every view-dependent pass takes
- * its view at construction. The atmosphere constants are this engine's tuning of the pitched 2.5D
- * framing that every pass and the camera agree on.
+ * Only reads the level, save its camera — an entity of the level's store, seeded before the
+ * passes because every view-dependent pass takes its view at construction. No map state lives
+ * here. The atmosphere constants are this engine's tuning of the pitched 2.5D framing that every
+ * pass and the camera agree on.
+ *
+ * @typedef {Object} ColonyStage
+ * @property {Renderer} renderer  the pass stack
+ * @property {RenderDebugEntity} bbox  the bounding-box overlay, toggled per frame by its owner
  */
 globalThis.ColonyView = {
   // Camera pitch in degrees (0 = flat, debug only — front-view art reads wrong flat): the
@@ -22,10 +26,10 @@ globalThis.ColonyView = {
     return 1 - (1 - k) * Settings.get("worldChroma");
   },
 
-  /** The presentation over a mounted level — once per level, on its first activation. */
-  activate(level) {
+  /** The level's stage, built once per level on its first activation. */
+  stage(level) {
     ColonyView._camera(level);
-    ColonyView._renderer(level);
+    return ColonyView._renderer(level);
   },
 
   /** Grass clump defs for a material table; the biome profile's tint and extras override. */
@@ -98,9 +102,9 @@ globalThis.ColonyView = {
     const pitch = ColonyView.BB_PITCH;
     const rt = ColonyMap.runtime(level);
     const camera = CameraSystem.view(level);
-    Grassland.clearBuilt(level); // before the VBOs bake
     const renderer = new Renderer();
-    rt.renderer = renderer;
+    const terrainPasses = [];
+    let grassPass;
     // Generated ground under everything.
     const mats = rt.terrainMats;
     if (mats !== undefined)
@@ -117,7 +121,7 @@ globalThis.ColonyView = {
           skipAbove: i < mats.length - 1 ? mats[i + 1].type.id : undefined,
           wave: ColonyView._wave(mats[i].material),
         });
-        rt.terrainPasses.push(pass);
+        terrainPasses.push(pass);
         renderer.insert(pass);
       }
     // Upright grass clumps enter the depth pool over the finished ground, before the entities.
@@ -129,17 +133,17 @@ globalThis.ColonyView = {
         let wind = level.entities.get(level.self, ColonyMap.WIND);
         if (wind === undefined)
           wind = profile !== undefined && profile.wind !== undefined ? profile.wind : 0;
-        rt.grassPass = new RenderGrass(rt.terrainLayer, level.grid, cdefs, {
+        grassPass = new RenderGrass(rt.terrainLayer, level.grid, cdefs, {
           wind: wind,
           time: () => Weather.time(),
           camera: camera,
         });
-        renderer.insert(rt.grassPass);
+        renderer.insert(grassPass);
       }
     }
-    // Resident tile layers, bottom to top, keyed by layer so an edit dirties the matching pass.
+    // Resident tile layers, bottom to top, keyed by layer.
     // An empty layer emits no quads, so unbuilt floor/fence layers are free.
-    const tilePasses = rt.tilePasses;
+    const tilePasses = {};
     for (let i = 0; i < contentTiles.LAYERS.length; i++) {
       const cfg = contentTiles.LAYERS[i];
       if (cfg.key === "wall") continue; // lit boxes below; no flat fallback
@@ -208,13 +212,13 @@ globalThis.ColonyView = {
       renderer.insert(meshPass);
       // The ground shares this pass's light gather; assigned late because the ground passes
       // exist before it. Flat maps stay unlit.
-      for (let i = 0; i < rt.terrainPasses.length; i++)
-        rt.terrainPasses[i].lights = meshPass;
-      if (rt.grassPass !== undefined) rt.grassPass.lights = meshPass;
+      for (let i = 0; i < terrainPasses.length; i++)
+        terrainPasses[i].lights = meshPass;
+      if (grassPass !== undefined) grassPass.lights = meshPass;
       const tileKeys = Object.keys(tilePasses);
       for (let i = 0; i < tileKeys.length; i++)
         tilePasses[tileKeys[i]].lights = meshPass;
-      // One lit-box pass covers every wall on the map, keyed into tilePasses so edits dirty it.
+      // One lit-box pass covers every wall on the map.
       // The first material doubles as the default bucket for generated walls.
       const wallCfg = contentTiles.get("wall");
       const wallMats = [];
@@ -248,9 +252,9 @@ globalThis.ColonyView = {
         ? new RenderBillboard({ lights: meshPass, camera: camera })
         : new RenderEntity(),
     );
-    rt.bboxPass = new RenderDebugEntity();
-    rt.bboxPass.enabled = Settings.get("debugBBox");
-    renderer.insert(rt.bboxPass);
+    const bbox = new RenderDebugEntity();
+    bbox.enabled = Settings.get("debugBBox");
+    renderer.insert(bbox);
     const paths = new RenderDebugPath(level.grid);
     paths.enabled = false;
     renderer.insert(paths);
@@ -302,6 +306,7 @@ globalThis.ColonyView = {
         camera: camera,
       }),
     );
+    return { renderer, bbox };
   },
 
   /**

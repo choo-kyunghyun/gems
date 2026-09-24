@@ -457,7 +457,6 @@ globalThis.BuildMode = {
             ColonyMap.of(level).colliders[item.layer],
           );
       }
-      BuildMode._markTileDirty(scene, item.layer);
       rec.built[key] = item.id;
       return solid;
     }
@@ -524,18 +523,11 @@ globalThis.BuildMode = {
           ColonyMap.of(level).colliders[lkey],
         );
     }
-    BuildMode._markTileDirty(scene, lkey);
     BuildMode._refund(scene, tileId);
     delete rec.built[key];
     scene.window.dirty = true;
     Log.info(`removed ${tileId} at ${gx},${gy}`);
     return true;
-  },
-
-  /** A layer's pass is cached, so an edit shows only once it is marked; a pass may be absent. */
-  _markTileDirty(scene, layerKey) {
-    const pass = ColonyMap.runtime(scene.level).tilePasses[layerKey];
-    if (pass !== undefined) pass.markDirty();
   },
 
   _refund(scene, itemId) {

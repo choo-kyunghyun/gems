@@ -44,7 +44,6 @@ globalThis.GrassSystem = {
     if (rolls < GrassSystem.MAX_ROLLS && random(1) < want - Math.floor(want))
       rolls++;
     const lkeys = contentBuild.tileLayers();
-    let grew = false;
     for (let i = 0; i < rolls; i++) {
       if (count >= cap) break;
       const gx = irandom(grid.cols - 1);
@@ -62,8 +61,6 @@ globalThis.GrassSystem = {
       if (covered) continue;
       layer.set(gx, gy, grass);
       count++;
-      grew = true;
     }
-    if (grew) Grassland.mark(level);
   },
 };
