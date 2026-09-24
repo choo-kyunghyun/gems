@@ -1,6 +1,7 @@
 // Level, world and nav cases: a level's own entity and its rebuild, the grid and its blob, the
 // world pool, a ticker over a level, the nav grid's sync and restamp, the remesh, the zone map's
-// labeling, and perf.plan, what one A* expansion costs. Every case references Core only.
+// labeling, the generator's salted seeds, and perf.plan, what one A* expansion costs. Every case
+// references Core only.
 
 const PLAN_COLS = 128; // an overworld's side
 
@@ -491,6 +492,60 @@ Test.register(Test.CHECK, [
     },
     teardown(ctx) {
       ctx.map.destroy();
+    },
+  },
+  {
+    // a pass's noise seed folds in its salt, so two passes over one lattice sample independent
+    // fields, and a salt keeps its seed wherever its pass sits in the list
+    id: "levelgen.salt",
+    setup(ctx) {
+      ctx.seeds = [];
+      ctx.probe = (salt) => ({
+        salt,
+        apply: (c) => {
+          ctx.seeds.push(c.seed);
+        },
+      });
+      ctx.palette = [{ id: "test_floor", pathCost: 1 }];
+    },
+    verify(ctx, t) {
+      const make = (passes) =>
+        new LevelGen({ palette: ctx.palette, seed: 1337, passes });
+      make([ctx.probe(2), ctx.probe(1)]).generate(2, 2);
+      make([ctx.probe(1)]).generate(2, 2);
+      const s2 = ctx.seeds[0];
+      const s1 = ctx.seeds[1];
+      t.ok(s1 !== s2, "two salts fold two seeds");
+      t.eq(ctx.seeds[2], s1, "a salt's seed ignores its list index");
+      const lattices = [6, 10];
+      for (let k = 0; k < lattices.length; k++) {
+        const l = lattices[k];
+        let n = 0;
+        let sa = 0;
+        let sb = 0;
+        let sab = 0;
+        let saa = 0;
+        let sbb = 0;
+        for (let y = 0; y < 128; y++)
+          for (let x = 0; x < 128; x++) {
+            const a = noise2(x, y, s1, l);
+            const b = noise2(x, y, s2, l);
+            n++;
+            sa += a;
+            sb += b;
+            sab += a * b;
+            saa += a * a;
+            sbb += b * b;
+          }
+        const cov = sab / n - (sa / n) * (sb / n);
+        const va = saa / n - (sa / n) * (sa / n);
+        const vb = sbb / n - (sb / n) * (sb / n);
+        const r = cov / Math.sqrt(va * vb);
+        t.ok(
+          Math.abs(r) < 0.2,
+          "salted fields are uncorrelated at lattice " + l + " : r " + r,
+        );
+      }
     },
   },
   // What one A* expansion costs, on the shape a far plan has: a weighted field corner to corner,
