@@ -126,8 +126,15 @@ Test.register(Test.CHECK, [
       World.add("test_a", lv2);
       t.ok(World.get("test_a") === lv2, "add hands the map entity its Level back");
       t.eq(World.table.count(), 2, "add re-used the imported map entity");
+      World.remove("test_a");
+      t.eq(lv2.entities.count(), 0, "remove destroyed the pooled level");
+      t.eq(World.get("test_a"), null, "a removed map reads null");
+      t.eq(World.table.count(), 1, "remove took the map entity with it");
+      World.remove("test_a"); // a map not pooled is a no-op
+      const lv3 = new Level({ id: "test_a", capacity: 4 });
+      World.add("test_a", lv3);
       World.reset();
-      t.eq(lv2.entities.count(), 0, "reset destroyed the pooled level");
+      t.eq(lv3.entities.count(), 0, "reset destroyed the pooled level");
       t.eq(World.ids().length, 0, "the pool is empty after reset");
     },
   },

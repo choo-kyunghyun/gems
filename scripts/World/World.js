@@ -7,8 +7,8 @@
  * World is data: it holds no screen state — which map is active is the scene's — and runs no
  * logic of its own.
  *
- * A pooled level stays alive for the session: a map is built exactly once, then only parks and
- * thaws. take/put move a WHOLE entity between two resident levels; a map id with no resident
+ * A pooled level stays alive until the caller removes it, freed with its entity; while pooled it
+ * only parks and thaws. take/put move a WHOLE entity between two resident levels; a map id with no resident
  * level throws, since the caller names a pooled map it owns.
  *
  * A store import restores the pooled levels' entities without their Levels (minted data is not
@@ -47,6 +47,14 @@ globalThis.World = {
     if (id === -1) return null;
     const lv = World.table.get(id, World.LEVEL);
     return lv === undefined ? null : lv;
+  },
+
+  /** Drop a map from the pool, freeing its Level; a map not pooled is a no-op. */
+  remove(mapId) {
+    const id = World._find(mapId);
+    if (id === -1) return;
+    World.table.remove(id);
+    World.table.flush();
   },
 
   ids() {

@@ -140,9 +140,10 @@ and are cited from here, never restated):
   queued world event's payload until it is moved into a level. A `Scene` is the behaviour: it
   owns which level is active and a renderer per map it has shown, composes systems, camera
   policy and UI, and runs them over the level and the world from `update()`/`draw()`, the world's
-  own tickers (`WorldClock`, `WorldEvents`) included. A visited map stays pooled with its derived
-  entries and the scene keeps its renderer, so a park is a camera unassign and a resume a pointer
-  swap, and `World.reset` blanks the store, the pool with it. There is no scene manager: the `Game` object holds the one
+  own tickers (`WorldClock`, `WorldEvents`) included. A pooled map keeps its derived entries and
+  the scene keeps its renderer, so a park is a camera unassign and a resume a pointer swap; which
+  map stays pooled is the scene's policy, `World.remove` frees one, and `World.reset` blanks the
+  store, the pool with it. There is no scene manager: the `Game` object holds the one
   active scene pointer and drives it from its own events (its Create_0 owns the switch/pause
   contract). Exactly one scene is live and a switch destroys it — a scene is never frozen, so it
   carries no state across a swap.
