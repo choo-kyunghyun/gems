@@ -6,3 +6,5 @@
  * @property {string[]} ids  unordered
  */
 globalThis.Favorites = "Favorites";
+// any script may load first (docs/GMRT.md)
+(globalThis.Blank ??= {})[Favorites] = { ids: [] };

@@ -6,3 +6,5 @@
  * @property {Object} slots   { weapon, armor, trinket, backpack } → instance uid strings
  */
 globalThis.Equipment = "Equipment";
+// any script may load first (docs/GMRT.md)
+(globalThis.Blank ??= {})[Equipment] = { slots: { weapon: "", armor: "", trinket: "", backpack: "" } };

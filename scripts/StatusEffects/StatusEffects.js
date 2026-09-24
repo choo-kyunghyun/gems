@@ -12,3 +12,5 @@
  * @property {Object} [mult]    a maintained status's live magnitude override
  */
 globalThis.StatusEffects = "StatusEffects";
+// any script may load first (docs/GMRT.md)
+(globalThis.Blank ??= {})[StatusEffects] = { list: [] };

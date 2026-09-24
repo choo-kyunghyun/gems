@@ -10,12 +10,9 @@ globalThis.Colliders = {
    */
   box(entities, x, y, w, h) {
     const id = entities.create();
-    entities.add(id, Position, { x: x, y: y, z: 0 });
-    entities.add(id, BBox, { x: 0, y: 0, width: w, height: h });
-    entities.add(id, Collision, {
-      solid: true,
-      kinematic: true,
-    });
+    entities.add(id, Position, { x: x, y: y });
+    entities.add(id, BBox, { width: w, height: h });
+    entities.add(id, Collision, { kinematic: true });
     return id;
   },
 

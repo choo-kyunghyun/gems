@@ -63,7 +63,7 @@ globalThis.ProjectileSystem = {
           entities,
           hit.id,
           proj.damage,
-          proj.penetration ?? 0,
+          proj.penetration,
         );
       }
       entities.remove(id);

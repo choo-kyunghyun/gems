@@ -19,3 +19,5 @@
  * @property {number} [maxWeight] omit for none
  */
 globalThis.Inventory = "Inventory";
+// any script may load first (docs/GMRT.md)
+(globalThis.Blank ??= {})[Inventory] = { slots: [] };

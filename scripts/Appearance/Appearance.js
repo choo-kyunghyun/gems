@@ -17,3 +17,5 @@
  * @property {boolean} dirty pushed onto the puppet on the next pass, which clears it
  */
 globalThis.Appearance = "Appearance";
+// any script may load first (docs/GMRT.md)
+(globalThis.Blank ??= {})[Appearance] = { slots: {}, dirty: true };

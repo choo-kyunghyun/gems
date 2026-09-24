@@ -19,7 +19,7 @@ globalThis.SoundEmitterSystem = {
       }
       Audio.play({
         sound,
-        gain: se.gain ?? 1,
+        gain: se.gain,
         position: { x: pos.x, y: pos.y },
       });
     });

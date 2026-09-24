@@ -110,12 +110,8 @@ globalThis.Combat = {
     const nx = dist > 0 ? dx / dist : 0;
     const ny = dist > 0 ? dy / dist : 0;
     const id = entities.create();
-    entities.add(id, Position, { x: pos.x, y: pos.y, z: 0 });
-    entities.add(id, Velocity, {
-      x: nx * spec.speed,
-      y: ny * spec.speed,
-      z: 0,
-    });
+    entities.add(id, Position, { x: pos.x, y: pos.y });
+    entities.add(id, Velocity, { x: nx * spec.speed, y: ny * spec.speed });
     entities.add(id, Projectile, {
       damage: 0,
       owner: ownerId,
@@ -127,7 +123,7 @@ globalThis.Combat = {
       radius: spec.radius,
       damage: spec.damage,
       owner: ownerId,
-      penetration: spec.penetration ?? 0,
+      penetration: spec.penetration,
     });
     return id;
   },

@@ -40,18 +40,8 @@ globalThis.PuppetSystem = {
     if (held !== undefined) return held;
     const col = entities.get(id, Collision);
     const obj = col !== undefined && col.kinematic === true ? Solid : Puppet;
-    const data = {
-      inst: instance_create_depth(0, 0, 0, obj),
-      rigged: false,
-      shaped: false,
-      still: false,
-      solid: false,
-      sx: 1,
-      sy: 1,
-      ox: 0,
-      oy: 0,
-    };
-    entities.mint(id, Instance, data, PuppetSystem._release);
+    const data = { inst: instance_create_depth(0, 0, 0, obj) };
+    entities.add(id, Instance, data, { mint: true, destroy: PuppetSystem._release });
     return data;
   },
 

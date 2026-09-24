@@ -2,8 +2,13 @@
  * The id-keyed store: a table of rows (generational handles) by columns (string tokens, one
  * sparse set each), the one shape every layer's data takes, its row 0 the layer itself. A row's
  * datum under a token is pure data the caller shapes; the table holds, walks and serializes it
- * and never reads it. Removal is deferred to a flush. Neutral: it knows no level, world or
- * scene.
+ * and reads it only to fill its blank. Removal is deferred to a flush. Neutral: it knows no
+ * level, world or scene.
+ *
+ * Blanks: `Blank[token]` is a token's field defaults, declared beside its typedef. Every datum
+ * that enters a set — by `add` or by `import` — has each blank field it leaves undefined filled
+ * in place with a copy of its own, so no two rows share a blank's nested data; a field whose
+ * absence means something stays out of the blank. A token with no blank is stored as given.
  *
  * Layout (SoA): per token, `column[i]` is row index i's data (`undefined` = absent, so
  * `get`/`has` cost a column read), `dense` lists the indices carrying the token, and `sparse[i]`
@@ -19,15 +24,19 @@
  * defer the swap-remove until the outermost walk ends, so a callback may detach the lead token
  * from any entity. A carrier added mid-walk is visited from the next walk.
  *
- * Persistence: a set is transient once its token is minted — rebuilt at runtime, so `export` and
- * `persistentOf` skip it. A mint may hand the set a release hook, `destroy(data)`, called as data
- * leaves its slot by any path, so a component holding a native handle frees it with no reap pass.
+ * Persistence: a set is transient once an add mints its token — rebuilt at runtime, so `export`
+ * and `persistentOf` skip it. An add may hand the set a release hook, `destroy(data)`, called as
+ * data leaves its slot by any path, so a component holding a native handle frees it with no reap
+ * pass.
  *
  * A set may carry a binary codec (`pack(data)` → buffer, `unpack(buffer)` → data): its entries
  * cross `export`/`import` as buffers through the caller's sink and source, for what is dense and
  * what JSON can't carry (docs/GMRT.md #15565). An import fills the codec sets last, so an unpack
  * may read a record the same import restored.
  */
+// scripts load by name (docs/GMRT.md), so a component script may open it first
+globalThis.Blank ??= {};
+
 globalThis.Table = class Table {
   /** The lead size below which a walk's order costs too little to warn about. */
   static LEAD_WARN = 64;
@@ -109,6 +118,7 @@ globalThis.Table = class Table {
 
   register(token) {
     if (!this._byToken.has(token)) {
+      const blank = Blank[token];
       const set = {
         column: new Array(this.maxEntities).fill(undefined),
         dense: [],
@@ -118,6 +128,8 @@ globalThis.Table = class Table {
         transient: false, // minted: skipped by export/persistentOf
         destroy: undefined, // release hook, called as data leaves a slot
         codec: undefined, // { pack, unpack }
+        blank: blank,
+        fill: blank === undefined ? undefined : Object.keys(blank),
       };
       this._byToken.set(token, set);
       this._tokens.push(token);
@@ -126,13 +138,19 @@ globalThis.Table = class Table {
     return this;
   }
 
-  /** Per-entity accessors are entity-first: a swapped pair reads as a miss, not an error. */
-  add(id, token, data) {
+  /**
+   * The one way data enters a row: filled from the token's blank, then stored. Per-entity
+   * accessors are entity-first: a swapped pair reads as a miss, not an error. `opts.mint` marks a
+   * runtime-rebuilt token, which no export or whole-entity snapshot carries from then on;
+   * `opts.destroy(data)` is the set's release hook — one per token, the first given.
+   */
+  add(id, token, data, opts) {
     let set = this._byToken.get(token);
     if (set === undefined) {
       this.register(token);
       set = this._byToken.get(token);
     }
+    if (set.fill !== undefined) Table._fill(set, data);
     const i = id & Handle.INDEX_MASK;
     if (set.destroy !== undefined) {
       const prev = set.column[i];
@@ -143,15 +161,18 @@ globalThis.Table = class Table {
       set.sparse[i] = set.dense.length;
       set.dense.push(i);
     }
+    if (opts === undefined) return;
+    if (opts.mint === true) set.transient = true;
+    if (opts.destroy !== undefined) if (set.destroy === undefined) set.destroy = opts.destroy;
   }
 
-  /** `add` for a runtime-rebuilt component: no export or whole-entity snapshot carries a minted
-   *  token. `destroy(data)` is the set's release hook — one per token, the first mint's. */
-  mint(id, token, data, destroy) {
-    this.add(id, token, data);
-    const set = this._byToken.get(token);
-    set.transient = true;
-    if (destroy !== undefined) if (set.destroy === undefined) set.destroy = destroy;
+  static _fill(set, data) {
+    const keys = set.fill;
+    const blank = set.blank;
+    for (let k = 0; k < keys.length; k++) {
+      const key = keys[k];
+      if (data[key] === undefined) data[key] = Plain.copy(blank[key]);
+    }
   }
 
   /** `c` is `{ pack(data) → buffer, unpack(buffer) → data }`; the token's entries cross
@@ -193,7 +214,7 @@ globalThis.Table = class Table {
     let data = this.get(id, token);
     if (data === undefined) {
       data = make();
-      this.mint(id, token, data, Table._free);
+      this.add(id, token, data, { mint: true, destroy: Table._free });
     }
     return data;
   }
@@ -527,7 +548,9 @@ globalThis.Table = class Table {
       }
       for (let j = 0; j < entries.length; j++) {
         const i = entries[j][0];
-        set.column[i] = entries[j][1];
+        const data = entries[j][1];
+        if (set.fill !== undefined) Table._fill(set, data);
+        set.column[i] = data;
         set.sparse[i] = set.dense.length;
         set.dense.push(i);
       }
@@ -541,6 +564,7 @@ globalThis.Table = class Table {
         const v = entries[j][1];
         const data = set.codec.unpack(source === undefined ? v : source(v));
         if (data === undefined) continue;
+        if (set.fill !== undefined) Table._fill(set, data);
         set.column[i] = data;
         set.sparse[i] = set.dense.length;
         set.dense.push(i);

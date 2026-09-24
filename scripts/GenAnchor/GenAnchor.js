@@ -55,25 +55,8 @@ globalThis.GenAnchor = class GenAnchor {
     const st = LevelData.translate(p, spot.x, spot.y);
     // deep-copy so the level's instances never mutate the registry def's nested data
     for (let i = 0; i < st.spawns.length; i++)
-      st.spawns[i] = GenAnchor._clone(st.spawns[i]);
+      st.spawns[i] = Plain.copy(st.spawns[i]);
     ctx.merge(st);
-  }
-
-  /** Plain-data deep copy; anything not a plain object or array passes by reference. */
-  static _clone(v) {
-    if (Array.isArray(v)) {
-      const out = [];
-      for (let i = 0; i < v.length; i++) out.push(GenAnchor._clone(v[i]));
-      return out;
-    }
-    if (v !== null && typeof v === "object" && v.constructor === Object) {
-      const out = {};
-      const keys = Object.keys(v);
-      for (let i = 0; i < keys.length; i++)
-        out[keys[i]] = GenAnchor._clone(v[keys[i]]);
-      return out;
-    }
-    return v;
   }
 
   /**

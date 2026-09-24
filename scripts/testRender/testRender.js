@@ -74,18 +74,20 @@ Test.register(Test.CHECK, [
       s.add(ctx.body, Position, { x: 500, y: 500, z: 0 });
       s.add(ctx.body, CameraFocus, {});
       ctx.cam = Cameras.create(s, { x: 0, y: 0, pitch: 0, zoom: 2 });
-      s.mint(
+      s.add(
         ctx.cam,
         CameraFollow,
-        Cameras.follow({
+        {
           lerp: 1,
-          zoom: 2,
+          zoomTarget: 2,
+          zoomHome: 2,
           pitchLo: 42,
           pitchHi: 58,
           zoomLo: 1,
           zoomHi: 3,
           bounds: { x1: 0, y1: 0, x2: 4000, y2: 4000 },
-        }),
+        },
+        { mint: true },
       );
     },
     verify(ctx, t) {
@@ -139,8 +141,8 @@ Test.register(Test.CHECK, [
         pitch: (50 * Math.PI) / 180,
         dist: 2000,
       });
-      s.mint(ctx.cam, CameraFollow, Cameras.follow({ lerp: 1, pitch: 50 }));
-      s.mint(ctx.cam, CameraFly, Cameras.fly());
+      s.add(ctx.cam, CameraFollow, { lerp: 1, pitch: 50 }, { mint: true });
+      s.add(ctx.cam, CameraFly, {}, { mint: true });
     },
     verify(ctx, t) {
       const s = ctx.level.entities;

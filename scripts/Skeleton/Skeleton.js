@@ -21,3 +21,13 @@
  */
 
 globalThis.Skeleton = "Skeleton";
+// any script may load first (docs/GMRT.md)
+(globalThis.Blank ??= {})[Skeleton] = {
+  loop: true,
+  speed: 1,
+  xscale: 1,
+  yscale: 1,
+  color: c_white,
+  tints: {},
+  alpha: 1,
+};

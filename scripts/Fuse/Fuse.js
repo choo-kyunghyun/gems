@@ -6,6 +6,8 @@
  * @property {number} radius       blast radius (world px)
  * @property {number} damage       damage at the blast centre; halves toward the edge
  * @property {number} owner        entity id whose faction the blast spares (the thrower)
- * @property {number} [penetration] armor penetration at each hit. Default 0.
+ * @property {number} penetration  armor penetration at each hit
  */
 globalThis.Fuse = "Fuse";
+// any script may load first (docs/GMRT.md)
+(globalThis.Blank ??= {})[Fuse] = { penetration: 0 };

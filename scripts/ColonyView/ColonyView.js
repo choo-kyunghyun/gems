@@ -334,17 +334,17 @@ globalThis.ColonyView = {
       });
     }
     const curve = ColonyView.PITCH_CURVE;
-    entities.mint(
+    entities.add(
       id,
       CameraFollow,
-      Cameras.follow({
+      {
         lerp: 0.15,
         pitch: pitch,
         pitchLo: curve.pitchLo,
         pitchHi: curve.pitchHi,
         zoomLo: curve.zoomLo,
         zoomHi: curve.zoomHi,
-        zoom: entities.require(id, Camera).zoom, // resume at the persisted zoom
+        zoomTarget: entities.require(id, Camera).zoom, // resume at the persisted zoom
         zoomHome: baseZoom,
         viewCap: viewCap,
         zoomMax: 3, // one integer stop of zoom-in headroom
@@ -356,7 +356,8 @@ globalThis.ColonyView = {
           x2: level.grid.cols * level.grid.cellWidth,
           y2: level.grid.rows * level.grid.cellHeight,
         },
-      }),
+      },
+      { mint: true },
     );
     CameraSystem.view(level).assign(0);
   },

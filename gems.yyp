@@ -348,6 +348,7 @@
     {"id":{"name":"PathRequest","path":"scripts/PathRequest/PathRequest.yy",},},
     {"id":{"name":"PathResponse","path":"scripts/PathResponse/PathResponse.yy",},},
     {"id":{"name":"Persona","path":"scripts/Persona/Persona.yy",},},
+    {"id":{"name":"Plain","path":"scripts/Plain/Plain.yy",},},
     {"id":{"name":"Playable","path":"scripts/Playable/Playable.yy",},},
     {"id":{"name":"PlayerSystem","path":"scripts/PlayerSystem/PlayerSystem.yy",},},
     {"id":{"name":"Poly","path":"scripts/Poly/Poly.yy",},},

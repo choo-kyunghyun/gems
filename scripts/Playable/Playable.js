@@ -11,3 +11,11 @@
  * @property {number} cursorY
  */
 globalThis.Playable = "Playable";
+// any script may load first (docs/GMRT.md)
+(globalThis.Blank ??= {})[Playable] = {
+  fireCd: 0,
+  attackCd: 0,
+  attackAnim: "",
+  cursorX: 0,
+  cursorY: 0,
+};

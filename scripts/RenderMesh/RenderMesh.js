@@ -227,16 +227,16 @@ globalThis.RenderMesh = class RenderMesh {
       if (m.vb === -1) return;
       // scale and rotation are visual only, per world axis (zscale is height, a negative xscale
       // mirrors); rotation pivots on the footprint center and the lighting follows it
-      const s = mesh.scale ?? 1;
+      const s = mesh.scale;
       matrix_set(
         matrix_world,
         matrix_build(
           rp.x,
           rp.y,
           0,
-          mesh.pitch ?? 0,
-          mesh.roll ?? 0,
-          mesh.yaw ?? 0,
+          mesh.pitch,
+          mesh.roll,
+          mesh.yaw,
           mesh.xscale ?? s,
           mesh.yscale ?? s,
           mesh.zscale ?? s,
@@ -247,16 +247,16 @@ globalThis.RenderMesh = class RenderMesh {
     if (this.litOk) shader_reset();
     entities.forEach([Mesh, Position], (entity, mesh, rp) => {
       if (mesh.model !== undefined && mesh.model !== "") return;
-      const alpha = mesh.alpha ?? 1;
+      const alpha = mesh.alpha;
       // faces are placed center-relative, then the entity matrix, so rotation pivots on the
       // footprint center
       const entM = matrix_build(
         rp.x,
         rp.y,
         0,
-        mesh.pitch ?? 0,
-        mesh.roll ?? 0,
-        mesh.yaw ?? 0,
+        mesh.pitch,
+        mesh.roll,
+        mesh.yaw,
         1,
         1,
         1,

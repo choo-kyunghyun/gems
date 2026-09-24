@@ -19,11 +19,11 @@ globalThis.Door = {
       if (Door._blocked(entities, id)) return "BUILD_DOOR_BLOCKED";
       it.open = 0;
       col.solid = true;
-      if (mesh !== undefined) mesh.yaw = (mesh.yaw ?? 0) - Door.SWING;
+      if (mesh !== undefined) mesh.yaw -= Door.SWING;
     } else {
       it.open = 1;
       col.solid = false;
-      if (mesh !== undefined) mesh.yaw = (mesh.yaw ?? 0) + Door.SWING;
+      if (mesh !== undefined) mesh.yaw += Door.SWING;
     }
     return "";
   },

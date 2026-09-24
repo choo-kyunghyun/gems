@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Plain",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Plain",
+  "parent":{
+    "name":"Data",
+    "path":"folders/Core/Data.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Plain.js",
+}

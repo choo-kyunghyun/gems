@@ -15,3 +15,15 @@
  * @property {number} time
  */
 globalThis.Visual = "Visual";
+// any script may load first (docs/GMRT.md)
+(globalThis.Blank ??= {})[Visual] = {
+  visible: true,
+  subimg: 0,
+  xscale: 1,
+  yscale: 1,
+  rot: 0,
+  color: c_white,
+  alpha: 1,
+  speed: 0,
+  time: 0,
+};

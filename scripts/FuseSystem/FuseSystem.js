@@ -11,7 +11,7 @@ globalThis.FuseSystem = {
       Combat.explode(level, pos.x, pos.y, fuse.radius, {
         owner: fuse.owner,
         damage: fuse.damage,
-        penetration: fuse.penetration ?? 0,
+        penetration: fuse.penetration,
       });
       ParticleFx.burst({ asset: psExplosion, x: pos.x, y: pos.y });
       Audio.play({

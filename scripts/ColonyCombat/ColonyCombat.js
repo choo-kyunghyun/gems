@@ -44,7 +44,8 @@ globalThis.ColonyCombat = {
     if (hp === undefined) return;
     const base = entities.get(id, PrevHealth);
     if (base === undefined) {
-      entities.mint(id, PrevHealth, { hp: hp.hp }); // first sight seeds, pops nothing
+      // first sight seeds, pops nothing
+      entities.add(id, PrevHealth, { hp: hp.hp }, { mint: true });
       return;
     }
     const prev = base.hp;
@@ -243,7 +244,7 @@ globalThis.ColonyCombat = {
   spawnDrop(scene, itemId, qty, x, y, src) {
     const entities = scene.level.entities;
     const id = entities.create();
-    entities.add(id, Position, { x: x, y: y, z: 0 });
+    entities.add(id, Position, { x: x, y: y });
     // Matches the 32px icon drawn 1:1, so the pick outline lines up with the drop.
     entities.add(id, BBox, { x: -16, y: -16, width: 32, height: 32 });
     entities.add(id, Interaction, { kind: "pickup" });

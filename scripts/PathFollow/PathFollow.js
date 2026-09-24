@@ -34,12 +34,12 @@ globalThis.PathFollow = {
     if (state.pathCd <= 0) {
       const s = grid.worldToGrid(sp.x, sp.y);
       const g = grid.worldToGrid(tx, ty);
-      entities.mint(id, PathRequest, {
-        startX: s.x,
-        startY: s.y,
-        goalX: g.x,
-        goalY: g.y,
-      });
+      entities.add(
+        id,
+        PathRequest,
+        { startX: s.x, startY: s.y, goalX: g.x, goalY: g.y },
+        { mint: true },
+      );
       state.pathCd = state.pathRate;
     }
     let wp = PathFollow._current(entities, id);

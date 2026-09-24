@@ -22,3 +22,14 @@
  * @property {number} oy
  */
 globalThis.Instance = "Instance";
+// any script may load first (docs/GMRT.md)
+(globalThis.Blank ??= {})[Instance] = {
+  rigged: false,
+  shaped: false,
+  still: false,
+  solid: false,
+  sx: 1,
+  sy: 1,
+  ox: 0,
+  oy: 0,
+};

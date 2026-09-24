@@ -10,3 +10,5 @@
  * @property {boolean} looking  RMB look in progress (the first held frame only recentres the cursor)
  */
 globalThis.CameraFly = "CameraFly";
+// any script may load first (docs/GMRT.md)
+(globalThis.Blank ??= {})[CameraFly] = { speed: 600, sens: 0.002, looking: false };

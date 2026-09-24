@@ -450,7 +450,7 @@ Test.register(Test.CHECK, [
       ctx.src = s.create();
       s.add(ctx.src, Position, { x: 1, y: 2, z: 0 });
       s.add(ctx.src, "TestBag", { slots: [{ itemId: "a", qty: 1 }] });
-      s.mint(ctx.src, "TestRuntime", { n: 0 });
+      s.add(ctx.src, "TestRuntime", { n: 0 }, { mint: true });
     },
     verify(ctx, t) {
       const s = ctx.entities;
@@ -478,7 +478,7 @@ Test.register(Test.CHECK, [
       ctx.dst = new Table(8);
       ctx.a = s.create();
       s.add(ctx.a, Position, { x: 1, y: 2, z: 3 });
-      s.mint(ctx.a, PathResponse, { path: [], index: 0 });
+      s.add(ctx.a, PathResponse, { path: [], index: 0 }, { mint: true });
       s.add(ctx.a, PathResponse, { path: [], index: 1 }); // a later add keeps the token minted
     },
     verify(ctx, t) {
@@ -516,6 +516,41 @@ Test.register(Test.CHECK, [
       );
     },
     teardown(ctx) {
+      ctx.src.destroy();
+      ctx.dst.destroy();
+    },
+  },
+  {
+    // a blank fills what an entering datum leaves undefined, by add and by import alike, each row
+    // with a copy of its own; a token with no blank is stored as given
+    id: "entity.blank",
+    setup(ctx) {
+      Blank.TestBlank = { n: 1, list: [] };
+      ctx.src = new Table(8);
+      ctx.dst = new Table(8);
+    },
+    verify(ctx, t) {
+      const s = ctx.src;
+      const a = s.create();
+      const b = s.create();
+      const data = { n: undefined };
+      s.add(a, "TestBlank", data);
+      s.add(b, "TestBlank", { n: 2 });
+      t.ok(s.get(a, "TestBlank") === data, "the datum is filled in place");
+      t.eq(data.n, 1, "an undefined field takes its blank");
+      t.eq(s.get(b, "TestBlank").n, 2, "an authored field wins");
+      s.get(a, "TestBlank").list.push(9);
+      t.eq(s.get(b, "TestBlank").list.length, 0, "rows share no blank data");
+      t.eq(Blank.TestBlank.list.length, 0, "the blank itself is untouched");
+      s.add(a, "TestBare", { m: 1 });
+      t.eq(Object.keys(s.get(a, "TestBare")).join(","), "m", "no blank, stored as given");
+      const exp = s.export();
+      exp.components.TestBlank[0][1] = { n: 1 }; // a save from before `list` existed
+      ctx.dst.import(exp);
+      t.eq(ctx.dst.get(a, "TestBlank").list.length, 0, "an import fills a missing field");
+    },
+    teardown(ctx) {
+      delete Blank.TestBlank;
       ctx.src.destroy();
       ctx.dst.destroy();
     },
@@ -678,9 +713,9 @@ Test.register(Test.CHECK, [
       const a = s.create();
       const b = s.create();
       const c = s.create();
-      s.mint(a, "TestHandle", { tag: "a" }, hook);
-      s.mint(b, "TestHandle", { tag: "b" }, hook);
-      s.mint(c, "TestHandle", { tag: "c" }, hook);
+      s.add(a, "TestHandle", { tag: "a" }, { mint: true, destroy: hook });
+      s.add(b, "TestHandle", { tag: "b" }, { mint: true, destroy: hook });
+      s.add(c, "TestHandle", { tag: "c" }, { mint: true, destroy: hook });
       t.eq(s.export().components["TestHandle"], undefined, "a hooked token is transient");
       s.detach(a, "TestHandle");
       t.eq(ctx.freed.join(""), "a", "detach releases the handle");
@@ -692,7 +727,7 @@ Test.register(Test.CHECK, [
       t.eq(ctx.freed.join(""), "abc", "a replacing add releases the old handle");
       s.forEach(["TestHandle"], (id) => s.detach(id, "TestHandle"));
       t.eq(ctx.freed.join(""), "abcc2", "a detach mid-walk releases at once");
-      s.mint(c, "TestHandle", { tag: "d" }, hook);
+      s.add(c, "TestHandle", { tag: "d" }, { mint: true, destroy: hook });
       s.destroy();
       t.eq(ctx.freed.join(""), "abcc2d", "the store's destroy releases what is left");
     },

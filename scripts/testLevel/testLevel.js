@@ -188,7 +188,7 @@ Test.register(Test.CHECK, [
     verify(ctx, t) {
       const step = (c) => {
         const s = c.entities;
-        s.mint(c.w, PathRequest, { startX: 0, startY: 0, goalX: 7, goalY: 0 });
+        s.add(c.w, PathRequest, { startX: 0, startY: 0, goalX: 7, goalY: 0 }, { mint: true });
         PathfindingSystem.update(c.level);
         // the twins share the room: only the stepping level's mirrors may answer
         PuppetSystem.thaw(c.level);
@@ -333,17 +333,18 @@ Test.register(Test.CHECK, [
       ctx.wall = Colliders.box(s, 96, 0, 32, 224); // column 3, rows 0..6: a detour through row 7
       ctx.walker = s.create();
       s.add(ctx.walker, Position, { x: 16, y: 16, z: 0 });
-      s.mint(ctx.walker, PathRequest, { startX: 0, startY: 0, goalX: 7, goalY: 0 });
+      s.add(ctx.walker, PathRequest, { startX: 0, startY: 0, goalX: 7, goalY: 0 }, { mint: true });
       ctx.other = s.create();
-      s.mint(ctx.other, PathResponse, { path: [{ x: 0, y: 0 }], index: 0 }); // a held path a restamp drops
+      // a held path a restamp drops
+      s.add(ctx.other, PathResponse, { path: [{ x: 0, y: 0 }], index: 0 }, { mint: true });
     },
     verify(ctx, t) {
       const s = ctx.entities;
       const level = ctx.level;
       const hold = () =>
-        s.mint(ctx.other, PathResponse, { path: [{ x: 0, y: 0 }], index: 0 });
+        s.add(ctx.other, PathResponse, { path: [{ x: 0, y: 0 }], index: 0 }, { mint: true });
       const ask = () =>
-        s.mint(ctx.walker, PathRequest, { startX: 0, startY: 0, goalX: 7, goalY: 0 });
+        s.add(ctx.walker, PathRequest, { startX: 0, startY: 0, goalX: 7, goalY: 0 }, { mint: true });
       PuppetSystem.update(level);
       PathfindingSystem.update(level);
       const r1 = s.get(ctx.walker, PathResponse);

@@ -13,3 +13,13 @@
  * @property {{itemId:string,qty:number}[]} template  baseline stock a restock tops up to
  */
 globalThis.Merchant = "Merchant";
+// any script may load first (docs/GMRT.md)
+(globalThis.Blank ??= {})[Merchant] = {
+  currencyId: "coin",
+  buyMargin: 1.25,
+  sellMargin: 0.5,
+  infinite: false,
+  credits: 0,
+  restockSecs: 0,
+  restockTimer: 0,
+};

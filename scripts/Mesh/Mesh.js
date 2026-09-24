@@ -6,16 +6,16 @@
  *
  * @typedef {Object} Mesh
  * @property {string} [model]     vox model name; when set, the box fields are ignored for drawing
- * @property {number} [scale]     uniform model scale (default 1); visual-only, the BBox stays
+ * @property {number} scale       uniform model scale; visual-only, the BBox stays
  *                                authored. Voxels read style-visible past ~1.5×
  * @property {number} [xscale]    per-axis override (world x); negative mirrors
  * @property {number} [yscale]    per-axis override (world y)
  * @property {number} [zscale]    per-axis override (world z)
- * @property {number} [yaw]       degrees about the up axis, pivoting on the footprint center;
+ * @property {number} yaw         degrees about the up axis, pivoting on the footprint center;
  *                                visual-only, so author the swapped footprint for a 90° turn
- * @property {number} [pitch]     tilt in degrees about world x; vox models have no bottom faces,
+ * @property {number} pitch       tilt in degrees about world x; vox models have no bottom faces,
  *                                so a tip past ~90° shows a hollow underside
- * @property {number} [roll]      tilt in degrees about world y (same bottom caveat)
+ * @property {number} roll        tilt in degrees about world y (same bottom caveat)
  * @property {number} width       footprint x extent (world px)
  * @property {number} depth       footprint y extent (world px)
  * @property {number} height      vertical extent (world px)
@@ -23,6 +23,8 @@
  * @property {number} frontColor  front face fill / sprite tint
  * @property {GMSprite} [topSprite]
  * @property {GMSprite} [frontSprite]
- * @property {number} [alpha]     whole-box alpha (default 1); keep faces opaque
+ * @property {number} alpha       whole-box alpha; keep faces opaque
  */
 globalThis.Mesh = "Mesh";
+// any script may load first (docs/GMRT.md)
+(globalThis.Blank ??= {})[Mesh] = { scale: 1, yaw: 0, pitch: 0, roll: 0, alpha: 1 };

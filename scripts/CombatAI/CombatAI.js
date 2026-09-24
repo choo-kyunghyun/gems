@@ -7,6 +7,26 @@ const SHOT_RANGE_SECS = 1.5;
  * callbacks, and state callbacks receive the id instead of closing over it.
  */
 globalThis.Brain = "Brain";
+// any script may load first (docs/GMRT.md)
+(globalThis.Blank ??= {})[Brain] = {
+  target: -1,
+  mobile: true,
+  ranged: false,
+  aggro: 160,
+  deAggro: 240,
+  attackRange: 30,
+  speed: 90,
+  cdMax: 0.75,
+  cd: 0,
+  bulletSpeed: 0,
+  pathCd: 0,
+  pathRate: 0.2,
+  aggroRate: 0.25,
+  aggroCd: 0,
+  losRate: 0.13,
+  losCd: 0,
+  losBlocked: false,
+};
 /**
  * @typedef {Object} Brain
  * @property {{x:number,y:number}} home  point a mobile actor drifts back to when idle
@@ -194,32 +214,15 @@ globalThis.CombatAI = {
     ]);
   },
 
-  // `opt` overrides the Brain defaults, which describe a mobile melee enemy.
+  // `opt` overrides the Brain's blank, which describes a mobile melee enemy.
   attach(entities, id, opt = {}) {
     const pos = entities.get(id, Position);
-    entities.add(id, Velocity, { x: 0, y: 0, z: 0 });
-    entities.add(id, Brain, {
-      home: { x: pos.x, y: pos.y },
-      target: -1,
-      mobile: opt.mobile ?? true,
-      ranged: opt.ranged ?? false,
-      aggro: opt.aggro ?? 160,
-      deAggro: opt.deAggro ?? 240,
-      attackRange: opt.attackRange ?? 30,
-      speed: opt.speed ?? 90,
-      cdMax: opt.cdMax ?? 0.75,
-      cd: 0,
-      bulletSpeed: opt.bulletSpeed ?? 0,
-      pathCd: 0,
-      pathRate: opt.pathRate ?? 0.2,
-      // staggered by id so a freshly-streamed crowd doesn't scan on one frame
-      aggroRate: opt.aggroRate ?? 0.25,
-      aggroCd: ((id % 16) / 16) * (opt.aggroRate ?? 0.25),
-      losRate: opt.losRate ?? 0.13,
-      losCd: 0,
-      losBlocked: false,
-    });
-    entities.add(id, State, { current: "", next: "combat.idle" });
+    entities.add(id, Velocity, {});
+    const brain = { ...opt, home: { x: pos.x, y: pos.y } };
+    entities.add(id, Brain, brain);
+    // staggered by id so a freshly-streamed crowd doesn't scan on one frame
+    brain.aggroCd = ((id % 16) / 16) * brain.aggroRate;
+    entities.add(id, State, { next: "combat.idle" });
   },
 
   /** Infinity when the target is gone. */

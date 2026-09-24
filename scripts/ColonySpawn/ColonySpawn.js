@@ -101,13 +101,13 @@ globalThis.ColonySpawn = {
       Bag.add(mInv, stock[i].itemId, stock[i].qty);
     entities.add(id, Inventory, mInv);
     entities.add(id, Merchant, {
-      currencyId: mc.currencyId ?? "coin",
-      buyMargin: mc.buyMargin ?? 1.25,
-      sellMargin: mc.sellMargin ?? 0.5,
-      infinite: mc.infinite ?? false,
-      credits: mc.credits ?? 0,
-      restockSecs: mc.restockSecs ?? 0,
-      restockTimer: mc.restockSecs ?? 0,
+      currencyId: mc.currencyId,
+      buyMargin: mc.buyMargin,
+      sellMargin: mc.sellMargin,
+      infinite: mc.infinite,
+      credits: mc.credits,
+      restockSecs: mc.restockSecs,
+      restockTimer: mc.restockSecs,
       template: mc.template,
     });
   },
@@ -140,8 +140,7 @@ globalThis.ColonySpawn = {
     over.Name = { name: I18n.text(def.name) };
     over.Growth = {
       species: s.species,
-      progress: s.progress ?? 0,
-      stage: -1,
+      progress: s.progress,
       wild: s.wild === true,
     };
   },

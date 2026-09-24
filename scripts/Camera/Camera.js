@@ -23,3 +23,15 @@ globalThis.CAMERA_PROJECTION = Object.freeze({
  * @property {number} fov  vertical degrees, PERSPECTIVE_FOV only
  */
 globalThis.Camera = "Camera";
+// any script may load first (docs/GMRT.md)
+(globalThis.Blank ??= {})[Camera] = {
+  projection: CAMERA_PROJECTION.ORTHO,
+  pitch: 0,
+  yaw: 0,
+  roll: 0,
+  dist: 100,
+  zoom: 1,
+  znear: 1,
+  zfar: 32000,
+  fov: 70,
+};

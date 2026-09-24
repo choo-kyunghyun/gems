@@ -59,7 +59,7 @@ globalThis.RenderLighting = class RenderLighting {
     const zx = w / this.camera.width; // world-to-screen scale for the blob radius
     entities.forEach([Light, Position], (id, lt, pos) => {
       const s = this.camera.project(pos.x, pos.y, 0);
-      let intensity = lt.intensity ?? 1;
+      let intensity = lt.intensity;
       // id-offset so torches don't flicker in sync
       if (lt.flicker)
         intensity *=

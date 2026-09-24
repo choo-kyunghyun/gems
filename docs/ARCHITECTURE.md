@@ -64,7 +64,10 @@ and are cited from here, never restated):
 - ECS shape:
     - Components are string tokens (`globalThis.Position = "Position"`), each script carrying the
       `@typedef` that is the only definition of its data shape (they ARE the type system — the
-      checker consumes them).
+      checker consumes them) and, beside it, the token's blank (`Blank[Position]`): the default
+      of every field whose absence means nothing. Every datum enters a store through ONE door,
+      `entities.add` (an import included), which fills what the datum leaves undefined from the
+      blank — so a default lives in the blank alone, never at a call site or a reader's `??`.
         - Systems are TICKERS: plain objects `{ update(level) }` — plus a draw-phase `apply`/`draw`
       where the frame's other clock needs one (`CameraSystem.apply`, `ParticleEmitterSystem.draw`)
       — the level in hand is the whole context (its store, its grid, its own entity), a system
@@ -253,7 +256,7 @@ and are cited from here, never restated):
   — GMRT.md) and no asset ref outside the codec's tagging. Dense/large arrays still go to binary
   blobs, not JSON — a store token with a codec (`entities.codec`) crosses its export as buffers the
   save hands to the Snapshot bundle (`File` moves the bytes). A runtime-rebuilt component (a diff baseline, a
-  path, a live handle) is minted — `entities.mint` at the system that rebuilds it — so no export
+  path, a live handle) is minted — `entities.add(…, { mint: true })` at the system that rebuilds it — so no export
   or whole-entity snapshot carries it, and a save pass or a transfer names no component. One
   that holds a native handle (`Instance`, `ParticleStream`) mints with its RELEASE hook, which
   the store runs as the datum leaves its slot (a detach, the entity's flush, a level's teardown),

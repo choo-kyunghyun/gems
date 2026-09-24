@@ -38,7 +38,7 @@ globalThis.World = {
       id = World.table.create();
       World.table.add(id, World.MAP, { id: mapId });
     }
-    World.table.mint(id, World.LEVEL, level, World._free);
+    World.table.add(id, World.LEVEL, level, { mint: true, destroy: World._free });
   },
 
   /** The resident level under `mapId`, or null. */

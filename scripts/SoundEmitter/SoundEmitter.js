@@ -5,7 +5,9 @@
  * @typedef {Object} SoundEmitter
  * @property {string} sound  sound asset name
  * @property {number} every  seconds between cues (sim time)
- * @property {number} [gain=1]
+ * @property {number} gain
  * @property {number} [timer]  countdown to the next cue; seeds to `every` on first update
  */
 globalThis.SoundEmitter = "SoundEmitter";
+// any script may load first (docs/GMRT.md)
+(globalThis.Blank ??= {})[SoundEmitter] = { gain: 1 };

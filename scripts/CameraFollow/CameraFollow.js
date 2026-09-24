@@ -22,3 +22,15 @@
  * @property {number} zoomButton  the mouse button that resets to `zoomHome`
  */
 globalThis.CameraFollow = "CameraFollow";
+// any script may load first (docs/GMRT.md)
+(globalThis.Blank ??= {})[CameraFollow] = {
+  lerp: 0.1,
+  pitch: 0,
+  zoomTarget: 1,
+  zoomHome: 1,
+  zoomMin: 0.5,
+  zoomMax: 4,
+  zoomStep: 0.1,
+  zoomLerp: 0.2,
+  zoomButton: mb_middle,
+};

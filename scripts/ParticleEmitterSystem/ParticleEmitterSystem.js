@@ -30,7 +30,12 @@ globalThis.ParticleEmitterSystem = {
       part_system_automatic_update(s, false);
       // a persistent blend, set once, not per draw
       if (em.color !== undefined) part_system_colour(s, em.color, 1);
-      entities.mint(id, ParticleStream, { sys: s }, ParticleEmitterSystem._release);
+      entities.add(
+        id,
+        ParticleStream,
+        { sys: s },
+        { mint: true, destroy: ParticleEmitterSystem._release },
+      );
     });
     entities.forEach([ParticleStream], (id, st) => {
       if (emitters[id & mask] === undefined) {
@@ -50,7 +55,7 @@ globalThis.ParticleEmitterSystem = {
     entities.forEach(
       [ParticleStream, ParticleEmitter, Position],
       (id, st, em, p) => {
-        const s = em.scale ?? 1;
+        const s = em.scale;
         matrix_set(matrix_world, matrix_build(p.x, p.y, 0, tilt, 0, 0, s, s, 1));
         part_system_drawit(st.sys);
       },

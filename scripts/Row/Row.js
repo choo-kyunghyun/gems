@@ -26,7 +26,7 @@ globalThis.Row = {
   apply(entities, id, record) {
     const comps = record.components;
     // for...in over a plain object; Map iteration is unsafe (docs/GMRT.md)
-    for (const token in comps) entities.add(id, token, Row._copy(comps[token]));
+    for (const token in comps) entities.add(id, token, Plain.copy(comps[token]));
     return id;
   },
 
@@ -36,20 +36,5 @@ globalThis.Row = {
     if (overrides !== undefined)
       for (const token in overrides) entities.add(id, token, overrides[token]);
     return id;
-  },
-
-  /** Arrays and plain objects deep; anything else by reference. */
-  _copy(v) {
-    if (Array.isArray(v)) {
-      const out = [];
-      for (let i = 0; i < v.length; i++) out.push(Row._copy(v[i]));
-      return out;
-    }
-    if (v !== null && typeof v === "object" && v.constructor === Object) {
-      const out = {};
-      for (const key in v) out[key] = Row._copy(v[key]);
-      return out;
-    }
-    return v;
   },
 };

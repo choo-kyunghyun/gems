@@ -10,7 +10,9 @@
  *
  * @typedef {Object} ParticleEmitter
  * @property {string} asset    particle system asset name ("ps*")
- * @property {number} [scale]  world scale of the stream (default 1)
+ * @property {number} scale    world scale of the stream
  * @property {number} [color]  color blend over the asset's own colors (omitted = untinted)
  */
 globalThis.ParticleEmitter = "ParticleEmitter";
+// any script may load first (docs/GMRT.md)
+(globalThis.Blank ??= {})[ParticleEmitter] = { scale: 1 };

@@ -11,3 +11,5 @@
  *   cap and seeds neighbours), as against a built crop
  */
 globalThis.Growth = "Growth";
+// any script may load first (docs/GMRT.md)
+(globalThis.Blank ??= {})[Growth] = { progress: 0, stage: -1, wild: false };

@@ -98,7 +98,7 @@ globalThis.Effects = {
   _ensure(entities, id) {
     let eff = entities.get(id, StatusEffects);
     if (eff === undefined) {
-      eff = { list: [] };
+      eff = {};
       entities.add(id, StatusEffects, eff);
     }
     return eff;

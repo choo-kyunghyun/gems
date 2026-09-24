@@ -33,18 +33,15 @@ globalThis.ColonyPlayer = {
   spawn(entities, spawn, opts = ColonyPlayer.TUNING) {
     const k = opts.scale ?? 1;
     const id = entities.create();
-    entities.add(id, Position, { x: spawn.x, y: spawn.y, z: 0 });
-    entities.add(id, Velocity, { x: 0, y: 0, z: 0 });
+    entities.add(id, Position, { x: spawn.x, y: spawn.y });
+    entities.add(id, Velocity, {});
     entities.add(id, BBox, {
       x: opts.bbox.x * k,
       y: opts.bbox.y * k,
       width: opts.bbox.width * k,
       height: opts.bbox.height * k,
     });
-    entities.add(id, Collision, {
-      solid: true,
-      kinematic: false,
-    });
+    entities.add(id, Collision, {}); // a dynamic solid
     entities.add(id, Direction, opts.dir);
     entities.add(id, Name, { name: "Player" });
     // authored like the name, not hashed like a spawned colonist
@@ -71,40 +68,26 @@ globalThis.ColonyPlayer = {
       defense: 0,
       speed: opts.speed,
     });
-    entities.add(id, Inventory, { slots: [], capacity: 16, maxWeight: 50 });
-    entities.add(id, Encumbrance, { threshold: 0.5, minScale: 0.4 });
+    entities.add(id, Inventory, { capacity: 16, maxWeight: 50 });
+    entities.add(id, Encumbrance, {});
     const needs = Need.all();
     for (let i = 0; i < needs.length; i++)
       entities.add(id, needs[i].id, Object.assign({}, needs[i].seed));
-    entities.add(id, Equipment, {
-      slots: { weapon: "", armor: "", trinket: "", backpack: "" },
-    });
-    const hotbarSlots = [];
-    for (let i = 0; i < HOTBAR_SIZE; i++) hotbarSlots.push("");
-    entities.add(id, Hotbar, { slots: hotbarSlots, size: HOTBAR_SIZE });
-    entities.add(id, Favorites, { ids: [] });
+    entities.add(id, Equipment, {});
+    entities.add(id, Hotbar, {});
+    entities.add(id, Favorites, {});
     // xscale carries both the facing flip and the baked size, so a flip preserves |xscale|.
     // The body art is a white template, so the skin is a tint over its body slots.
     entities.add(id, Skeleton, {
       sprite: spineHuman,
       anim: Doll.rest(spineHuman),
-      loop: true,
-      speed: 1, // authored time
       xscale: AssetMeta.fit(spineHuman, k),
       yscale: AssetMeta.fit(spineHuman, k),
-      color: c_white,
       tints: ColonySpawn.skinTints(ColonyPlayer.SKIN),
-      alpha: 1,
     });
-    entities.add(id, Appearance, { slots: {}, dirty: true });
+    entities.add(id, Appearance, {});
     // marks the input-driven entity; flat scalars so its state rides the map transfer
-    entities.add(id, Playable, {
-      fireCd: 0,
-      attackCd: 0,
-      attackAnim: "",
-      cursorX: spawn.x,
-      cursorY: spawn.y,
-    });
+    entities.add(id, Playable, { cursorX: spawn.x, cursorY: spawn.y });
     // the lantern, revealing night
     entities.add(id, Light, {
       radius: 180,
