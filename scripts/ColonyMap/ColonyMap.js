@@ -6,9 +6,10 @@
  * RUNTIME, derived when the level is mounted and freed with it. Nothing of a map lives here, so
  * parking and resuming a map cost no rebuild. This engine knows the level, never the scene.
  *
- * A Level comes to be one of two ways: build() on a map's first visit (the only place procedural
- * content is made) and restoreLevel() for a saved map (no seed, spawn or remesh). Both pool the
- * Level mounted but not activated, and a map builds exactly once — a revisit resumes it.
+ * A Level comes to be one of two ways: build() on a visit to a map not pooled (the only place
+ * procedural content is made) and restoreLevel() for a saved map (no seed, spawn or remesh). Both
+ * pool the Level mounted but not activated. A PERSISTENT map builds once and a revisit resumes
+ * it; any other is transient, freed on departure and built afresh from a new seed next visit.
  *
  * @typedef {Object} ColonyMapData
  * @property {{x:number,y:number}} spawn  the point the map was entered at (world) — the respawn point
@@ -31,9 +32,25 @@ globalThis.ColonyMap = {
   CLIMATE: "climate",
   BIOME: "biome",
   WIND: "wind", // constant wind strength
+  PERSISTENT: "persistent", // true: kept pooled across departures
+  VISITS: "colony_visits", // saved, on the world's own entity
 
   of(level) {
     return level.entities.get(level.self, ColonyMap.KEY);
+  },
+
+  persistent(level) {
+    return level.entities.get(level.self, ColonyMap.PERSISTENT) === true;
+  },
+
+  /** Keep the map pooled from now on. */
+  persist(level) {
+    level.entities.add(level.self, ColonyMap.PERSISTENT, true);
+  },
+
+  /** `{ mapId -> builds so far }` */
+  visits() {
+    return World.table.of(World.self, ColonyMap.VISITS, () => ({}));
   },
 
   /** Undefined before the level is mounted. */
@@ -65,13 +82,15 @@ globalThis.ColonyMap = {
   },
 
   /**
-   * Build a map fresh from its site — the first visit only. Returns the Level, pooled and
+   * Build a map fresh from its site, at a seed of this build's own. Returns the Level, pooled and
    * populated but not activated; its id is the site's, or START's when the site failed to load.
    * `player` true spawns a fresh player at the entry (boot only).
    */
   build(mapId, entryId, player) {
     const loaded = ColonyMap._loadData(mapId, entryId);
-    Log.info(`colony map: ${loaded.mapId} (entry ${loaded.entryId})`);
+    Log.info(
+      `colony map: ${loaded.mapId} (entry ${loaded.entryId}, seed ${loaded.data.meta.seed})`,
+    );
     const r = ColonyMap._buildLevel(loaded.data, loaded.mapId, loaded.entryId, player);
     World.add(loaded.mapId, r.level); // pooled before populate so arrivals can land through the pool
     ColonyMap.populate(r.level, r.built.spawns);
@@ -134,14 +153,17 @@ globalThis.ColonyMap = {
     }
   },
 
+  /** Counts the build against the map it lands on. */
   _loadData(mapId, entryId) {
-    let data = ColonyLevel.load(mapId);
+    const visits = ColonyMap.visits();
+    let data = ColonyLevel.load(mapId, visits[mapId] ?? 0);
     if (data === null) {
       Log.error(`map "${mapId}" failed — falling back to ${ColonyLevel.START}`);
       mapId = ColonyLevel.START;
       entryId = "default";
-      data = ColonyLevel.load(mapId);
+      data = ColonyLevel.load(mapId, visits[mapId] ?? 0);
     }
+    visits[mapId] = (visits[mapId] ?? 0) + 1;
     return { data, mapId, entryId };
   },
 
@@ -182,6 +204,7 @@ globalThis.ColonyMap = {
     if (data.meta.indoor === true) entities.add(self, ColonyMap.INDOOR, true);
     if (data.meta.climate !== undefined)
       entities.add(self, ColonyMap.CLIMATE, data.meta.climate);
+    if (data.meta.persistent === true) ColonyMap.persist(level);
     const s = data.meta.settlement;
     if (s !== undefined)
       Settlement.found(level, {

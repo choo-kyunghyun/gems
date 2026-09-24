@@ -1,8 +1,8 @@
 /**
  * Wandering traders on the world timeline, advanced only by scheduled arrive/depart events. A
  * trader dwelling on a resident map is an entity of that map's level, parked or active alike; in
- * transit, or dwelling on a map with no level yet, it is a whole-entity record its next event
- * carries, moved into the level once that map is built.
+ * transit, or dwelling on a map with no level, it is a whole-entity record its next event
+ * carries, moved into the level once that map is built and back out before the level is freed.
  *
  * The route records live on the world's own entity, so they start blank with the world and ride
  * its save. install() runs once per scene create.
@@ -55,6 +55,28 @@ globalThis.Trader = {
       d.ent = Trader._embody(level, rec, d.snap);
       delete d.snap;
     }
+  },
+
+  /**
+   * Move every trader embodied on the level back into its depart event; call before the level is
+   * freed. One no longer in the store ends its route here, as its depart would.
+   */
+  recall(level) {
+    const recs = Trader.state().recs;
+    const dwells = WorldEvents.queued("trader_depart");
+    for (let i = 0; i < dwells.length; i++) {
+      const d = dwells[i];
+      if (d.ent === -1 || d.map !== level.id) continue;
+      if (level.entities.isValid(d.ent)) {
+        d.snap = World.take(level.id, d.ent);
+        Log.info(`trader ${d.id} recalled from ${level.id}`);
+      } else {
+        delete recs[d.id];
+        Log.info(`trader ${d.id} is gone from ${level.id}; its route ends`);
+      }
+      d.ent = -1;
+    }
+    level.entities.flush();
   },
 
   /** A dwell at the route's current stop: embodied when its map is resident, carried otherwise. */

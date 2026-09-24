@@ -3,8 +3,10 @@
  * pools under and a save stores it, so renaming one is a migration. `pos` is in [0,1] chart
  * space and is also the travel-time metric; `danger` 0 is a safe site that spawns no raider;
  * the same `seed` lays the same level on every first build; `anchor` is the site's one
- * hand-built structure, carrying its beacon and entry. A `dev` site is an authoring canvas kept
- * off the chart outside dev mode. The first entry is the home site the routes fan out from.
+ * hand-built structure, carrying its beacon and entry. A `claimable` site keeps the anchor's
+ * Survey Post, where the player can claim it; any other site's map is built fresh on every visit.
+ * A `dev` site is an authoring canvas kept off the chart outside dev mode. The first entry is the
+ * home site the routes fan out from.
  */
 globalThis.contentSites = {
   SITES: [
@@ -50,6 +52,7 @@ globalThis.contentSites = {
       rows: 96,
       seed: 2101,
       anchor: "landing_pad",
+      claimable: true,
     },
     {
       id: "marsh",
@@ -62,6 +65,7 @@ globalThis.contentSites = {
       rows: 96,
       seed: 3307,
       anchor: "landing_pad",
+      claimable: true,
     },
     {
       id: "badlands",
@@ -74,6 +78,7 @@ globalThis.contentSites = {
       rows: 112,
       seed: 4409,
       anchor: "landing_pad",
+      claimable: true,
     },
     // the scratch pad: a flat canvas to build and capture prefabs on
     {

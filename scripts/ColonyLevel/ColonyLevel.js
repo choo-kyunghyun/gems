@@ -7,36 +7,37 @@ const ANCHOR_CLEAR = 6; // cells around a site's anchor kept procedural-free —
  * + grid, and restore() rebuilds a saved map. The caller owns the returned grid and colliders.
  *
  * Every level is procedural and fully resident: the site's seed and biome drive the generator and
- * its anchor prefab fixes the one hand-built structure, on the FIRST build only — a saved map
- * comes back whole through restore(). Grid size is cols/rows, not the room, so a level can exceed
- * the view.
+ * its anchor prefab fixes the one hand-built structure, on a build only — a saved map comes back
+ * whole through restore(). The first build lays the site's own seed and each later one a seed of
+ * its own. Grid size is cols/rows, not the room, so a level can exceed the view.
  */
 globalThis.ColonyLevel = {
   // The boot site — the colony's home level and the world map's hub.
   START: "hub",
+  SEED_SALT: 811, // folds the build count into a revisit's seed
 
-  /** Level data for a site id; null for an unknown id or biome. */
-  load(id) {
+  /** Level data for a site id at its `visit`th build (0 = first); null for an unknown id or biome. */
+  load(id, visit = 0) {
     const site = contentSites.get(id);
     if (site === undefined) {
       Log.error(`ColonyLevel: no site "${id}"`);
       return null;
     }
-    return ColonyLevel._siteData(site);
+    return ColonyLevel._siteData(site, visit);
   },
 
   /**
    * An empty LevelData at the site's size whose `meta` carries the generator inputs and whole-map
    * flags. Returns null for an unknown biome.
    */
-  _siteData(site) {
+  _siteData(site, visit) {
     const biome = contentBiomes.BIOMES[site.biome];
     if (biome === undefined) {
       Log.error(`ColonyLevel: site "${site.id}" names no biome profile`);
       return null;
     }
     const meta = {
-      seed: site.seed,
+      seed: ColonyLevel._seed(site.seed, visit),
       biome: site.biome,
       anchor: site.anchor,
       clear: site.clear ?? ANCHOR_CLEAR,
@@ -45,6 +46,8 @@ globalThis.ColonyLevel = {
     if (biome.indoor === true) meta.indoor = true;
     if (biome.climate !== undefined) meta.climate = biome.climate;
     if (site.settlement !== undefined) meta.settlement = site.settlement;
+    if (site.claimable === true) meta.claimable = true;
+    if (site.id === ColonyLevel.START) meta.persistent = true; // the home is never rebuilt
     return {
       cell: CELL,
       cols: site.cols,
@@ -53,6 +56,12 @@ globalThis.ColonyLevel = {
       tiles: [],
       spawns: [],
     };
+  },
+
+  /** A site's first build lays its own seed; each later one a seed hashed from it and the count. */
+  _seed(base, visit) {
+    if (visit === 0) return base;
+    return Math.floor(hash2(base, visit, ColonyLevel.SEED_SALT) * 2147483647);
   },
 
   /**
@@ -153,6 +162,9 @@ globalThis.ColonyLevel = {
         data.meta.danger === 0 ? (s) => s.preset !== "raider" : undefined,
     });
     const out = gen.generate(grid.cols, grid.rows);
+    // only a claimable site keeps the anchor's Survey Post
+    if (data.meta.claimable !== true)
+      out.spawns = out.spawns.filter((s) => s.kind !== "claim");
     const terrain = ColonyLevel._terrainTypes(gen.palette);
     gen.paint(out, h.terrainLayer, terrain.types);
     // terrain types by material id, so content can paint the terrain layer by material

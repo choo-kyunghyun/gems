@@ -1,11 +1,11 @@
 /**
  * Map arrival for the colony scene.
  *
- * Visited maps stay alive in the level pool, so a trip never destroys or rebuilds one: a map
- * builds from its data exactly once, on its first visit, then only parks and resumes. Only the
- * squad migrates, each member as a whole entity; a "wait" member is forced back to "follow" so
- * the squad always travels together, and kicked/unhired companions stay as map residents. A
- * crossing costs in-game hours by chart distance.
+ * A departure parks a persistent map in the level pool, to resume untouched, and frees any other
+ * with everything left on it, so its next visit builds it afresh. Only the squad migrates, each
+ * member as a whole entity; a "wait" member is forced back to "follow" so the squad always travels
+ * together, and kicked/unhired companions stay as map residents. A crossing costs in-game hours by
+ * chart distance.
  *
  * Contract: the scene owns `level`, `playerId`, `stages` (map id → its ColonyStage), `build`,
  * `nearNpc` and `window`; this engine writes them on arrival and reads nothing else of it.
@@ -40,7 +40,8 @@ globalThis.ColonyTravel = {
         squad.push(World.take(scene.level.id, members[i]));
       }
       scene.level.entities.flush(); // commit the taken members' removals before parking
-      ColonyTravel.suspend(scene);
+      if (ColonyMap.persistent(scene.level)) ColonyTravel.suspend(scene);
+      else ColonyTravel._free(scene);
     }
     if (World.get(mapId) !== null) ColonyTravel.resume(scene, mapId, entryId, squad);
     else ColonyTravel.build(scene, mapId, entryId, squad);
@@ -79,7 +80,21 @@ globalThis.ColonyTravel = {
     PuppetSystem.park(scene.level); // its mirrors leave the room-global queries
   },
 
-  /** Enter a map for the first time; a null `squad` (boot) spawns the player with it. */
+  /**
+   * Free the live transient map, its traders leaving as records first. Never parked on the way:
+   * a parked instance outlives its free (docs/GMRT.md).
+   */
+  _free(scene) {
+    const level = scene.level;
+    CameraSystem.view(level).release();
+    Trader.recall(level);
+    scene.stages[level.id].renderer.destroy();
+    delete scene.stages[level.id];
+    World.remove(level.id);
+    Log.info(`colony map: ${level.id} [freed]`);
+  },
+
+  /** Enter a map not pooled; a null `squad` (boot) spawns the player with it. */
   build(scene, mapId, entryId, squad) {
     const level = ColonyMap.build(mapId, entryId, squad === null);
     Trader.deliver(level);

@@ -565,8 +565,8 @@ globalThis.BuildMode = {
   },
 
   /**
-   * Found the player's settlement over the level at a survey post, then spend the post — also on
-   * an already-settled level, so it never re-founds.
+   * Found the player's settlement over the level at a survey post, keeping the map from then on,
+   * then spend the post — also on an already-settled level, so it never re-founds.
    */
   claim(scene, postId) {
     const s = Settlement.found(scene.level, {
@@ -574,6 +574,7 @@ globalThis.BuildMode = {
       factionId: BuildMode.FACTION,
     });
     if (s !== undefined) {
+      ColonyMap.persist(scene.level);
       Toast.push(I18n.text("SETTLEMENT_FOUNDED"), { type: "success" });
       Log.info(`founded settlement over ${scene.level.id}`);
     }
