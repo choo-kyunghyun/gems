@@ -302,4 +302,40 @@ Test.register(Test.CHECK, [
       sprite_delete(ctx.b);
     },
   },
+  {
+    // A tile pass rebakes on the draw after its layer's `edits` moves, and only then: an edit
+    // needs no call into the pass.
+    id: "render.rebake",
+    frames: 4,
+    setup(ctx) {
+      Object.assign(ctx, Test.level(4, 4));
+      const surf = surface_create(8, 8);
+      ctx.spr = sprite_create_from_surface(surf, 0, 0, 8, 8, false, false, 0, 0);
+      surface_free(surf);
+      ctx.type = new TileType({ id: 0, pathCost: 1 });
+      ctx.pass = new RenderTileMap(ctx.layer, ctx.grid, ctx.spr);
+      const rebuild = ctx.pass._rebuild.bind(ctx.pass);
+      ctx.bakes = 0;
+      ctx.pass._rebuild = () => {
+        ctx.bakes++;
+        rebuild();
+      };
+      ctx.seen = [];
+    },
+    frame(ctx, i) {
+      if (i === 1) ctx.layer.set(1, 1, ctx.type);
+    },
+    draw(ctx) {
+      ctx.pass.draw(ctx.entities);
+      ctx.seen.push(ctx.bakes);
+    },
+    verify(ctx, t) {
+      t.eq(ctx.seen.join(","), "1,2,2", "bakes after each draw: the first, the edit, none");
+    },
+    teardown(ctx) {
+      ctx.pass.destroy();
+      ctx.level.destroy();
+      sprite_delete(ctx.spr);
+    },
+  },
 ]);
