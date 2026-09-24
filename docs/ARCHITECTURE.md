@@ -53,7 +53,7 @@ Placement rule for new code:
   content is code, never a shipped JSON datafile), a level-generation stage to `Game/Level` (the
   runner is Core; what it runs is content policy).
 - Read it through the consumers, which is what settles the near calls: `Animation` is Core because
-  Core draw passes call it and `WorldClock` because `World` drives it, while
+  Core draw passes call it and `WorldClock` because it is engine time over the world's store, while
   `Combat`/`Faction`/`Interaction` are Game because every consumer is.
 
 ## Cross-Cutting Invariants
@@ -109,7 +109,7 @@ and are cited from here, never restated):
       only what that scene itself wired (its UI root, its injected hooks, the colony's `World`), and
       a new app member a scene can dirty gets its line in the sweep, not in a scene.
         - Anything DERIVED from a level's data and kept between frames — a collider generation, a nav
-      grid, a room mirror, a broadphase, a pass stack, a camera's view record — is a DERIVED entry:
+      grid, a room mirror, a broadphase, a camera's view record — is a DERIVED entry:
       a component of the level's own entity that its owner alone reaches through
       `entities.derive(level.self, Owner.KEY, make)`, seeded on a miss (a miss is never an error:
       a level whose derived entries are all freed mid-run ends where its untouched twin does,
@@ -129,13 +129,17 @@ and are cited from here, never restated):
       module; a level-sized scratch or a fairness cursor is the level's and rides its derived entry
       (`NavGrid.scratch`, `NavGrid.cursor`). Asset-derived tables (`Vox`, `Poly`, `Rig._info`) are
       run-lifetime and immutable, not state.
-- Level / Scene / World: a `Level` is one map — its store, whose own entity (`self`) carries the
-  grid, the map's records and its derived entries — and nothing behavioural (it never updates or
-  draws). A `Scene` is the behaviour: it composes the active level, systems, renderer, camera and
-  UI, and owns `update()`/`draw()`. `World` is the store one layer up: its records on `self`, and
-  each pooled map an entity carrying its id and its Level; a visited map stays pooled with its
-  derived entries, so a park is a camera unassign and a resume a pointer swap, and `World.reset`
-  blanks the store, the pool with it. There is no scene manager: the `Game` object holds the one
+- Level / Scene / World: `Level` and `World` are data and run no logic; the scene interprets
+  them. A `Level` is one map — its store, whose own entity (`self`) carries the grid, the map's
+  records and its derived entries, the camera an entity of that store — and it never updates or
+  draws. `World` is the store one layer up: its records on `self`, and each pooled map an entity
+  carrying its id and its Level. An entity that belongs to no level is a whole-entity record in a
+  queued world event's payload until it is moved into a level. A `Scene` is the behaviour: it
+  owns which level is active and a renderer per map it has shown, composes systems, camera
+  policy and UI, and runs them over the level and the world from `update()`/`draw()`, the world's
+  own tickers (`WorldClock`, `WorldEvents`) included. A visited map stays pooled with its derived
+  entries and the scene keeps its renderer, so a park is a camera unassign and a resume a pointer
+  swap, and `World.reset` blanks the store, the pool with it. There is no scene manager: the `Game` object holds the one
   active scene pointer and drives it from its own events (its Create_0 owns the switch/pause
   contract). Exactly one scene is live and a switch destroys it — a scene is never frozen, so it
   carries no state across a swap.
@@ -155,7 +159,7 @@ and are cited from here, never restated):
       boot/reset (`Audio`/`AudioListener`/`Music`, `World`/`WorldClock`/`WorldEvents`,
       `Render*`), and callers reach the leaf directly; a member mirroring a singleton
       (`X.sub = Sub`) is a second name for one object plus a boot-wiring dependency, so a member
-      only ever holds data (`World.levels`, the level pool).
+      only ever holds data (`World.table`, the world's store).
 - The clock split (pause/dilation rule): `Time.delta` is `Time.raw` scaled by `Time.scale` and
   `Time.tempo`, both the active scene's to set (`Time` owns the contract; what drives the colony's
   tempo is `Radio`'s), so anything on it freezes/slows with the sim — gameplay motion wants exactly
