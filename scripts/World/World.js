@@ -79,14 +79,10 @@ globalThis.World = {
     return Row.restore(lv.entities, record, overrides);
   },
 
-  /**
-   * New game / teardown: blank the store — every pooled level freed, every record gone — and the
-   * event wiring, whose handlers are the scene's to re-register.
-   */
+  /** New game / teardown: blank the store — every pooled level freed, every record gone. */
   reset() {
     World.table.destroy();
     World.self = World.table.create();
-    WorldEvents.reset();
   },
 };
 World.table = new Table(World.CAPACITY);

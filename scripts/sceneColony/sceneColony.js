@@ -691,6 +691,7 @@ class _SceneColonyClass {
   /** Release only what this scene wired. */
   destroy() {
     Radio.reset();
+    WorldEvents.reset();
     ColonyTravel.suspend(this); // release the view before its camera is freed with the level
     for (const id in this.stages) this.stages[id].renderer.destroy();
     World.reset();
