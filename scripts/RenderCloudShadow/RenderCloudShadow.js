@@ -36,7 +36,7 @@ globalThis.RenderCloudShadow = class RenderCloudShadow {
     const blend = Weather.blend();
     const cover =
       Weather.previous().cloud * (1 - blend) + Weather.current().cloud * blend;
-    const sun = 1 - Math.min(1, WorldClock.tint().alpha * 2);
+    const sun = 1 - Math.min(1, Daylight.tint().alpha * 2);
     const eff = Math.min(0.95, this.darkness * sun * cover);
     if (eff <= 0.02) return;
 

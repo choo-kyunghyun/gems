@@ -171,7 +171,7 @@ globalThis.SaveGame = {
         savedAt: new Date().toISOString(), // date_datetime_string is garbled (docs/GMRT.md)
         map: World.activeId,
         day: WorldClock.state().day,
-        season: WorldClock.season().id,
+        season: Season.now().id,
         clock: WorldClock.clockText(),
         hp: health !== undefined ? Math.round(health.hp) : 0,
         maxHp: stats !== undefined ? stats.maxHp : 0,

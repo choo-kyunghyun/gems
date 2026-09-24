@@ -44,7 +44,7 @@ globalThis.FloraSystem = {
   /** One span of `dh` hours starting at hour `t`, all under t's season. */
   _tick(level, t, dh) {
     const entities = level.entities;
-    const season = WorldClock.seasonAt(t).id;
+    const season = Season.at(t).id;
     const mature = FloraSystem._mature;
     const ripe = FloraSystem._ripe;
     const dead = FloraSystem._dead;

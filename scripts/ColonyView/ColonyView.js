@@ -18,7 +18,7 @@ globalThis.ColonyView = {
    * `worldChroma` setting — 0 turns the atmosphere off, 1 is the full schedule.
    */
   chroma() {
-    const k = WorldClock.chroma() * Weather.chromaMod();
+    const k = Daylight.chroma() * Weather.chromaMod();
     return 1 - (1 - k) * Settings.get("worldChroma");
   },
 
@@ -186,7 +186,7 @@ globalThis.ColonyView = {
     let meshPass;
     if (pitch > 0) {
       meshPass = new RenderMesh({
-        sun: () => WorldClock.sunDir(),
+        sun: () => Daylight.sun(),
         chroma: () => ColonyView.chroma(),
         pointLights: (entities) => {
           const out = [];
@@ -297,7 +297,7 @@ globalThis.ColonyView = {
     // Lighting last, composited over everything; day/night is its ambient term.
     renderer.insert(
       new RenderLighting({
-        ambient: () => WorldClock.tint(),
+        ambient: () => Daylight.tint(),
         vignette: 0, // the flat look: night is one even multiply
         camera: camera,
       }),

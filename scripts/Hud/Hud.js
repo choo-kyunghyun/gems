@@ -219,8 +219,8 @@ globalThis.Hud = {
         () =>
           I18n.text(
             "HUD_TIME",
-            I18n.text(WorldClock.season().name),
-            WorldClock.seasonDay(),
+            I18n.text(Season.now().name),
+            Season.day(),
             WorldClock.clockText(),
           ),
         { color: FacetTheme.textMuted },

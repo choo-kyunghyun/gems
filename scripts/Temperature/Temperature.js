@@ -23,7 +23,7 @@ globalThis.Temperature = {
 
   /** °C */
   seasonBase() {
-    return Temperature._BASE[WorldClock.season().id];
+    return Temperature._BASE[Season.now().id];
   },
 
   diurnal() {

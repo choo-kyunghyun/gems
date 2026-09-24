@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Daylight",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Daylight",
+  "parent":{
+    "name":"System",
+    "path":"folders/Game/System.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Daylight.js",
+}

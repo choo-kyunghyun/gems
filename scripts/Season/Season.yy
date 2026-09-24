@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Season",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Season",
+  "parent":{
+    "name":"System",
+    "path":"folders/Game/System.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Season.js",
+}

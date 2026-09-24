@@ -93,7 +93,7 @@ globalThis.Weather = {
 
   /** Excludes the current ambient, so the sky changes. */
   _rollAmbient(w) {
-    const season = WorldClock.season().id;
+    const season = Season.now().id;
     const conds = Registry.all(Weather);
     let total = 0;
     const ids = [];
