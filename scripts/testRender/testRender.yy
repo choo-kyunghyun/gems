@@ -6,7 +6,7 @@
   "name":"testRender",
   "parent":{
     "name":"Test",
-    "path":"folders/Game/Dev/Test.yy",
+    "path":"folders/Core/Test.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

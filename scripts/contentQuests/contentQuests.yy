@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"contentQuests",
   "parent":{
-    "name":"Content",
-    "path":"folders/Game/Content.yy",
+    "name":"Progress",
+    "path":"folders/Game/Progress.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

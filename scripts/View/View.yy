@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"View",
   "parent":{
-    "name":"Render",
-    "path":"folders/Core/Render.yy",
+    "name":"Camera",
+    "path":"folders/Core/Camera.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

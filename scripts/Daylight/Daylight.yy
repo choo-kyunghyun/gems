@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Daylight",
   "parent":{
-    "name":"System",
-    "path":"folders/Game/System.yy",
+    "name":"Nature",
+    "path":"folders/Game/Nature.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

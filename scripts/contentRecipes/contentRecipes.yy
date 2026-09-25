@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"contentRecipes",
   "parent":{
-    "name":"Content",
-    "path":"folders/Game/Content.yy",
+    "name":"Inventory",
+    "path":"folders/Game/Inventory.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

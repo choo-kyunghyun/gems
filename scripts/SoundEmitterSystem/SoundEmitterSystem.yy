@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"SoundEmitterSystem",
   "parent":{
-    "name":"System",
-    "path":"folders/Core/System.yy",
+    "name":"Audio",
+    "path":"folders/Core/Audio.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Heat",
   "parent":{
-    "name":"Component",
-    "path":"folders/Game/Component.yy",
+    "name":"Settlement",
+    "path":"folders/Game/Settlement.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

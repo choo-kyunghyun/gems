@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Blueprint",
   "parent":{
-    "name":"System",
-    "path":"folders/Game/System.yy",
+    "name":"Settlement",
+    "path":"folders/Game/Settlement.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

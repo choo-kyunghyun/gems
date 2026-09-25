@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"State",
   "parent":{
-    "name":"Component",
-    "path":"folders/Core/Component.yy",
+    "name":"Entity",
+    "path":"folders/Core/Entity.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

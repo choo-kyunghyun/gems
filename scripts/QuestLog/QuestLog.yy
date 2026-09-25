@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"QuestLog",
   "parent":{
-    "name":"System",
-    "path":"folders/Game/System.yy",
+    "name":"Progress",
+    "path":"folders/Game/Progress.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

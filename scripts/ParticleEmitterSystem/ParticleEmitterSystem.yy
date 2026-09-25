@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"ParticleEmitterSystem",
   "parent":{
-    "name":"System",
-    "path":"folders/Core/System.yy",
+    "name":"Particle",
+    "path":"folders/Core/Render/Particle.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

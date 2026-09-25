@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"contentFlora",
   "parent":{
-    "name":"Content",
-    "path":"folders/Game/Content.yy",
+    "name":"Nature",
+    "path":"folders/Game/Nature.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

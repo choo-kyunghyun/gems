@@ -1,5 +1,5 @@
-// Core/Render, Scene and UI cases: the camera entity, the draw passes and the live text refs.
-// Every case references Core only.
+// Core/Render, Camera, Scene and UI cases: the camera entity, the draw passes and the live text
+// refs. Every case references Core only.
 
 Test.register(Test.CHECK, [
   {

@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Playable",
   "parent":{
-    "name":"Component",
-    "path":"folders/Game/Component.yy",
+    "name":"Colony",
+    "path":"folders/Game/Colony.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

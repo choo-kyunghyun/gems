@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Radio",
   "parent":{
-    "name":"System",
-    "path":"folders/Game/System.yy",
+    "name":"Colony",
+    "path":"folders/Game/Colony.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

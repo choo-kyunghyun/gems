@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"BuildMode",
   "parent":{
-    "name":"UI",
-    "path":"folders/Game/UI.yy",
+    "name":"Settlement",
+    "path":"folders/Game/Settlement.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

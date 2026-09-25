@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Merchant",
   "parent":{
-    "name":"Component",
-    "path":"folders/Game/Component.yy",
+    "name":"Trade",
+    "path":"folders/Game/Trade.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

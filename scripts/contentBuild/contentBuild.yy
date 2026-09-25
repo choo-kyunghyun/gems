@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"contentBuild",
   "parent":{
-    "name":"Content",
-    "path":"folders/Game/Content.yy",
+    "name":"Settlement",
+    "path":"folders/Game/Settlement.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

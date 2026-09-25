@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Interaction",
   "parent":{
-    "name":"Component",
-    "path":"folders/Game/Component.yy",
+    "name":"Interact",
+    "path":"folders/Game/Interact.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

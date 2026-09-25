@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"InteractAction",
   "parent":{
-    "name":"System",
-    "path":"folders/Game/System.yy",
+    "name":"Interact",
+    "path":"folders/Game/Interact.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

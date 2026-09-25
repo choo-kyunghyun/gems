@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Mortal",
   "parent":{
-    "name":"Component",
-    "path":"folders/Game/Component.yy",
+    "name":"Combat",
+    "path":"folders/Game/Combat.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

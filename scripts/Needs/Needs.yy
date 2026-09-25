@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Needs",
   "parent":{
-    "name":"System",
-    "path":"folders/Game/System.yy",
+    "name":"Survival",
+    "path":"folders/Game/Survival.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

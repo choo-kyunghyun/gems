@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Skeleton",
   "parent":{
-    "name":"Component",
-    "path":"folders/Core/Component.yy",
+    "name":"Anim",
+    "path":"folders/Core/Anim.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

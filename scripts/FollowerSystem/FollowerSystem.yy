@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"FollowerSystem",
   "parent":{
-    "name":"System",
-    "path":"folders/Game/System.yy",
+    "name":"Social",
+    "path":"folders/Game/Social.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"contentNeeds",
   "parent":{
-    "name":"Content",
-    "path":"folders/Game/Content.yy",
+    "name":"Survival",
+    "path":"folders/Game/Survival.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

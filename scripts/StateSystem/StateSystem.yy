@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"StateSystem",
   "parent":{
-    "name":"System",
-    "path":"folders/Core/System.yy",
+    "name":"Entity",
+    "path":"folders/Core/Entity.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

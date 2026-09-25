@@ -6,8 +6,8 @@
   "name":"Solid",
   "overriddenProperties":[],
   "parent":{
-    "name":"Puppet",
-    "path":"folders/Core/Puppet.yy",
+    "name":"Collision",
+    "path":"folders/Core/Collision.yy",
   },
   "parentObjectId":{
     "name":"Puppet",

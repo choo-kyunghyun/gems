@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"ParticleStream",
   "parent":{
-    "name":"Component",
-    "path":"folders/Core/Component.yy",
+    "name":"Particle",
+    "path":"folders/Core/Render/Particle.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

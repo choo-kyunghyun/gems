@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Growth",
   "parent":{
-    "name":"Component",
-    "path":"folders/Game/Component.yy",
+    "name":"Nature",
+    "path":"folders/Game/Nature.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

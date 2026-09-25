@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Hud",
   "parent":{
-    "name":"UI",
-    "path":"folders/Game/UI.yy",
+    "name":"Colony",
+    "path":"folders/Game/Colony.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

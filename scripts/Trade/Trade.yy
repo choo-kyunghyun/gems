@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Trade",
   "parent":{
-    "name":"System",
-    "path":"folders/Game/System.yy",
+    "name":"Trade",
+    "path":"folders/Game/Trade.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

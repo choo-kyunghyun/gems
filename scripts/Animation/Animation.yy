@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Animation",
   "parent":{
-    "name":"System",
-    "path":"folders/Core/System.yy",
+    "name":"Anim",
+    "path":"folders/Core/Anim.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

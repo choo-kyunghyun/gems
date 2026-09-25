@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Interactable",
   "parent":{
-    "name":"UI",
-    "path":"folders/Game/UI.yy",
+    "name":"Interact",
+    "path":"folders/Game/Interact.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

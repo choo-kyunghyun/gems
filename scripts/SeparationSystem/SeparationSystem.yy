@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"SeparationSystem",
   "parent":{
-    "name":"System",
-    "path":"folders/Core/System.yy",
+    "name":"Collision",
+    "path":"folders/Core/Collision.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

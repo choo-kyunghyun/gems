@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Equipment",
   "parent":{
-    "name":"Component",
-    "path":"folders/Game/Component.yy",
+    "name":"Inventory",
+    "path":"folders/Game/Inventory.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"StatModel",
   "parent":{
-    "name":"System",
-    "path":"folders/Game/System.yy",
+    "name":"Stats",
+    "path":"folders/Game/Stats.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

@@ -33,27 +33,31 @@ Two top-level pillars (project folders), Core reusable without Game:
   the UI system, input, utilities. Every area references only engine concepts — space, time,
   presentation, entity lifecycle — and never a gameplay rule. Core never references Game (Game
   could be deleted and Core still builds).
-- `Game` — the integrated showcase consuming Core: the app shell (`objects/Game/`), the scenes, the
-  gameplay model as data in `Game/Component` and behaviour + content registries in `Game/System`,
-  the item vocabulary in `Game/Item` over the capability classes in `Game/Item/Component`, content
-  tables in `Game/Content`, worldgen stages in `Game/Level`, the render passes that draw the
-  gameplay model in `Game/Render`, the Facet UI kit in `Game/UI/Facet`
-  (the showcase's design system over the Core UI system, so it wears a name of its own), and the
-  media assets in `Game/Media`.
+- `Game` — the integrated showcase consuming Core: the app shell (`objects/Game/`), the gameplay
+  areas, the colony scene that composes them, the item vocabulary in `Game/Item` over the
+  capability classes in `Game/Item/Component`, worldgen stages in `Game/Level`, the Facet UI kit in
+  `Game/UI/Facet` (the showcase's design system over the Core UI system, so it wears a name of its
+  own), and the media assets in `Game/Media`.
+
+Inside a pillar a folder is an AREA — one feature, never one kind of code: an area's component
+tokens, its tickers and namespaces, its registries, its `content*` tables, its UI pages and its
+render passes sit together, so a change to a feature opens one folder.
 
 Placement rule for new code:
 
 - References only engine concepts (space/time/presentation/entity lifecycle) → Core. A data
   structure that knows no layer — the id-keyed store (`Table`, `Handle`, `Row`), the
   1-D `Grid`, the def `Registry`, the asset-keyed `AssetMeta` — or the serialization of one
-  (`Json`, `File`, `Snapshot`) → `Core/Data`.
+  (`Json`, `File`, `Snapshot`) → `Core/Data`; a Core check case → `Core/Test`.
 - States a gameplay rule — damage, needs, economy, progression — or names specific
-  content/scenes/`Colony*` → Game: data to `Game/Component`, behaviour and registries to
-  `Game/System`, item definitions to `Game/Item`, an item capability class to
-  `Game/Item/Component`, a content data table to `Game/Content` (`content*`, authored as JS —
-  content is code, never a shipped JSON datafile), a level-generation stage to `Game/Level` (the
-  runner is Core; what it runs is content policy), a render pass reading the gameplay model to
-  `Game/Render` (the pass contract is Core; what it draws is Game's).
+  content/scenes/`Colony*` → Game, into the area whose rule it states. Content is authored as JS
+  (`content*` — content is code, never a shipped JSON datafile), and a table that several areas
+  read goes to `Game/Content`. A level-generation stage goes to `Game/Level` (the runner is Core;
+  what it runs is content policy), and a render pass reading the gameplay model to its area (the
+  pass contract is Core; what it draws is Game's). What only wires areas together — the scene, its
+  maps, its player, its save, its HUD — is `Game/Colony`.
+- A new area is a folder, not a kind: where a module fits no area and names no feature of its own,
+  it joins the area of its main consumer.
 - Read it through the consumers, which is what settles the near calls: `Animation` is Core because
   Core draw passes call it and `WorldClock` because it is engine time over the world's store, while
   `Combat`/`Faction`/`Interaction` are Game because every consumer is.

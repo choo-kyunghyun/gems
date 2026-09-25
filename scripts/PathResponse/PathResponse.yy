@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"PathResponse",
   "parent":{
-    "name":"Component",
-    "path":"folders/Core/Component.yy",
+    "name":"Nav",
+    "path":"folders/Core/Nav.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"SlotDrag",
   "parent":{
-    "name":"UI",
-    "path":"folders/Core/UI.yy",
+    "name":"Overlay",
+    "path":"folders/Core/UI/Overlay.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

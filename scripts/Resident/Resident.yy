@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Resident",
   "parent":{
-    "name":"Component",
-    "path":"folders/Game/Component.yy",
+    "name":"Social",
+    "path":"folders/Game/Social.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

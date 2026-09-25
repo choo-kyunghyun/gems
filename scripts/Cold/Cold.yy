@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Cold",
   "parent":{
-    "name":"Component",
-    "path":"folders/Game/Component.yy",
+    "name":"Survival",
+    "path":"folders/Game/Survival.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

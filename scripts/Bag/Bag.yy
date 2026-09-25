@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Bag",
   "parent":{
-    "name":"System",
-    "path":"folders/Game/System.yy",
+    "name":"Inventory",
+    "path":"folders/Game/Inventory.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

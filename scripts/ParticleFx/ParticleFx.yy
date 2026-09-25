@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"ParticleFx",
   "parent":{
-    "name":"Render",
-    "path":"folders/Core/Render.yy",
+    "name":"Particle",
+    "path":"folders/Core/Render/Particle.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

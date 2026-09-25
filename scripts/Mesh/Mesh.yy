@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Mesh",
   "parent":{
-    "name":"Component",
-    "path":"folders/Core/Component.yy",
+    "name":"Render",
+    "path":"folders/Core/Render.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

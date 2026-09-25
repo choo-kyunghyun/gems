@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"UIQuestTracker",
   "parent":{
-    "name":"UI",
-    "path":"folders/Core/UI.yy",
+    "name":"Element",
+    "path":"folders/Core/UI/Element.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

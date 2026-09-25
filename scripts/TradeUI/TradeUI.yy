@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"TradeUI",
   "parent":{
-    "name":"UI",
-    "path":"folders/Game/UI.yy",
+    "name":"Trade",
+    "path":"folders/Game/Trade.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"contentBiomes",
   "parent":{
-    "name":"Content",
-    "path":"folders/Game/Content.yy",
+    "name":"Level",
+    "path":"folders/Game/Level.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

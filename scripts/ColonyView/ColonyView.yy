@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"ColonyView",
   "parent":{
-    "name":"Scene",
-    "path":"folders/Game/Scene.yy",
+    "name":"Colony",
+    "path":"folders/Game/Colony.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

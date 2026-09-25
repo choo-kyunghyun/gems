@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"sceneFacet",
   "parent":{
-    "name":"Lobby",
-    "path":"folders/Game/Lobby.yy",
+    "name":"Facet",
+    "path":"folders/Game/UI/Facet.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

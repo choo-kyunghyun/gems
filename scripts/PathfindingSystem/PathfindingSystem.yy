@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"PathfindingSystem",
   "parent":{
-    "name":"System",
-    "path":"folders/Core/System.yy",
+    "name":"Nav",
+    "path":"folders/Core/Nav.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"PuppetSystem",
   "parent":{
-    "name":"Puppet",
-    "path":"folders/Core/Puppet.yy",
+    "name":"Collision",
+    "path":"folders/Core/Collision.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
