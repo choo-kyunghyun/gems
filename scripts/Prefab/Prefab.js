@@ -1,12 +1,8 @@
 /**
- * @typedef {Object} PrefabDef
+ * @typedef {LevelData} PrefabDef  the fragment's content, plus:
  * @property {string} id
  * @property {string[]} [tags]   scope tags for generator filtering
  * @property {number} [weight]   weighted-pick weight (default 1)
- * @property {number} cols       footprint width in cells
- * @property {number} rows       footprint height in cells
- * @property {LevelTiles[]} [tiles]
- * @property {Object[]} [spawns]
  */
 /**
  * A reusable level fragment: a registered, tagged, weighted {LevelData} in origin-local coords,
@@ -35,36 +31,7 @@ globalThis.Prefab = {
   _validate(p) {
     if (typeof p.id !== "string" || p.id === "")
       throw new Error(`Prefab def needs a string id`);
-    if (!(p.cols >= 1) || !(p.rows >= 1))
-      throw new Error(`Prefab '${p.id}': cols/rows footprint required`);
-    for (let i = 0; i < p.tiles.length; i++) {
-      const t = p.tiles[i];
-      if (typeof t.layer !== "string")
-        throw new Error(`Prefab '${p.id}': tiles[${i}] needs a layer name`);
-      for (let j = 0; j < t.rects.length; j++)
-        Prefab._checkRect(p, "tiles", t.rects[j]);
-    }
-    for (let i = 0; i < p.spawns.length; i++) {
-      const s = p.spawns[i];
-      if (!(s.gx >= 0) || !(s.gy >= 0) || s.gx >= p.cols || s.gy >= p.rows)
-        throw new Error(
-          `Prefab '${p.id}': spawn ${i} (${s.gx},${s.gy}) outside ${p.cols}x${p.rows}`,
-        );
-    }
-  },
-
-  _checkRect(p, channel, r) {
-    const ok =
-      r[0] >= 0 &&
-      r[1] >= 0 &&
-      r[2] >= 1 &&
-      r[3] >= 1 &&
-      r[0] + r[2] <= p.cols &&
-      r[1] + r[3] <= p.rows;
-    if (!ok)
-      throw new Error(
-        `Prefab '${p.id}': ${channel} rect (${r[0]},${r[1]},${r[2]},${r[3]}) outside ${p.cols}x${p.rows}`,
-      );
+    LevelData.check(p, `Prefab '${p.id}'`);
   },
 
   get(id) {

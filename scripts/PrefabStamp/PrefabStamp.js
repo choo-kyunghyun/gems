@@ -56,10 +56,6 @@ globalThis.PrefabStamp = class PrefabStamp {
       const kept = [];
       for (let i = 0; i < st.spawns.length; i++) {
         const s = st.spawns[i];
-        // the translated spawn is a shallow copy: item arrays are cloned so stamped instances
-        // never mutate the prefab def's
-        if (s.loot !== undefined) s.loot = this._cloneItems(s.loot);
-        if (s.items !== undefined) s.items = this._cloneItems(s.items);
         const extra = this.defaultLoot(s, rng); // before the filter verdict
         if (extra !== undefined) s.loot = extra;
         if (!this.spawnFilter(s, ctx)) continue;
@@ -80,12 +76,5 @@ globalThis.PrefabStamp = class PrefabStamp {
       if (r < 0) return all[i];
     }
     return all[all.length - 1];
-  }
-
-  _cloneItems(arr) {
-    const out = [];
-    for (let i = 0; i < arr.length; i++)
-      out.push({ itemId: arr[i].itemId, qty: arr[i].qty });
-    return out;
   }
 };

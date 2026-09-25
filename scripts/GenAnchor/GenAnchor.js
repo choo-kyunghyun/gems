@@ -52,11 +52,7 @@ globalThis.GenAnchor = class GenAnchor {
     }
     const m = this.margin;
     ctx.claim(spot.x - m, spot.y - m, p.cols + 2 * m, p.rows + 2 * m);
-    const st = LevelData.translate(p, spot.x, spot.y);
-    // deep-copy so the level's instances never mutate the registry def's nested data
-    for (let i = 0; i < st.spawns.length; i++)
-      st.spawns[i] = Plain.copy(st.spawns[i]);
-    ctx.merge(st);
+    ctx.merge(LevelData.translate(p, spot.x, spot.y));
   }
 
   /**

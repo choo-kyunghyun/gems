@@ -27,14 +27,56 @@
  * to the data's own origin, so the shape is scale-free: a whole level and a stamped fragment are
  * the same type.
  *
- * translate() moves data to another coordinate space; paint() writes the tiles into a level's
- * layers. Spawns are never spawned here — only the consumer knows the descriptor shape, so paint
- * returns them translated.
+ * check() holds every channel inside the footprint; translate() moves data to another coordinate
+ * space; paint() writes the tiles into a level's layers. Spawns are never spawned here — only the
+ * consumer knows the descriptor shape, so paint returns them translated.
  *
- * Both ops copy spawn records shallowly: nested arrays stay shared with the source, so a consumer
- * deep-copies what it mutates.
+ * Both ops return spawn records as deep copies, so a consumer mutates its own without reaching
+ * the source.
  */
 globalThis.LevelData = {
+  /**
+   * Throws on content outside the footprint, which would otherwise land on a neighbour's cells.
+   * `name` prefixes the message.
+   */
+  check(data, name = "LevelData") {
+    if (!(data.cols >= 1) || !(data.rows >= 1))
+      throw new Error(`${name}: cols/rows footprint required`);
+    const tiles = data.tiles ?? [];
+    for (let i = 0; i < tiles.length; i++) {
+      const t = tiles[i];
+      if (typeof t.layer !== "string")
+        throw new Error(`${name}: tiles[${i}] needs a layer name`);
+      for (let j = 0; j < t.rects.length; j++) {
+        const r = t.rects[j];
+        const ok =
+          r[0] >= 0 &&
+          r[1] >= 0 &&
+          r[2] >= 1 &&
+          r[3] >= 1 &&
+          r[0] + r[2] <= data.cols &&
+          r[1] + r[3] <= data.rows;
+        if (!ok)
+          throw new Error(
+            `${name}: tiles rect (${r[0]},${r[1]},${r[2]},${r[3]}) outside ${data.cols}x${data.rows}`,
+          );
+      }
+    }
+    const spawns = data.spawns ?? [];
+    for (let i = 0; i < spawns.length; i++) {
+      const s = spawns[i];
+      if (
+        !(s.gx >= 0) ||
+        !(s.gy >= 0) ||
+        s.gx >= data.cols ||
+        s.gy >= data.rows
+      )
+        throw new Error(
+          `${name}: spawn ${i} (${s.gx},${s.gy}) outside ${data.cols}x${data.rows}`,
+        );
+    }
+  },
+
   /**
    * A fresh LevelData offset by (ox, oy); the source is untouched. `cell`/`meta` are level-scope,
    * not content, so they are not carried.
@@ -116,14 +158,11 @@ globalThis.LevelData = {
     return out;
   },
 
-  /** Shallow record copies — nested arrays stay shared. */
   _shiftSpawns(spawns, ox, oy) {
     const out = [];
     for (let i = 0; i < spawns.length; i++) {
       const s = spawns[i];
-      const rec = {};
-      const keys = Object.keys(s);
-      for (let k = 0; k < keys.length; k++) rec[keys[k]] = s[keys[k]];
+      const rec = Plain.copy(s);
       rec.gx = ox + s.gx;
       rec.gy = oy + s.gy;
       out.push(rec);

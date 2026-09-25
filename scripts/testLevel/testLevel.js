@@ -1,7 +1,7 @@
 // Level, world and nav cases: a level's own entity and its rebuild, the grid and its blob, the
 // world pool, a ticker over a level, the nav grid's sync and restamp, the remesh, the zone map's
-// labeling, the generator's salted seeds, and perf.plan, what one A* expansion costs. Every case
-// references Core only.
+// labeling, the generator's salted seeds, level data's footprint and copies, and perf.plan, what
+// one A* expansion costs. Every case references Core only.
 
 const PLAN_COLS = 128; // an overworld's side
 
@@ -546,6 +546,52 @@ Test.register(Test.CHECK, [
           "salted fields are uncorrelated at lattice " + l + " : r " + r,
         );
       }
+    },
+  },
+  {
+    id: "level.data",
+    // content stays inside its footprint, and a moved or painted spawn is the consumer's own: no
+    // edit to it reaches the source
+    setup(ctx) {
+      ctx.src = {
+        cols: 4,
+        rows: 3,
+        tiles: [{ layer: "test_wall", rects: [[0, 0, 4, 1]] }],
+        spawns: [
+          { gx: 1, gy: 2, kind: "test_a", items: [{ itemId: "test_b", qty: 2, tag: 7 }] },
+        ],
+      };
+    },
+    verify(ctx, t) {
+      const src = ctx.src;
+      const throws = (data) => {
+        try {
+          LevelData.check(data);
+        } catch (e) {
+          return true;
+        }
+        return false;
+      };
+      t.ok(!throws(src), "content inside the footprint passes");
+      t.ok(
+        throws({ cols: 4, rows: 3, tiles: [{ layer: "test_wall", rects: [[1, 0, 4, 1]] }] }),
+        "a rect past the footprint throws",
+      );
+      t.ok(throws({ cols: 4, rows: 3, spawns: [{ gx: 0, gy: 3 }] }), "a spawn past it throws");
+
+      const st = LevelData.translate(src, 5, 6);
+      const s = st.spawns[0];
+      t.ok(s.gx === 6 && s.gy === 8, "translate shifts the spawn");
+      t.eq(st.tiles[0].rects[0][0], 5, "and the rects");
+      t.eq(s.kind, "test_a", "a spawn keeps its own keys");
+      t.eq(s.items[0].tag, 7, "and its nested ones whole");
+      s.items[0].qty = 9;
+      s.items.push({ itemId: "test_c", qty: 1 });
+      const own = src.spawns[0].items;
+      t.ok(own.length === 1 && own[0].qty === 2, "an edit to a moved spawn leaves the source");
+      const painted = LevelData.paint({ cols: 4, rows: 3, spawns: src.spawns }, { layers: {} });
+      painted.spawns[0].items[0].qty = 9;
+      t.eq(own[0].qty, 2, "so does an edit to a painted one");
     },
   },
   // What one A* expansion costs, on the shape a far plan has: a weighted field corner to corner,
