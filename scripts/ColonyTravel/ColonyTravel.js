@@ -123,15 +123,15 @@ globalThis.ColonyTravel = {
     ColonyTravel._latch(scene);
 
     if (scene.stages[mapId] === undefined) scene.stages[mapId] = ColonyView.stage(level);
-    else {
-      CameraSystem.view(level).assign(0);
-      // snap the look-at to the entry so it doesn't pan from the parked position; the target
-      // needs no re-aim, as the arrived player carries its focus marker
-      const entities = level.entities;
-      const cp = entities.require(entities.first(Camera), Position);
-      cp.x = sp.x;
-      cp.y = sp.y;
-    }
+    else CameraSystem.view(level).assign(0);
+    // snap the look-at to the player so it doesn't pan in from where the map was left — a restored
+    // player stands where it was saved, not at the entry; the target needs no re-aim, as the
+    // player carries its focus marker
+    const entities = level.entities;
+    const cp = entities.require(entities.first(Camera), Position);
+    const pp = scene.playerId !== undefined ? entities.get(scene.playerId, Position) : undefined;
+    cp.x = pp !== undefined ? pp.x : sp.x;
+    cp.y = pp !== undefined ? pp.y : sp.y;
     ColonyTravel._arrive(scene);
   },
 

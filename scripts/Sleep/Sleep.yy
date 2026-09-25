@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Sleep",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Sleep",
+  "parent":{
+    "name":"System",
+    "path":"folders/Game/System.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Sleep.js",
+}

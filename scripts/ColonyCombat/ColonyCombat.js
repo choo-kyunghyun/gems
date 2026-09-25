@@ -1,14 +1,16 @@
 /**
- * Combat and loot flow for the colony scene.
+ * The colony's combat and loot flow.
  *
  * Allegiance and membership are live component queries, not stored lists, so a save restore or
  * squad transfer needs no bookkeeping; the damage-number baseline is the entity's own.
  *
  * Death is configured per entity by an opt-in `Mortal` and resolved only here: damage systems
  * just subtract hp, and this is the sole authority that removes, respawns, incapacitates or
- * leaves a body.
+ * leaves a body. A kill is reported by species; a respawn or a recovery lands at the map's spawn.
  */
 globalThis.ColonyCombat = {
+  SPILL: { yBase: 0, ySpread: 28 }, // loot scatter for a "despawn" kill
+
   _enemies(entities, playerId) {
     const out = [];
     // Faction joins the query: hostility needs one on both sides, so this skips the
@@ -23,22 +25,23 @@ globalThis.ColonyCombat = {
    * Pop a floating number for each combatant's hp change since last tick. Run after physics and
    * before deaths flush, so the killing blow still pops.
    */
-  trackDamage(scene, yOffset) {
-    ColonyCombat._diffHp(scene, scene.playerId, true, yOffset);
-    const enemies = ColonyCombat._enemies(scene.level.entities, scene.playerId);
+  trackDamage(level, yOffset) {
+    const entities = level.entities;
+    const playerId = ColonyPlayer.id(entities);
+    ColonyCombat._diffHp(entities, playerId, true, yOffset);
+    const enemies = ColonyCombat._enemies(entities, playerId);
     for (let i = 0; i < enemies.length; i++)
-      ColonyCombat._diffHp(scene, enemies[i], false, yOffset);
-    scene.level.entities.forEach([Follower], (id) => {
-      ColonyCombat._diffHp(scene, id, true, yOffset);
+      ColonyCombat._diffHp(entities, enemies[i], false, yOffset);
+    entities.forEach([Follower], (id) => {
+      ColonyCombat._diffHp(entities, id, true, yOffset);
     });
     // Built structures are otherwise untracked; a double-diffed id is harmless.
-    scene.level.entities.forEach([Health, Mesh], (id) => {
-      ColonyCombat._diffHp(scene, id, true, yOffset);
+    entities.forEach([Health, Mesh], (id) => {
+      ColonyCombat._diffHp(entities, id, true, yOffset);
     });
   },
 
-  _diffHp(scene, id, isAlly, yOffset) {
-    const entities = scene.level.entities;
+  _diffHp(entities, id, isAlly, yOffset) {
     if (!entities.isValid(id)) return;
     const hp = entities.get(id, Health);
     if (hp === undefined) return;
@@ -75,13 +78,12 @@ globalThis.ColonyCombat = {
 
   /**
    * The death pass: a `Mortal` entity at hp 0 reacts by its `kind`. Runs before flush, so a
-   * despawning entity is still readable for its loot. Only Mortal entities react. Handlers `h`
-   * (all optional): spill { yBase, ySpread }, onKill(id) (before the body is transformed),
-   * onRespawn(id), downSpot(id) → {x,y}, onDown(id).
+   * despawning entity is still readable for its loot and its kill report. Only Mortal entities
+   * react. Hooks `h` (all optional): onDown(id).
    */
-  resolveHealth(scene, h) {
+  resolveHealth(level, h) {
     h = h ?? {};
-    const entities = scene.level.entities;
+    const entities = level.entities;
     // query(), not forEach: the loop spawns entities and strips components.
     const ids = entities.query(Health, Mortal);
     for (let i = 0; i < ids.length; i++) {
@@ -90,21 +92,66 @@ globalThis.ColonyCombat = {
       if (hp === undefined || hp.hp > 0) continue;
       const m = entities.get(id, Mortal);
       if (m.kind === "despawn") {
-        ColonyCombat.spillLoot(entities, id, h.spill);
-        if (h.onKill !== undefined) h.onKill(id);
+        ColonyCombat.spillLoot(entities, id, ColonyCombat.SPILL);
+        ColonyCombat._killed(entities, id);
         entities.remove(id);
       } else if (m.kind === "corpse") {
-        if (h.onKill !== undefined) h.onKill(id);
-        ColonyCombat._toCorpse(scene, id);
+        ColonyCombat._killed(entities, id);
+        ColonyCombat._toCorpse(entities, id);
       } else if (m.kind === "respawn") {
         const st = entities.get(id, Stats);
         hp.hp = st !== undefined ? st.maxHp : (m.reviveHp ?? 10);
-        if (h.onRespawn !== undefined) h.onRespawn(id);
+        ColonyCombat._respawn(level, id);
         const base = entities.get(id, PrevHealth);
         if (base !== undefined) base.hp = hp.hp; // don't pop a "+heal" for the refill
       } else if (m.kind === "down") {
-        ColonyCombat._goDown(scene, id, m, h);
+        ColonyCombat._goDown(entities, id, m, h);
       }
+    }
+  },
+
+  /**
+   * A kill, reported while the body's components are still readable. By species, so only raiders
+   * advance the cull quest; the kill counter takes both.
+   */
+  _killed(entities, id) {
+    const dp = entities.get(id, Position);
+    if (dp !== undefined)
+      Audio.play({ sound: sndExplosionSmall, position: { x: dp.x, y: dp.y } });
+    const kind = entities.has(id, Rat) ? "rat" : "raider";
+    Progression.report(entities, "kill", kind, 1);
+    Log.info(`${kind} killed — kills=${Tracker.count("enemiesKilled")}`);
+  },
+
+  /**
+   * A "respawn" mortal once its hp is refilled: back to the map's spawn, stopped, every need at
+   * mid-meter so the death clears the critical debuff that caused it.
+   */
+  _respawn(level, id) {
+    const entities = level.entities;
+    ColonyCombat._toSpawn(level, id);
+    const needs = Need.all();
+    for (let i = 0; i < needs.length; i++) {
+      const need = entities.get(id, needs[i].id);
+      if (need === undefined) continue; // a save from before the need
+      Needs.set(entities, id, needs[i].id, need.max * 0.5);
+    }
+    Log.info("player died — respawned at spawn");
+  },
+
+  /** At the map's spawn, stopped. */
+  _toSpawn(level, id) {
+    const entities = level.entities;
+    const sp = ColonyMap.of(level).spawn;
+    const pos = entities.get(id, Position);
+    const vel = entities.get(id, Velocity);
+    if (pos !== undefined) {
+      pos.x = sp.x;
+      pos.y = sp.y;
+    }
+    if (vel !== undefined) {
+      vel.x = 0;
+      vel.y = 0;
     }
   },
 
@@ -113,8 +160,7 @@ globalThis.ColonyCombat = {
    * resolved again. Deliberately leaves squad membership alone, so being knocked out can't
    * silently shrink the player's bag.
    */
-  _goDown(scene, id, m, h) {
-    const entities = scene.level.entities;
+  _goDown(entities, id, m, h) {
     entities.detach(id, Health);
     const vel = entities.get(id, Velocity);
     if (vel !== undefined) {
@@ -129,10 +175,10 @@ globalThis.ColonyCombat = {
     if (h.onDown !== undefined) h.onDown(id);
   },
 
-  /** Revive each downed entity whose timer ran out, at `h.downSpot` when given. */
-  updateDowned(scene, h) {
+  /** Revive each downed entity whose timer ran out, at the map's spawn. Hooks `h`: onRecover(id). */
+  updateDowned(level, h) {
     h = h ?? {};
-    const entities = scene.level.entities;
+    const entities = level.entities;
     entities.forEach([Downed], (id, d) => {
       d.timer -= Time.step;
       if (d.timer > 0) return;
@@ -142,32 +188,18 @@ globalThis.ColonyCombat = {
       const vis = entities.get(id, Visual);
       if (vis !== undefined) vis.alpha = 1;
       Doll.setState(entities, id, "idle");
-      const spot = h.downSpot !== undefined ? h.downSpot(id) : undefined;
-      if (spot !== undefined) {
-        const pos = entities.get(id, Position);
-        const vel = entities.get(id, Velocity);
-        if (pos !== undefined) {
-          pos.x = spot.x;
-          pos.y = spot.y;
-        }
-        if (vel !== undefined) {
-          vel.x = 0;
-          vel.y = 0;
-        }
-      }
+      ColonyCombat._toSpawn(level, id);
       entities.detach(id, Downed);
       if (h.onRecover !== undefined) h.onRecover(id);
     });
   },
 
   /**
-   * Transform the entity in place into a lootable body: strip the combatant, make it walk-over
-   * and tag it a "corpse" interaction over its Inventory. Keeping the same entity means a save
-   * snapshots the corpse like any other resident. Species markers are the scene's to drop in
-   * onKill.
+   * Transform the entity in place into a lootable body: strip the combatant and its species, make
+   * it walk-over and tag it a "corpse" interaction over its Inventory. Keeping the same entity
+   * means a save snapshots the corpse like any other resident.
    */
-  _toCorpse(scene, id) {
-    const entities = scene.level.entities;
+  _toCorpse(entities, id) {
     entities.detach(id, Health);
     entities.detach(id, Mortal);
     entities.detach(id, Stats);
@@ -175,6 +207,8 @@ globalThis.ColonyCombat = {
     entities.detach(id, State);
     entities.detach(id, Velocity);
     entities.detach(id, Faction);
+    entities.detach(id, Raider);
+    entities.detach(id, Rat);
     const col = entities.get(id, Collision);
     if (col !== undefined) col.solid = false; // BBox stays for cursor pick
     const vis = entities.get(id, Visual);
@@ -203,8 +237,8 @@ globalThis.ColonyCombat = {
   },
 
   /** Remove looted-empty corpses (deferred); a lootless kill reaps the same tick it corpses. */
-  reapCorpses(scene) {
-    const entities = scene.level.entities;
+  reapCorpses(level) {
+    const entities = level.entities;
     entities.forEach([Interaction], (id, it) => {
       if (it.kind !== "corpse") return;
       const inv = entities.get(id, Inventory);

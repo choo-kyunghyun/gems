@@ -10,6 +10,7 @@
  *   NPC id for "talk"
  * @property {{items: Array<{itemId:string, qty:number}>}} [rewards] item-only by design: with no
  *   XP, a reward can never be a power shortcut around gathering
+ * @property {boolean} [passive] closes itself once ready; otherwise its giver turns it in
  */
 globalThis.QuestLog = {
   register(defs) {

@@ -18,7 +18,7 @@ globalThis.contentInteractions = {
       if (r.reason !== "") Toast.push(I18n.text(r.reason), { type: "info" });
       return;
     }
-    ctx.scene.onCollect(r.itemId, r.qty);
+    Progression.collect(ctx.entities, r.itemId, r.qty);
     ctx.scene.window.dirty = true;
     Toast.push(
       I18n.text("FLORA_HARVESTED", r.qty, I18n.text(Item.get(r.itemId).name)),
@@ -45,7 +45,7 @@ globalThis.contentInteractions = {
         run(ctx) {
           ctx.scene.window.open("storage", {
             target: ctx.id,
-            onTake: (itemId, qty) => ctx.scene.onCollect(itemId, qty),
+            onTake: (itemId, qty) => Progression.collect(ctx.entities, itemId, qty),
           });
         },
       },
@@ -82,7 +82,7 @@ globalThis.contentInteractions = {
           if (npc === undefined) return;
           const qid = npc.questId;
           if (Tracker.isReady(qid)) {
-            ctx.scene.completeQuest(qid);
+            Progression.complete(ctx.entities, qid);
           } else if (!Tracker.isActive(qid) && !Tracker.isDone(qid)) {
             Tracker.accept(qid);
             Log.info(`accepted ${qid}`);
@@ -99,7 +99,7 @@ globalThis.contentInteractions = {
             Toast.push(I18n.text(r.reason), { type: "info" });
             return;
           }
-          ctx.scene.onCollect(r.itemId, r.qty);
+          Progression.collect(ctx.entities, r.itemId, r.qty);
           ctx.scene.window.dirty = true;
           Toast.push(
             I18n.text("INV_PICKED_UP", r.qty, I18n.text(Item.get(r.itemId).name)),
@@ -128,7 +128,7 @@ globalThis.contentInteractions = {
         id: "bed",
         prompt: "SURVIVAL_SLEEP_PROMPT",
         run(ctx) {
-          ctx.scene.sleep();
+          Sleep.start(ctx.scene.sleep);
         },
       },
       {

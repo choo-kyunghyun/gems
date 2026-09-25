@@ -24,6 +24,7 @@ globalThis.contentQuests = {
       },
       {
         id: contentQuests.QUEST_GATHER,
+        passive: true,
         name: "QUEST_GATHER_NAME",
         objLabel: "QUEST_GATHER_OBJ",
         objectives: [{ kind: "collect", target: "rags", count: 3 }],
@@ -31,6 +32,7 @@ globalThis.contentQuests = {
       },
       {
         id: contentQuests.QUEST_REACH,
+        passive: true,
         name: "QUEST_REACH_NAME",
         objLabel: "QUEST_REACH_OBJ",
         // a permanent attribute boost, gated on exploration

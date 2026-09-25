@@ -117,16 +117,18 @@ globalThis.SaveGame = {
 
   /**
    * Reconstructs the parked bundle into a fresh scene, in place of new-game seeding, and frees the
-   * blobs no pass took.
+   * blobs no pass took. Every saved map comes back pooled and none active: returns the id of the
+   * map the save was made on, for the caller to enter; undefined with nothing parked.
    */
   restore(scene) {
     const p = SaveGame._pending;
-    if (p === null) return;
+    if (p === null) return undefined;
     SaveGame._pending = null;
     SaveGame.frame().restore(scene, p.manifest, p.blobs);
     const names = Object.keys(p.blobs);
     for (let i = 0; i < names.length; i++) buffer_delete(p.blobs[names[i]]);
     Log.info("SaveGame: restored slot '" + p.slot + "'");
+    return p.manifest.activeMap;
   },
 
   /** The index is read from disk once and held: the menu reads it every frame. */
@@ -220,12 +222,10 @@ globalThis.SaveGame = {
       ctx.manifest.maps = maps;
     },
     /**
-     * Pools every saved map back as data, then enters the active one like any first visit; the
-     * player is already in its store, so nothing lands or moves. A map that can't be restored is
-     * built fresh, loudly — the only path on which a load makes anything.
+     * Pools every saved map back as data, entering none. A map that can't be restored is built
+     * fresh on entry, loudly — the only path on which a load makes anything.
      */
     restore(ctx) {
-      const scene = ctx.scene;
       const manifest = ctx.manifest;
       const activeMap = manifest.activeMap;
       const maps = manifest.maps !== undefined ? manifest.maps : [];
@@ -236,22 +236,6 @@ globalThis.SaveGame = {
             activeMap +
             "' could not be restored — building it fresh",
         );
-      ColonyTravel.go(scene, activeMap, "default");
-      if (scene.playerId === undefined)
-        Log.error("SaveGame: no player in the restored map");
-      // the camera starts on the player rather than easing in from wherever it sits.
-      if (scene.playerId !== undefined) {
-        const entities = scene.level.entities;
-        const pos = entities.get(scene.playerId, Position);
-        const cid = entities.first(Camera);
-        if (pos !== undefined) {
-          if (cid !== -1) {
-            const cp = entities.require(cid, Position);
-            cp.x = pos.x;
-            cp.y = pos.y;
-          }
-        }
-      }
     },
   },
 

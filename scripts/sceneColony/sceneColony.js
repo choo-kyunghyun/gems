@@ -1,7 +1,3 @@
-const START_CREDITS = 1000; // starting coins, carried across maps with the inventory
-const SLEEP_SCALE_MAX = 50; // Time.scale ceiling while sleeping
-const SLEEP_ACCEL = 0.5; // ramp growth per wall-second (multiplicative, on Time.raw)
-const SLEEP_RECOVER = 40; // Drowsiness drained per sim-second while sleeping, over its clock rise
 const TEMPO_BPM = 60; // the BPM a timed BGM runs the sim at 1x (120 BPM = 2x)
 
 globalThis.sceneColony = () => new _SceneColonyClass();
@@ -42,6 +38,14 @@ class _SceneColonyClass {
     Effects.onStatsChanged = function (entities, id) {
       StatModel.recompute(entities, id);
     };
+    // progress shows as toasts, a reward as a refreshed bag
+    Progression.onUnlock = (achId) => {
+      const a = Achievement.get(achId);
+      Toast.push(I18n.text("ACH_TOAST", I18n.text(a.name)), { type: "success" });
+    };
+    Progression.onReward = () => {
+      this.window.dirty = true;
+    };
     // a fresh session starts from a blank world; a load imports its records below
     World.reset();
     Trader.install();
@@ -49,15 +53,7 @@ class _SceneColonyClass {
     Radio.reset();
     Radio.ambient = () => ColonyTravel.bed(this.level);
 
-    // quests that close themselves once their objectives are met; a quest with a giver is
-    // turned in by that giver instead
-    this._passiveQuests = [
-      contentQuests.QUEST_GATHER,
-      contentQuests.QUEST_REACH,
-    ];
-
-    this.sleeping = false; // resting in a bed, time fast-forwarded
-    this._sleepPeaked = false; // this sleep already hit the Time.scale ceiling
+    this.sleep = Sleep.make(); // resting in a bed, time fast-forwarded
     this.nearNpc = false;
     this.dialogueName = "";
     this.dialogueLine = "";
@@ -80,88 +76,31 @@ class _SceneColonyClass {
       },
       { has: Follower, color: Color.parse("#6fd0a0") },
     ];
-    // death rules minted once rather than per tick; each entity's Mortal kind picks the one that fires
-    this._mortalRules = {
-      spill: { yBase: 0, ySpread: 28 }, // loot scatter for a "despawn" kill
-      onKill: (id) => this._onKill(id),
-      onRespawn: (id) => this._onRespawn(id),
+    // a squad member's knock-out and recovery, minted once rather than per tick
+    this._downRules = {
       onDown: (id) => this._onDown(id),
-    };
-    this._downedRules = {
-      // revive at the map's spawn, read live so one rule set serves every map
-      downSpot: () => {
-        const sp = ColonyMap.of(this.level).spawn;
-        return { x: sp.x, y: sp.y };
-      },
       onRecover: (id) => this._onRecover(id),
     };
 
     this._buildUI();
 
     this.stages = {}; // map id -> its ColonyStage, built on the map's first activation
-    const bootMap = ColonyLevel.START;
     // a pending save replaces the fresh map, loadout and seeding below
     const loaded = SaveGame.pending();
-    if (loaded)
-      SaveGame.restore(this); // builds the map and the squad's arrival itself
-    else {
-      Tracker.accept(contentQuests.QUEST_GATHER);
-      Tracker.accept(contentQuests.QUEST_REACH);
-      ColonyTravel.go(this, bootMap, "default");
+    if (loaded) {
+      // the player is already in the restored map's store, so nothing lands or moves
+      ColonyTravel.go(this, SaveGame.restore(this), "default");
+      if (this.playerId === undefined) Log.error("SaveGame: no player in the restored map");
+    } else {
+      for (let i = 0; i < contentStart.QUESTS.length; i++)
+        Tracker.accept(contentStart.QUESTS[i]);
+      ColonyTravel.go(this, ColonyLevel.START, "default");
     }
     // the restored station, else the map's bed; it carries across map changes
     const station = Radio.station();
     Music.play(station !== -1 ? station : ColonyTravel.bed(this.level));
 
-    if (!loaded) {
-      // equipped so the attack is item-driven from frame one
-      const startInv = this.level.entities.get(this.playerId, Inventory);
-      Bag.add(startInv, "lead_pipe", 1);
-      Loadout.equipFirst(this.level.entities, this.playerId, "lead_pipe");
-      Bag.add(startInv, "filter_mask", 1);
-      Loadout.equipFirst(this.level.entities, this.playerId, "filter_mask");
-      Bag.add(startInv, "coin", START_CREDITS);
-
-      // seeded in code, not the map file, so a persistent-map reload can't duplicate it
-      const pp = this.level.entities.get(this.playerId, Position);
-      const companion = ColonySpawn.spawnFollower(
-        this.level.entities,
-        pp.x - 28,
-        pp.y + 22,
-        {
-          label: "Companion",
-          bonusCapacity: 4,
-          bonusWeight: 15,
-        },
-      );
-      Companions.hire(this.level.entities, this.playerId, companion);
-    }
-
-    // a wandering trader; a load restores its records, so registering again would land a second one
-    if (!loaded)
-      Trader.register({
-        id: "peddler",
-        name: "NPC_TRADER_NAME",
-        travelH: 2, // in-game hours in transit between stops
-        route: [
-          { map: "hub", dwellH: 6 },
-          { map: "cave", dwellH: 6 },
-        ],
-        merchant: {
-          infinite: true,
-          currencyId: "coin",
-          buyMargin: 1.2,
-          sellMargin: 0.5,
-          stock: [
-            { itemId: "medkit", qty: 1 },
-            { itemId: "water_bottle", qty: 1 },
-            { itemId: "ration_pack", qty: 1 },
-            { itemId: "ammo_light", qty: 1 },
-            { itemId: "wood", qty: 1 },
-            { itemId: "scrap_metal", qty: 1 },
-          ],
-        },
-      });
+    if (!loaded) this._seed();
 
     // the base context; _resolveContext sets each frame's own
     InputContext.push("play");
@@ -170,6 +109,26 @@ class _SceneColonyClass {
       `colony ready — items=${Item.all().length} quests=${QuestLog.all().length} ` +
         `achievements=${Achievement.all().length} kills=${Tracker.count("enemiesKilled")}`,
     );
+  }
+
+  /**
+   * A new game's player kit, companion and traders. Seeded in code, not the map file, so a
+   * persistent-map reload can't duplicate them; a load restores their records instead.
+   */
+  _seed() {
+    const entities = this.level.entities;
+    const inv = entities.require(this.playerId, Inventory);
+    const kit = contentStart.KIT;
+    for (let i = 0; i < kit.length; i++) {
+      Bag.add(inv, kit[i].itemId, kit[i].qty);
+      if (kit[i].equip === true) Loadout.equipFirst(entities, this.playerId, kit[i].itemId);
+    }
+    const c = contentStart.COMPANION;
+    const pp = entities.require(this.playerId, Position);
+    const companion = ColonySpawn.spawnFollower(entities, pp.x + c.x, pp.y + c.y, c.follower);
+    Companions.hire(entities, this.playerId, companion);
+    const traders = contentStart.TRADERS;
+    for (let i = 0; i < traders.length; i++) Trader.register(traders[i]);
   }
 
   /**
@@ -279,10 +238,7 @@ class _SceneColonyClass {
    * then rebuild the UI so it bakes the new palette. World state is untouched.
    */
   retheme() {
-    if (this.sleeping) {
-      this.sleeping = false;
-      Time.scale = 1;
-    }
+    Sleep.wake(this.sleep);
     this.window.close();
     if (this.ui) {
       UI.remove(this.ui);
@@ -293,9 +249,10 @@ class _SceneColonyClass {
 
   /**
    * The frame's order: input, context and the world mirrors before the sim, the sim on
-   * Time.step, then presentation and dirty UI rebuilds. Gameplay reactions are named `_on*`
-   * members passed in as rule sets, so this body states order alone. A map swap never runs in
-   * here — it lands between frames, so nothing in a frame touches a swapped-out map.
+   * Time.step, then presentation and dirty UI rebuilds. What the scene shows of a gameplay
+   * reaction is a named `_on*` member passed in as a hook set, so this body states order alone. A
+   * map swap never runs in here — it lands between frames, so nothing in a frame touches a
+   * swapped-out map.
    */
   update() {
     // no pause gate: a paused scene is not updated
@@ -303,8 +260,10 @@ class _SceneColonyClass {
     // derived each frame, the self-heal after a store swap
     this.playerId = ColonyPlayer.id(this.level.entities);
 
-    // before the sim, so the waking press wakes instead of moving this frame
-    this._updateSleep();
+    // before the sim, so the waking press wakes instead of moving this frame; any press wakes,
+    // claimed or not — not an action
+    if (Input.anyPressed()) Sleep.wake(this.sleep);
+    else Sleep.ramp(this.sleep, this.level.entities);
 
     // a timed track runs the whole world at its beat, from the next frame on
     Time.tempo = this.tempo(Music.track());
@@ -338,13 +297,7 @@ class _SceneColonyClass {
     StatusSystem.update(this.level);
     EncumbranceSystem.update(this.level);
     NeedSystem.update(this.level);
-    if (this.sleeping)
-      Needs.restore(
-        this.level.entities,
-        this.playerId,
-        Drowsiness,
-        SLEEP_RECOVER * Time.step,
-      );
+    Sleep.rest(this.sleep, this.level.entities, this.playerId);
     PuppetSystem.update(this.level);
     FollowerSystem.update(this.level);
     PlayerSystem.update(this.level);
@@ -356,11 +309,11 @@ class _SceneColonyClass {
     FuseSystem.update(this.level);
     LifetimeSystem.update(this.level);
 
-    ColonyCombat.trackDamage(this, 14);
-    ColonyCombat.resolveHealth(this, this._mortalRules);
-    ColonyCombat.updateDowned(this, this._downedRules);
-    ColonyCombat.reapCorpses(this);
-    this._checkReach();
+    ColonyCombat.trackDamage(this.level, 14);
+    ColonyCombat.resolveHealth(this.level, this._downRules);
+    ColonyCombat.updateDowned(this.level, this._downRules);
+    ColonyCombat.reapCorpses(this.level);
+    Progression.reach(this.level);
 
     this.level.entities.flush();
 
@@ -429,16 +382,6 @@ class _SceneColonyClass {
     return inst !== undefined && inst.itemId === itemId;
   }
 
-  /** The one pickup credit for every loot path, so collect quests can't diverge by path. */
-  onCollect(itemId, got) {
-    const pp = this.level.entities.require(this.playerId, Position);
-    Audio.play({ sound: sndCoin, position: { x: pp.x, y: pp.y } });
-    this.track("collect", itemId, got);
-    Log.info(
-      `picked up ${got}x ${itemId} — items=${Tracker.count("itemsCollected")}`,
-    );
-  }
-
   /**
    * Kick a companion out of the squad permanently; it stays a resident of this map and can be
    * re-hired. A downed member is not kicked.
@@ -451,81 +394,9 @@ class _SceneColonyClass {
     Toast.push(I18n.text("SQUAD_KICKED"), { type: "info" });
   }
 
-  /** Start sleeping until any input; the other needs keep rising at the fast-forwarded rate. */
-  sleep() {
-    this.sleeping = true;
-    this._sleepPeaked = false;
-  }
-
-  /**
-   * The bed's fast-forward: ramp Time.scale until any input wakes. It skips time cheaply because
-   * the world clocks consume the whole scaled delta while the entity sim integrates the capped
-   * Time.step, so hours pass while a body moves one bounded step a frame.
-   */
-  _updateSleep() {
-    if (!this.sleeping) return;
-    if (this._wakeInput()) {
-      this.sleeping = false;
-      Time.scale = 1;
-      return;
-    }
-    // ramp on Time.raw (wall clock — Time.delta is itself scaled): the fast-forward eases in
-    // instead of snapping, peaking at the ceiling in a few seconds
-    const s = Math.max(1, Time.scale) * (1 + SLEEP_ACCEL * Time.raw);
-    if (s < SLEEP_SCALE_MAX) {
-      Time.scale = s;
-      return;
-    }
-    Time.scale = SLEEP_SCALE_MAX;
-    // hitting the ceiling is the time-skip trigger, once per sleep
-    if (this._sleepPeaked) return;
-    this._sleepPeaked = true;
-    this.track("sleepSkip", "", 1);
-  }
-
-  /** Any press wakes, claimed or not — not an action. */
-  _wakeInput() {
-    return Input.anyPressed();
-  }
-
   _followerName(id) {
     const nm = this.level.entities.get(id, Name);
     return nm !== undefined ? nm.name : I18n.text("FOLLOWER_DEFAULT");
-  }
-
-  /** A kill, fired while the body's components are still readable. */
-  _onKill(id) {
-    const dp = this.level.entities.get(id, Position);
-    if (dp !== undefined)
-      Audio.play({ sound: sndExplosionSmall, position: { x: dp.x, y: dp.y } });
-    // by species, so only raiders advance the cull quest; the kill counter takes both
-    const kind = this.level.entities.has(id, Rat) ? "rat" : "raider";
-    this.track("kill", kind, 1);
-    // a corpse stays in the world; drop its species so the radar stops marking it an enemy
-    this.level.entities.detach(id, Raider);
-    this.level.entities.detach(id, Rat);
-    Log.info(`${kind} killed — kills=${Tracker.count("enemiesKilled")}`);
-  }
-
-  /**
-   * A "respawn" mortal once its hp is refilled: back to the map's spawn, stopped, every need at
-   * mid-meter so the death clears the critical debuff that caused it.
-   */
-  _onRespawn(id) {
-    const pos = this.level.entities.get(id, Position);
-    const vel = this.level.entities.get(id, Velocity);
-    const sp = ColonyMap.of(this.level).spawn;
-    pos.x = sp.x;
-    pos.y = sp.y;
-    vel.x = 0;
-    vel.y = 0;
-    const needs = Need.all();
-    for (let i = 0; i < needs.length; i++) {
-      const need = this.level.entities.get(id, needs[i].id);
-      if (need === undefined) continue; // a save from before the need
-      Needs.set(this.level.entities, id, needs[i].id, need.max * 0.5);
-    }
-    Log.info("player died — respawned at spawn");
   }
 
   _onDown(id) {
@@ -538,51 +409,6 @@ class _SceneColonyClass {
     Toast.push(I18n.text("FOLLOWER_RECOVERED", this._followerName(id)), {
       type: "success",
     });
-  }
-
-  _checkReach() {
-    const map = ColonyMap.of(this.level);
-    if (map.reachDone || map.reachZone === undefined) return;
-    if (AABB.overlap(AABB.of(this.level.entities, this.playerId), map.reachZone)) {
-      map.reachDone = true;
-      this.track("reach", "ruins", 1);
-      Log.info("reached the ruins");
-    }
-  }
-
-  /**
-   * The one turn-in ceremony for every path that closes a quest, so they can't drift. The caller
-   * checks readiness first.
-   */
-  completeQuest(qid) {
-    Progression.applyReward(this, Tracker.complete(qid));
-    this.track("quest", qid, 1);
-    Log.info(
-      `quest complete: ${qid} — questsCompleted=${Tracker.count("questsCompleted")}`,
-    );
-  }
-
-  /**
-   * The report seam: every gameplay chokepoint reports what happened once, and the counter,
-   * achievement and quest fan-out follows, so no site can bump a tally and forget a consumer.
-   * Toasts each unlock and closes each passive quest that just became ready.
-   *
-   * A turn-in re-enters here; that terminates because a quest is done before its rewards
-   * report, so a quest never re-fires itself.
-   */
-  track(kind, target, n = 1) {
-    const r = Tracker.report(kind, target, n);
-    for (let i = 0; i < r.unlocked.length; i++) {
-      const a = Achievement.get(r.unlocked[i]);
-      Toast.push(I18n.text("ACH_TOAST", I18n.text(a.name)), {
-        type: "success",
-      });
-      Log.info(`achievement unlocked: ${r.unlocked[i]}`);
-    }
-    for (let i = 0; i < r.ready.length; i++)
-      if (this._passiveQuests.indexOf(r.ready[i]) !== -1)
-        this.completeQuest(r.ready[i]);
-    return r;
   }
 
   /**
@@ -648,11 +474,7 @@ class _SceneColonyClass {
    * Returns whether the press was consumed.
    */
   handleEscape() {
-    if (this.sleeping) {
-      this.sleeping = false;
-      Time.scale = 1;
-      return true;
-    }
+    if (Sleep.wake(this.sleep)) return true;
     if (this.window.back()) return true;
     if (this.build.armed) {
       this.build.armed = false;
@@ -691,6 +513,7 @@ class _SceneColonyClass {
   /** Release only what this scene wired. */
   destroy() {
     Radio.reset();
+    Progression.reset();
     WorldEvents.reset();
     ColonyTravel.suspend(this); // release the view before its camera is freed with the level
     for (const id in this.stages) this.stages[id].renderer.destroy();

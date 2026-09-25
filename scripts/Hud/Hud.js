@@ -42,7 +42,7 @@ globalThis.Hud = {
     hud.bar.dragY = (1 - hud.slide) * HOTBAR_SLIDE; // an offset, leaving the layout alone
     hud.bar.enabled = !open && hud.slide > 0.001;
     hud.dialogue.enabled = !open && scene.nearNpc;
-    hud.sleep.enabled = scene.sleeping;
+    hud.sleep.enabled = scene.sleep.on;
   },
 
   /** Reveal the hotbar and restart its auto-hide countdown. */
