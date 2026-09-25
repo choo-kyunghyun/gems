@@ -59,7 +59,7 @@ Test.register(Test.STRESS, [
         cols: COLS,
         rows: ROWS,
       });
-      const layer = new TileLayer(COLS, ROWS, { emptyCost: 1 });
+      const layer = new TileLayer(grid, { emptyCost: 1 });
       grid.insert(layer);
       const level = new Level({ id: "stress", grid, capacity: 1024 });
       const s = level.entities;

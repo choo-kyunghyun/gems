@@ -79,14 +79,19 @@ Test.register(Test.CHECK, [
       const layer = ctx.layer;
       layer.set(1, 0, ctx.rock);
       layer.set(2, 1, ctx.mud);
+      layer.set(0, 1, ctx.rock);
+      t.ok(layer.ids.data[1] === 1 && layer.ids.data[3] === 1, "a cell holds its palette index");
+      t.eq(layer.ids.data[5], 2, "a new type takes the next index");
       const buf = ctx.grid.pack();
+      buffer_seek(buf, buffer_seek_start, 20 + 2 * 1);
+      t.eq(buffer_read(buf, buffer_u16), 7, "the blob names a cell by its type's id");
       const shape = LevelGrid.shape(buf);
       t.eq(shape.cols, 3, "the header carries cols");
       t.eq(shape.rows, 2, "the header carries rows");
       t.eq(shape.cellWidth, 32, "the header carries the cell width");
       t.eq(shape.layers, 1, "the header carries the layer count");
       const grid = new LevelGrid({ cellWidth: shape.cellWidth, cellHeight: shape.cellHeight, cols: shape.cols, rows: shape.rows });
-      const twin = new TileLayer(shape.cols, shape.rows, { emptyCost: 1 });
+      const twin = new TileLayer(grid, { emptyCost: 1 });
       grid.insert(twin);
       const types = [];
       types[ctx.rock.id] = ctx.rock;
@@ -95,6 +100,7 @@ Test.register(Test.CHECK, [
       t.ok(twin.get(1, 0) === ctx.rock, "a cell comes back as its type");
       t.ok(twin.get(2, 1) === ctx.mud, "another cell too");
       t.ok(!twin.get(0, 0), "an empty cell stays empty");
+      t.ok(twin.edits > 0 && twin.dirtyAll, "an unpack marks every cell edited");
       buffer_delete(buf);
       grid.destroy();
     },
@@ -305,7 +311,7 @@ Test.register(Test.CHECK, [
       t.ok(c.y0 === 0 && c.y1 === 3, "a rect is clipped to the grid");
       const off = g.cellRect({ x1: 300, y1: 0, x2: 400, y2: 32 }, {});
       t.ok(off.x0 >= off.x1, "a rect off the grid is empty");
-      const misfit = new TileLayer(8, 5);
+      const misfit = new TileLayer(new LevelGrid({ cols: 8, rows: 5 }));
       let threw = false;
       try {
         g.insert(misfit);

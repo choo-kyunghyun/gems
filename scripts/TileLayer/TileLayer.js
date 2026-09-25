@@ -7,13 +7,19 @@ const DIRTY_CAP = 256; // cell writes tracked individually before a mirror just 
  * a mirror one resample, not the level's. Only one mirror may drain them; a second would need its
  * own cursor. A cell write and a remesh are each seen by nav on its own, so no resync call follows.
  * An empty cell reads 0, not undefined, so occupancy is a truthy test, never `!== undefined`.
+ *
+ * A cell holds a palette index, not the TileType: `ids` is the level-sized index channel (0 =
+ * empty) and `types` the layer's palette, index → TileType, grown by `bind` in first-use order —
+ * so a bulk consumer walks plain numbers, and a TileType's `id` is only its save name.
  * @implements {LevelLayer}
  */
 globalThis.TileLayer = class TileLayer {
-  constructor(cols, rows, opt = {}) {
-    this.cols = cols;
-    this.rows = rows;
-    this.grid = new Grid(cols, rows);
+  /** @param {LevelGrid} tiles the grid whose shape the layer takes */
+  constructor(tiles, opt = {}) {
+    this.cols = tiles.cols;
+    this.rows = tiles.rows;
+    this.ids = tiles.alloc();
+    this.types = [0];
     this.emptyCost = opt.emptyCost;
     this.edits = 0;
     this.dirty = [];
@@ -21,16 +27,26 @@ globalThis.TileLayer = class TileLayer {
   }
 
   destroy() {
-    this.grid.destroy();
-    this.grid = undefined;
+    this.ids.destroy();
+    this.ids = undefined;
+    this.types = undefined;
+  }
+
+  /** The palette index of `type`, appended on first use. */
+  bind(type) {
+    const types = this.types;
+    for (let i = 1; i < types.length; i++) if (types[i] === type) return i;
+    types.push(type);
+    return types.length - 1;
   }
 
   /** Caller must remesh after editing a solid layer. */
   set(x, y, type) {
-    this.grid.set(x, y, type);
+    const i = y * this.cols + x;
+    this.ids.data[i] = type ? this.bind(type) : 0;
     this.edits++;
     if (!this.dirtyAll) {
-      if (this.dirty.length < DIRTY_CAP) this.dirty.push(this.grid.toIndex(x, y));
+      if (this.dirty.length < DIRTY_CAP) this.dirty.push(i);
       else {
         this.dirtyAll = true;
         this.dirty.length = 0;
@@ -39,27 +55,35 @@ globalThis.TileLayer = class TileLayer {
     return this;
   }
 
+  /** Marks every cell edited, after a bulk write straight into `ids`. */
+  touchAll() {
+    this.edits++;
+    this.dirtyAll = true;
+    this.dirty.length = 0;
+  }
+
   clear(x, y) {
     return this.set(x, y, undefined);
   }
 
   get(x, y) {
-    return this.grid.get(x, y);
+    return this.types[this.ids.data[y * this.cols + x]];
   }
 
   occupied(x, y) {
-    return !!this.grid.get(x, y);
+    return this.ids.data[y * this.cols + x] !== 0;
   }
 
   costAt(x, y) {
-    const type = this.grid.get(x, y);
+    const type = this.types[this.ids.data[y * this.cols + x]];
     return type ? type.pathCost : this.emptyCost;
   }
 
   /** The solid cells as the fewest [gx,gy,wCells,hCells] rects. */
   meshRects() {
-    const g = this.grid;
-    return Grid.meshRects(g.cols, g.rows, (x, y) => !!g.get(x, y));
+    const d = this.ids.data;
+    const cols = this.cols;
+    return Grid.meshRects(cols, this.rows, (x, y) => d[y * cols + x] !== 0);
   }
 
   /** One kinematic-solid collider per rect, sized by the level `grid`; ids pushed onto `out`. */

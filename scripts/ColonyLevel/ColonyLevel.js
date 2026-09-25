@@ -73,7 +73,7 @@ globalThis.ColonyLevel = {
     const h = {};
     for (let i = 0; i < contentTiles.LAYERS.length; i++) {
       const cfg = contentTiles.LAYERS[i];
-      const layer = new TileLayer(grid.cols, grid.rows, {
+      const layer = new TileLayer(grid, {
         emptyCost: cfg.emptyCost,
       });
       grid.insert(layer);

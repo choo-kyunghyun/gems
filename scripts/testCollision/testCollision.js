@@ -359,7 +359,7 @@ Test.register(Test.CHECK, [
     frames: 2, // the masks land on the instances after their first step
     setup(ctx) {
       const grid = new LevelGrid({ cellWidth: 32, cellHeight: 32, cols: 64, rows: 64 });
-      grid.insert(new TileLayer(64, 64, { emptyCost: 1 }));
+      grid.insert(new TileLayer(grid, { emptyCost: 1 }));
       const level = new Level({ id: "test", grid, capacity: 1024 });
       const s = level.entities;
       ctx.level = level;

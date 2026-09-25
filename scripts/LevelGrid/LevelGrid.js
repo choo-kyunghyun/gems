@@ -1,8 +1,12 @@
 /**
- * A layer's cell value is a `TileType` instance.
+ * A layer's cell value is a `TileType` instance, stored as an index into its palette.
  * @typedef {Object} LevelLayer
  * @property {number} cols
  * @property {number} rows
+ * @property {Grid} ids  the cells' palette indexes, 0 = empty
+ * @property {Array<TileType|0>} types  the palette, index → TileType; `types[0]` is 0
+ * @property {function(TileType): number} bind  a type's palette index, appended on first use
+ * @property {function(): void} touchAll  marks every cell edited after a bulk write into `ids`
  * @property {function(number, number): TileType | undefined} get
  * @property {function(number, number, TileType | undefined): LevelLayer} set
  * @property {function(number, number): number | undefined} costAt  the cell's nav cost; undefined passes through to the layer below
@@ -154,13 +158,14 @@ globalThis.LevelGrid = class LevelGrid {
     buffer_write(buf, buffer_u32, this.cellWidth);
     buffer_write(buf, buffer_u32, this.cellHeight);
     buffer_write(buf, buffer_u32, n);
+    const size = this.size;
     for (let l = 0; l < n; l++) {
       const layer = this.layers[l];
-      for (let y = 0; y < rows; y++)
-        for (let x = 0; x < cols; x++) {
-          const t = layer.get(x, y);
-          buffer_write(buf, buffer_u16, t ? t.id : 0);
-        }
+      const d = layer.ids.data;
+      const types = layer.types;
+      const saved = [0]; // palette index → the TileType id the buffer names it by
+      for (let k = 1; k < types.length; k++) saved[k] = types[k].id;
+      for (let i = 0; i < size; i++) buffer_write(buf, buffer_u16, saved[d[i]]);
     }
     return buf;
   }
@@ -197,17 +202,25 @@ globalThis.LevelGrid = class LevelGrid {
       );
       return false;
     }
+    const size = this.size;
     let unknown = 0;
     for (let l = 0; l < n; l++) {
       const layer = this.layers[l];
-      for (let y = 0; y < rows; y++)
-        for (let x = 0; x < cols; x++) {
-          const id = buffer_read(buf, buffer_u16);
-          if (id === 0) continue;
+      const d = layer.ids.data;
+      const local = []; // stored id → palette index, -1 for an id `typeOf` doesn't know
+      for (let i = 0; i < size; i++) {
+        const id = buffer_read(buf, buffer_u16);
+        if (id === 0) continue;
+        let k = local[id];
+        if (k === undefined) {
           const t = typeOf(l, id);
-          if (t === undefined) unknown++;
-          else layer.set(x, y, t);
+          k = t === undefined ? -1 : layer.bind(t);
+          local[id] = k;
         }
+        if (k < 0) unknown++;
+        else d[i] = k;
+      }
+      layer.touchAll();
     }
     if (unknown > 0)
       Log.error(
