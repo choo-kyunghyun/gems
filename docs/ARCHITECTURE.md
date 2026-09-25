@@ -36,7 +36,8 @@ Two top-level pillars (project folders), Core reusable without Game:
 - `Game` — the integrated showcase consuming Core: the app shell (`objects/Game/`), the scenes, the
   gameplay model as data in `Game/Component` and behaviour + content registries in `Game/System`,
   the item vocabulary in `Game/Item` over the capability classes in `Game/Item/Component`, content
-  tables in `Game/Content`, worldgen stages in `Game/Level`, the Facet UI kit in `Game/UI/Facet`
+  tables in `Game/Content`, worldgen stages in `Game/Level`, the render passes that draw the
+  gameplay model in `Game/Render`, the Facet UI kit in `Game/UI/Facet`
   (the showcase's design system over the Core UI system, so it wears a name of its own), and the
   media assets in `Game/Media`.
 
@@ -51,7 +52,8 @@ Placement rule for new code:
   `Game/System`, item definitions to `Game/Item`, an item capability class to
   `Game/Item/Component`, a content data table to `Game/Content` (`content*`, authored as JS —
   content is code, never a shipped JSON datafile), a level-generation stage to `Game/Level` (the
-  runner is Core; what it runs is content policy).
+  runner is Core; what it runs is content policy), a render pass reading the gameplay model to
+  `Game/Render` (the pass contract is Core; what it draws is Game's).
 - Read it through the consumers, which is what settles the near calls: `Animation` is Core because
   Core draw passes call it and `WorldClock` because it is engine time over the world's store, while
   `Combat`/`Faction`/`Interaction` are Game because every consumer is.

@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"RenderCloudShadow",
   "parent":{
-    "name":"System",
-    "path":"folders/Game/System.yy",
+    "name":"Render",
+    "path":"folders/Game/Render.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
