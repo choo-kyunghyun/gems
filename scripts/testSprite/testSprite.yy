@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"Rig",
+  "%Name":"testSprite",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"Rig",
+  "name":"testSprite",
   "parent":{
-    "name":"Anim",
-    "path":"folders/Core/Anim.yy",
+    "name":"Test",
+    "path":"folders/Core/Test.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"Rig.js",
+  "scriptSource":"testSprite.js",
 }

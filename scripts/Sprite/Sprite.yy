@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"Visual",
+  "%Name":"Sprite",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"Visual",
+  "name":"Sprite",
   "parent":{
-    "name":"Render",
-    "path":"folders/Core/Render.yy",
+    "name":"Sprite",
+    "path":"folders/Core/Sprite.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"Visual.js",
+  "scriptSource":"Sprite.js",
 }

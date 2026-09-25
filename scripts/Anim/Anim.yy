@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"Skeleton",
+  "%Name":"Anim",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"Skeleton",
+  "name":"Anim",
   "parent":{
-    "name":"Anim",
-    "path":"folders/Core/Anim.yy",
+    "name":"Sprite",
+    "path":"folders/Core/Sprite.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"Skeleton.js",
+  "scriptSource":"Anim.js",
 }

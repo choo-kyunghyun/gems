@@ -88,60 +88,59 @@ globalThis.RenderBillboard = class RenderBillboard {
       shader_set_uniform_f(this._uNormal, 0, BB_NORMAL_Y, BB_NORMAL_Z);
       shader_set_uniform_f(this._uAlphaRef, this.alphaRef);
     }
-    entities.forEach([Visual, Position], (entity, visual, rp) => {
+    const held = entities.column(Instance); // one index read per sprite, not a get
+    const mask = Handle.INDEX_MASK;
+    entities.forEach([Sprite, Position], (entity, spr, rp) => {
+      if (!spr.visible) return;
+      const h = held[entity & mask];
+      if (h !== undefined && h.rigged) {
+        RenderBillboard._rig(h, spr, rp, tiltDeg, tall);
+        return;
+      }
       // a missing or frameless (SVG, docs/GMRT.md) sprite draws as the placeholder
-      let sprite = visual.sprite;
-      let subimg = visual.subimg;
+      let sprite = spr.sprite;
+      let index = spr.index;
       if (!sprite_exists(sprite) || sprite_get_number(sprite) < 1) {
         sprite = pixMissing;
-        subimg = subimg % sprite_get_number(sprite);
+        index = index % sprite_get_number(sprite);
       }
-      if (visual.speed !== 0) subimg = Animation.advance(visual, sprite);
       matrix_set(
         matrix_world,
         matrix_build(rp.x, rp.y, 0, tiltDeg, 0, 0, 1, 1, tall),
       );
       draw_sprite_ext(
         sprite,
-        subimg,
+        index,
         0,
         0,
-        visual.xscale,
-        visual.yscale,
-        0,
-        visual.color,
-        visual.alpha,
+        spr.xscale,
+        spr.yscale,
+        spr.angle,
+        spr.blend,
+        spr.alpha,
       );
-      matrix_set(matrix_world, ident);
-    });
-    // A Spine body draws through its instance's `draw_self`, the only path that both poses and
-    // honours matrix_world (docs/SPINE.md). A skeletal entity carries no Visual, so it never
-    // draws twice.
-    // Its coplanar attachments would z-fight each other, so it draws colour first with z-write
-    // off, then depth only, so what draws later still sorts against the silhouette.
-    // The instance's image scale is the mask's, so the rig's draw scale rides the world matrix as
-    // a pure scale about the feet: T(-p) · S · [R · T(p)] (matrix_build folds a scale into the
-    // rotation).
-    entities.forEach([Skeleton, Instance, Position], (entity, sk, held, rp) => {
-      matrix_set(
-        matrix_world,
-        matrix_multiply(
-          matrix_multiply(
-            matrix_build(-rp.x, -rp.y, 0, 0, 0, 0, 1, 1, 1),
-            matrix_build(0, 0, 0, 0, 0, 0, sk.xscale / held.sx, sk.yscale / held.sy, 1),
-          ),
-          matrix_build(rp.x, rp.y, 0, tiltDeg, 0, 0, 1, 1, tall),
-        ),
-      );
-      gpu_set_zwriteenable(false);
-      held.inst.draw_self();
-      gpu_set_zwriteenable(true);
-      gpu_set_colourwriteenable(false, false, false, false);
-      held.inst.draw_self();
-      gpu_set_colourwriteenable(true, true, true, true);
     });
     matrix_set(matrix_world, ident);
     if (this._litOk) shader_reset();
     gpu_set_zwriteenable(false);
+  }
+
+  /**
+   * A skeletal body draws through its puppet's `draw_self`, the only path that both poses and
+   * honours matrix_world (docs/SPINE.md). Its coplanar attachments would z-fight each other, so it
+   * draws colour first with z-write off, then depth only, so what draws later still sorts against
+   * the silhouette.
+   */
+  static _rig(h, spr, rp, tiltDeg, tall) {
+    matrix_set(
+      matrix_world,
+      matrix_multiply(Anim.pose(h, spr, rp), matrix_build(rp.x, rp.y, 0, tiltDeg, 0, 0, 1, 1, tall)),
+    );
+    gpu_set_zwriteenable(false);
+    h.inst.draw_self();
+    gpu_set_zwriteenable(true);
+    gpu_set_colourwriteenable(false, false, false, false);
+    h.inst.draw_self();
+    gpu_set_colourwriteenable(true, true, true, true);
   }
 };

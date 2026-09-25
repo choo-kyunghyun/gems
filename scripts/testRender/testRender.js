@@ -178,7 +178,7 @@ Test.register(Test.CHECK, [
       ctx.entities = s;
       ctx.body = s.create();
       s.add(ctx.body, Position, { x: 100, y: 100, z: 0 });
-      s.add(ctx.body, Visual, { sprite: pixMissing, xscale: 2, yscale: 2 });
+      s.add(ctx.body, Sprite, { sprite: pixMissing, xscale: 2, yscale: 2 });
       // overlapping footprints, so one cursor sits on both
       ctx.near = s.create();
       s.add(ctx.near, Position, { x: 300, y: 310 });
@@ -243,7 +243,7 @@ Test.register(Test.CHECK, [
         "ignore drops it to the one behind",
       );
       t.eq(
-        Silhouette.pick(s, onBox, p, { has: Visual }),
+        Silhouette.pick(s, onBox, p, { has: Sprite }),
         -1,
         "has joins the query — no drawn body under this cursor",
       );

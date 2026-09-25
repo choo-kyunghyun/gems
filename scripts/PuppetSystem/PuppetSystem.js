@@ -126,8 +126,9 @@ globalThis.PuppetSystem = {
     if (still !== c.count) moved = true;
     c.count = still;
     if (moved) c.gen++;
-    entities.forEach([Skeleton, Instance, Position], (id, sk, h, pos) => {
+    entities.forEach([Instance, Position], (id, h, pos) => {
       if (h.shaped) return;
+      if (!h.rigged) return;
       h.inst.x = pos.x;
       h.inst.y = pos.y;
     });

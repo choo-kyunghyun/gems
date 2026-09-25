@@ -315,7 +315,7 @@ class _SceneColonyClass {
     this.level.entities.flush();
 
     Doll.pace(this.level.entities);
-    SkeletonSystem.update(this.level);
+    SpriteSystem.update(this.level);
     AppearanceSystem.update(this.level);
     Interactable.update(this, this.interact);
     this._updateNpc();

@@ -12,13 +12,13 @@ globalThis.Flora = {
   },
 
   /** Apply the stage progress implies: the frame, and a trunk turning solid from `solidFrom`. */
-  stage(entities, id, g, vis, def) {
+  stage(entities, id, g, spr, def) {
     const last = def.stages - 1;
     let stage = Math.floor(g.progress * last);
     if (stage > last) stage = last;
     if (stage === g.stage) return;
     g.stage = stage;
-    vis.subimg = stage;
+    spr.index = stage;
     if (def.solidFrom === undefined) return;
     const col = entities.get(id, Collision);
     if (col === undefined) return;
@@ -36,7 +36,7 @@ globalThis.Flora = {
   attach(entities, id) {
     const g = entities.get(id, Growth);
     const def = Flora.species(g.species);
-    Flora.stage(entities, id, g, entities.get(id, Visual), def);
+    Flora.stage(entities, id, g, entities.get(id, Sprite), def);
     if (g.progress >= 1) Flora.ripen(entities, id);
   },
 
@@ -117,7 +117,7 @@ globalThis.Flora = {
     if (def.regrow !== undefined) {
       g.progress = def.regrow;
       entities.detach(id, Interaction);
-      Flora.stage(entities, id, g, entities.get(id, Visual), def);
+      Flora.stage(entities, id, g, entities.get(id, Sprite), def);
     } else entities.remove(id);
     return { itemId: def.yield.itemId, qty: qty, reason: "" };
   },

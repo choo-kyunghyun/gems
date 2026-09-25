@@ -12,7 +12,7 @@
  *
  * @typedef {Object} Instance
  * @property {Id<"Instance">} inst  the live instance
- * @property {boolean} rigged  the entity's Skeleton is bound to it
+ * @property {boolean} rigged  the entity's skeletal Sprite is bound to it
  * @property {boolean} shaped  its mask is sized, anchored and placed
  * @property {boolean} still   a kinematic's — placed once, never synced
  * @property {boolean} solid   the Collision.solid the mask currently mirrors

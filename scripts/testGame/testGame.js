@@ -65,8 +65,8 @@ Test.register(Test.GAME, [
       instance_destroy(ctx.inst);
     },
   },
-  // A set plays in its authored seconds whatever frame rate the rig was exported at: this rests
-  // on `image_number` being the set's length in image frames at the sheet's speed.
+  // A set plays in its authored seconds at `image_speed` 1, as the manual has it: `image_number`
+  // is the set's length in image frames at the sheet's speed.
   {
     id: "spine.speed",
     frames: 1,
@@ -81,9 +81,7 @@ Test.register(Test.GAME, [
     },
     verify(ctx, t) {
       const inst = ctx.inst;
-      const sk = { sprite: spineHuman, anim: "walk0", loop: true, speed: 1 };
-      const speed = Rig.speed(inst, sk);
-      const pass = inst.image_number / (speed * sprite_get_speed(spineHuman));
+      const pass = inst.image_number / sprite_get_speed(spineHuman);
       const authored = inst.skeleton_animation_get_duration("walk0");
       t.ok(authored > 0, "walk0 reads no duration");
       t.ok(

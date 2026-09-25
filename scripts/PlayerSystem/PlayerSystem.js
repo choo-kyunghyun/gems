@@ -132,7 +132,7 @@ globalThis.PlayerSystem = {
         const damage = Math.round(wpn.damage) + attack;
         // face the aim first so the swing lands on the facing side
         Doll.face(entities, id, dir.x, 0.01);
-        const facing = entities.get(id, Skeleton).xscale;
+        const facing = entities.get(id, Sprite).xscale;
         Melee.swing(entities, id, facing, hitbox, damage);
         pl.fireCd = wpn.fireCd !== undefined ? wpn.fireCd : FIRE_CD;
         // the fist alternates punch and kick; an armed swing stays the punch

@@ -60,7 +60,7 @@ globalThis.contentPresets = {
           Persona: { sex: "male", age: 30 }, // baseline — adapt re-picks per spawn
           // authored loot, never weight-gated
           Inventory: { slots: [], capacity: 8 },
-          Skeleton: {
+          Sprite: {
             sprite: spineHuman,
             anim: Doll.rest(spineHuman),
           },
@@ -74,7 +74,7 @@ globalThis.contentPresets = {
         adapt(s, over) {
           ColonySpawn.adaptMob(s, over);
           // skin as body-slot tints, so garments keep their authored colours
-          over.Skeleton = { tints: ColonySpawn.skinTints(ColonySpawn.skin(s)) };
+          over.Sprite = { tints: ColonySpawn.skinTints(ColonySpawn.skin(s)) };
           over.Persona = ColonySpawn.persona(s, 18, 45); // fighters — no children, no elders
         },
         post(entities, id, ctx) {
@@ -95,11 +95,11 @@ globalThis.contentPresets = {
           Faction: { id: "monster" },
           Name: { name: "Rat" },
           Inventory: { slots: [], capacity: 4 },
-          Skeleton: { sprite: spineRat, anim: Doll.rest(spineRat) },
+          Sprite: { sprite: spineRat, anim: Doll.rest(spineRat) },
         },
         adapt(s, over) {
           ColonySpawn.adaptMob(s, over);
-          over.Skeleton = { tints: ColonySpawn.coat(s) };
+          over.Sprite = { tints: ColonySpawn.coat(s) };
         },
         post(entities, id, ctx) {
           CombatAI.attach(entities, id);
@@ -114,7 +114,7 @@ globalThis.contentPresets = {
           Name: { name: "" },
           Persona: { sex: "male", age: 30 }, // baseline — adapt re-picks per spawn
           NPC: { name: "", lines: [] },
-          Skeleton: {
+          Sprite: {
             sprite: spineHuman,
             anim: Doll.rest(spineHuman),
           },
@@ -124,10 +124,10 @@ globalThis.contentPresets = {
           over.NPC = { name: s.nameKey, questId: s.questId };
           // the E action: a merchant trades, any other NPC talks
           over.Interaction = { kind: s.merchant !== undefined ? "trade" : "talk" };
-          over.Skeleton = { tints: ColonySpawn.skinTints(ColonySpawn.skin(s)) };
+          over.Sprite = { tints: ColonySpawn.skinTints(ColonySpawn.skin(s)) };
           over.Persona = ColonySpawn.persona(s, 18, 64); // the full working-age span
           // TODO: the descriptor's `color` doesn't reach the outfit — route it through
-          // Skeleton.tints on the garment slots.
+          // Sprite.tints on the garment slots.
         },
         post(entities, id, ctx) {
           const mc = ctx.opts.descriptor.merchant;
@@ -274,7 +274,7 @@ globalThis.contentPresets = {
           BBox: { x: -7, y: -7, width: 14, height: 14 }, // trunk, not the 48-wide canopy
           Collision: { solid: true, kinematic: true },
           Name: { name: "Pine" },
-          Visual: { sprite: pixPine, subimg: 3 },
+          Sprite: { sprite: pixPine, index: 3, speed: 0 }, // a frame per growth stage
         },
         adapt: ColonySpawn.adaptFlora,
         post: ColonySpawn.postFlora,
@@ -297,10 +297,10 @@ globalThis.contentPresets = {
           BBox: { x: -16, y: -16, width: 32, height: 32 }, // always overridden per cluster
           Collision: { solid: true, kinematic: true },
           Name: { name: "Rock" },
-          Visual: { sprite: pixRock },
+          Sprite: { sprite: pixRock, speed: 0 },
         },
         adapt(s, over, ctx) {
-          // centered on the cluster's rect; the sprite carries one frame per cluster shape
+          // centered on the cluster's rect; the sheet carries one frame per cluster shape
           // (1×1, 2×1, 1×2, 2×2 — a deeper cluster reads as a taller boulder)
           const cw = s.w ?? 1;
           const ch = s.h ?? 1;
@@ -313,7 +313,7 @@ globalThis.contentPresets = {
             width: cw * grid.cellWidth,
             height: ch * grid.cellHeight,
           };
-          over.Visual = { sprite: pixRock, subimg: cw - 1 + (ch - 1) * 2 };
+          over.Sprite = { sprite: pixRock, index: cw - 1 + (ch - 1) * 2 };
         },
         post(entities, id, ctx) {
           ColonySpawn.mirror(entities, id, ctx.opts.descriptor);
@@ -334,7 +334,7 @@ globalThis.contentPresets = {
           Mortal: { kind: "down", recoverSecs: 6, reviveHp: 6 },
           Name: { name: "Companion" },
           Persona: { sex: "male", age: 30 }, // baseline — adapt re-picks per spawn
-          Skeleton: {
+          Sprite: {
             sprite: spineHuman,
             anim: Doll.rest(spineHuman),
           },
@@ -351,7 +351,7 @@ globalThis.contentPresets = {
         },
         adapt(s, over) {
           // skin on the body slots alone — garments keep their authored colours
-          over.Skeleton = { tints: ColonySpawn.skinTints(ColonySpawn.skin(s)) };
+          over.Sprite = { tints: ColonySpawn.skinTints(ColonySpawn.skin(s)) };
           over.Persona = ColonySpawn.persona(s, 20, 45); // able-bodied party members
           if (s.hp !== undefined) {
             over.Health = { hp: s.hp };

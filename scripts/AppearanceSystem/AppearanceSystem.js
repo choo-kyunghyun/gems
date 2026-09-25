@@ -79,7 +79,7 @@ globalThis.AppearanceSystem = {
     let rig = AppearanceSystem._rigs[key];
     if (rig !== undefined) return rig;
     rig = [];
-    const info = Rig.info(sprite);
+    const info = Anim.info(sprite);
     for (let i = 0; i < info.slots.length; i++) {
       const slot = info.slots[i];
       if (slot.attachment !== "") continue;

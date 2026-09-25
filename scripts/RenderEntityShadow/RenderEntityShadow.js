@@ -1,7 +1,6 @@
 /**
- * A flat foot-shadow ellipse per visible body, sprite or skeleton; insert it before the sprite
- * pass so shadows sit under. One shared pass keeps art shadow-free and sizes consistent from the
- * footprint. `filter` is the consumer's per-entity gate: which bodies cast is its model, not this
+ * A flat foot-shadow ellipse per visible Sprite; insert it before the sprite pass so shadows sit
+ * under. One shared pass keeps art shadow-free and sizes consistent from the footprint. `filter` is the consumer's per-entity gate: which bodies cast is its model, not this
  * pass's.
  * @implements {RenderPass}
  */
@@ -21,13 +20,9 @@ globalThis.RenderEntityShadow = class RenderEntityShadow {
   draw(entities) {
     const prevA = draw_get_alpha();
     draw_set_alpha(this.alpha);
-    entities.forEach([Visual, Position], (entity, visual, pos) => {
-      if (!visual.visible) return;
-      if (this.filter !== undefined && !this.filter(entities, entity)) return;
-      this._ellipse(entities, entity, pos);
-    });
-    entities.forEach([Skeleton, Position], (entity, sk, pos) => {
-      if (sk.alpha <= 0) return;
+    entities.forEach([Sprite, Position], (entity, spr, pos) => {
+      if (!spr.visible) return;
+      if (spr.alpha <= 0) return;
       if (this.filter !== undefined && !this.filter(entities, entity)) return;
       this._ellipse(entities, entity, pos);
     });

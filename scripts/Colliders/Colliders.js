@@ -5,7 +5,7 @@
 globalThis.Colliders = {
   /**
    * The collider (world px): Position at the box's TOP-LEFT, BBox anchored (0,0) spanning w×h,
-   * and nothing else — no Visual, so the caller either draws it as tiles or leaves it invisible
+   * and nothing else — no Sprite, so the caller either draws it as tiles or leaves it invisible
    * (water, the border). Kinematic, so bodies collide against it and nav stamps it as blocked.
    */
   box(entities, x, y, w, h) {

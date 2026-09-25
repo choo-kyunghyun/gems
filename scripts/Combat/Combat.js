@@ -85,7 +85,8 @@ globalThis.Combat = {
   isStructure(entities, id) {
     const col = entities.get(id, Collision);
     if (col === undefined || col.kinematic !== true) return false;
-    return !entities.has(id, Skeleton);
+    const spr = entities.get(id, Sprite);
+    return spr === undefined || spr.anim === undefined; // a skeletal body is a person
   },
 
   _shadowed(level, x0, y0, x1, y1, owner) {

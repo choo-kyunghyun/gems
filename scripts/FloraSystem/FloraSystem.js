@@ -52,7 +52,7 @@ globalThis.FloraSystem = {
     let r = 0;
     let d = 0;
     let wild = 0;
-    entities.forEach([Growth, Visual], (id, g, vis) => {
+    entities.forEach([Growth, Sprite], (id, g, spr) => {
       const def = Flora.species(g.species);
       const mul = def.season[season] ?? 1;
       if (mul === 0) {
@@ -70,7 +70,7 @@ globalThis.FloraSystem = {
         if (was < 1) ripe[r++] = id;
         if (g.wild) mature[m++] = id;
       }
-      Flora.stage(entities, id, g, vis, def);
+      Flora.stage(entities, id, g, spr, def);
     });
     for (let i = 0; i < r; i++) Flora.ripen(entities, ripe[i]);
     ripe.length = 0;

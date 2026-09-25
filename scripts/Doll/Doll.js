@@ -1,12 +1,12 @@
 /**
- * The on-demand verbs over a colony DOLL — an actor whose body is a Skeleton — the one place a
- * gameplay state becomes an animation name: which set a state means, per rig, plus the facing
- * and stride conventions every doll shares.
+ * The on-demand verbs over a colony DOLL — an actor whose body is a skeletal Sprite — the one
+ * place a gameplay state becomes an animation name: which set a state means, per rig, plus the
+ * facing and stride conventions every doll shares.
  */
 globalThis.Doll = {
   /**
-   * Actor state -> the animation each rig plays it with, keyed by the Skeleton sprite's name. A
-   * state a rig lacks leaves its current set playing. `down` is the fallen pose, a one-shot
+   * Actor state -> the set each rig plays it with, keyed by the skeletal sheet's name. A state a
+   * rig lacks leaves its current set playing. `down` is the fallen pose, a one-shot
    * holding its last frame. `pace` marks a locomotion set: the world speed (px/s) its cycle was
    * authored for, so playback can scale to the doll's actual speed and one set serves every gait.
    */
@@ -29,8 +29,8 @@ globalThis.Doll = {
   },
 
   /**
-   * The set a rig rests in — the `anim` a Skeleton is authored with at spawn. Throws for a sprite
-   * that is no rig: an authoring error, not a runtime state.
+   * The set a rig rests in — the `anim` a skeletal Sprite is authored with at spawn. Throws for a
+   * sprite that is no rig: an authoring error, not a runtime state.
    */
   rest(sprite) {
     const rig = Doll.RIGS[sprite_get_name(sprite)];
@@ -39,15 +39,16 @@ globalThis.Doll = {
     return rig.idle.anim;
   },
 
-  /** No-op for an actor with no Skeleton, or whose rig has no such state. */
+  /** Whether the actor's rig plays the state; false for no Sprite, no rig, or no such state. */
   setState(entities, id, state) {
-    const sk = entities.get(id, Skeleton);
-    if (sk === undefined) return;
-    const rig = Doll.RIGS[sprite_get_name(sk.sprite)];
-    if (rig === undefined) return;
+    const spr = entities.get(id, Sprite);
+    if (spr === undefined) return false;
+    const rig = Doll.RIGS[sprite_get_name(spr.sprite)];
+    if (rig === undefined) return false;
     const st = rig[state];
-    if (st === undefined) return;
-    Rig.set(entities, id, st.anim, st.loop);
+    if (st === undefined) return false;
+    Anim.play(entities, id, st.anim, st.loop);
+    return true;
   },
 
   // pace clamp: a blocked walker still shuffles, a hasted one never blurs
@@ -59,13 +60,13 @@ globalThis.Doll = {
    * other set plays authored time. A doll without Velocity is never touched.
    */
   pace(entities) {
-    entities.forEach([Skeleton, Velocity], (id, sk, vel) => {
-      const rig = Doll.RIGS[sprite_get_name(sk.sprite)];
+    entities.forEach([Velocity, Sprite], (id, vel, spr) => {
+      const rig = Doll.RIGS[sprite_get_name(spr.sprite)];
       if (rig === undefined) return;
       let pace = 0;
       for (const state in rig) {
         const st = rig[state];
-        if (st.anim === sk.anim) {
+        if (st.anim === spr.anim) {
           if (st.pace !== undefined) pace = st.pace;
         }
       }
@@ -74,7 +75,7 @@ globalThis.Doll = {
         const v = Math.sqrt(vel.x * vel.x + vel.y * vel.y) / pace;
         r = Math.min(Math.max(v, Doll.PACE_MIN), Doll.PACE_MAX);
       }
-      Rig.rate(entities, id, r);
+      Anim.rate(entities, id, r);
     });
   },
 
@@ -83,12 +84,10 @@ globalThis.Doll = {
    * factor, so a bare ±1 would silently reset the actor's size.
    */
   face(entities, id, vx, dead) {
-    const sk = entities.get(id, Skeleton);
-    if (sk === undefined) return;
+    const spr = entities.get(id, Sprite);
+    if (spr === undefined) return;
     const d = dead ?? 1;
-    const xscale = sk.xscale;
-    if (vx < -d) sk.xscale = -Math.abs(sk.xscale);
-    else if (vx > d) sk.xscale = Math.abs(sk.xscale);
-    if (sk.xscale !== xscale) Rig.apply(entities, id);
+    if (vx < -d) spr.xscale = -Math.abs(spr.xscale);
+    else if (vx > d) spr.xscale = Math.abs(spr.xscale);
   },
 };

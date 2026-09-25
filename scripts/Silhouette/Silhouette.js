@@ -11,7 +11,7 @@
  * a ground cursor `c` sits at height `a = (pos.y − c.y)·cos(pitch)` over the foot — the inverse
  * of the standing projection, so a box built from the drawn sprite and one built from the flat
  * footprint are directly comparable:
- *   STANDING   a Visual or Skeleton sprite — its drawn extent, origin at the foot
+ *   STANDING   a Sprite — its drawn extent, origin at the foot
  *   GROUND     no sprite (a Mesh prop, a bare collider) — its BBox, flattened by cos(pitch)
  *
  * `of`/`ofInto` answer the standing box alone (undefined where there is none — a caller that
@@ -39,21 +39,11 @@ globalThis.Silhouette = {
    * keeps its longer side ahead.
    */
   ofInto(entities, id, out) {
-    let sprite;
-    let xscale;
-    let yscale;
-    const vis = entities.get(id, Visual);
-    if (vis !== undefined) {
-      sprite = vis.sprite;
-      xscale = vis.xscale;
-      yscale = vis.yscale;
-    } else {
-      const sk = entities.get(id, Skeleton);
-      if (sk === undefined) return undefined;
-      sprite = sk.sprite;
-      xscale = sk.xscale;
-      yscale = sk.yscale;
-    }
+    const spr = entities.get(id, Sprite);
+    if (spr === undefined) return undefined;
+    const sprite = spr.sprite;
+    const xscale = spr.xscale;
+    const yscale = spr.yscale;
     if (!sprite_exists(sprite)) return undefined;
     const ox = sprite_get_xoffset(sprite);
     const oy = sprite_get_yoffset(sprite);

@@ -57,8 +57,7 @@ globalThis.EntityPreset = {
       const token = keys[i];
       const data = Plain.copy(components[token]);
       entities.add(id, token, data);
-      if (token === Visual) EntityPreset._bakeVisual(data, k);
-      else if (token === Skeleton) EntityPreset._bakeSkeleton(data, k);
+      if (token === Sprite) EntityPreset._bakeSprite(data, k);
       else if (token === BBox) EntityPreset._bakeBox(data, k);
       else if (token === Mesh) EntityPreset._bakeMesh(data, k);
     }
@@ -93,28 +92,18 @@ globalThis.EntityPreset = {
   },
 
   /**
-   * Bake a Visual's size split: `scale` is the design size, xscale/yscale fit the art to it, so
-   * art resolution never touches the collider.
+   * Bake a Sprite's size split: xscale/yscale fit the art to the design size, so art resolution
+   * never touches the collider. `anim` has no blank — Core knows no rig's set names — so a
+   * skeletal sheet without one throws, as does a strip with one.
    */
-  _bakeVisual(vis, k) {
-    vis.scale = k;
-    const f = AssetMeta.fit(vis.sprite, k);
-    vis.xscale = f;
-    vis.yscale = f;
-  },
-
-  /**
-   * Bake a Skeleton's size split as a Visual's. `anim` has no blank — Core knows no rig's
-   * animation names — so a missing one throws.
-   */
-  _bakeSkeleton(sk, k) {
-    if (sk.anim === undefined)
+  _bakeSprite(spr, k) {
+    if (Anim.skeletal(spr.sprite) !== (spr.anim !== undefined))
       throw new Error(
-        `EntityPreset: Skeleton ${sprite_get_name(sk.sprite)} authors no anim`,
+        `EntityPreset: Sprite ${sprite_get_name(spr.sprite)} authors anim only for a skeletal sheet`,
       );
-    const f = AssetMeta.fit(sk.sprite, k);
-    sk.xscale = f;
-    sk.yscale = f;
+    const f = AssetMeta.fit(spr.sprite, k);
+    spr.xscale = f;
+    spr.yscale = f;
   },
 
   _bakeBox(box, k) {

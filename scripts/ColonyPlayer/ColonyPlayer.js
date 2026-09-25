@@ -78,7 +78,7 @@ globalThis.ColonyPlayer = {
     entities.add(id, Favorites, {});
     // xscale carries both the facing flip and the baked size, so a flip preserves |xscale|.
     // The body art is a white template, so the skin is a tint over its body slots.
-    entities.add(id, Skeleton, {
+    entities.add(id, Sprite, {
       sprite: spineHuman,
       anim: Doll.rest(spineHuman),
       xscale: AssetMeta.fit(spineHuman, k),

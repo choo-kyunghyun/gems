@@ -58,8 +58,8 @@ Placement rule for new code:
   maps, its player, its save, its HUD — is `Game/Colony`.
 - A new area is a folder, not a kind: where a module fits no area and names no feature of its own,
   it joins the area of its main consumer.
-- Read it through the consumers, which is what settles the near calls: `Animation` is Core because
-  Core draw passes call it and `WorldClock` because it is engine time over the world's store, while
+- Read it through the consumers, which is what settles the near calls: `Anim` is Core because Core
+  draw passes call it and `WorldClock` because it is engine time over the world's store, while
   `Combat`/`Faction`/`Interaction` are Game because every consumer is.
 
 ## Cross-Cutting Invariants
@@ -80,7 +80,7 @@ and are cited from here, never restated):
       never takes the scene, and its only other member is the accessor of its own derived entry
       (`PuppetSystem.colliders`, `PathfindingSystem.nav`, `CameraSystem.view`). What a caller
       invokes on demand — a verb over a component (`Effects.apply`, `Trade.buy`, `Companions.hire`,
-      `Needs.restore`, `Rig.set`, `Flora.harvest`), a pure read (`Shelter.tempAt`), an entity
+      `Needs.restore`, `Anim.play`, `Flora.harvest`), a pure read (`Shelter.tempAt`), an entity
       factory (`Cameras.create`, `Colliders.box`), input lifecycle (`ColonyKeymap.bind`) — lives in
       an affix-less namespace beside the ticker (NAMING.md), never on it: the two share a
       component, not a module, so a component write never needs a system call to be seen.
@@ -88,7 +88,7 @@ and are cited from here, never restated):
       token's carriers in an order that is never by index (contract at `Table`). A
       component the caller's contract requires is read with `entities.require`, which throws on a
       miss; `entities.get` and its `undefined` guard are for a component whose absence is a state
-      (an opt-in `Skeleton`, a lazily seeded `StatusEffects`, a window target that may have gone).
+      (an opt-in `Appearance`, a lazily seeded `StatusEffects`, a window target that may have gone).
     - Nothing auto-runs systems — the active scene's `update()` dispatches them explicitly. (Store
       handles are canonically `entities`, level handles `level`.)
 - The four homes of state (data and logic apart): every mutable fact lives in exactly one of four
@@ -136,7 +136,7 @@ and are cited from here, never restated):
             and per-tick SCRATCH that holds nothing between ticks (a reused rect, a collector buffer) —
       so a map switch is a pointer swap and nothing of one level or one world survives in a
       module; a level-sized scratch or a fairness cursor is the level's and rides its derived entry
-      (`NavGrid.scratch`, `NavGrid.cursor`). Asset-derived tables (`Vox`, `Poly`, `Rig._info`) are
+      (`NavGrid.scratch`, `NavGrid.cursor`). Asset-derived tables (`Vox`, `Poly`, `Anim._info`) are
       run-lifetime and immutable, not state.
 - Level / Scene / World: `Level` and `World` are data and run no logic; the scene interprets
   them. A `Level` is one map — its store, whose own entity (`self`) carries the grid, the map's

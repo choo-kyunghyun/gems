@@ -167,9 +167,11 @@ globalThis.ColonyCombat = {
       vel.x = 0;
       vel.y = 0;
     }
-    const vis = entities.get(id, Visual);
-    if (vis !== undefined) vis.alpha = 0.4;
-    Doll.setState(entities, id, "down");
+    // a body with no fallen pose dims instead
+    if (!Doll.setState(entities, id, "down")) {
+      const spr = entities.get(id, Sprite);
+      if (spr !== undefined) spr.alpha = 0.4;
+    }
     entities.add(id, Downed, { timer: m.recoverSecs ?? 6 });
     entities.detach(id, PrevHealth);
     if (h.onDown !== undefined) h.onDown(id);
@@ -185,9 +187,10 @@ globalThis.ColonyCombat = {
       const m = entities.get(id, Mortal);
       const reviveHp = m !== undefined ? (m.reviveHp ?? 1) : 1;
       entities.add(id, Health, { hp: reviveHp });
-      const vis = entities.get(id, Visual);
-      if (vis !== undefined) vis.alpha = 1;
-      Doll.setState(entities, id, "idle");
+      if (!Doll.setState(entities, id, "idle")) {
+        const spr = entities.get(id, Sprite);
+        if (spr !== undefined) spr.alpha = 1;
+      }
       ColonyCombat._toSpawn(level, id);
       entities.detach(id, Downed);
       if (h.onRecover !== undefined) h.onRecover(id);
@@ -211,25 +214,14 @@ globalThis.ColonyCombat = {
     entities.detach(id, Rat);
     const col = entities.get(id, Collision);
     if (col !== undefined) col.solid = false; // BBox stays for cursor pick
-    const vis = entities.get(id, Visual);
-    if (vis !== undefined) {
-      vis.alpha = 0.4;
-      vis.speed = 0;
-      vis.subimg = 0;
-      vis.yscale = Math.abs(vis.yscale) * 0.45; // |scale| carries the baked size
-    }
-    // A rig with an authored `down` set dies through it and holds its last pose; one without
+    // A rig with an authored `down` set dies through it and holds its last pose; any other body
     // falls back to the crumple.
-    const sk = entities.get(id, Skeleton);
-    if (sk !== undefined) {
-      const rig = Doll.RIGS[sprite_get_name(sk.sprite)];
-      if (rig !== undefined && rig.down !== undefined) {
-        Doll.setState(entities, id, "down");
-      } else {
-        sk.alpha = 0.4;
-        sk.yscale = Math.abs(sk.yscale) * 0.45;
-        Rig.apply(entities, id);
-        Rig.rate(entities, id, 0);
+    if (!Doll.setState(entities, id, "down")) {
+      const spr = entities.get(id, Sprite);
+      if (spr !== undefined) {
+        spr.alpha = 0.4;
+        spr.yscale = Math.abs(spr.yscale) * 0.45; // |scale| carries the baked size
+        Anim.rate(entities, id, 0);
       }
     }
     entities.add(id, Interaction, { kind: "corpse" });

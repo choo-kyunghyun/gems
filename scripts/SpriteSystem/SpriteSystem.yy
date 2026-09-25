@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"Appearance",
+  "%Name":"SpriteSystem",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"Appearance",
+  "name":"SpriteSystem",
   "parent":{
     "name":"Sprite",
     "path":"folders/Core/Sprite.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"Appearance.js",
+  "scriptSource":"SpriteSystem.js",
 }

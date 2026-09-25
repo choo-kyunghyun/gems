@@ -1,9 +1,9 @@
 # Spine
 
 The Spine (skeletal sprite) half of the GMRT deny-list, split out of `GMRT.md` because it bites only
-the skeletal area — `SkeletonSystem` (playback, sheet metadata), `AppearanceSystem` (dressing),
-`Skeleton` (the component), `RenderBillboard` (the draw). GMRT.md's rules apply here unchanged: an
-entry is a DEFECT of the pinned 0.21 — the rule, its ticket as [#00000], and the safe idiom — never
+the skeletal area — `Sprite` (the component), `SpriteSystem` (playback), `Anim` (the verbs, sheet
+metadata), `AppearanceSystem` (dressing), `RenderBillboard` (the draw). GMRT.md's rules apply here
+unchanged: an entry is a DEFECT of the pinned 0.21 — the rule, its ticket as [#00000], and the safe idiom — never
 a ticket's state. What the manual documents, and what the classic runtime does the same, is not an
 entry: the manual and the owning code's comments carry it. "A/B-run" means checked against the
 classic runtime on a minimal GML repro; a defect A/B-run gets its own ticket ([#15998] the
@@ -18,6 +18,10 @@ not drawing, texture group not fetched).
   time (so two `draw_self` calls a frame advance it once); the classic runtime advances the
   position undrawn (A/B-run). With an asset speed of 0 (where an imported skeleton lands)
   `image_number` reads 0 and `image_index` NaN until a set is bound (not A/B-run).
+- A one-shot (`skeleton_animation_set(name, false)`) replays from its first key once
+  `image_index` wraps past `image_number`, where the manual's loop flag holds it: park it yourself
+  the step before it would wrap — `image_speed` 0 and `image_index` a hair under `image_number`
+  (`SpriteSystem`). Not A/B-run.
 - `skeleton_animation_mix` blends on the `image_index` clock.
     - `skeleton_animation_set` keeps `image_index` across a mixed pair (the manual's note), and
       writing 0 there yourself FREEZES a loop-to-loop blend at its first weight for good, the

@@ -115,8 +115,8 @@ globalThis.ColonySpawn = {
   /** A strewn prop mirrors by cell hash so one sheet doesn't visibly repeat. */
   mirror(entities, id, s) {
     if (hash2(s.gx, s.gy, 11) < 0.5) {
-      const vis = entities.require(id, Visual);
-      vis.xscale = -vis.xscale;
+      const spr = entities.require(id, Sprite);
+      spr.xscale = -spr.xscale;
     }
   },
 
@@ -136,7 +136,7 @@ globalThis.ColonySpawn = {
     const def = contentFlora.get(s.species);
     if (def === undefined)
       throw new Error(`ColonySpawn: unknown flora species "${s.species}"`);
-    over.Visual = { sprite: def.sprite };
+    over.Sprite = { sprite: def.sprite, speed: 0 }; // a frame per growth stage
     over.Name = { name: I18n.text(def.name) };
     over.Growth = {
       species: s.species,
