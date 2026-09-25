@@ -293,6 +293,18 @@ Test.register(Test.CHECK, [
         "a cell edge belongs to the next cell",
       );
       t.eq(g.costAt(0, 0), Infinity, "no layer → blocked");
+      t.eq(g.size, 32, "size is cols × rows");
+      const a = g.alloc(Infinity);
+      t.ok(a.cols === 8 && a.rows === 4, "alloc takes the grid's shape");
+      t.ok(a.data.length === 32 && a.data[31] === Infinity, "and fills every cell");
+      t.eq(g.cellAt(3 * 32 + 5, 2 * 32), 2 * 8 + 3, "cellAt is the index under the point");
+      t.eq(g.cellAt(-1, 0), -1, "off the grid is -1");
+      t.eq(g.cellAt(8 * 32, 0), -1, "the far edge is off the grid");
+      const c = g.cellRect({ x1: 40, y1: -50, x2: 96, y2: 65 }, {});
+      t.ok(c.x0 === 1 && c.x1 === 3, "x2 is exclusive: a rect ending on a cell line stops before it");
+      t.ok(c.y0 === 0 && c.y1 === 3, "a rect is clipped to the grid");
+      const off = g.cellRect({ x1: 300, y1: 0, x2: 400, y2: 32 }, {});
+      t.ok(off.x0 >= off.x1, "a rect off the grid is empty");
       const misfit = new TileLayer(8, 5);
       let threw = false;
       try {
@@ -459,7 +471,7 @@ Test.register(Test.CHECK, [
       // edge-closed, with every diagonal of the centre open
       const cross = [".#..", "#.#.", ".#..", "...."];
       ctx.cross = (x, y) => cross[y].charAt(x) === "#";
-      ctx.map = new ZoneMap(6, 5, 32, 32);
+      ctx.map = new ZoneMap(new LevelGrid({ cellWidth: 32, cellHeight: 32, cols: 6, rows: 5 }));
     },
     verify(ctx, t) {
       const map = ctx.map;
@@ -470,8 +482,8 @@ Test.register(Test.CHECK, [
       t.eq(map.zones[0].cells, 21, "the outside counts every open cell");
 
       map.label(ctx.ring, [
-        [4, 2, 1, 1],
-        [5, 4, 3, 3],
+        { x1: 128, y1: 64, x2: 160, y2: 96 },
+        { x1: 160, y1: 128, x2: 256, y2: 224 },
       ]);
       t.eq(map.zones.length, 2, "a stamped gap closes one zone");
       t.eq(map.at(4, 2), ZoneMap.BLOCKED, "a rect blocks its cells");
@@ -494,7 +506,7 @@ Test.register(Test.CHECK, [
       t.ok(map.rects() !== rects, "a label drops the cache");
       t.eq(map.rects().length, 0, "an unlabeled ring has no zone rects");
 
-      const cross = new ZoneMap(4, 4, 32, 32);
+      const cross = new ZoneMap(new LevelGrid({ cellWidth: 32, cellHeight: 32, cols: 4, rows: 4 }));
       cross.label(ctx.cross);
       t.eq(cross.at(1, 1), 1, "open diagonals leave an edge-closed cell a zone");
       t.eq(cross.zones.length, 2, "and only that cell");

@@ -74,11 +74,15 @@ globalThis.RoomSystem = {
       if (r > 0) power[r] += h.power;
     });
     // a door's own cell is a wall, so it leaks the rooms around it
+    const grid = level.grid;
+    const cols = grid.cols;
     entities.forEach([Interaction, Position], (id, it, pos) => {
       if (it.kind !== "door") return;
       if (it.open !== 1) return;
-      const gx = Math.floor(pos.x / map.cellWidth);
-      const gy = Math.floor(pos.y / map.cellHeight);
+      const i = grid.cellAt(pos.x, pos.y);
+      if (i < 0) return;
+      const gx = i % cols;
+      const gy = (i - gx) / cols;
       const a = map.at(gx - 1, gy);
       const b = map.at(gx + 1, gy);
       const c = map.at(gx, gy - 1);

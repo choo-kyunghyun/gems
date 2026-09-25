@@ -16,14 +16,11 @@ globalThis.NavGrid = class NavGrid {
   /** @param {LevelGrid} tiles the level this grid mirrors */
   constructor(tiles) {
     this.tiles = tiles;
-    this.cols = tiles.cols;
-    this.rows = tiles.rows;
-    this.cellW = tiles.cellWidth;
-    this.cellH = tiles.cellHeight;
-    this.grid = new Grid(this.cols, this.rows); // the composed costs
-    this.scratch = MotionPlanner.scratch(this.grid.size());
+    this.grid = tiles.alloc(); // the composed costs
+    this.scratch = MotionPlanner.scratch(tiles.size);
     this.cursor = 0;
-    this._base = new Grid(this.cols, this.rows); // terrain costs alone
+    this._base = tiles.alloc(); // terrain costs alone
+    this._cells = { x0: 0, y0: 0, x1: 0, y1: 0 }; // a static's cell range, reused per stamp
     this._edits = -1; // the edit count the base was sampled at; -1 = never
     this.statics = []; // the last stamped snapshot, re-applied when the base resamples
     this.gen = -1; // the collider generation the snapshot was taken at; -1 = never
@@ -54,9 +51,9 @@ globalThis.NavGrid = class NavGrid {
 
     // every layer spans the level, so a layer's cell index is this grid's
     const b = this._base.data;
-    const cols = this.cols;
+    const cols = tiles.cols;
     if (all) {
-      for (let y = 0; y < this.rows; y++)
+      for (let y = 0; y < tiles.rows; y++)
         for (let x = 0; x < cols; x++) b[y * cols + x] = tiles.costAt(x, y);
     } else {
       for (let i = 0; i < layers.length; i++) {
@@ -91,23 +88,14 @@ globalThis.NavGrid = class NavGrid {
     const b = this._base.data;
     for (let i = 0; i < d.length; i++) d[i] = b[i];
 
-    const cw = this.cellW;
-    const ch = this.cellH;
-    const cols = this.cols;
-    const rows = this.rows;
+    const tiles = this.tiles;
+    const cols = tiles.cols;
+    const c = this._cells;
     const statics = this.statics;
     for (let i = 0; i < statics.length; i++) {
-      const s = statics[i];
-      let gx0 = Math.floor(s.x1 / cw);
-      let gy0 = Math.floor(s.y1 / ch);
-      let gx1 = Math.floor((s.x2 - 1) / cw);
-      let gy1 = Math.floor((s.y2 - 1) / ch);
-      if (gx0 < 0) gx0 = 0;
-      if (gy0 < 0) gy0 = 0;
-      if (gx1 > cols - 1) gx1 = cols - 1;
-      if (gy1 > rows - 1) gy1 = rows - 1;
-      for (let gy = gy0; gy <= gy1; gy++)
-        for (let gx = gx0; gx <= gx1; gx++) d[gy * cols + gx] = Infinity;
+      tiles.cellRect(statics[i], c);
+      for (let gy = c.y0; gy < c.y1; gy++)
+        for (let gx = c.x0; gx < c.x1; gx++) d[gy * cols + gx] = Infinity;
     }
   }
 };

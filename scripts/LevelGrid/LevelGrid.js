@@ -13,9 +13,10 @@
  */
 
 /**
- * A level's cell grid and its stacked tile layers. Every layer spans the grid, so a cell index
- * means the same cell in each. Live pathfinding never reads the layers: the nav source mirrors
- * `costAt` whenever `edits` moves.
+ * A level's cell grid and its stacked tile layers — the one owner of the level's shape. Every
+ * layer spans the grid and every level-sized array is minted by `alloc`, so a cell index means the
+ * same cell in each. Live pathfinding never reads the layers: the nav source mirrors `costAt`
+ * whenever `edits` moves.
  */
 globalThis.LevelGrid = class LevelGrid {
   constructor(opt = {}) {
@@ -23,8 +24,16 @@ globalThis.LevelGrid = class LevelGrid {
     this.cellHeight = opt.cellHeight ?? 32;
     this.cols = opt.cols ?? Math.floor(room_width / this.cellWidth);
     this.rows = opt.rows ?? Math.floor(room_height / this.cellHeight);
+    this.size = this.cols * this.rows;
 
     this.layers = [];
+  }
+
+  /** A fresh level-sized `Grid`, every cell `fill`. */
+  alloc(fill = 0) {
+    const g = new Grid(this.cols, this.rows);
+    if (fill !== 0) g.clear(fill);
+    return g;
   }
 
   /**
@@ -79,6 +88,33 @@ globalThis.LevelGrid = class LevelGrid {
       x: gx * this.cellWidth + this.cellWidth * 0.5,
       y: gy * this.cellHeight + this.cellHeight * 0.5,
     };
+  }
+
+  /** The index of the cell under a world point; -1 off the grid. */
+  cellAt(wx, wy) {
+    const gx = Math.floor(wx / this.cellWidth);
+    const gy = Math.floor(wy / this.cellHeight);
+    if (gx < 0 || gy < 0 || gx >= this.cols || gy >= this.rows) return -1;
+    return gy * this.cols + gx;
+  }
+
+  /**
+   * The cells a world-px rect covers (`x2`/`y2` exclusive, so the last cell is the one holding
+   * `x2 - 1`), clipped to the grid, written into `out` as `x0`/`y0` INCLUSIVE, `x1`/`y1`
+   * EXCLUSIVE; a rect off the grid leaves `x0 >= x1` or `y0 >= y1`. Returns `out`.
+   */
+  cellRect(rect, out) {
+    const cw = this.cellWidth;
+    const ch = this.cellHeight;
+    const x0 = Math.floor(rect.x1 / cw);
+    const y0 = Math.floor(rect.y1 / ch);
+    const x1 = Math.floor((rect.x2 - 1) / cw) + 1;
+    const y1 = Math.floor((rect.y2 - 1) / ch) + 1;
+    out.x0 = x0 < 0 ? 0 : x0;
+    out.y0 = y0 < 0 ? 0 : y0;
+    out.x1 = x1 > this.cols ? this.cols : x1;
+    out.y1 = y1 > this.rows ? this.rows : y1;
+    return out;
   }
 
   /**
