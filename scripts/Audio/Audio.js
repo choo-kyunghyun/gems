@@ -38,8 +38,8 @@ globalThis.Audio = {
     audio_group_load(audiogroup_sfx);
     audio_group_load(audiogroup_track);
     Audio.setMasterGain(Settings.get("volMaster"));
-    Audio.setSfxGain(Settings.get("volSfx"));
-    Music.setGain(Settings.get("volMusic"));
+    Audio.setGroupGain(audiogroup_sfx, Settings.get("volSfx"));
+    Audio.setGroupGain(audiogroup_track, Settings.get("volMusic"));
   },
 
   /** The group load is asynchronous. */
@@ -99,8 +99,8 @@ globalThis.Audio = {
     audio_set_master_gain(0, clamp(gain, 0, 1));
   },
 
-  /** 0..1; a group gain, so a cue already playing follows it too. */
-  setSfxGain(gain) {
-    audio_group_set_gain(audiogroup_sfx, clamp(gain, 0, 1), 0);
+  /** 0..1; a sound already playing follows it, ramped so a dragging slider never clicks. */
+  setGroupGain(group, gain) {
+    audio_group_set_gain(group, clamp(gain, 0, 1), 50);
   },
 };

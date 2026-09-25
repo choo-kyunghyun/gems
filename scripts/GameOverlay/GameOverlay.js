@@ -292,14 +292,14 @@ globalThis.GameOverlay = {
     volSection.insertChild(
       facetRow(
         I18n.textRef("SETTINGS_VOL_MUSIC"),
-        volSlider("volMusic", (v) => Music.setGain(v)),
+        volSlider("volMusic", (v) => Audio.setGroupGain(audiogroup_track, v)),
         { key: "volMusic" },
       ),
     );
     volSection.insertChild(
       facetRow(
         I18n.textRef("SETTINGS_VOL_SFX"),
-        volSlider("volSfx", (v) => Audio.setSfxGain(v)),
+        volSlider("volSfx", (v) => Audio.setGroupGain(audiogroup_sfx, v)),
         { key: "volSfx" },
       ),
     );

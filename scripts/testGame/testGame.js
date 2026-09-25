@@ -142,12 +142,12 @@ Test.register(Test.GAME, [
   // category gains. Groups are compared by name — a group id is not `===`-safe.
   {
     id: "audio.groups",
-    frames: 6, // the 50 ms ramp on the track gain settles within a few frames
+    frames: 6, // the 50 ms ramp on a group gain settles within a few frames
     setup(ctx) {
       ctx.sfx = audio_group_get_gain(audiogroup_sfx);
       ctx.track = audio_group_get_gain(audiogroup_track);
-      Audio.setSfxGain(0.25);
-      Music.setGain(0.5);
+      Audio.setGroupGain(audiogroup_sfx, 0.25);
+      Audio.setGroupGain(audiogroup_track, 0.5);
       ctx.h = Music.play(musRaid, { fadeMs: 0 });
     },
     verify(ctx, t) {
@@ -163,14 +163,14 @@ Test.register(Test.GAME, [
         "audiogroup_track",
         "a track's group",
       );
-      t.near(audio_group_get_gain(audiogroup_sfx), 0.25, 1e-6, "sfx gain");
+      t.near(audio_group_get_gain(audiogroup_sfx), 0.25, 1e-6, "sfx gain after its ramp");
       t.near(audio_group_get_gain(audiogroup_track), 0.5, 1e-6, "track gain after its ramp");
       t.ok(ctx.h !== -1 && audio_is_playing(ctx.h), "the track plays from its group");
       t.eq(Music.track(), musRaid, "Music.track");
     },
     teardown(ctx) {
       Music.stop(0);
-      Audio.setSfxGain(ctx.sfx);
+      audio_group_set_gain(audiogroup_sfx, ctx.sfx, 0);
       audio_group_set_gain(audiogroup_track, ctx.track, 0);
     },
   },

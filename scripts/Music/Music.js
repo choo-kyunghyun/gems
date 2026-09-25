@@ -91,11 +91,6 @@ globalThis.Music = {
     if (Music._bgm === -1 && Music._bgmAsset !== -1) Music._start();
   },
 
-  /** 0..1, ramped to avoid a click while a slider drags. */
-  setGain(g) {
-    audio_group_set_gain(audiogroup_track, clamp(g, 0, 1), 50);
-  },
-
   /** A hard stop and clear; stop() is the graceful path. */
   reset() {
     if (Music._bgm !== -1) audio_stop_sound(Music._bgm);
