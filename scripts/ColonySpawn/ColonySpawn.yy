@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"ColonySpawn",
   "parent":{
-    "name":"Scene",
-    "path":"folders/Game/Scene.yy",
+    "name":"System",
+    "path":"folders/Game/System.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

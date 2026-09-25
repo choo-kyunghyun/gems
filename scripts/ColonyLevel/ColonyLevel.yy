@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"ColonyLevel",
   "parent":{
-    "name":"Scene",
-    "path":"folders/Game/Scene.yy",
+    "name":"Level",
+    "path":"folders/Game/Level.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

@@ -1,10 +1,10 @@
 /**
- * Map engine for the colony scene.
+ * The colony's maps.
  *
  * A map IS a Level in the World pool, and everything the colony holds of it is a component of
  * that Level's own entity (`level.self`): the saved data record under KEY and the runtime under
  * RUNTIME, derived when the level is mounted and freed with it. Nothing of a map lives here, so
- * parking and resuming a map cost no rebuild. This engine knows the level, never the scene.
+ * parking and resuming a map cost no rebuild.
  *
  * A Level comes to be one of two ways: build() on a visit to a map not pooled (the only place
  * procedural content is made) and restoreLevel() for a saved map (no seed, spawn or remesh). Both

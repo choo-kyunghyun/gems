@@ -1,4 +1,4 @@
-// Player setup for the colony scene: builds the player entity and owns its cursor-aimed hitscan
+// The colony's player: builds the player entity and owns its cursor-aimed hitscan
 // firing and the cursor-to-world aim the shot resolves against.
 
 // Silhouette px up a body that the cursor means when it is over no body at all. Bodies are drawn

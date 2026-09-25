@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"BuildMode",
   "parent":{
-    "name":"Scene",
-    "path":"folders/Game/Scene.yy",
+    "name":"UI",
+    "path":"folders/Game/UI.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
