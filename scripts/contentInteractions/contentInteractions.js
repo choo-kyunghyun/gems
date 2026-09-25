@@ -120,7 +120,8 @@ globalThis.contentInteractions = {
         id: "claim",
         prompt: "SETTLEMENT_FOUND_PROMPT",
         run(ctx) {
-          BuildMode.claim(ctx.scene, ctx.id);
+          if (Build.claim(ctx.scene.level, ctx.id))
+            Toast.push(I18n.text("SETTLEMENT_FOUNDED"), { type: "success" });
         },
       },
       {

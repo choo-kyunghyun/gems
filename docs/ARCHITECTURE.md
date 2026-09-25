@@ -211,7 +211,7 @@ and are cited from here, never restated):
   identity. A consumer re-derives the entity it wants by component-presence query at use
   (`scene.playerId` from `Playable`, the camera target and the audio listener's body from
   `CameraFocus`, NPCs/beacons/enemies by `entities.query`/`Query`); one that must hold an id across
-  frames (a built entity in `BuildMode`'s build record, a `Window` page's `target`) validates it
+  frames (a built entity in `Build`'s build record, a `Window` page's `target`) validates it
   through `entities.isValid` before every use, and no id ever crosses a map — it names a slot in
   one store. Markers are components, not tag strings.
 - AABB convention: every collision/geometry consumer derives world-space edges through

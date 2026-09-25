@@ -11,11 +11,11 @@
  */
 globalThis.Blueprint = {
   /** The cell rect (x1,y1)-(x2,y2) inclusive, as a plan local to (x1,y1). */
-  capture(scene, x1, y1, x2, y2, opts = {}) {
+  capture(level, x1, y1, x2, y2, opts = {}) {
     const cols = x2 - x1 + 1;
     const rows = y2 - y1 + 1;
     const tiles = [];
-    const rt = ColonyMap.runtime(scene.level);
+    const rt = ColonyMap.runtime(level);
     for (let l = 0; l < contentTiles.LAYERS.length; l++) {
       const cfg = contentTiles.LAYERS[l];
       if (cfg.key === "terrain") continue; // the biome ground is the generator's, never content
@@ -44,7 +44,7 @@ globalThis.Blueprint = {
       }
     }
     const spawns = [];
-    const builtEnts = BuildMode.of(scene.level).builtEnts;
+    const builtEnts = Build.of(level).builtEnts;
     const ek = Object.keys(builtEnts);
     for (let i = 0; i < ek.length; i++) {
       const c = ek[i].split(",");
@@ -55,12 +55,12 @@ globalThis.Blueprint = {
       const item = contentBuild.item(e.itemId);
       if (item === undefined) continue; // stale catalog id
       // described at the live cell (a door orients off its neighbours), then localised
-      const s = BuildMode.descriptor(scene, item, gx, gy);
+      const s = Build.descriptor(level, item, gx, gy);
       s.gx = gx - x1;
       s.gy = gy - y1;
       s.item = e.itemId;
-      if (opts.withState === true && scene.level.entities.isValid(e.ent))
-        s.record = Row.capture(scene.level.entities, e.ent);
+      if (opts.withState === true && level.entities.isValid(e.ent))
+        s.record = Row.capture(level.entities, e.ent);
       spawns.push(s);
     }
     return { cols: cols, rows: rows, tiles: tiles, spawns: spawns };
@@ -70,7 +70,7 @@ globalThis.Blueprint = {
    * Tiles go down first, so a door reads its finished neighbouring walls. Returns the number of
    * placements made.
    */
-  stamp(scene, ox, oy, plan) {
+  stamp(level, ox, oy, plan) {
     if (plan === null || plan === undefined) return 0;
     let n = 0;
     const remesh = {}; // solid layer key -> true, remeshed once at the end
@@ -88,7 +88,7 @@ globalThis.Blueprint = {
         const rc = t.rects[r];
         for (let y = rc[1]; y < rc[1] + rc[3]; y++)
           for (let x = rc[0]; x < rc[0] + rc[2]; x++) {
-            const solid = BuildMode.applyItem(scene, ox + x, oy + y, item, {
+            const solid = Build.put(level, ox + x, oy + y, item, {
               deferRemesh: true,
             });
             if (solid === true) remesh[item.layer] = true;
@@ -105,12 +105,12 @@ globalThis.Blueprint = {
         continue;
       }
       // an id that is now a tile item lands as that tile, its record ignored
-      BuildMode.applyItem(scene, ox + s.gx, oy + s.gy, item, {
+      Build.put(level, ox + s.gx, oy + s.gy, item, {
         record: s.record,
       });
       n++;
     }
-    BuildMode.remeshLayers(scene, remesh);
+    Build.remesh(level, remesh);
     return n;
   },
 

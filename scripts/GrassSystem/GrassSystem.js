@@ -31,7 +31,7 @@ globalThis.GrassSystem = {
     if (grass === undefined || host === undefined) return;
     const grid = level.grid;
     const rt = ColonyMap.runtime(level);
-    const builtEnts = BuildMode.of(level).builtEnts;
+    const builtEnts = Build.of(level).builtEnts;
     const layer = rt.terrainLayer;
     const cap = Math.floor(grid.cols * grid.rows * GrassSystem.CAP_SHARE);
     let count = 0;

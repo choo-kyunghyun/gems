@@ -59,4 +59,4 @@ Temporary Items
 *.old
 
 # GMRT build directory
-Build
+/Build/

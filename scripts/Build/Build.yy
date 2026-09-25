@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Build",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Build",
+  "parent":{
+    "name":"System",
+    "path":"folders/Game/System.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Build.js",
+}

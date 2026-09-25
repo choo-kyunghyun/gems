@@ -68,7 +68,7 @@ globalThis.Flora = {
     const lkeys = contentBuild.tileLayers();
     for (let i = 0; i < lkeys.length; i++)
       if (rt[lkeys[i] + "Layer"].occupied(gx, gy)) return false;
-    if (BuildMode.of(level).builtEnts[gx + "," + gy] !== undefined)
+    if (Build.of(level).builtEnts[gx + "," + gy] !== undefined)
       return false;
     const w = grid.gridToWorld(gx, gy);
     const hw = grid.cellWidth / 2;

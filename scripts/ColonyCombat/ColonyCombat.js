@@ -90,7 +90,7 @@ globalThis.ColonyCombat = {
       if (hp === undefined || hp.hp > 0) continue;
       const m = entities.get(id, Mortal);
       if (m.kind === "despawn") {
-        ColonyCombat.spillLoot(scene, id, h.spill);
+        ColonyCombat.spillLoot(entities, id, h.spill);
         if (h.onKill !== undefined) h.onKill(id);
         entities.remove(id);
       } else if (m.kind === "corpse") {
@@ -213,8 +213,7 @@ globalThis.ColonyCombat = {
   },
 
   /** Scatter an enemy's Inventory as ground drops; `opts` { yBase, ySpread }. */
-  spillLoot(scene, enemyId, opts) {
-    const entities = scene.level.entities;
+  spillLoot(entities, enemyId, opts) {
     const inv = entities.get(enemyId, Inventory);
     const pos = entities.get(enemyId, Position);
     if (inv === undefined || pos === undefined) return;
@@ -227,7 +226,7 @@ globalThis.ColonyCombat = {
       const ox = (i % 2 === 0 ? -1 : 1) * 32;
       const oy = (i < 2 ? -1 : 1) * ySpread;
       ColonyCombat.spawnDrop(
-        scene,
+        entities,
         s.itemId,
         s.qty,
         pos.x + ox,
@@ -241,8 +240,7 @@ globalThis.ColonyCombat = {
    * A ground drop the player picks up like any station. An instance `src` slot records its
    * uid and mods so pickup re-inserts the same one.
    */
-  spawnDrop(scene, itemId, qty, x, y, src) {
-    const entities = scene.level.entities;
+  spawnDrop(entities, itemId, qty, x, y, src) {
     const id = entities.create();
     entities.add(id, Position, { x: x, y: y });
     // Matches the 32px icon drawn 1:1, so the pick outline lines up with the drop.
