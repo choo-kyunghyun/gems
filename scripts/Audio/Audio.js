@@ -21,10 +21,10 @@
  */
 
 /**
- * The cue player over GameMaker's audio engine, and the boot of the audio family. Volume is
- * three live gains — master, SFX group, track group — and a group's gain covers every sound in
- * it, playing or not, so a slider never has to find the instances. Only the default group loads
- * on its own, so init loads the others, and a play before its group lands answers -1.
+ * The cue player and the ears over GameMaker's audio engine, and the boot of the audio family.
+ * Volume is three live gains — master, SFX group, track group — and a group's gain covers every
+ * sound in it, playing or not, so a slider never has to find the instances. Only the default
+ * group loads on its own, so init loads the others, and a play before its group lands answers -1.
  */
 globalThis.Audio = {
   falloff_ref: 128,
@@ -33,7 +33,8 @@ globalThis.Audio = {
 
   init() {
     audio_falloff_set_model(audio_falloff_linear_distance_clamped);
-    AudioListener.init();
+    // top-down, so only x drives the pan (+x = right)
+    audio_listener_orientation(0, 0, 1, 0, -1, 0);
     audio_group_load(audiogroup_sfx);
     audio_group_load(audiogroup_track);
     Audio.setMasterGain(Settings.get("volMaster"));
@@ -86,6 +87,11 @@ globalThis.Audio = {
     if (params.listener_mask !== undefined)
       audio_sound_set_listener_mask(h, params.listener_mask);
     return h;
+  },
+
+  /** Per frame; the caller owns whose position the ears track. */
+  listen(x, y) {
+    audio_listener_position(x, y, 0);
   },
 
   /** 0..1, over every group. */

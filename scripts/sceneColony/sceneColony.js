@@ -339,8 +339,8 @@ class _SceneColonyClass {
       this.level.entities.first(CameraFocus),
       Position,
     );
-    if (ep !== undefined) AudioListener.position(ep.x, ep.y);
-    else AudioListener.position(view.toX, view.toY);
+    if (ep !== undefined) Audio.listen(ep.x, ep.y);
+    else Audio.listen(view.toX, view.toY);
     SoundEmitterSystem.update(this.level);
     ParticleEmitterSystem.update(this.level);
 

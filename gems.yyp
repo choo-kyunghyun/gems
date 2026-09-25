@@ -198,7 +198,6 @@
     {"id":{"name":"AssetMeta","path":"scripts/AssetMeta/AssetMeta.yy",},},
     {"id":{"name":"Attributes","path":"scripts/Attributes/Attributes.yy",},},
     {"id":{"name":"Audio","path":"scripts/Audio/Audio.yy",},},
-    {"id":{"name":"AudioListener","path":"scripts/AudioListener/AudioListener.yy",},},
     {"id":{"name":"Bag","path":"scripts/Bag/Bag.yy",},},
     {"id":{"name":"BBox","path":"scripts/BBox/BBox.yy",},},
     {"id":{"name":"Blueprint","path":"scripts/Blueprint/Blueprint.yy",},},

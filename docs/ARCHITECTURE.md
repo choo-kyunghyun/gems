@@ -162,7 +162,7 @@ and are cited from here, never restated):
       trap, GMRT.md): write no new ones. A class with one live instance that owns a lifecycle is
       NOT a singleton — `LevelGen` is an instance class, shaped and named as such.
     - A family of singletons stays FLAT, grouped by a name prefix and composed by its head at
-      boot/reset (`Audio`/`AudioListener`/`Music`, `World`/`WorldClock`/`WorldEvents`,
+      boot/reset (`Audio`/`Music`, `World`/`WorldClock`/`WorldEvents`,
       `Render*`), and callers reach the leaf directly; a member mirroring a singleton
       (`X.sub = Sub`) is a second name for one object plus a boot-wiring dependency, so a member
       only ever holds data (`World.table`, the world's store).
