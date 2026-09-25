@@ -141,7 +141,8 @@ globalThis.ColonyView = {
         renderer.insert(grassPass);
       }
     }
-    // Resident tile layers, bottom to top, keyed by layer.
+    // Resident tile layers, bottom to top, keyed by layer — a materials layer by
+    // `<layer>.<material>`, one pass per material sheet.
     // An empty layer emits no quads, so unbuilt floor/fence layers are free.
     const tilePasses = {};
     for (let i = 0; i < contentTiles.LAYERS.length; i++) {
@@ -149,17 +150,26 @@ globalThis.ColonyView = {
       if (cfg.key === "wall") continue; // lit boxes below; no flat fallback
       if (cfg.key === "fence" && pitch > 0) continue; // lit boxes below
       if (cfg.key === "terrain" && mats !== undefined) continue; // the material stack above
-      const pass = new RenderTileMap(
-        rt[cfg.key + "Layer"],
-        level.grid,
-        cfg.sprite,
-        {
+      const layer = rt[cfg.key + "Layer"];
+      if (cfg.materials === undefined) {
+        const pass = new RenderTileMap(layer, level.grid, cfg.sprite, {
           autotile: cfg.type,
           color: Color.parse(cfg.color),
-        },
-      );
-      tilePasses[cfg.key] = pass;
-      renderer.insert(pass);
+        });
+        tilePasses[cfg.key] = pass;
+        renderer.insert(pass);
+        continue;
+      }
+      for (let m = 0; m < cfg.materials.length; m++) {
+        const mat = cfg.materials[m];
+        const pass = new RenderTileMap(layer, level.grid, mat.sprite, {
+          autotile: cfg.type,
+          match: mat.id,
+          color: Color.parse(mat.color),
+        });
+        tilePasses[cfg.key + "." + mat.key] = pass;
+        renderer.insert(pass);
+      }
     }
     // inspection overlays, off until toggled; camera-culled for large maps
     const costPass = new RenderDebugTileMap(level.grid, {

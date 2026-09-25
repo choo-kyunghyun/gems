@@ -184,7 +184,7 @@ globalThis.contentPrefabs = {
         id: "landing_pad",
         cols: 3,
         rows: 3,
-        tiles: [{ layer: "floorTile", rects: [[0, 0, 3, 3]] }],
+        tiles: [{ layer: "floor", material: "tile", rects: [[0, 0, 3, 3]] }],
         spawns: [
           { preset: "prop", gx: 1, gy: 1, kind: "travel", label: "Beacon" },
           { preset: "prop", gx: 2, gy: 1, kind: "claim", label: "Survey Post" },

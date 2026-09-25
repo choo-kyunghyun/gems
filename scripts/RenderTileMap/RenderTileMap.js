@@ -22,8 +22,12 @@ const _BLOB8 = [
 
 /**
  * @typedef {Object} RenderTileMapOptions
- * @property {0|16|47|"dual"} [autotile] - 0: TileType.id as frame, 16: blob4, 47: blob8.
+ * @property {0|16|47|"dual"} [autotile] - 0: `frame` on every cell, 16: blob4, 47: blob8.
  *   "dual": a half-cell-offset grid whose transparent corners let lower terrain show through.
+ * @property {number} [frame] - 0 only: the one frame drawn (default 0)
+ * @property {number} [match] - not "dual": draw only the cells whose TileType id is this, so one
+ *   pass per material draws a many-material layer; the autotile still reads the whole layer's
+ *   occupancy (default: every occupied cell)
  * @property {number} [alpha]
  * @property {number} [color]
  * @property {number} [minId] - "dual" only: a cell counts as filled iff its TileType id is at least
@@ -51,6 +55,7 @@ globalThis.RenderTileMap = class RenderTileMap {
     // 0 accepts any TileType, so a single-material dual layer is plain occupancy
     this.minId = opt.minId ?? 0;
     this.skipAbove = opt.skipAbove;
+    this.match = opt.match;
 
     const mode = opt.autotile ?? 0;
     this._dual = mode === "dual";
@@ -61,10 +66,8 @@ globalThis.RenderTileMap = class RenderTileMap {
     } else if (mode === "dual") {
       this._frameOf = undefined; // dual has its own rebuild path
     } else {
-      this._frameOf = (x, y) => {
-        const t = layer.get(x, y);
-        return t ? t.id : 0;
-      };
+      const frame = opt.frame ?? 0;
+      this._frameOf = (x, y) => frame;
     }
   }
 
@@ -106,13 +109,16 @@ globalThis.RenderTileMap = class RenderTileMap {
     }
     const { layer, grid, sprite } = this;
     const { cols, rows, cellWidth, cellHeight } = grid;
+    const match = this.match;
 
     this._batch.destroy();
     const batch = new VertexBatch().begin();
     this._batch = batch;
     for (let y = 0; y < rows; y++) {
       for (let x = 0; x < cols; x++) {
-        if (!layer.get(x, y)) continue;
+        const t = layer.get(x, y);
+        if (!t) continue;
+        if (match !== undefined) if (t.id !== match) continue;
         batch.addFrame(
           sprite,
           this._frameOf(x, y),
