@@ -28,6 +28,7 @@ const _BLOB8 = [
  * @property {number} [match] - not "dual": draw only the cells whose TileType id is this, so one
  *   pass per material draws a many-material layer; the autotile still reads the whole layer's
  *   occupancy (default: every occupied cell)
+ * @property {View} [camera] - draw and bake only the chunks its view reaches (default: all)
  * @property {number} [alpha]
  * @property {number} [color]
  * @property {number} [minId] - "dual" only: a cell counts as filled iff its TileType id is at least
@@ -38,7 +39,11 @@ const _BLOB8 = [
  *   material's crest tone (0..1 floats), drifting on a sim clock so it freezes on pause. Lit only.
  */
 
-/** @implements {RenderPass} */
+/**
+ * Bakes the layer into one vertex batch per chunk (`Chunks`), so a write rebakes only the chunks
+ * it reaches, once they are in view.
+ * @implements {RenderPass}
+ */
 globalThis.RenderTileMap = class RenderTileMap {
   /** `sprite` frame indices must match the autotile mode. */
   constructor(layer, grid, sprite, opt = {}) {
@@ -48,8 +53,13 @@ globalThis.RenderTileMap = class RenderTileMap {
     this.sprite = sprite;
     this.alpha = opt.alpha ?? 1;
     this.color = opt.color ?? c_white;
-    this._baked = -1; // the layer's `edits` at the last bake; -1 = never
-    this._batch = new VertexBatch();
+    this._chunks = new Chunks(grid, layer);
+    this._batches = new Array(this._chunks.count); // per chunk; undefined where it drew nothing
+    this._range = { x0: 0, y0: 0, x1: 0, y1: 0 }; // the chunk being baked
+    this._win = { x0: 0, y0: 0, x1: 0, y1: 0 }; // the chunks in view this frame
+    this._fill = []; // per palette index, 1 when a cell counts as filled; rebuilt per dual bake
+    this._cover = []; // per palette index, 1 when the next material covers a cell
+    this.camera = opt.camera;
     this.lights = opt.lights; // unset = unlit
     this.wave = opt.wave;
     // 0 accepts any TileType, so a single-material dual layer is plain occupancy
@@ -101,21 +111,30 @@ globalThis.RenderTileMap = class RenderTileMap {
     return _BLOB8[mask];
   }
 
-  _rebuild() {
-    this._baked = this.layer.edits;
-    if (this._dual) {
-      this._rebuildDual();
-      return;
-    }
+  /** Rebakes chunk `k`. */
+  _bake(k) {
+    this._chunks.dirty[k] = 0;
+    const batches = this._batches;
+    if (batches[k] !== undefined) batches[k].destroy();
+    const batch = new VertexBatch().begin();
+    const r = this._chunks.bounds(k, this._range);
+    if (this._dual) this._bakeDual(batch, r);
+    else this._bakeCells(batch, r);
+    batch.end();
+    if (batch.count === 0) {
+      batch.destroy();
+      batches[k] = undefined;
+    } else batches[k] = batch;
+  }
+
+  _bakeCells(batch, r) {
     const { layer, grid, sprite } = this;
     const { cols, rows, cellWidth, cellHeight } = grid;
     const match = this.match;
-
-    this._batch.destroy();
-    const batch = new VertexBatch().begin();
-    this._batch = batch;
-    for (let y = 0; y < rows; y++) {
-      for (let x = 0; x < cols; x++) {
+    const x1 = r.x1 < cols ? r.x1 : cols;
+    const y1 = r.y1 < rows ? r.y1 : rows;
+    for (let y = r.y0; y < y1; y++) {
+      for (let x = r.x0; x < x1; x++) {
         const t = layer.get(x, y);
         if (!t) continue;
         if (match !== undefined) if (t.id !== match) continue;
@@ -131,25 +150,48 @@ globalThis.RenderTileMap = class RenderTileMap {
         );
       }
     }
-    batch.end();
   }
 
-  /** Dual grid: a display tile centered on each data-grid corner, its frame the corner mask. */
-  _rebuildDual() {
-    const { grid, sprite } = this;
+  /**
+   * Dual grid: a display tile centered on each data-grid corner, its frame the corner mask of the
+   * four cells around it (TL=1 TR=2 BR=4 BL=8) — a cell counting when its TileType id is at least
+   * `minId`, and off-grid reading empty so a level edge fades out rather than tiling past itself.
+   * The cells are read off the layer's palette indexes, never a call per corner.
+   */
+  _bakeDual(batch, r) {
+    const { layer, grid, sprite } = this;
     const { cols, rows, cellWidth, cellHeight } = grid;
     const hw = cellWidth * 0.5;
     const hh = cellHeight * 0.5;
-
-    this._batch.destroy();
-    const batch = new VertexBatch().begin();
-    this._batch = batch;
-    for (let j = 0; j <= rows; j++) {
-      for (let i = 0; i <= cols; i++) {
-        const mask = this._dualMask(i, j, this.minId);
+    const d = layer.ids.data;
+    const types = layer.types;
+    const minId = this.minId;
+    const skip = this.skipAbove;
+    const fill = this._fill;
+    const cover = this._cover;
+    fill.length = types.length;
+    cover.length = types.length;
+    fill[0] = 0;
+    cover[0] = 0;
+    for (let p = 1; p < types.length; p++) {
+      fill[p] = types[p].id >= minId ? 1 : 0;
+      cover[p] = skip !== undefined ? (types[p].id >= skip ? 1 : 0) : 0;
+    }
+    for (let j = r.y0; j < r.y1; j++) {
+      const up = (j - 1) * cols;
+      const dn = j * cols;
+      for (let i = r.x0; i < r.x1; i++) {
+        const tl = i > 0 ? (j > 0 ? d[up + i - 1] : 0) : 0;
+        const tr = i < cols ? (j > 0 ? d[up + i] : 0) : 0;
+        const br = i < cols ? (j < rows ? d[dn + i] : 0) : 0;
+        const bl = i > 0 ? (j < rows ? d[dn + i - 1] : 0) : 0;
+        let mask = 0;
+        if (fill[tl] === 1) mask |= 1;
+        if (fill[tr] === 1) mask |= 2;
+        if (fill[br] === 1) mask |= 4;
+        if (fill[bl] === 1) mask |= 8;
         if (mask === 0) continue;
-        if (this.skipAbove !== undefined && this._dualMask(i, j, this.skipAbove) === 15)
-          continue;
+        if (cover[tl] + cover[tr] + cover[br] + cover[bl] === 4) continue;
         batch.addFrame(
           sprite,
           mask,
@@ -162,31 +204,16 @@ globalThis.RenderTileMap = class RenderTileMap {
         );
       }
     }
-    batch.end();
-  }
-
-  /**
-   * Corner mask at corner point (i, j) for a material threshold: TL=1 TR=2 BR=4 BL=8. Off-grid
-   * reads as empty, so a level edge fades out rather than tiling past itself.
-   */
-  _dualMask(i, j, minId) {
-    let mask = 0;
-    if (this._atLeast(i - 1, j - 1, minId)) mask |= 1;
-    if (this._atLeast(i, j - 1, minId)) mask |= 2;
-    if (this._atLeast(i, j, minId)) mask |= 4;
-    if (this._atLeast(i - 1, j, minId)) mask |= 8;
-    return mask;
-  }
-
-  _atLeast(x, y, minId) {
-    const { cols, rows } = this.grid;
-    if (x < 0 || y < 0 || x >= cols || y >= rows) return false;
-    const t = this.layer.get(x, y); // 0 when empty, not undefined
-    return t ? t.id >= minId : false;
   }
 
   draw(entities) {
-    if (this.layer.edits !== this._baked) this._rebuild();
+    const chunks = this._chunks;
+    chunks.sync();
+    const w = chunks.window(this.camera, this._win);
+    const dirty = chunks.dirty;
+    const nx = chunks.nx;
+    for (let cy = w.y0; cy < w.y1; cy++)
+      for (let cx = w.x0; cx < w.x1; cx++) if (dirty[cy * nx + cx] === 1) this._bake(cy * nx + cx);
     // lit as flat ground (normal straight up); z-write stays off, so only the shading changes
 
     const lit = this.lights !== undefined && this.lights.litOk;
@@ -201,11 +228,19 @@ globalThis.RenderTileMap = class RenderTileMap {
         shader_set_uniform_f(this.lights.uTime, wave.time());
       }
     }
-    this._batch.submit();
+    const batches = this._batches;
+    for (let cy = w.y0; cy < w.y1; cy++)
+      for (let cx = w.x0; cx < w.x1; cx++) {
+        const b = batches[cy * nx + cx];
+        if (b !== undefined) b.submit();
+      }
     if (lit) shader_reset();
   }
 
   destroy() {
-    this._batch.destroy();
+    const batches = this._batches;
+    for (let k = 0; k < batches.length; k++)
+      if (batches[k] !== undefined) batches[k].destroy();
+    this._batches = [];
   }
 };

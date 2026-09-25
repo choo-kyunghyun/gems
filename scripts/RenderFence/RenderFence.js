@@ -10,7 +10,8 @@
  * texcoord = the PACKED face normal: top (0,0), south (0,1)), so one buffer holds every
  * orientation. Without `opt.lights` (or its shader) the buffer submits unlit.
  *
- * VBO-cached, rebaked when the layer's `edits` moves. Coords are absolute world px.
+ * VBO-cached per chunk (`Chunks`), so a write rebakes only the chunks it reaches, once they are in
+ * view. Coords are absolute world px.
  * @implements {RenderPass}
  */
 globalThis.RenderFence = class RenderFence {
@@ -22,7 +23,7 @@ globalThis.RenderFence = class RenderFence {
   /**
    * `layer` is any occupancy view: only a truthy `get(gx, gy)` is read. opt: `color` the flat
    * tint; `height` the post height in world px (default under a wall's, so a fenced yard reads
-   * lower than a room); `lights` the host lit pass.
+   * lower than a room); `lights` the host lit pass; `camera` limits the drawn chunks to its view.
    */
   constructor(grid, layer, opt) {
     opt = opt ?? {};
@@ -38,18 +39,21 @@ globalThis.RenderFence = class RenderFence {
     vertex_format_add_colour();
     vertex_format_add_texcoord();
     this._format = vertex_format_end();
-    this._vb = -1;
-    this._baked = -1; // the layer's `edits` at the last bake; -1 = never
+    this.camera = opt.camera;
+    this._chunks = new Chunks(grid, layer);
+    this._range = { x0: 0, y0: 0, x1: 0, y1: 0 }; // the chunk being baked
+    this._win = { x0: 0, y0: 0, x1: 0, y1: 0 }; // the chunks in view this frame
+    this._vbs = new Array(this._chunks.count).fill(-1); // per chunk; -1 where it holds no fence
   }
 
   destroy() {
-    this._free();
+    for (let c = 0; c < this._vbs.length; c++) this._free(c);
     vertex_format_delete(this._format);
   }
 
-  _free() {
-    if (this._vb !== -1) vertex_delete_buffer(this._vb);
-    this._vb = -1;
+  _free(c) {
+    if (this._vbs[c] !== -1) vertex_delete_buffer(this._vbs[c]);
+    this._vbs[c] = -1;
   }
 
   _occupied(gx, gy) {
@@ -69,17 +73,22 @@ globalThis.RenderFence = class RenderFence {
   }
 
   /**
-   * Counts quads first for an exact fixed buffer. An empty layer stays -1 (a vertex buffer can't
-   * be made from a 0-byte buffer).
+   * Rebakes chunk `c`, counting quads first for an exact fixed buffer. An empty chunk stays -1 (a
+   * vertex buffer can't be made from a 0-byte buffer).
    */
-  _rebuild() {
-    this._baked = this.layer.edits;
-    this._free();
+  _bake(c) {
+    this._chunks.dirty[c] = 0;
+    this._free(c);
+    const r = this._chunks.bounds(c, this._range);
     const cols = this.grid.cols;
     const rows = this.grid.rows;
+    const x0 = r.x0;
+    const y0 = r.y0;
+    const x1 = r.x1 < cols ? r.x1 : cols;
+    const y1 = r.y1 < rows ? r.y1 : rows;
     let quads = 0;
-    for (let gy = 0; gy < rows; gy++)
-      for (let gx = 0; gx < cols; gx++)
+    for (let gy = y0; gy < y1; gy++)
+      for (let gx = x0; gx < x1; gx++)
         if (this._occupied(gx, gy)) quads += this._quadsOf(gx, gy);
     if (quads === 0) return;
 
@@ -122,15 +131,15 @@ globalThis.RenderFence = class RenderFence {
     const hp = RenderFence.POST / 2;
     const ht = RenderFence.RAIL_T / 2;
     const tops = RenderFence.RAIL_TOP;
-    for (let gy = 0; gy < rows; gy++) {
-      for (let gx = 0; gx < cols; gx++) {
+    for (let gy = y0; gy < y1; gy++) {
+      for (let gx = x0; gx < x1; gx++) {
         if (!this._occupied(gx, gy)) continue;
-        const x0 = gx * cw;
-        const y0 = gy * ch;
-        const x1 = x0 + cw;
-        const y1 = y0 + ch;
-        const cx = x0 + cw / 2;
-        const cy = y0 + ch / 2;
+        const px0 = gx * cw;
+        const py0 = gy * ch;
+        const px1 = px0 + cw;
+        const py1 = py0 + ch;
+        const cx = px0 + cw / 2;
+        const cy = py0 + ch / 2;
         top(cx - hp, cy - hp, cx + hp, cy + hp, -H);
         south(cx - hp, cx + hp, cy + hp, -H, 0);
         const e = this._occupied(gx + 1, gy);
@@ -141,31 +150,48 @@ globalThis.RenderFence = class RenderFence {
           const zt = -H + tops[r];
           const zb = zt + RenderFence.RAIL_H; // a larger z is lower
           if (e) {
-            top(cx + hp, cy - ht, x1, cy + ht, zt);
-            south(cx + hp, x1, cy + ht, zt, zb);
+            top(cx + hp, cy - ht, px1, cy + ht, zt);
+            south(cx + hp, px1, cy + ht, zt, zb);
           }
           if (w) {
-            top(x0, cy - ht, cx - hp, cy + ht, zt);
-            south(x0, cx - hp, cy + ht, zt, zb);
+            top(px0, cy - ht, cx - hp, cy + ht, zt);
+            south(px0, cx - hp, cy + ht, zt, zb);
           }
-          if (n) top(cx - ht, y0, cx + ht, cy - hp, zt);
-          if (s) top(cx - ht, cy + hp, cx + ht, y1, zt);
+          if (n) top(cx - ht, py0, cx + ht, cy - hp, zt);
+          if (s) top(cx - ht, cy + hp, cx + ht, py1, zt);
         }
       }
     }
-    this._vb = vertex_create_buffer_from_buffer(buf, this._format);
+    const vb = vertex_create_buffer_from_buffer(buf, this._format);
     buffer_delete(buf);
-    vertex_freeze(this._vb);
+    vertex_freeze(vb);
+    this._vbs[c] = vb;
   }
 
   draw(entities) {
-    if (this.layer.edits !== this._baked) this._rebuild();
-    if (this._vb === -1) return;
+    const chunks = this._chunks;
+    chunks.sync();
+    const w = chunks.window(this.camera, this._win);
+    const dirty = chunks.dirty;
+    const nx = chunks.nx;
+    const vbs = this._vbs;
+    let fences = 0;
+    for (let cy = w.y0; cy < w.y1; cy++)
+      for (let cx = w.x0; cx < w.x1; cx++) {
+        const c = cy * nx + cx;
+        if (dirty[c] === 1) this._bake(c);
+        if (vbs[c] !== -1) fences++;
+      }
+    if (fences === 0) return;
     // global default is off
     gpu_set_zwriteenable(true);
     const lit = this.lights !== undefined && this.lights.litOk;
     if (lit) this.lights.setupLights(entities);
-    vertex_submit(this._vb, pr_trianglelist, -1);
+    for (let cy = w.y0; cy < w.y1; cy++)
+      for (let cx = w.x0; cx < w.x1; cx++) {
+        const vb = vbs[cy * nx + cx];
+        if (vb !== -1) vertex_submit(vb, pr_trianglelist, -1);
+      }
     if (lit) shader_reset();
     gpu_set_zwriteenable(false);
   }

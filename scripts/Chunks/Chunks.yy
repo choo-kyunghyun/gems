@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Chunks",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Chunks",
+  "parent":{
+    "name":"Render",
+    "path":"folders/Core/Render.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Chunks.js",
+}

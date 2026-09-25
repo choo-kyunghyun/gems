@@ -8,14 +8,15 @@
  * texcoord. Faces stay opaque (depth-writing). Without the lit shader both draw unlit.
  *
  * Cells are bucketed into materials by TileType id; an unmatched or id-less cell takes the
- * default material. The layer is VBO-cached in absolute world px, rebaked when its `edits` moves.
+ * default material. The layer is VBO-cached in absolute world px per chunk (`Chunks`), so a write
+ * rebakes only the chunks it reaches, once they are in view.
  * @implements {RenderPass}
  */
 globalThis.RenderWalls = class RenderWalls {
   /**
    * `layer`: only `get(gx, gy)` is read (truthy cell = wall), so any occupancy view satisfies
    * it. opt: `sprite` is an asset ref; `materials` buckets cells by TileType id, the top-level
-   * sprite/frame/color being the default bucket.
+   * sprite/frame/color being the default bucket; `camera` limits the drawn chunks to its view.
    */
   constructor(grid, layer, opt) {
     opt = opt ?? {};
@@ -51,22 +52,24 @@ globalThis.RenderWalls = class RenderWalls {
     vertex_format_add_colour();
     vertex_format_add_texcoord();
     this._format = vertex_format_end();
-    this._vbTops = []; // per-bucket top quads; textured mode submits under normal (0,0,-1)
-    this._vbSouths = []; // per-bucket exposed south quads; textured normal (0,1,0)
-    for (let i = 0; i < this._mats.length; i++) {
-      this._vbTops.push(-1);
-      this._vbSouths.push(-1);
-    }
-    this._baked = -1; // the layer's `edits` at the last bake; -1 = never
+    this.camera = opt.camera;
+    this._chunks = new Chunks(grid, layer);
+    this._range = { x0: 0, y0: 0, x1: 0, y1: 0 }; // the chunk being baked
+    this._win = { x0: 0, y0: 0, x1: 0, y1: 0 }; // the chunks in view this frame
+    // chunk c's bucket i at c * buckets + i; -1 where it holds no quad
+    const slots = this._chunks.count * this._mats.length;
+    this._vbTops = new Array(slots).fill(-1); // tops; textured mode submits under normal (0,0,-1)
+    this._vbSouths = new Array(slots).fill(-1); // exposed south quads; textured normal (0,1,0)
   }
 
   destroy() {
-    this._free();
+    for (let c = 0; c < this._chunks.count; c++) this._free(c);
     vertex_format_delete(this._format);
   }
 
-  _free() {
-    for (let i = 0; i < this._mats.length; i++) {
+  _free(c) {
+    const n = this._mats.length;
+    for (let i = c * n; i < c * n + n; i++) {
       if (this._vbTops[i] !== -1) vertex_delete_buffer(this._vbTops[i]);
       if (this._vbSouths[i] !== -1) vertex_delete_buffer(this._vbSouths[i]);
       this._vbTops[i] = -1;
@@ -82,15 +85,20 @@ globalThis.RenderWalls = class RenderWalls {
   }
 
   /**
-   * Rebuild the per-bucket VBOs, counted first for exact fixed buffers (byte order: 3×f32 pos,
-   * R,G,B,A u8, 2×f32 texcoord).
+   * Rebuild chunk `c`'s per-bucket VBOs, counted first for exact fixed buffers (byte order:
+   * 3×f32 pos, R,G,B,A u8, 2×f32 texcoord).
    * An empty bucket stays -1 (vertex_create_buffer_from_buffer can't take a 0-byte buffer).
    */
-  _rebuild() {
-    this._baked = this.layer.edits;
-    this._free();
+  _bake(c) {
+    this._chunks.dirty[c] = 0;
+    this._free(c);
+    const r = this._chunks.bounds(c, this._range);
     const cols = this.grid.cols;
     const rows = this.grid.rows;
+    const x0 = r.x0;
+    const y0 = r.y0;
+    const x1 = r.x1 < cols ? r.x1 : cols;
+    const y1 = r.y1 < rows ? r.y1 : rows;
     const n = this._mats.length;
     const tops = [];
     const souths = [];
@@ -99,8 +107,8 @@ globalThis.RenderWalls = class RenderWalls {
       tops.push(0);
       souths.push(0);
     }
-    for (let gy = 0; gy < rows; gy++) {
-      for (let gx = 0; gx < cols; gx++) {
+    for (let gy = y0; gy < y1; gy++) {
+      for (let gx = x0; gx < x1; gx++) {
         const t = this.layer.get(gx, gy);
         if (!t) continue;
         const mi = this._bucketOf(t);
@@ -159,51 +167,48 @@ globalThis.RenderWalls = class RenderWalls {
     const cw = this.grid.cellWidth;
     const ch = this.grid.cellHeight;
     const H = this.height;
-    for (let gy = 0; gy < rows; gy++) {
-      for (let gx = 0; gx < cols; gx++) {
+    const base = c * n;
+    for (let gy = y0; gy < y1; gy++) {
+      for (let gx = x0; gx < x1; gx++) {
         const t = this.layer.get(gx, gy);
         if (!t) continue;
         const mi = this._bucketOf(t);
-        const x0 = gx * cw;
-        const y0 = gy * ch;
-        const x1 = x0 + cw;
-        const y1 = y0 + ch;
+        const px0 = gx * cw;
+        const py0 = gy * ch;
+        const px1 = px0 + cw;
+        const py1 = py0 + ch;
         // TOP quad lying flat at -H (up = -z)
         const bt = bufT[mi];
-        vert(bt, mi, x0, y0, -H, U0[mi], V0[mi]);
-        vert(bt, mi, x1, y0, -H, U1[mi], V0[mi]);
-        vert(bt, mi, x1, y1, -H, U1[mi], V1[mi]);
-        vert(bt, mi, x0, y0, -H, U0[mi], V0[mi]);
-        vert(bt, mi, x1, y1, -H, U1[mi], V1[mi]);
-        vert(bt, mi, x0, y1, -H, U0[mi], V1[mi]);
-        // SOUTH face at y1, top edge shared with the TOP quad (no seam)
+        vert(bt, mi, px0, py0, -H, U0[mi], V0[mi]);
+        vert(bt, mi, px1, py0, -H, U1[mi], V0[mi]);
+        vert(bt, mi, px1, py1, -H, U1[mi], V1[mi]);
+        vert(bt, mi, px0, py0, -H, U0[mi], V0[mi]);
+        vert(bt, mi, px1, py1, -H, U1[mi], V1[mi]);
+        vert(bt, mi, px0, py1, -H, U0[mi], V1[mi]);
+        // SOUTH face on the cell's south edge, top edge shared with the TOP quad (no seam)
         if (!this.layer.get(gx, gy + 1)) {
           const bs = bufS[mi];
-          vert(bs, mi, x0, y1, -H, U0[mi], SV0[mi]);
-          vert(bs, mi, x1, y1, -H, U1[mi], SV0[mi]);
-          vert(bs, mi, x1, y1, 0, U1[mi], SV1[mi]);
-          vert(bs, mi, x0, y1, -H, U0[mi], SV0[mi]);
-          vert(bs, mi, x1, y1, 0, U1[mi], SV1[mi]);
-          vert(bs, mi, x0, y1, 0, U0[mi], SV1[mi]);
+          vert(bs, mi, px0, py1, -H, U0[mi], SV0[mi]);
+          vert(bs, mi, px1, py1, -H, U1[mi], SV0[mi]);
+          vert(bs, mi, px1, py1, 0, U1[mi], SV1[mi]);
+          vert(bs, mi, px0, py1, -H, U0[mi], SV0[mi]);
+          vert(bs, mi, px1, py1, 0, U1[mi], SV1[mi]);
+          vert(bs, mi, px0, py1, 0, U0[mi], SV1[mi]);
         }
       }
     }
     for (let i = 0; i < n; i++) {
       if (bufT[i] !== -1) {
-        this._vbTops[i] = vertex_create_buffer_from_buffer(
-          bufT[i],
-          this._format,
-        );
+        const vb = vertex_create_buffer_from_buffer(bufT[i], this._format);
         buffer_delete(bufT[i]);
-        vertex_freeze(this._vbTops[i]);
+        vertex_freeze(vb);
+        this._vbTops[base + i] = vb;
       }
       if (bufS[i] !== -1) {
-        this._vbSouths[i] = vertex_create_buffer_from_buffer(
-          bufS[i],
-          this._format,
-        );
+        const vb = vertex_create_buffer_from_buffer(bufS[i], this._format);
         buffer_delete(bufS[i]);
-        vertex_freeze(this._vbSouths[i]);
+        vertex_freeze(vb);
+        this._vbSouths[base + i] = vb;
       }
     }
   }
@@ -224,11 +229,19 @@ globalThis.RenderWalls = class RenderWalls {
   }
 
   draw(entities) {
-    if (this.layer.edits !== this._baked) this._rebuild();
-    let any = false;
-    for (let i = 0; i < this._mats.length; i++)
-      if (this._vbTops[i] !== -1) any = true;
-    if (!any) return;
+    const chunks = this._chunks;
+    chunks.sync();
+    const w = chunks.window(this.camera, this._win);
+    const dirty = chunks.dirty;
+    const nx = chunks.nx;
+    for (let cy = w.y0; cy < w.y1; cy++)
+      for (let cx = w.x0; cx < w.x1; cx++) if (dirty[cy * nx + cx] === 1) this._bake(cy * nx + cx);
+    const n = this._mats.length;
+    let walls = 0;
+    for (let cy = w.y0; cy < w.y1; cy++)
+      for (let cx = w.x0; cx < w.x1; cx++)
+        for (let i = 0; i < n; i++) if (this._vbTops[(cy * nx + cx) * n + i] !== -1) walls++;
+    if (walls === 0) return;
     // depth-writing; the global default is off
     gpu_set_zwriteenable(true);
     const lit = this.lights !== undefined && this.lights.litOk;
@@ -236,11 +249,15 @@ globalThis.RenderWalls = class RenderWalls {
     // all tops under normal (0,0,-1), then all souths under (0,1,0) — one normal set per
     // orientation; flat buckets ignore u_normal (their normals ride the packed texcoord).
     if (lit) shader_set_uniform_f(this.lights.uNormal, 0, 0, -1);
-    for (let i = 0; i < this._mats.length; i++)
-      this._submit(this._vbTops[i], this._mats[i], lit);
+    for (let cy = w.y0; cy < w.y1; cy++)
+      for (let cx = w.x0; cx < w.x1; cx++)
+        for (let i = 0; i < n; i++)
+          this._submit(this._vbTops[(cy * nx + cx) * n + i], this._mats[i], lit);
     if (lit) shader_set_uniform_f(this.lights.uNormal, 0, 1, 0);
-    for (let i = 0; i < this._mats.length; i++)
-      this._submit(this._vbSouths[i], this._mats[i], lit);
+    for (let cy = w.y0; cy < w.y1; cy++)
+      for (let cx = w.x0; cx < w.x1; cx++)
+        for (let i = 0; i < n; i++)
+          this._submit(this._vbSouths[(cy * nx + cx) * n + i], this._mats[i], lit);
     if (lit) shader_reset();
     gpu_set_zwriteenable(false);
   }

@@ -209,6 +209,7 @@
     {"id":{"name":"CameraPan","path":"scripts/CameraPan/CameraPan.yy",},},
     {"id":{"name":"Cameras","path":"scripts/Cameras/Cameras.yy",},},
     {"id":{"name":"CameraSystem","path":"scripts/CameraSystem/CameraSystem.yy",},},
+    {"id":{"name":"Chunks","path":"scripts/Chunks/Chunks.yy",},},
     {"id":{"name":"Cold","path":"scripts/Cold/Cold.yy",},},
     {"id":{"name":"ColdSystem","path":"scripts/ColdSystem/ColdSystem.yy",},},
     {"id":{"name":"Colliders","path":"scripts/Colliders/Colliders.yy",},},

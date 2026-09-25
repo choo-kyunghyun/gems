@@ -4,12 +4,13 @@
  * reloaded layer strews the same field with no entity and no save state. Clumps are depth-written
  * alpha-cut uprights with billboard pitch compensation; a `flat` def lies on the ground plane
  * instead. The sheet is a white tint mask, so one sheet colors every biome. Insert right after the
- * terrain passes, so the clumps are in the depth pool before the entities draw.
+ * terrain passes, so the clumps are in the depth pool before the entities draw. Baked per chunk
+ * (`Chunks`), so a terrain write rebakes only the chunks it reaches, once they are in view.
  * @implements {RenderPass}
  */
 globalThis.RenderGrass = class RenderGrass {
   /**
-   * `layer.get(gx, gy)` answers a TileType or nothing. A def grows on TileType `id` from a sheet
+   * `layer` is a tile layer (`LevelLayer`). A def grows on TileType `id` from a sheet
    * of clump variants (origin at the foot); `chance` is the share of eligible cells carrying any,
    * `edge` includes transition cells, and `flat` lays variants with sprite-up as map north.
    * `opt.wind` is the sway strength (0 = rigid), phased on the sim clock `opt.time`.
@@ -25,8 +26,13 @@ globalThis.RenderGrass = class RenderGrass {
     this.alphaRef = opt.alphaRef ?? 0.5;
     this.wind = opt.wind ?? 0;
     this.time = opt.time;
-    this._batches = []; // parallel to defs; undefined where a def placed nothing
-    this._baked = -1; // the layer's `edits` at the last bake; -1 = never
+    this._chunks = new Chunks(grid, layer);
+    // chunk k's batch for def d at k * defs.length + d; undefined where the def placed nothing
+    this._batches = new Array(this._chunks.count * defs.length);
+    this._range = { x0: 0, y0: 0, x1: 0, y1: 0 }; // the chunk being baked
+    this._win = { x0: 0, y0: 0, x1: 0, y1: 0 }; // the chunks in view this frame
+    this._idOf = []; // per palette index, the TileType id; rebuilt per bake
+    this._uvs = []; // per frame of the def being baked, its UVs
     this._lit = shMeshlit;
     this._litOk = shaders_are_supported() && shader_is_compiled(this._lit);
     this._uAlphaRef = this._litOk
@@ -48,31 +54,32 @@ globalThis.RenderGrass = class RenderGrass {
     this._batches = [];
   }
 
-  /** The TileType id at a cell, or -1 off the layer or on an empty cell. */
-  _idAt(gx, gy) {
-    const { cols, rows } = this.grid;
-    if (gx < 0 || gy < 0 || gx >= cols || gy >= rows) return -1;
-    const t = this.layer.get(gx, gy);
-    return t ? t.id : -1;
-  }
-
-  /** A cell of `id` whose 4-neighbours are `id` too, clear of every transition. */
-  _interior(gx, gy, id) {
-    if (this._idAt(gx, gy) !== id) return false;
-    if (this._idAt(gx - 1, gy) !== id) return false;
-    if (this._idAt(gx + 1, gy) !== id) return false;
-    if (this._idAt(gx, gy - 1) !== id) return false;
-    return this._idAt(gx, gy + 1) === id;
-  }
-
-  _rebuild() {
-    this._baked = this.layer.edits;
-    this._free();
+  /**
+   * Rebakes chunk `c`, one batch per def. A def grows on its own cells, or with no `edge` only on
+   * those whose 4-neighbours are its too, clear of every transition; the cells are read off the
+   * layer's palette indexes, never a call per cell.
+   */
+  _bake(c) {
+    this._chunks.dirty[c] = 0;
+    const r = this._chunks.bounds(c, this._range);
     const cols = this.grid.cols;
     const rows = this.grid.rows;
+    const x0 = r.x0;
+    const y0 = r.y0;
+    const x1 = r.x1 < cols ? r.x1 : cols;
+    const y1 = r.y1 < rows ? r.y1 : rows;
     const cw = this.grid.cellWidth;
     const ch = this.grid.cellHeight;
-    for (let k = 0; k < this.defs.length; k++) {
+    const d = this.layer.ids.data;
+    const types = this.layer.types;
+    const idOf = this._idOf; // palette index -> TileType id, -1 for empty
+    idOf.length = types.length;
+    idOf[0] = -1;
+    for (let p = 1; p < types.length; p++) idOf[p] = types[p].id;
+    const nd = this.defs.length;
+    for (let k = 0; k < nd; k++) {
+      const slot = c * nd + k;
+      if (this._batches[slot] !== undefined) this._batches[slot].destroy();
       const def = this.defs[k];
       const spr = def.sprite;
       const frames = sprite_get_number(spr);
@@ -89,19 +96,26 @@ globalThis.RenderGrass = class RenderGrass {
       const tint = def.tint !== undefined ? def.tint : c_white;
       const flat = def.flat === true;
       const salt = this.seed + k * 131;
+      const id = def.id;
+      const interior = def.edge !== true;
+      const uvs = this._uvs; // per frame, read once per bake
+      uvs.length = 0;
       const batch = new VertexBatch().begin();
-      for (let gy = 0; gy < rows; gy++) {
-        for (let gx = 0; gx < cols; gx++) {
-          const on =
-            def.edge === true
-              ? this._idAt(gx, gy) === def.id
-              : this._interior(gx, gy, def.id);
-          if (!on) continue;
+      for (let gy = y0; gy < y1; gy++) {
+        for (let gx = x0; gx < x1; gx++) {
+          const i = gy * cols + gx;
+          if (idOf[d[i]] !== id) continue;
+          if (interior) {
+            if (gx === 0 || idOf[d[i - 1]] !== id) continue;
+            if (gx === cols - 1 || idOf[d[i + 1]] !== id) continue;
+            if (gy === 0 || idOf[d[i - cols]] !== id) continue;
+            if (gy === rows - 1 || idOf[d[i + cols]] !== id) continue;
+          }
           if (chance < 1 && hash2(gx, gy, salt + 1) >= chance) continue;
           const count =
             minC + Math.floor(hash2(gx, gy, salt) * (maxC - minC + 1));
-          for (let c = 0; c < count; c++) {
-            const s2 = salt + 7 + c * 53;
+          for (let n = 0; n < count; n++) {
+            const s2 = salt + 7 + n * 53;
             // snapped to the sheet's texel grid so the denser art still samples whole
             const px =
               Math.round((gx * cw + 2 + hash2(gx, gy, s2) * (cw - 4)) * dens) / dens;
@@ -114,30 +128,40 @@ globalThis.RenderGrass = class RenderGrass {
             // the packer-trimmed rect, foot on the anchor; a mirrored clump anchors from its
             // right edge
             const sc = sMin + hash2(gx, gy, s2 + 4) * (sMax - sMin);
-            const uv = batch.uvs(spr, frame);
+            let uv = uvs[frame];
+            if (uv === undefined) {
+              uv = batch.uvs(spr, frame);
+              uvs[frame] = uv;
+            }
             const w = (sw * uv[6] * sc) / dens;
             const h = (sh * uv[7] * sc) / dens;
             const a = ((xoff - uv[4]) * sc) / dens;
             const z0 = (-(yoff - uv[5]) * sc) / dens;
             const mirror = hash2(gx, gy, s2 + 3) >= 0.5;
-            const x0 = mirror ? px - (w - a) : px - a;
+            const qx = mirror ? px - (w - a) : px - a;
             const u0 = mirror ? uv[2] : uv[0];
             const u1 = mirror ? uv[0] : uv[2];
-            if (flat) batch.addQuad(x0, py + z0, w, h, u0, uv[1], u1, uv[3], tint);
-            else batch.addUpright(x0, py, z0, w, h, u0, uv[1], u1, uv[3], tint);
+            if (flat) batch.addQuad(qx, py + z0, w, h, u0, uv[1], u1, uv[3], tint);
+            else batch.addUpright(qx, py, z0, w, h, u0, uv[1], u1, uv[3], tint);
           }
         }
       }
       batch.end();
       if (batch.count === 0) {
         batch.destroy();
-        this._batches.push(undefined);
-      } else this._batches.push(batch);
+        this._batches[slot] = undefined;
+      } else this._batches[slot] = batch;
     }
   }
 
   draw(entities) {
-    if (this.layer.edits !== this._baked) this._rebuild();
+    const chunks = this._chunks;
+    chunks.sync();
+    const w = chunks.window(this.camera, this._win);
+    const dirty = chunks.dirty;
+    const nx = chunks.nx;
+    for (let cy = w.y0; cy < w.y1; cy++)
+      for (let cx = w.x0; cx < w.x1; cx++) if (dirty[cy * nx + cx] === 1) this._bake(cy * nx + cx);
     // pitch compensation is a z-scale about the ground plane, so every clump grows from its own
     // foot and a flat def is untouched
     const lit = this.lights !== undefined && this.lights.litOk && this._litOk;
@@ -146,14 +170,18 @@ globalThis.RenderGrass = class RenderGrass {
     const ident = matrix_build_identity();
     gpu_set_zwriteenable(true);
     matrix_set(matrix_world, matrix_build(0, 0, 0, 0, 0, 0, 1, 1, tall));
-    for (let k = 0; k < this.defs.length; k++) {
-      const batch = this._batches[k];
-      if (batch === undefined) continue;
+    const batches = this._batches;
+    const nd = this.defs.length;
+    for (let k = 0; k < nd; k++) {
+      let placed = 0;
+      for (let cy = w.y0; cy < w.y1; cy++)
+        for (let cx = w.x0; cx < w.x1; cx++)
+          if (batches[(cy * nx + cx) * nd + k] !== undefined) placed++;
+      if (placed === 0) continue;
       if (lit) {
         this.lights.setupLights(entities);
         shader_set_uniform_f(this.lights.uUseTex, 1);
-        if
- (this.defs[k].flat === true)
+        if (this.defs[k].flat === true)
           shader_set_uniform_f(this.lights.uNormal, 0, 0, -1);
         else shader_set_uniform_f(this.lights.uNormal, 0, 0.5, -0.866);
         shader_set_uniform_f(this._uAlphaRef, this.alphaRef);
@@ -163,7 +191,11 @@ globalThis.RenderGrass = class RenderGrass {
           this.time !== undefined ? this.time() : 0,
         );
       }
-      batch.submit();
+      for (let cy = w.y0; cy < w.y1; cy++)
+        for (let cx = w.x0; cx < w.x1; cx++) {
+          const batch = batches[(cy * nx + cx) * nd + k];
+          if (batch !== undefined) batch.submit();
+        }
       if (lit) shader_reset();
     }
     matrix_set(matrix_world, ident);

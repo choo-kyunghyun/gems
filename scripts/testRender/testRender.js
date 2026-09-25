@@ -306,7 +306,7 @@ Test.register(Test.CHECK, [
   },
   {
     // A tile pass rebakes on the draw after its layer's `edits` moves, and only then: an edit
-    // needs no call into the pass.
+    // needs no call into the pass. The level is one chunk, so a bake is the whole layer.
     id: "render.rebake",
     frames: 4,
     setup(ctx) {
@@ -316,11 +316,11 @@ Test.register(Test.CHECK, [
       surface_free(surf);
       ctx.type = new TileType({ id: 0, pathCost: 1 });
       ctx.pass = new RenderTileMap(ctx.layer, ctx.grid, ctx.spr);
-      const rebuild = ctx.pass._rebuild.bind(ctx.pass);
+      const bake = ctx.pass._bake.bind(ctx.pass);
       ctx.bakes = 0;
-      ctx.pass._rebuild = () => {
+      ctx.pass._bake = (k) => {
         ctx.bakes++;
-        rebuild();
+        bake(k);
       };
       ctx.seen = [];
     },
@@ -338,6 +338,57 @@ Test.register(Test.CHECK, [
       ctx.pass.destroy();
       ctx.level.destroy();
       sprite_delete(ctx.spr);
+    },
+  },
+  {
+    // a write marks the chunks its cell and neighbours reach, and a view reaches only its own
+    id: "render.chunks",
+    setup(ctx) {
+      Object.assign(ctx, Test.level(40, 40));
+      Test.types(ctx);
+      ctx.chunks = new Chunks(ctx.grid, ctx.layer);
+    },
+    verify(ctx, t) {
+      const c = ctx.chunks;
+      const layer = ctx.layer;
+      const stale = () => {
+        let n = 0;
+        for (let k = 0; k < c.count; k++) n += c.dirty[k];
+        return n;
+      };
+      t.eq(c.count, 9, "41 slots a side make 3x3 chunks of 16");
+      c.sync();
+      t.eq(stale(), 9, "the first sync marks every chunk");
+      c.dirty.fill(0);
+      c.sync();
+      t.eq(stale(), 0, "an unmoved layer marks nothing");
+      layer.set(5, 5, ctx.rock);
+      c.sync();
+      t.ok(stale() === 1 && c.dirty[0] === 1, "an interior write marks its own chunk");
+      c.dirty.fill(0);
+      layer.set(16, 16, ctx.rock);
+      c.sync();
+      t.ok(stale() === 4 && c.dirty[0] === 1 && c.dirty[4] === 1, "a write on a chunk edge marks every chunk its neighbours reach");
+      c.dirty.fill(0);
+      layer.set(39, 39, ctx.rock);
+      c.sync();
+      t.ok(stale() === 1 && c.dirty[8] === 1, "the far corner line has its chunk");
+      const b = c.bounds(8, {});
+      t.ok(b.x0 === 32 && b.x1 === 41 && b.y1 === 41, "the last chunk ends at the far corner line");
+      c.dirty.fill(0);
+      for (let i = 0; i < 300; i++) layer.set(i % 40, 20, ctx.rock);
+      c.dirty.fill(0);
+      c.sync();
+      t.eq(stale(), 9, "a sync behind the log's reach marks every chunk");
+
+      const view = { width: 64, groundRect: () => ({ x1: 0, y1: 0, x2: 64, y2: 64 }) };
+      const w = c.window(view, {});
+      t.ok(w.x0 === 0 && w.y0 === 0 && w.x1 === 1 && w.y1 === 1, "a view reaches only its chunks");
+      const all = c.window(undefined, {});
+      t.ok(all.x1 === 3 && all.y1 === 3, "no camera reaches every chunk");
+    },
+    teardown(ctx) {
+      ctx.level.destroy();
     },
   },
   {

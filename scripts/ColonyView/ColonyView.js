@@ -120,6 +120,7 @@ globalThis.ColonyView = {
           minId: mats[i].type.id,
           skipAbove: i < mats.length - 1 ? mats[i + 1].type.id : undefined,
           wave: ColonyView._wave(mats[i].material),
+          camera: camera,
         });
         terrainPasses.push(pass);
         renderer.insert(pass);
@@ -155,6 +156,7 @@ globalThis.ColonyView = {
         const pass = new RenderTileMap(layer, level.grid, cfg.sprite, {
           autotile: cfg.type,
           color: Color.parse(cfg.color),
+          camera: camera,
         });
         tilePasses[cfg.key] = pass;
         renderer.insert(pass);
@@ -166,6 +168,7 @@ globalThis.ColonyView = {
           autotile: cfg.type,
           match: mat.id,
           color: Color.parse(mat.color),
+          camera: camera,
         });
         tilePasses[cfg.key + "." + mat.key] = pass;
         renderer.insert(pass);
@@ -247,12 +250,14 @@ globalThis.ColonyView = {
         frame: 0,
         lights: meshPass,
         materials: wallMats,
+        camera: camera,
       });
       renderer.insert(tilePasses.wall);
       // the flat fence config stays for the editor
       tilePasses.fence = new RenderFence(level.grid, rt.fenceLayer, {
         color: Color.parse(contentTiles.get("fence").color),
         lights: meshPass,
+        camera: camera,
       });
       renderer.insert(tilePasses.fence);
     }

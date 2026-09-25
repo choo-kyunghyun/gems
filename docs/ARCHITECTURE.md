@@ -204,7 +204,7 @@ and are cited from here, never restated):
       `TODO`.
     - A render pass mirroring a grid never sweeps it per frame — it bakes (a `VertexBuffer`, a
       centroid list) and re-sweeps only when the source's `edits` moves (`NavGrid.sync`'s signal
-      shape).
+      shape), and a layer-sized bake re-sweeps only the chunks its write log reaches (`Chunks`).
 - Live queries over stored handles: an entity id is a generational handle (`Handle`), not an
   identity. A consumer re-derives the entity it wants by component-presence query at use
   (`scene.playerId` from `Playable`, the camera target and the audio listener's body from
