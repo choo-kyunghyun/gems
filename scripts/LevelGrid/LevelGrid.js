@@ -10,9 +10,11 @@
  * @property {function(number, number): TileType | undefined} get
  * @property {function(number, number, TileType | undefined): LevelLayer} set
  * @property {function(number, number): number | undefined} costAt  the cell's nav cost; undefined passes through to the layer below
- * @property {number} edits  count of cell writes so far; a mirror diffs it
- * @property {number[]} dirty  cell indexes written since the mirror last drained them
- * @property {boolean} dirtyAll  the writes outran `dirty` — the mirror resamples every cell
+ * @property {number} edits  count of cell writes so far — a reader's cursor
+ * @property {number[]} log  the cell indexes of writes `base`+1..`edits`, in order
+ * @property {number} base  the edit count the log starts after
+ * @property {function(number): number} since  where a reader at an edit count resumes in `log`;
+ *   -1 when it must resample every cell
  * @property {function(): void} destroy
  */
 
@@ -70,13 +72,6 @@ globalThis.LevelGrid = class LevelGrid {
       if (cost !== undefined) return cost;
     }
     return Infinity;
-  }
-
-  /** Sum of the layers' edit counts — moves on any tile write, so a mirror knows to resample. */
-  edits() {
-    let n = 0;
-    for (let i = 0; i < this.layers.length; i++) n += this.layers[i].edits;
-    return n;
   }
 
   worldToGrid(wx, wy) {

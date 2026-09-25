@@ -100,7 +100,7 @@ Test.register(Test.CHECK, [
       t.ok(twin.get(1, 0) === ctx.rock, "a cell comes back as its type");
       t.ok(twin.get(2, 1) === ctx.mud, "another cell too");
       t.ok(!twin.get(0, 0), "an empty cell stays empty");
-      t.ok(twin.edits > 0 && twin.dirtyAll, "an unpack marks every cell edited");
+      t.ok(twin.edits > 0 && twin.since(0) < 0, "an unpack marks every cell edited");
       buffer_delete(buf);
       grid.destroy();
     },
@@ -355,6 +355,29 @@ Test.register(Test.CHECK, [
       ctx.layer.set(0, 0, ctx.rock);
       nav.sync();
       t.eq(nav.grid.get(3, 3), Infinity, "a resample re-applies the stamp");
+
+      // the log is shared, never drained: a second reader keeps its own cursor
+      const twin = new NavGrid(ctx.grid);
+      twin.sync();
+      ctx.layer.set(5, 5, ctx.rock);
+      nav.sync();
+      t.eq(twin.sync(), true, "a second reader sees a write the first already synced");
+      t.eq(twin.grid.get(5, 5), Infinity, "and replays its cell");
+
+      const layer = ctx.layer;
+      while (layer.log.length < 256) layer.set(0, 7, ctx.rock);
+      nav.sync();
+      layer.set(2, 7, ctx.mud);
+      t.eq(layer.since(layer.edits - 1), 0, "a reader caught up at a full log still replays the next write");
+      const behind = layer.edits;
+      for (let i = 0; i < 300; i++) layer.set(i % 8, 6, ctx.rock);
+      layer.set(1, 7, ctx.mud);
+      t.eq(layer.since(behind), -1, "a reader past the log's reach resamples everything");
+      nav.sync();
+      twin.sync();
+      t.ok(nav.grid.get(1, 7) === 3 && nav.grid.get(7, 6) === Infinity, "the resample is whole");
+      t.ok(twin.grid.get(2, 7) === 3 && twin.grid.get(1, 7) === 3, "for every reader behind");
+      twin.destroy();
     },
     teardown(ctx) {
       ctx.nav.destroy();

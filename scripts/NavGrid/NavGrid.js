@@ -6,8 +6,8 @@
  *
  * Two sources, each with its own refresh signal, composed base-then-stamp so neither re-reads the
  * other's input:
- *   - the tile layers' cost is the base, resampled by `sync` only when the level's edit counter
- *     moves;
+ *   - the tile layers' cost is the base, resampled by `sync` only where a layer's edit cursor
+ *     moved;
  *   - the kinematic-solid colliders are stamped over a copy of the base by `stamp`, with the
  *     collider generation they were taken at, so the one live blocking source is polled by
  *     number. Dynamic bodies never enter: agents don't block each other's planning.
@@ -21,7 +21,8 @@ globalThis.NavGrid = class NavGrid {
     this.cursor = 0;
     this._base = tiles.alloc(); // terrain costs alone
     this._cells = { x0: 0, y0: 0, x1: 0, y1: 0 }; // a static's cell range, reused per stamp
-    this._edits = -1; // the edit count the base was sampled at; -1 = never
+    this._layers = null; // the layer stack the base was sampled from; null = never
+    this._seen = []; // per layer, the edit count the base was sampled at
     this.statics = []; // the last stamped snapshot, re-applied when the base resamples
     this.gen = -1; // the collider generation the snapshot was taken at; -1 = never
   }
@@ -36,18 +37,28 @@ globalThis.NavGrid = class NavGrid {
   }
 
   /**
-   * Resample the base where the layers were edited, then recompose — only the dirty cells, or
-   * everything on the first sync or after a bulk paint. Once per frame, before the sim. Returns
-   * whether it resampled.
+   * Resample the base where the layers were edited since the last sync, then recompose —
+   * everything on the first sync, after a bulk paint, or when the layer stack changed. Once per
+   * frame, before the sim. Returns whether it resampled.
    */
   sync() {
     const tiles = this.tiles;
-    const edits = tiles.edits();
-    if (edits === this._edits) return false;
     const layers = tiles.layers;
-    let all = this._edits === -1;
-    this._edits = edits;
-    for (let i = 0; i < layers.length; i++) if (layers[i].dirtyAll) all = true;
+    const seen = this._seen;
+    let held = this._layers;
+    let all = held === null || held.length !== layers.length;
+    let moved = all;
+    for (let i = 0; i < layers.length && !all; i++) {
+      const layer = layers[i];
+      if (held[i] !== layer) {
+        all = true;
+        moved = true;
+      } else if (layer.edits !== seen[i]) {
+        moved = true;
+        if (layer.since(seen[i]) < 0) all = true;
+      }
+    }
+    if (!moved) return false;
 
     // every layer spans the level, so a layer's cell index is this grid's
     const b = this._base.data;
@@ -57,16 +68,19 @@ globalThis.NavGrid = class NavGrid {
         for (let x = 0; x < cols; x++) b[y * cols + x] = tiles.costAt(x, y);
     } else {
       for (let i = 0; i < layers.length; i++) {
-        const dirty = layers[i].dirty;
-        for (let k = 0; k < dirty.length; k++) {
-          const idx = dirty[k];
+        const log = layers[i].log;
+        for (let k = layers[i].since(seen[i]); k < log.length; k++) {
+          const idx = log[k];
           b[idx] = tiles.costAt(idx % cols, Math.floor(idx / cols));
         }
       }
     }
+    if (held === null) held = this._layers = [];
+    held.length = layers.length;
+    seen.length = layers.length;
     for (let i = 0; i < layers.length; i++) {
-      layers[i].dirty.length = 0;
-      layers[i].dirtyAll = false;
+      held[i] = layers[i];
+      seen[i] = layers[i].edits;
     }
     this._compose();
     return true;
