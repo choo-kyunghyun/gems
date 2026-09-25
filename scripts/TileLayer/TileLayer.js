@@ -10,9 +10,9 @@ const LOG_CAP = 256; // cell writes kept for replay before a reader behind them 
  * and a remesh are each seen by nav on its own, so no resync call follows.
  * An empty cell reads 0, not undefined, so occupancy is a truthy test, never `!== undefined`.
  *
- * A cell holds a palette index, not the TileType: `ids` is the level-sized index channel (0 =
- * empty) and `types` the layer's palette, index → TileType, grown by `bind` in first-use order —
- * so a bulk consumer walks plain numbers, and a TileType's `id` is only its save name.
+ * A cell holds its TileType's `id`: `ids` is the level-sized id channel (0 = empty) and `types`
+ * the layer's table, id → TileType, filled by `bind` — so a bulk consumer walks plain numbers that
+ * mean the same on disk. A type's id is a u16 above 0, held by one type per layer.
  * @implements {LevelLayer}
  */
 globalThis.TileLayer = class TileLayer {
@@ -34,18 +34,23 @@ globalThis.TileLayer = class TileLayer {
     this.types = undefined;
   }
 
-  /** The palette index of `type`, appended on first use. */
+  /** Enters `type` under its id; throws on an id out of range or held by another type. */
   bind(type) {
-    const types = this.types;
-    for (let i = 1; i < types.length; i++) if (types[i] === type) return i;
-    types.push(type);
-    return types.length - 1;
+    const id = type.id;
+    if (Number.isInteger(id) === false || id < 1 || id > 0xffff)
+      throw new Error(`TileLayer.bind: id ${id} is not a u16 above 0`);
+    const held = this.types[id];
+    if (held === type) return id;
+    if (held !== undefined)
+      throw new Error(`TileLayer.bind: id ${id} is held by another type`);
+    this.types[id] = type;
+    return id;
   }
 
   /** Caller must remesh after editing a solid layer. */
   set(x, y, type) {
     const i = y * this.cols + x;
-    this.ids.data[i] = type ? this.bind(type) : 0;
+    this.ids.data[i] = type ? (this.types[type.id] === type ? type.id : this.bind(type)) : 0;
     this.edits++;
     const log = this.log;
     if (log.length === LOG_CAP) {

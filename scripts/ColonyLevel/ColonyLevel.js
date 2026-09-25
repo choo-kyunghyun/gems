@@ -252,30 +252,24 @@ globalThis.ColonyLevel = {
       rows: shape.rows,
     });
     const h = ColonyLevel._makeLayers(grid);
-    // per layer, the TileType each packed id means
+    // every type a packed id may name, bound before the cells arrive
     let mats;
-    const tables = [];
     for (let i = 0; i < contentTiles.LAYERS.length; i++) {
       const cfg = contentTiles.LAYERS[i];
-      const table = [];
+      const layer = h[cfg.key + "Layer"];
       if (cfg.key === "terrain" && terrainMats !== undefined) {
         const terrain = ColonyLevel._terrainTypes(terrainMats);
         mats = terrain.mats;
-        for (let t = 0; t < terrain.types.length; t++)
-          table[terrain.types[t].id] = terrain.types[t];
+        for (let t = 0; t < terrain.types.length; t++) layer.bind(terrain.types[t]);
       } else if (cfg.materials !== undefined) {
         const types = h[cfg.key + "Types"];
-        for (let m = 0; m < cfg.materials.length; m++) {
-          const t = types[cfg.materials[m].key];
-          table[t.id] = t;
-        }
+        for (let m = 0; m < cfg.materials.length; m++)
+          layer.bind(types[cfg.materials[m].key]);
       } else {
-        const t = h[cfg.key + "Type"];
-        table[t.id] = t;
+        layer.bind(h[cfg.key + "Type"]);
       }
-      tables.push(table);
     }
-    if (!grid.unpack(buf, (l, id) => tables[l][id])) {
+    if (!grid.unpack(buf)) {
       grid.destroy();
       return null;
     }

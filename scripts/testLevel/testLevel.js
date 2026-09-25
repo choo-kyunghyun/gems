@@ -80,8 +80,22 @@ Test.register(Test.CHECK, [
       layer.set(1, 0, ctx.rock);
       layer.set(2, 1, ctx.mud);
       layer.set(0, 1, ctx.rock);
-      t.ok(layer.ids.data[1] === 1 && layer.ids.data[3] === 1, "a cell holds its palette index");
-      t.eq(layer.ids.data[5], 2, "a new type takes the next index");
+      t.ok(layer.ids.data[1] === 7 && layer.ids.data[3] === 7, "a cell holds its type's id");
+      t.eq(layer.ids.data[5], 9, "another type's cell holds its own id");
+      let taken = "";
+      try {
+        layer.bind(new TileType({ id: 7 }));
+      } catch (e) {
+        taken = e.message;
+      }
+      t.ok(taken !== "", "a second type on a held id throws");
+      let range = "";
+      try {
+        layer.bind(new TileType({ id: "rock" }));
+      } catch (e) {
+        range = e.message;
+      }
+      t.ok(range !== "", "an id that is no u16 above 0 throws");
       const buf = ctx.grid.pack();
       buffer_seek(buf, buffer_seek_start, 20 + 2 * 1);
       t.eq(buffer_read(buf, buffer_u16), 7, "the blob names a cell by its type's id");
@@ -93,12 +107,11 @@ Test.register(Test.CHECK, [
       const grid = new LevelGrid({ cellWidth: shape.cellWidth, cellHeight: shape.cellHeight, cols: shape.cols, rows: shape.rows });
       const twin = new TileLayer(grid, { emptyCost: 1 });
       grid.insert(twin);
-      const types = [];
-      types[ctx.rock.id] = ctx.rock;
-      types[ctx.mud.id] = ctx.mud;
-      t.ok(grid.unpack(buf, (_l, id) => types[id]), "the blob unpacks into the fresh grid");
+      twin.bind(ctx.rock);
+      t.ok(grid.unpack(buf), "the blob unpacks into the fresh grid");
       t.ok(twin.get(1, 0) === ctx.rock, "a cell comes back as its type");
-      t.ok(twin.get(2, 1) === ctx.mud, "another cell too");
+      t.ok(twin.get(0, 1) === ctx.rock, "another cell too");
+      t.ok(!twin.get(2, 1), "a cell whose id the layer holds no type for comes back empty");
       t.ok(!twin.get(0, 0), "an empty cell stays empty");
       t.ok(twin.edits > 0 && twin.since(0) < 0, "an unpack marks every cell edited");
       buffer_delete(buf);

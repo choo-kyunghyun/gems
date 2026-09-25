@@ -46,8 +46,8 @@ globalThis.Test = {
 
   /** Built at setup, never at load (docs/GMRT.md → load order). */
   types(ctx) {
-    ctx.rock = new TileType({ id: "test_rock", pathCost: null });
-    ctx.mud = new TileType({ id: "test_mud", pathCost: 3 });
+    ctx.rock = new TileType({ id: 1, pathCost: null });
+    ctx.mud = new TileType({ id: 2, pathCost: 3 });
   },
 
   /** A store of `count` entities carrying Position, plus an n-long cycling id list and its data. */

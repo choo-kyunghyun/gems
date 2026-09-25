@@ -68,7 +68,7 @@ Test.register(Test.STRESS, [
       ctx.entities = s;
 
       const rand = _stressRand(12345);
-      const rock = new TileType({ id: "stress_rock", pathCost: null });
+      const rock = new TileType({ id: 1, pathCost: null });
       for (let w = 0; w < WALLS; w++) {
         const x0 = 1 + Math.floor(rand() * (COLS - 8));
         const y0 = 1 + Math.floor(rand() * (ROWS - 8));

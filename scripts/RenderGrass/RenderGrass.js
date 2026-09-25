@@ -31,7 +31,6 @@ globalThis.RenderGrass = class RenderGrass {
     this._batches = new Array(this._chunks.count * defs.length);
     this._range = { x0: 0, y0: 0, x1: 0, y1: 0 }; // the chunk being baked
     this._win = { x0: 0, y0: 0, x1: 0, y1: 0 }; // the chunks in view this frame
-    this._idOf = []; // per palette index, the TileType id; rebuilt per bake
     this._uvs = []; // per frame of the def being baked, its UVs
     this._lit = shMeshlit;
     this._litOk = shaders_are_supported() && shader_is_compiled(this._lit);
@@ -57,7 +56,7 @@ globalThis.RenderGrass = class RenderGrass {
   /**
    * Rebakes chunk `c`, one batch per def. A def grows on its own cells, or with no `edge` only on
    * those whose 4-neighbours are its too, clear of every transition; the cells are read off the
-   * layer's palette indexes, never a call per cell.
+   * layer's ids, never a call per cell.
    */
   _bake(c) {
     this._chunks.dirty[c] = 0;
@@ -71,11 +70,6 @@ globalThis.RenderGrass = class RenderGrass {
     const cw = this.grid.cellWidth;
     const ch = this.grid.cellHeight;
     const d = this.layer.ids.data;
-    const types = this.layer.types;
-    const idOf = this._idOf; // palette index -> TileType id, -1 for empty
-    idOf.length = types.length;
-    idOf[0] = -1;
-    for (let p = 1; p < types.length; p++) idOf[p] = types[p].id;
     const nd = this.defs.length;
     for (let k = 0; k < nd; k++) {
       const slot = c * nd + k;
@@ -104,12 +98,12 @@ globalThis.RenderGrass = class RenderGrass {
       for (let gy = y0; gy < y1; gy++) {
         for (let gx = x0; gx < x1; gx++) {
           const i = gy * cols + gx;
-          if (idOf[d[i]] !== id) continue;
+          if (d[i] !== id) continue;
           if (interior) {
-            if (gx === 0 || idOf[d[i - 1]] !== id) continue;
-            if (gx === cols - 1 || idOf[d[i + 1]] !== id) continue;
-            if (gy === 0 || idOf[d[i - cols]] !== id) continue;
-            if (gy === rows - 1 || idOf[d[i + cols]] !== id) continue;
+            if (gx === 0 || d[i - 1] !== id) continue;
+            if (gx === cols - 1 || d[i + 1] !== id) continue;
+            if (gy === 0 || d[i - cols] !== id) continue;
+            if (gy === rows - 1 || d[i + cols] !== id) continue;
           }
           if (chance < 1 && hash2(gx, gy, salt + 1) >= chance) continue;
           const count =

@@ -1,11 +1,11 @@
 /**
- * A layer's cell value is a `TileType` instance, stored as an index into its palette.
+ * A layer's cell value is a `TileType` instance, stored as its id.
  * @typedef {Object} LevelLayer
  * @property {number} cols
  * @property {number} rows
- * @property {Grid} ids  the cells' palette indexes, 0 = empty
- * @property {Array<TileType|0>} types  the palette, index → TileType; `types[0]` is 0
- * @property {function(TileType): number} bind  a type's palette index, appended on first use
+ * @property {Grid} ids  the cells' TileType ids, 0 = empty
+ * @property {Array<TileType|0>} types  id → TileType; `types[0]` is 0
+ * @property {function(TileType): number} bind  enters a type under its id, returned
  * @property {function(): void} touchAll  marks every cell edited after a bulk write into `ids`
  * @property {function(number, number): TileType | undefined} get
  * @property {function(number, number, TileType | undefined): LevelLayer} set
@@ -155,12 +155,8 @@ globalThis.LevelGrid = class LevelGrid {
     buffer_write(buf, buffer_u32, n);
     const size = this.size;
     for (let l = 0; l < n; l++) {
-      const layer = this.layers[l];
-      const d = layer.ids.data;
-      const types = layer.types;
-      const saved = [0]; // palette index → the TileType id the buffer names it by
-      for (let k = 1; k < types.length; k++) saved[k] = types[k].id;
-      for (let i = 0; i < size; i++) buffer_write(buf, buffer_u16, saved[d[i]]);
+      const d = this.layers[l].ids.data;
+      for (let i = 0; i < size; i++) buffer_write(buf, buffer_u16, d[i]);
     }
     return buf;
   }
@@ -178,12 +174,12 @@ globalThis.LevelGrid = class LevelGrid {
   }
 
   /**
-   * Fill the tile layers from a pack() buffer. `typeOf(layerIndex, id)` maps a cell's stored id
-   * back to the TileType the layer holds (an unknown id → undefined leaves the cell empty and is
-   * logged). The buffer must describe this grid — same cols/rows and layer count — else nothing
-   * is written and false is returned. The buffer stays the caller's to free.
+   * Fill the tile layers from a pack() buffer, each layer's types bound beforehand: an id its
+   * layer holds no type for leaves the cell empty and is logged. The buffer must describe this
+   * grid — same cols/rows and layer count — else nothing is written and false is returned. The
+   * buffer stays the caller's to free.
    */
-  unpack(buf, typeOf) {
+  unpack(buf) {
     buffer_seek(buf, buffer_seek_start, 0);
     const cols = buffer_read(buf, buffer_u32);
     const rows = buffer_read(buf, buffer_u32);
@@ -202,24 +198,20 @@ globalThis.LevelGrid = class LevelGrid {
     for (let l = 0; l < n; l++) {
       const layer = this.layers[l];
       const d = layer.ids.data;
-      const local = []; // stored id → palette index, -1 for an id `typeOf` doesn't know
+      const types = layer.types;
       for (let i = 0; i < size; i++) {
         const id = buffer_read(buf, buffer_u16);
-        if (id === 0) continue;
-        let k = local[id];
-        if (k === undefined) {
-          const t = typeOf(l, id);
-          k = t === undefined ? -1 : layer.bind(t);
-          local[id] = k;
+        if (types[id] !== undefined) d[i] = id;
+        else {
+          d[i] = 0;
+          unknown++;
         }
-        if (k < 0) unknown++;
-        else d[i] = k;
       }
       layer.touchAll();
     }
     if (unknown > 0)
       Log.error(
-        `LevelGrid.unpack: ${unknown} cell(s) name a TileType id no layer knows`,
+        `LevelGrid.unpack: ${unknown} cell(s) name an id their layer holds no type for`,
       );
     return true;
   }

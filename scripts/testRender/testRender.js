@@ -314,7 +314,7 @@ Test.register(Test.CHECK, [
       const surf = surface_create(8, 8);
       ctx.spr = sprite_create_from_surface(surf, 0, 0, 8, 8, false, false, 0, 0);
       surface_free(surf);
-      ctx.type = new TileType({ id: 0, pathCost: 1 });
+      ctx.type = new TileType({ id: 1, pathCost: 1 });
       ctx.pass = new RenderTileMap(ctx.layer, ctx.grid, ctx.spr);
       const bake = ctx.pass._bake.bind(ctx.pass);
       ctx.bakes = 0;

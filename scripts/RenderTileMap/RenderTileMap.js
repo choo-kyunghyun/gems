@@ -57,8 +57,6 @@ globalThis.RenderTileMap = class RenderTileMap {
     this._batches = new Array(this._chunks.count); // per chunk; undefined where it drew nothing
     this._range = { x0: 0, y0: 0, x1: 0, y1: 0 }; // the chunk being baked
     this._win = { x0: 0, y0: 0, x1: 0, y1: 0 }; // the chunks in view this frame
-    this._fill = []; // per palette index, 1 when a cell counts as filled; rebuilt per dual bake
-    this._cover = []; // per palette index, 1 when the next material covers a cell
     this.camera = opt.camera;
     this.lights = opt.lights; // unset = unlit
     this.wave = opt.wave;
@@ -131,13 +129,14 @@ globalThis.RenderTileMap = class RenderTileMap {
     const { layer, grid, sprite } = this;
     const { cols, rows, cellWidth, cellHeight } = grid;
     const match = this.match;
+    const d = layer.ids.data;
     const x1 = r.x1 < cols ? r.x1 : cols;
     const y1 = r.y1 < rows ? r.y1 : rows;
     for (let y = r.y0; y < y1; y++) {
       for (let x = r.x0; x < x1; x++) {
-        const t = layer.get(x, y);
-        if (!t) continue;
-        if (match !== undefined) if (t.id !== match) continue;
+        const id = d[y * cols + x];
+        if (id === 0) continue;
+        if (match !== undefined) if (id !== match) continue;
         batch.addFrame(
           sprite,
           this._frameOf(x, y),
@@ -156,7 +155,7 @@ globalThis.RenderTileMap = class RenderTileMap {
    * Dual grid: a display tile centered on each data-grid corner, its frame the corner mask of the
    * four cells around it (TL=1 TR=2 BR=4 BL=8) — a cell counting when its TileType id is at least
    * `minId`, and off-grid reading empty so a level edge fades out rather than tiling past itself.
-   * The cells are read off the layer's palette indexes, never a call per corner.
+   * The cells are read off the layer's ids, never a call per corner.
    */
   _bakeDual(batch, r) {
     const { layer, grid, sprite } = this;
@@ -164,19 +163,9 @@ globalThis.RenderTileMap = class RenderTileMap {
     const hw = cellWidth * 0.5;
     const hh = cellHeight * 0.5;
     const d = layer.ids.data;
-    const types = layer.types;
-    const minId = this.minId;
+    const lo = this.minId > 1 ? this.minId : 1; // an empty cell (0) never fills
     const skip = this.skipAbove;
-    const fill = this._fill;
-    const cover = this._cover;
-    fill.length = types.length;
-    cover.length = types.length;
-    fill[0] = 0;
-    cover[0] = 0;
-    for (let p = 1; p < types.length; p++) {
-      fill[p] = types[p].id >= minId ? 1 : 0;
-      cover[p] = skip !== undefined ? (types[p].id >= skip ? 1 : 0) : 0;
-    }
+    const hi = skip === undefined ? Infinity : skip > 1 ? skip : 1;
     for (let j = r.y0; j < r.y1; j++) {
       const up = (j - 1) * cols;
       const dn = j * cols;
@@ -186,12 +175,12 @@ globalThis.RenderTileMap = class RenderTileMap {
         const br = i < cols ? (j < rows ? d[dn + i] : 0) : 0;
         const bl = i > 0 ? (j < rows ? d[dn + i - 1] : 0) : 0;
         let mask = 0;
-        if (fill[tl] === 1) mask |= 1;
-        if (fill[tr] === 1) mask |= 2;
-        if (fill[br] === 1) mask |= 4;
-        if (fill[bl] === 1) mask |= 8;
+        if (tl >= lo) mask |= 1;
+        if (tr >= lo) mask |= 2;
+        if (br >= lo) mask |= 4;
+        if (bl >= lo) mask |= 8;
         if (mask === 0) continue;
-        if (cover[tl] + cover[tr] + cover[br] + cover[bl] === 4) continue;
+        if (tl >= hi) if (tr >= hi) if (br >= hi) if (bl >= hi) continue;
         batch.addFrame(
           sprite,
           mask,
