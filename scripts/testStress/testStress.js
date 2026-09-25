@@ -75,10 +75,10 @@ Test.register(Test.STRESS, [
         const cw = 1 + Math.floor(rand() * 6);
         const ch = 1 + Math.floor(rand() * 6);
         for (let y = y0; y < y0 + ch; y++)
-          for (let x = x0; x < x0 + cw; x++) TileEdit.set(layer, x, y, rock);
+          for (let x = x0; x < x0 + cw; x++) layer.set(x, y, rock);
       }
       ctx.colliders = [];
-      TileEdit.remesh(s, grid, layer, ctx.colliders);
+      layer.remesh(s, grid, ctx.colliders);
       ctx.nav = PathfindingSystem.nav(level);
 
       const free = [];

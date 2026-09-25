@@ -57,7 +57,7 @@ globalThis.GrassSystem = {
       if (!front) continue;
       let covered = builtEnts[gx + "," + gy] !== undefined;
       for (let k = 0; k < lkeys.length; k++)
-        if (TileEdit.occupied(rt[lkeys[k] + "Layer"], gx, gy)) covered = true;
+        if (rt[lkeys[k] + "Layer"].occupied(gx, gy)) covered = true;
       if (covered) continue;
       layer.set(gx, gy, grass);
       count++;

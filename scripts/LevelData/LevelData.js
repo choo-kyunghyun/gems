@@ -79,7 +79,7 @@ globalThis.LevelData = {
         const x0 = ox + r[0];
         const y0 = oy + r[1];
         for (let y = y0; y < y0 + r[3]; y++)
-          for (let x = x0; x < x0 + r[2]; x++) TileEdit.set(layer, x, y, type);
+          for (let x = x0; x < x0 + r[2]; x++) layer.set(x, y, type);
       }
     }
 

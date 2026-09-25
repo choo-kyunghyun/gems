@@ -67,7 +67,7 @@ globalThis.Flora = {
     const rt = ColonyMap.runtime(level);
     const lkeys = contentBuild.tileLayers();
     for (let i = 0; i < lkeys.length; i++)
-      if (TileEdit.occupied(rt[lkeys[i] + "Layer"], gx, gy)) return false;
+      if (rt[lkeys[i] + "Layer"].occupied(gx, gy)) return false;
     if (BuildMode.of(level).builtEnts[gx + "," + gy] !== undefined)
       return false;
     const w = grid.gridToWorld(gx, gy);

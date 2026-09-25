@@ -315,10 +315,9 @@ globalThis.BuildMode = {
     const rt = ColonyMap.runtime(scene.level);
     const colliders = ColonyMap.of(scene.level).colliders;
     for (let i = 0; i < keys.length; i++)
-      TileEdit.remesh(
+      rt[keys[i] + "Layer"].remesh(
         scene.level.entities,
         scene.level.grid,
-        rt[keys[i] + "Layer"],
         colliders[keys[i]],
       );
   },
@@ -359,7 +358,7 @@ globalThis.BuildMode = {
     const rt = ColonyMap.runtime(scene.level);
     const lkeys = contentBuild.tileLayers();
     for (let i = 0; i < lkeys.length; i++)
-      if (TileEdit.occupied(rt[lkeys[i] + "Layer"], gx, gy)) return false;
+      if (rt[lkeys[i] + "Layer"].occupied(gx, gy)) return false;
     if (BuildMode.of(scene.level).builtEnts[gx + "," + gy] !== undefined)
       return false;
     const item = panel.item;
@@ -417,9 +416,7 @@ globalThis.BuildMode = {
     for (const k in spawn) s[k] = spawn[k];
     if (item.orient === true) {
       const wall = ColonyMap.runtime(scene.level).wallLayer;
-      s.vertical =
-        TileEdit.occupied(wall, gx, gy - 1) &&
-        TileEdit.occupied(wall, gx, gy + 1);
+      s.vertical = wall.occupied(gx, gy - 1) && wall.occupied(gx, gy + 1);
     }
     return s;
   },
@@ -443,17 +440,16 @@ globalThis.BuildMode = {
         item.mat !== undefined
           ? rt[item.layer + "Types"][item.mat]
           : rt[item.layer + "Type"];
-      TileEdit.set(layer, gx, gy, type);
+      layer.set(gx, gy, type);
       Grassland.cut(level, gx, gy);
       const solid = contentTiles.get(item.layer).solid === true;
       // BUG: nested, not `solid && …` — the short-circuit corrupts its left operand, read by
       // the return below (docs/GMRT.md #15549)
       if (opts.deferRemesh !== true) {
         if (solid)
-          TileEdit.remesh(
+          layer.remesh(
             level.entities,
             grid,
-            layer,
             ColonyMap.of(level).colliders[item.layer],
           );
       }
@@ -512,14 +508,13 @@ globalThis.BuildMode = {
     if (tileId === undefined) return false; // only player-built cells are deconstructable
     const item = contentBuild.item(tileId);
     const lkey = item !== undefined ? item.layer : "floor"; // a stale id: non-solid, safe
-    TileEdit.clear(rt[lkey + "Layer"], gx, gy);
+    rt[lkey + "Layer"].clear(gx, gy);
     if (contentTiles.get(lkey).solid === true) {
       if (remesh !== undefined) remesh[lkey] = true;
       else
-        TileEdit.remesh(
+        rt[lkey + "Layer"].remesh(
           level.entities,
           grid,
-          rt[lkey + "Layer"],
           ColonyMap.of(level).colliders[lkey],
         );
     }

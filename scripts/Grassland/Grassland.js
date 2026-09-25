@@ -33,7 +33,7 @@ globalThis.Grassland = {
       for (let gx = 0; gx < grid.cols; gx++) {
         if (layer.get(gx, gy) !== grass) continue;
         for (let k = 0; k < lkeys.length; k++)
-          if (TileEdit.occupied(rt[lkeys[k] + "Layer"], gx, gy)) {
+          if (rt[lkeys[k] + "Layer"].occupied(gx, gy)) {
             layer.set(gx, gy, host);
             break;
           }

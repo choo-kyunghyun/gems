@@ -404,21 +404,21 @@ Test.register(Test.CHECK, [
     },
     verify(ctx, t) {
       const layer = ctx.layer;
-      TileEdit.set(layer, 0, 0, ctx.rock);
-      TileEdit.set(layer, 1, 0, ctx.rock);
-      TileEdit.set(layer, 0, 1, ctx.rock);
-      TileEdit.set(layer, 1, 1, ctx.rock);
-      TileEdit.set(layer, 3, 3, ctx.rock);
-      t.eq(TileEdit.occupied(layer, 1, 1), true, "occupied reads a set cell");
+      layer.set(0, 0, ctx.rock);
+      layer.set(1, 0, ctx.rock);
+      layer.set(0, 1, ctx.rock);
+      layer.set(1, 1, ctx.rock);
+      layer.set(3, 3, ctx.rock);
+      t.eq(layer.occupied(1, 1), true, "occupied reads a set cell");
       t.eq(
-        TileEdit.occupied(layer, 2, 2),
+        layer.occupied(2, 2),
         false,
         "occupied reads an empty cell",
       );
-      const rects = TileEdit.meshRects(ctx.grid, layer);
+      const rects = layer.meshRects();
       t.eq(rects.length, 2, "greedy mesh joins the 2×2 block");
       const s = ctx.entities;
-      TileEdit.remesh(s, ctx.grid, layer, ctx.colliders);
+      layer.remesh(s, ctx.grid, ctx.colliders);
       t.eq(ctx.colliders.length, 2, "one collider per rect");
       t.eq(s.count(), 3, "the store holds the colliders and the level's own entity");
       const col = s.get(ctx.colliders[0], Collision);
@@ -426,8 +426,8 @@ Test.register(Test.CHECK, [
         col !== undefined && col.kinematic === true,
         "a collider is a kinematic solid",
       );
-      TileEdit.clear(layer, 3, 3);
-      TileEdit.remesh(s, ctx.grid, layer, ctx.colliders);
+      layer.clear(3, 3);
+      layer.remesh(s, ctx.grid, ctx.colliders);
       t.eq(ctx.colliders.length, 1, "remesh replaces the set");
       t.eq(s.count(), 2, "old colliders are flushed");
       const box = s.get(ctx.colliders[0], BBox);

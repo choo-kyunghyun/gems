@@ -128,7 +128,7 @@ globalThis.ColonyLevel = {
       const cfg = contentTiles.LAYERS[i];
       if (cfg.solid !== true) continue;
       const colliders = [];
-      TileEdit.meshSolid(entities, grid, h[cfg.key + "Layer"], colliders);
+      h[cfg.key + "Layer"].meshSolid(entities, grid, colliders);
       h[cfg.key + "Colliders"] = colliders;
     }
 

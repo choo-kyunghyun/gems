@@ -438,7 +438,6 @@
     {"id":{"name":"testRuntime","path":"scripts/testRuntime/testRuntime.yy",},},
     {"id":{"name":"testStress","path":"scripts/testStress/testStress.yy",},},
     {"id":{"name":"Thirst","path":"scripts/Thirst/Thirst.yy",},},
-    {"id":{"name":"TileEdit","path":"scripts/TileEdit/TileEdit.yy",},},
     {"id":{"name":"TileLayer","path":"scripts/TileLayer/TileLayer.yy",},},
     {"id":{"name":"TileType","path":"scripts/TileType/TileType.yy",},},
     {"id":{"name":"Time","path":"scripts/Time/Time.yy",},},
