@@ -1,20 +1,21 @@
 /**
  * A layer's cell value is a `TileType` instance.
  * @typedef {Object} LevelLayer
+ * @property {number} cols
+ * @property {number} rows
  * @property {function(number, number): TileType | undefined} get
  * @property {function(number, number, TileType | undefined): LevelLayer} set
  * @property {function(number, number): number | undefined} costAt  the cell's nav cost; undefined passes through to the layer below
  * @property {number} edits  count of cell writes so far; a mirror diffs it
  * @property {number[]} dirty  cell indexes written since the mirror last drained them
  * @property {boolean} dirtyAll  the writes outran `dirty` — the mirror resamples every cell
- * @property {function(): Object} export
- * @property {function(Object): void} import
  * @property {function(): void} destroy
  */
 
 /**
- * A level's cell grid and its stacked tile layers. Live pathfinding never reads the layers: the
- * nav source mirrors `costAt` whenever `edits` moves.
+ * A level's cell grid and its stacked tile layers. Every layer spans the grid, so a cell index
+ * means the same cell in each. Live pathfinding never reads the layers: the nav source mirrors
+ * `costAt` whenever `edits` moves.
  */
 globalThis.LevelGrid = class LevelGrid {
   constructor(opt = {}) {
@@ -26,8 +27,15 @@ globalThis.LevelGrid = class LevelGrid {
     this.layers = [];
   }
 
-  /** Top by default; higher index = higher nav priority. */
+  /**
+   * Top by default; higher index = higher nav priority. Throws on a layer that doesn't span the
+   * grid.
+   */
   insert(layer, index = this.layers.length) {
+    if (layer.cols !== this.cols || layer.rows !== this.rows)
+      throw new Error(
+        `LevelGrid.insert: layer is ${layer.cols}x${layer.rows}, grid is ${this.cols}x${this.rows}`,
+      );
     this.layers.splice(index, 0, layer);
     return this;
   }
@@ -170,25 +178,6 @@ globalThis.LevelGrid = class LevelGrid {
         `LevelGrid.unpack: ${unknown} cell(s) name a TileType id no layer knows`,
       );
     return true;
-  }
-
-  export() {
-    return {
-      cellWidth: this.cellWidth,
-      cellHeight: this.cellHeight,
-      cols: this.cols,
-      rows: this.rows,
-      layers: this.layers.map((layer) => layer.export()),
-    };
-  }
-
-  import(data) {
-    for (let i = 0; i < this.layers.length; i++) {
-      if (data.layers[i] !== undefined) {
-        this.layers[i].import(data.layers[i]);
-      }
-    }
-    return this;
   }
 
   destroy() {

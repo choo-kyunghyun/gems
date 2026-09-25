@@ -11,6 +11,8 @@ const DIRTY_CAP = 256; // cell writes tracked individually before a mirror just 
  */
 globalThis.TileLayer = class TileLayer {
   constructor(cols, rows, opt = {}) {
+    this.cols = cols;
+    this.rows = rows;
     this.grid = new Grid(cols, rows);
     this.emptyCost = opt.emptyCost;
     this.edits = 0;
@@ -21,23 +23,6 @@ globalThis.TileLayer = class TileLayer {
   destroy() {
     this.grid.destroy();
     this.grid = undefined;
-  }
-
-  export() {
-    return this.grid.export();
-  }
-
-  import(data) {
-    this.grid = Grid.import(data);
-    this.edits++;
-    this.dirtyAll = true;
-    this.dirty.length = 0;
-  }
-
-  static from(data, opt) {
-    const layer = new TileLayer(data.cols, data.rows, opt);
-    layer.import(data);
-    return layer;
   }
 
   /** Caller must remesh after editing a solid layer. */

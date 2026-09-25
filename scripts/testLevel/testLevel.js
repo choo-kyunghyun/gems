@@ -293,6 +293,16 @@ Test.register(Test.CHECK, [
         "a cell edge belongs to the next cell",
       );
       t.eq(g.costAt(0, 0), Infinity, "no layer → blocked");
+      const misfit = new TileLayer(8, 5);
+      let threw = false;
+      try {
+        g.insert(misfit);
+      } catch (e) {
+        threw = true;
+      }
+      t.ok(threw, "a layer that doesn't span the grid throws");
+      t.eq(g.layers.length, 0, "and stays out of the stack");
+      misfit.destroy();
     },
     teardown(ctx) {
       ctx.grid.destroy();
