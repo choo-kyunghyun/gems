@@ -2,8 +2,8 @@
  * A row handle — index (20 bits) plus generation (12 bits) packed into one number — and the
  * allocator that hands them out: a freed index comes back at the next generation, so a stale
  * handle fails `isValid` instead of naming the slot's new owner, and an index whose generation
- * would wrap is retired, never handed out again. The static half packs and unpacks a handle; the
- * instance half is an allocation table.
+ * would wrap is retired, handed out again only once a compaction finds no id of it kept. The
+ * static half packs, unpacks and compacts; the instance half is an allocation table.
  */
 globalThis.Handle = class Handle {
   static INDEX_BITS = 20;
@@ -131,5 +131,68 @@ globalThis.Handle = class Handle {
     this.freeIndices = data.freeIndices;
     this.next = data.next;
     this._repack();
+  }
+
+  /**
+   * Drop the dead indices of an `export()` record, in place, to the least generation `floor`
+   * allows (it spans the record's indices), never raising one, so a retired index whose floor
+   * fits comes back free. A live index keeps its generation: its id is in use.
+   */
+  static compact(data, floor) {
+    const g = data.generations;
+    const free = data.freeIndices;
+    for (let k = 0; k < free.length; k++) {
+      const i = free[k];
+      g[i] = Math.min(g[i], floor[i]);
+    }
+    for (let i = 0; i < data.next; i++) {
+      if (g[i] !== Handle.RETIRED) continue;
+      if (floor[i] > Handle.GENERATION_MASK) continue;
+      g[i] = floor[i];
+      free.push(i);
+    }
+  }
+
+  /**
+   * Raise `floor[i]` past the generation of every number in `value` that could be a handle to
+   * index i — plain data, walked through arrays, object literals and their keys. The test is the
+   * number's shape alone, so a coincidence only raises a floor.
+   */
+  static scan(value, floor) {
+    Handle._scan(value, floor, []);
+  }
+
+  static _scan(v, floor, path) {
+    if (typeof v === "number") {
+      Handle._mark(v, floor);
+      return;
+    }
+    if (v === null || typeof v !== "object") return;
+    // an identity scan, not an object-keyed Set (docs/GMRT.md #15567)
+    for (let i = 0; i < path.length; i++) if (path[i] === v) return;
+    if (Array.isArray(v)) {
+      path.push(v);
+      for (let i = 0; i < v.length; i++) Handle._scan(v[i], floor, path);
+      path.pop();
+      return;
+    }
+    if (v.constructor !== Object) return; // an asset ref
+    path.push(v);
+    for (const k in v) {
+      Handle._mark(Number(k), floor);
+      Handle._scan(v[k], floor, path);
+    }
+    path.pop();
+  }
+
+  static _mark(n, floor) {
+    if (!Number.isInteger(n)) return;
+    // a handle is an int32, and a bitwise op collapses anything past it (docs/GMRT.md)
+    if (n < -2147483648) return;
+    if (n > 2147483647) return;
+    const i = n & Handle.INDEX_MASK;
+    if (i >= floor.length) return;
+    const past = (n >>> Handle.INDEX_BITS) + 1;
+    if (past > floor[i]) floor[i] = past;
   }
 };

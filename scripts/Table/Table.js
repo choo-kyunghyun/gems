@@ -515,6 +515,27 @@ globalThis.Table = class Table {
   }
 
   /**
+   * Reclaim the dead rows of exports kept together, in place: each one's dead ids drop to the least
+   * generation no number in any of their persisted data could name, so a row retired in play comes
+   * back and a stale id the data keeps stays stale. A number counts against every store, since one
+   * store's data may name another's rows; a codec blob is not read, so a codec datum holds no id.
+   */
+  static compact(snapshots) {
+    let n = 0;
+    for (let s = 0; s < snapshots.length; s++) n = Math.max(n, snapshots[s].ids.next);
+    const floor = new Array(n).fill(0);
+    for (let s = 0; s < snapshots.length; s++) {
+      const components = snapshots[s].components;
+      const toks = Object.keys(components);
+      for (let t = 0; t < toks.length; t++) {
+        const entries = components[toks[t]];
+        for (let j = 0; j < entries.length; j++) Handle.scan(entries[j][1], floor);
+      }
+    }
+    for (let s = 0; s < snapshots.length; s++) Handle.compact(snapshots[s].ids, floor);
+  }
+
+  /**
    * Replace the store whole with the snapshot's, so a queued removal is dropped with it; mid-walk
    * it throws, since a walk would run on rebuilt lists. A token the snapshot names that this store
    * never registered is registered on the way in (a fresh store restoring a whole export), so

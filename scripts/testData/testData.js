@@ -83,6 +83,62 @@ Test.register(Test.CHECK, [
     },
   },
   {
+    // a compacted export hands its dead rows out low again, yet no id its data keeps revalidates
+    id: "entity.compact",
+    setup(ctx) {
+      ctx.entities = new Table(8);
+      ctx.other = new Table(8);
+      ctx.copy = new Table(8);
+    },
+    verify(ctx, t) {
+      const s = ctx.entities;
+      const first = s.create();
+      let id = first;
+      for (let k = 0; k <= Handle.GENERATION_MASK; k++) {
+        s.remove(id);
+        s.flush();
+        id = s.create();
+      }
+      s.remove(s.create());
+      s.flush();
+      const keeper = s.create(); // on a recycled row
+      const gone = s.create();
+      const loose = s.create();
+      const far = s.create();
+      s.add(keeper, "TestRef", { target: gone });
+      const o = ctx.other;
+      o.add(o.create(), "TestRef", { target: far });
+      s.remove(gone);
+      s.remove(loose);
+      s.remove(far);
+      s.flush();
+
+      const exp = s.export();
+      Table.compact([exp, o.export()]);
+      const c = ctx.copy;
+      c.import(exp);
+      t.eq(c.count(), 2, "the live rows survive");
+      t.ok(c.isValid(keeper), "a live row keeps its generation");
+      const got = [c.create(), c.create(), c.create(), c.create()];
+      t.ok(got.indexOf(first) >= 0, "the retired row comes back at generation 0");
+      t.ok(got.indexOf(loose) >= 0, "a dead row no data names drops to generation 0");
+      t.ok(!c.isValid(gone), "a stale id the store's data keeps stays stale");
+      t.ok(!c.isValid(far), "a stale id another store's data keeps stays stale");
+
+      const floor = [0, 0, 0, 0];
+      Handle.scan({ ids: [Handle.make(3, 3000)] }, floor);
+      t.eq(floor[3], 3001, "a high-generation id, a negative number, is read");
+      const rec = { generations: [Handle.RETIRED], freeIndices: [], next: 1 };
+      Handle.compact(rec, [Handle.GENERATION_MASK + 1]);
+      t.eq(rec.generations[0], Handle.RETIRED, "a row whose last id is kept stays retired");
+    },
+    teardown(ctx) {
+      ctx.entities.destroy();
+      ctx.other.destroy();
+      ctx.copy.destroy();
+    },
+  },
+  {
     // an id past the capacity would name no slot, so the store refuses it
     id: "entity.capacity",
     setup(ctx) {
