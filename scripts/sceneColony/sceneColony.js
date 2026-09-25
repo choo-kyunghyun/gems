@@ -48,7 +48,6 @@ class _SceneColonyClass {
     };
     // a fresh session starts from a blank world; a load imports its records below
     World.reset();
-    Trader.install();
     // the BGM fallback is the active map's bed, read live so one hook serves every map
     Radio.reset();
     Radio.ambient = () => ColonyTravel.bed(this.level);
@@ -112,7 +111,7 @@ class _SceneColonyClass {
   }
 
   /**
-   * A new game's player kit, companion and traders. Seeded in code, not the map file, so a
+   * A new game's player kit and companion. Seeded in code, not the map file, so a
    * persistent-map reload can't duplicate them; a load restores their records instead.
    */
   _seed() {
@@ -127,8 +126,6 @@ class _SceneColonyClass {
     const pp = entities.require(this.playerId, Position);
     const companion = ColonySpawn.spawnFollower(entities, pp.x + c.x, pp.y + c.y, c.follower);
     Companions.hire(entities, this.playerId, companion);
-    const traders = contentStart.TRADERS;
-    for (let i = 0; i < traders.length; i++) Trader.register(traders[i]);
   }
 
   /**

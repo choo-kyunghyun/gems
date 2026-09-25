@@ -450,7 +450,6 @@
     {"id":{"name":"Tooltip","path":"scripts/Tooltip/Tooltip.yy",},},
     {"id":{"name":"Tracker","path":"scripts/Tracker/Tracker.yy",},},
     {"id":{"name":"Trade","path":"scripts/Trade/Trade.yy",},},
-    {"id":{"name":"Trader","path":"scripts/Trader/Trader.yy",},},
     {"id":{"name":"TradeSystem","path":"scripts/TradeSystem/TradeSystem.yy",},},
     {"id":{"name":"TradeUI","path":"scripts/TradeUI/TradeUI.yy",},},
     {"id":{"name":"UI","path":"scripts/UI/UI.yy",},},

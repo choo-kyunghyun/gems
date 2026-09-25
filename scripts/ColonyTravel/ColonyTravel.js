@@ -81,13 +81,12 @@ globalThis.ColonyTravel = {
   },
 
   /**
-   * Free the live transient map, its traders leaving as records first. Never parked on the way:
-   * a parked instance outlives its free (docs/GMRT.md).
+   * Free the live transient map. Never parked on the way: a parked instance outlives its free
+   * (docs/GMRT.md).
    */
   _free(scene) {
     const level = scene.level;
     CameraSystem.view(level).release();
-    Trader.recall(level);
     scene.stages[level.id].renderer.destroy();
     delete scene.stages[level.id];
     World.remove(level.id);
@@ -97,7 +96,6 @@ globalThis.ColonyTravel = {
   /** Enter a map not pooled; a null `squad` (boot) spawns the player with it. */
   build(scene, mapId, entryId, squad) {
     const level = ColonyMap.build(mapId, entryId, squad === null);
-    Trader.deliver(level);
     scene.level = level; // its id may have fallen back from the one asked for
     ColonyTravel._arriveSquad(scene, squad, ColonyMap.of(level).spawn); // already entry-resolved
     ColonyTravel._latch(scene);

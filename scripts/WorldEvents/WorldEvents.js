@@ -1,7 +1,7 @@
 /**
- * The world's event queue: off-focus world state (a trader crossing maps, a scheduled raid, a
- * timed respawn) advances by DISCRETE scheduled events, not by simulating a scene every frame.
- * `update(now)` fires every due event whatever map is active.
+ * The world's event queue: off-focus world state (a scheduled raid, a timed respawn) advances by
+ * DISCRETE scheduled events, not by simulating a scene every frame. `update(now)` fires every due
+ * event whatever map is active.
  *
  * Time is an absolute in-game hour count, so a fast-forward advances schedules for free; the
  * queue never reads the clock itself. The queue is data and rides the save; the handlers are
