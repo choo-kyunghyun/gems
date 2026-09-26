@@ -95,10 +95,21 @@ globalThis.ColonyTravel = {
     Log.info(`colony map: ${level.id} [freed]`);
   },
 
-  /** Enter a map not pooled; a null `squad` (boot) spawns the player with it. */
+  /**
+   * Enter a map not pooled; a null `squad` (boot) spawns the player with it. A map that fails to
+   * build sends the squad home instead, resumed when the home is pooled, so no map is ever built
+   * over its pooled self.
+   */
   build(scene, mapId, entryId, squad) {
     const level = ColonyMap.build(scene.world, mapId, entryId, squad === null);
-    scene.level = level; // its id may have fallen back from the one asked for
+    if (level === null) {
+      const home = ColonyLevel.START;
+      if (mapId === home) throw new Error(`ColonyTravel: the home map "${home}" failed to build`);
+      if (scene.world.get(home) !== null) ColonyTravel.resume(scene, home, "default", squad);
+      else ColonyTravel.build(scene, home, "default", squad);
+      return;
+    }
+    scene.level = level;
     ColonyTravel._arriveSquad(scene, squad, ColonyMap.of(level).spawn); // already entry-resolved
     ColonyTravel._latch(scene);
     scene.stages[level.id] = ColonyView.stage(level);

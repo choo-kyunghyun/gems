@@ -83,16 +83,18 @@ globalThis.ColonyMap = {
 
   /**
    * Build a map fresh from its site, at a seed of this build's own. Returns the Level, pooled in
-   * `world` and populated but not activated; its id is the site's, or START's when the site failed
-   * to load. `player` true spawns a fresh player at the entry (boot only).
+   * `world` and populated but not activated, or null when the site fails to load (logged, nothing
+   * pooled). `player` true spawns a fresh player at the entry (boot only).
    */
   build(world, mapId, entryId, player) {
-    const loaded = ColonyMap._loadData(world, mapId, entryId);
-    Log.info(
-      `colony map: ${loaded.mapId} (entry ${loaded.entryId}, seed ${loaded.data.meta.seed})`,
-    );
-    const r = ColonyMap._buildLevel(loaded.data, loaded.mapId, loaded.entryId, player);
-    world.add(loaded.mapId, r.level); // pooled before populate so arrivals can land through the pool
+    const data = ColonyMap._loadData(world, mapId);
+    if (data === null) {
+      Log.error(`map "${mapId}" failed to load`);
+      return null;
+    }
+    Log.info(`colony map: ${mapId} (entry ${entryId}, seed ${data.meta.seed})`);
+    const r = ColonyMap._buildLevel(data, mapId, entryId, player);
+    world.add(mapId, r.level); // pooled before populate so arrivals can land through the pool
     ColonyMap.populate(r.level, r.built.spawns);
     return r.level;
   },
@@ -134,18 +136,12 @@ globalThis.ColonyMap = {
     }
   },
 
-  /** Counts the build against the map it lands on. */
-  _loadData(world, mapId, entryId) {
+  /** Counts a build that loads against its map; null for a site that fails to load. */
+  _loadData(world, mapId) {
     const visits = ColonyMap.visits(world);
-    let data = ColonyLevel.load(mapId, visits[mapId] ?? 0);
-    if (data === null) {
-      Log.error(`map "${mapId}" failed — falling back to ${ColonyLevel.START}`);
-      mapId = ColonyLevel.START;
-      entryId = "default";
-      data = ColonyLevel.load(mapId, visits[mapId] ?? 0);
-    }
-    visits[mapId] = (visits[mapId] ?? 0) + 1;
-    return { data, mapId, entryId };
+    const data = ColonyLevel.load(mapId, visits[mapId] ?? 0);
+    if (data !== null) visits[mapId] = (visits[mapId] ?? 0) + 1;
+    return data;
   },
 
   /**
