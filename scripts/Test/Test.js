@@ -108,12 +108,13 @@ globalThis.Test = {
   },
 
   /**
-   * Sandboxes the UI's app state, handed back by `uiRestore`: no roots, an idle nav and field
-   * focus, the pointer parked off-screen, the pad idle, a keyboard whose only keys down are
-   * `ctx.keys`, and a silent `Audio.play` that counts its cues in `ctx.sounds`.
+   * Sandboxes the UI's app state, handed back by `uiRestore`: no roots, an idle nav, the pointer
+   * parked off-screen, a keyboard and a pad whose only buttons down are `ctx.keys` and `ctx.pads`,
+   * the sticks at rest, and a silent `Audio.play` that counts its cues in `ctx.sounds`.
    */
   ui(ctx) {
     ctx.keys = [];
+    ctx.pads = [];
     ctx.sounds = 0;
     const saved = {
       roots: UI.roots,
@@ -122,7 +123,6 @@ globalThis.Test = {
       suspended: UINav.suspended,
       stickX: UINav._stickX,
       stickY: UINav._stickY,
-      active: UIInput.active,
       raw: Time.raw,
       pointer: Input.pointer,
       typed: Input.typed,
@@ -140,7 +140,6 @@ globalThis.Test = {
 
     UI.roots = [];
     UINav.reset();
-    UIInput.active = null;
     const button = () => ({ pressed: false, released: false, down: false, owner: "" });
     Input.pointer = {
       x: -100000,
@@ -166,9 +165,14 @@ globalThis.Test = {
           : ctx.keys.indexOf(code) !== -1;
     Input.keyDown = (code) => (Input._keysClaimed ? false : ctx.keys.indexOf(code) !== -1);
     Input.keyReleased = () => false;
-    Input.padPressed = () => false;
+    Input.padPressed = (button) =>
+      Input._padClaimed
+        ? false
+        : Input._consumedPad.indexOf(button) !== -1
+          ? false
+          : ctx.pads.indexOf(button) !== -1;
     Input.padReleased = () => false;
-    Input.padDown = () => false;
+    Input.padDown = (button) => (Input._padClaimed ? false : ctx.pads.indexOf(button) !== -1);
     Input.padAxis = () => 0;
     Input.padValue = () => 0;
     Audio.play = () => {
@@ -177,14 +181,19 @@ globalThis.Test = {
     };
   },
 
-  /** One sandboxed frame: the claims clear, `keys` go down, then the tree and the nav run. */
-  uiFrame(ctx, keys) {
+  /**
+   * One sandboxed frame: the claims clear, `keys` and `pads` go down and `typed` is the frame's
+   * text, then the tree and the nav run.
+   */
+  uiFrame(ctx, keys, pads = [], typed = "") {
     Input._pointerClaimed = false;
     Input._keysClaimed = false;
     Input._padClaimed = false;
     Input._consumedKeys.length = 0;
     Input._consumedPad.length = 0;
     ctx.keys = keys;
+    ctx.pads = pads;
+    Input.typed = typed;
     UI.update();
     UINav.update();
   },
@@ -200,7 +209,6 @@ globalThis.Test = {
     UINav.suspended = saved.suspended;
     UINav._stickX = saved.stickX;
     UINav._stickY = saved.stickY;
-    UIInput.active = saved.active;
     Time.raw = saved.raw;
     Input.pointer = saved.pointer;
     Input.typed = saved.typed;

@@ -517,7 +517,12 @@ Test.register(Test.CHECK, [
       Time.raw = 1; // longer than any fade, so a modal enters or exits within one frame
       ctx.base = new UIElement({ width: 200, height: 40 }).addComponent(new UIButton());
       UI.insert(ctx.base);
-      ctx.field = new UIInput();
+      ctx.cancelled = 0;
+      ctx.field = new UIInput({
+        onCancel: () => {
+          ctx.cancelled += 1;
+        },
+      });
       const fieldEl = new UIElement({ width: 200, height: 40 }).addComponent(ctx.field);
       ctx.overlay = new UIElement({ width: "100%", height: "100%" });
       ctx.overlay.insertChild(fieldEl);
@@ -530,13 +535,12 @@ Test.register(Test.CHECK, [
       });
       ctx.overlay.addComponent(ctx.modal);
       UI.insert(ctx.overlay);
-      UINav.focused = fieldEl;
+      ctx.field.focus(fieldEl);
       UINav.engaged = true;
-      ctx.field.focus();
     },
     verify(ctx, t) {
       Test.uiFrame(ctx, [vk_escape]);
-      t.ok(UIInput.active === null, "the first Esc blurs the field");
+      t.eq(ctx.cancelled, 1, "the first Esc ends the field's editing");
       t.ok(UINav.engaged, "the field's Esc never reaches the nav");
       Test.uiFrame(ctx, []);
       t.eq(ctx.closed, 0, "the field's Esc never reaches the modal");
@@ -674,6 +678,59 @@ Test.register(Test.CHECK, [
       Test.uiFrame(ctx, []);
       Test.uiFrame(ctx, [vk_up]);
       t.ok(UINav.focused === ctx.grid, "a pointer move hands the table back to the nav");
+    },
+    teardown(ctx) {
+      Test.uiRestore(ctx);
+    },
+  },
+  {
+    // editing holds the nav focus: a confirm or a click starts it, the field then takes every nav
+    // event — a pad confirm commits as Enter does — and a field that loses the focus stops
+    id: "ui.navField",
+    setup(ctx) {
+      Test.ui(ctx);
+      ctx.confirmed = 0;
+      ctx.field = new UIInput({
+        onConfirm: () => {
+          ctx.confirmed += 1;
+        },
+      });
+      ctx.fieldEl = new UIElement({ width: 200, height: 40 }).addComponent(ctx.field);
+      ctx.after = new UIElement({ width: 200, height: 40 }).addComponent(new UIButton());
+      const root = new UIElement({ flexDirection: "column", gap: 20 });
+      root.insertChild(ctx.fieldEl).insertChild(ctx.after);
+      UI.insert(root);
+      UINav.focused = ctx.fieldEl;
+      UINav.engaged = true;
+    },
+    verify(ctx, t) {
+      Test.uiFrame(ctx, [vk_enter]);
+      Test.uiFrame(ctx, [], [], "ab");
+      t.eq(ctx.field.value, "ab", "a nav confirm starts editing");
+      Test.uiFrame(ctx, [], [gp_padd]);
+      t.ok(UINav.focused === ctx.fieldEl, "a pad move never leaves an editing field");
+      Test.uiFrame(ctx, [], [gp_face1]);
+      Test.uiFrame(ctx, [], [], "c");
+      t.eq(ctx.confirmed, 1, "a pad confirm commits the field");
+      t.eq(ctx.field.value, "ab", "and ends its editing");
+      Test.uiFrame(ctx, [vk_down]);
+      t.ok(UINav.focused === ctx.after, "out of editing a move leaves the field");
+
+      const pos = ctx.fieldEl.getLayoutPosition();
+      Input.pointer.x = pos.left + 4;
+      Input.pointer.y = pos.top + 4;
+      Input.pointer.left.pressed = true;
+      Test.uiFrame(ctx, []);
+      Input.pointer.left.pressed = false;
+      Input.pointer.x = -100000;
+      Input.pointer.y = -100000;
+      t.ok(UINav.focused === ctx.fieldEl, "a click hands the field the focus");
+      Test.uiFrame(ctx, [], [], "d");
+      t.eq(ctx.field.value, "dab", "and starts editing at the caret");
+
+      UINav.focused = ctx.after;
+      Test.uiFrame(ctx, [], [], "e");
+      t.eq(ctx.field.value, "dab", "a field that loses the focus stops editing");
     },
     teardown(ctx) {
       Test.uiRestore(ctx);

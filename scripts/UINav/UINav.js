@@ -65,7 +65,6 @@ globalThis.UINav = {
 
     if (Input.pointer.moved) UINav.engaged = false;
 
-    if (UIInput.active !== null) return; // caret keeps arrows/Enter while typing
     if (Dialogue.isOpen()) return; // dialogue owns Enter/arrows for page advance
 
     const ev = UINav._event(UINav._readInput());

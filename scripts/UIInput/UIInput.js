@@ -4,15 +4,14 @@ const _INPUT_BLINK = 0.53; // s per half-cycle
 const _INPUT_DBLCLICK = 300; // ms
 
 /**
- * Single-line text field with a caret/selection model, key repeat and clipboard. The focused
- * field claims the keyboard each frame, so no later reader acts on what it typed.
+ * Single-line text field with a caret/selection model, key repeat and clipboard. Editing holds
+ * the nav focus: a nav confirm or a click starts it, and a field that loses the focus stops.
+ * While editing, the field claims the keyboard each frame and takes every nav event, so no later
+ * reader acts on what it typed; a nav confirm or cancel ends it as Enter or Escape does.
  * BUG: a cached primitive bool can be clobbered mid-call — read modifier state live.
  * @implements {UIComponent}
  */
 globalThis.UIInput = class UIInput {
-  // the focused field; menu navigation suspends while one is set.
-  static active = null;
-
   constructor(input = {}) {
     this.value = input.value ?? "";
     this.placeholder = input.placeholder ?? "";
@@ -33,7 +32,8 @@ globalThis.UIInput = class UIInput {
     this.onCancel = input.onCancel ?? noop; // Escape
     this.onChange = input.onChange ?? noop;
 
-    this._focused = false;
+    this.focusable = true;
+    this._editing = false;
     this._cursor = 0;
     this._anchor = 0; // the selection spans anchor..cursor in either order
     this._scroll = 0; // px
@@ -47,24 +47,37 @@ globalThis.UIInput = class UIInput {
     this._lastClickX = 0;
   }
 
-  focus() {
-    if (this._focused) return this;
-    this._focused = true;
-    UIInput.active = this;
+  /** Starts editing `element`'s field, taking the nav focus with it. */
+  focus(element) {
+    UINav.focused = element;
+    if (this._editing) return this;
+    this._editing = true;
     this._setCursor(this.value.length, false);
     return this;
   }
 
   blur() {
-    if (!this._focused) return this;
-    this._focused = false;
+    if (!this._editing) return this;
+    this._editing = false;
     this._dragging = false;
-    if (UIInput.active === this) UIInput.active = null;
     return this;
   }
 
-  navActivate(element) {
-    if (!this.readOnly) this.focus();
+  /** A confirm starts editing; while editing, the field takes every nav event. */
+  onNav(element, ev) {
+    if (!this._editing) {
+      if (ev.kind !== "confirm" || this.readOnly) return false;
+      this.focus(element);
+      return true;
+    }
+    if (ev.kind === "confirm") {
+      this.onConfirm(this.value);
+      this.blur();
+    } else if (ev.kind === "cancel") {
+      this.onCancel(this.value);
+      this.blur();
+    }
+    return true;
   }
 
   /** Coerced to string. */
@@ -249,7 +262,7 @@ globalThis.UIInput = class UIInput {
 
     if (Input.pointer.left.pressed) {
       if (over) {
-        this.focus();
+        this.focus(element);
         const i = this._indexAtX(pos, mx);
         const dbl =
           current_time - this._lastClickTime < _INPUT_DBLCLICK &&
@@ -273,7 +286,8 @@ globalThis.UIInput = class UIInput {
       else this._dragging = false;
     }
 
-    if (this._focused) {
+    if (this._editing && UINav.focused !== element) this.blur();
+    if (this._editing) {
       this._processKeyboard();
       // including the Enter/Esc that may just have blurred it.
       Input.claimKeys();
@@ -396,7 +410,7 @@ globalThis.UIInput = class UIInput {
 
     const disp = this._display();
 
-    if (disp === "" && !this._focused) {
+    if (disp === "" && !this._editing) {
       draw_set_color(this.colorPlaceholder);
       draw_text(tr.x, tr.cy, this.placeholder);
     } else {
@@ -416,7 +430,7 @@ globalThis.UIInput = class UIInput {
         end++;
       const startX = tr.x + string_width(disp.slice(0, start)) - winL;
 
-      if (this._focused && this._hasSel()) {
+      if (this._editing && this._hasSel()) {
         const sx = clamp(
           string_width(disp.slice(0, this._selLow())) - winL,
           0,
@@ -444,7 +458,7 @@ globalThis.UIInput = class UIInput {
       draw_set_color(this.color);
       draw_text(startX, tr.cy, disp.slice(start, end));
 
-      if (this._focused && this._cursorVis) {
+      if (this._editing && this._cursorVis) {
         const cx = string_width(disp.slice(0, this._cursor)) - winL;
         if (cx >= 0 && cx <= tr.w) {
           draw_set_color(this.colorCursor);
@@ -460,11 +474,5 @@ globalThis.UIInput = class UIInput {
     }
 
     UIDraw.restore(st);
-  }
-
-  onDestroy(element) {
-    this._focused = false;
-    // a field torn down mid-typing would otherwise keep the keyboard muted forever.
-    if (UIInput.active === this) UIInput.active = null;
   }
 };
