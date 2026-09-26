@@ -51,8 +51,6 @@
   "FACET_ECHO": "입력한 내용:",
   "FACET_PROGRESS": "진행도 (슬라이더 연동)",
   "FACET_TIP_PROGRESS": "슬라이더 값에 연동된 비상호작용 막대",
-  "FACET_SKIN": "나인슬라이스 스킨",
-  "FACET_SKIN_BODY": "스프라이트 테두리 패널 — 늘어나도 모서리가 또렷합니다.",
   "FACET_SCROLL": "스크롤 (휠 또는 막대 드래그)",
   "FACET_SCROLL_ITEM": "항목",
   "FACET_QUESTS": "퀘스트 추적기",

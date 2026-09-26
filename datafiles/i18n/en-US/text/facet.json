@@ -51,8 +51,6 @@
   "FACET_ECHO": "You typed:",
   "FACET_PROGRESS": "Progress (follows the slider)",
   "FACET_TIP_PROGRESS": "A non-interactive bar bound to the slider value",
-  "FACET_SKIN": "Nine-slice skin",
-  "FACET_SKIN_BODY": "Sprite-framed panel — corners stay crisp as it stretches.",
   "FACET_SCROLL": "Scroll (wheel or drag the bar)",
   "FACET_SCROLL_ITEM": "Item",
   "FACET_QUESTS": "Quest tracker",

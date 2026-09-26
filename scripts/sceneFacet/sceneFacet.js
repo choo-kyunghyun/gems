@@ -60,7 +60,6 @@ class _SceneFacetClass {
 
     // the left column scrolls so accordion sections can't overflow
     const left = facetScroll({ grow: true });
-    left.scrollBody.insertChild(this._skinSection());
     left.scrollBody.insertChild(this._accordionSection());
     const containers = this._twoCol(left, this._scrollSection());
 
@@ -476,16 +475,6 @@ class _SceneFacetClass {
       ),
     );
     return controls;
-  }
-
-  _skinSection() {
-    const skin = facetSection(I18n.textRef("FACET_SKIN"));
-    const box = facetNineSlice();
-    box.insertChild(
-      facetLabel(I18n.textRef("FACET_SKIN_BODY"), { color: FacetTheme.text }),
-    );
-    skin.insertChild(box);
-    return skin;
   }
 
   _tableTab() {
