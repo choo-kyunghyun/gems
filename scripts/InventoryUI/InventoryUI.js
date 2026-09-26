@@ -967,9 +967,9 @@ globalThis.InventoryUI = {
     Log.info(`used ${itemId}`);
     const c = Item.get(itemId).getComponent(Consumable);
     if (c === undefined) return;
-    if ((c.thirst ?? 0) > 0 || (c.hunger ?? 0) > 0)
+    if ((c.needs[Thirst] ?? 0) > 0 || (c.needs[Hunger] ?? 0) > 0)
       Audio.play({ sound: sndDrink });
-    else if ((c.heal ?? 0) > 0) Audio.play({ sound: sndBandage });
+    else if (c.heal > 0) Audio.play({ sound: sndBandage });
     else Audio.play({ sound: sndMagic });
   },
 };
