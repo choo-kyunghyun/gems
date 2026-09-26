@@ -62,7 +62,7 @@ globalThis.UIImage = class UIImage {
         break;
       case OBJECT_FIT.CONTAIN:
       case OBJECT_FIT.SCALE_DOWN:
-        const fit = uiContainRect(
+        const fit = UIDraw.contain(
           sw,
           sh,
           x,

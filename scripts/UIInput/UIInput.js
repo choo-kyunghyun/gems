@@ -244,7 +244,7 @@ globalThis.UIInput = class UIInput {
 
     // the measure font must match the draw font, including after a locale reload.
     const prevFont = draw_get_font();
-    const fnt = resolveUIFont(this.font);
+    const fnt = UIDraw.font(this.font);
     if (fnt !== -1) draw_set_font(fnt);
 
     if (Input.pointer.left.pressed) {
@@ -386,9 +386,9 @@ globalThis.UIInput = class UIInput {
     const pos = element.getLayoutPosition();
     const tr = this._textRegion(pos);
 
-    const st = uiDrawSave();
+    const st = UIDraw.save();
 
-    const fnt = resolveUIFont(this.font);
+    const fnt = UIDraw.font(this.font);
     if (fnt !== -1) draw_set_font(fnt);
     draw_set_halign(fa_left);
     draw_set_valign(fa_middle);
@@ -459,7 +459,7 @@ globalThis.UIInput = class UIInput {
       }
     }
 
-    uiDrawRestore(st);
+    UIDraw.restore(st);
   }
 
   onDestroy(element) {

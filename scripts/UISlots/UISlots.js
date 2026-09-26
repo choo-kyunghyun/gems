@@ -148,7 +148,7 @@ globalThis.UISlots = class UISlots {
 
   onDraw(element) {
     const pos = element.getLayoutPosition();
-    const st = uiDrawSave();
+    const st = UIDraw.save();
     draw_set_alpha(1);
 
     const sz = this.cellSize;
@@ -178,7 +178,7 @@ globalThis.UISlots = class UISlots {
       const it = this.items[i];
       if (it != null && it.sprite != null && sprite_exists(it.sprite)) {
         const box = sz - this.pad * 2;
-        const fit = uiContainRect(
+        const fit = UIDraw.contain(
           sprite_get_width(it.sprite),
           sprite_get_height(it.sprite),
           p.x + this.pad,
@@ -199,7 +199,7 @@ globalThis.UISlots = class UISlots {
       }
 
       if (i === this.selected) {
-        drawUIOutline(p.x, p.y, x1, y1, this.rad, this.selectColor, 2);
+        UIDraw.outline(p.x, p.y, x1, y1, this.rad, this.selectColor, 2);
       } else {
         const bc =
           it != null && it.borderColor != null
@@ -220,7 +220,7 @@ globalThis.UISlots = class UISlots {
     }
 
     // drawn last so the selection outline never covers them
-    const fnt = resolveUIFont(this.font);
+    const fnt = UIDraw.font(this.font);
     if (fnt !== -1) draw_set_font(fnt);
     draw_set_halign(fa_right);
     draw_set_valign(fa_bottom);
@@ -243,6 +243,6 @@ globalThis.UISlots = class UISlots {
       }
     }
 
-    uiDrawRestore(st);
+    UIDraw.restore(st);
   }
 };

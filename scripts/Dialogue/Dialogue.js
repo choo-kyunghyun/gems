@@ -124,7 +124,7 @@ globalThis.Dialogue = {
     draw_set_halign(fa_left);
     draw_set_valign(fa_top);
 
-    drawUIPanel(g.x1, g.y1, g.x2, g.y2, Dialogue.rad, Dialogue);
+    UIDraw.panel(g.x1, g.y1, g.x2, g.y2, Dialogue.rad, Dialogue);
 
     // speaker plate on the box's top-left edge
     const speaker = Dialogue._pages[Dialogue._page].speaker;
@@ -188,7 +188,7 @@ globalThis.Dialogue = {
       floor(current_time / 450) % 2 === 0
     ) {
       const ah = 5;
-      drawUIArrow(
+      UIDraw.arrow(
         g.x2 - Dialogue.padX - ah,
         g.y2 - 6 - ah,
         "down",

@@ -43,7 +43,7 @@ globalThis.UIQuestTracker = class UIQuestTracker {
 
   onDraw(element) {
     const pos = element.getLayoutPosition();
-    const st = uiDrawSave();
+    const st = UIDraw.save();
     draw_set_alpha(1);
     draw_set_halign(fa_left);
     draw_set_valign(fa_top);
@@ -87,7 +87,7 @@ globalThis.UIQuestTracker = class UIQuestTracker {
           const mx = x + this.objIndent + 6;
           const my = y + fh * 0.5;
           if (met) {
-            drawUICheck(mx, my, 11, mcol);
+            UIDraw.check(mx, my, 11, mcol);
           } else {
             draw_line_width_color(mx - 4, my, mx + 4, my, 2, mcol, mcol);
           }
@@ -103,6 +103,6 @@ globalThis.UIQuestTracker = class UIQuestTracker {
       }
     }
 
-    uiDrawRestore(st);
+    UIDraw.restore(st);
   }
 };

@@ -711,7 +711,7 @@ globalThis.InventoryUI = {
     g.selected = sel;
 
     const rowsN = Math.max(1, Math.ceil(items.length / g.cols));
-    uiResizeTo(
+    UIDraw.resizeTo(
       page.gridEl,
       g.cols * g.cellSize + (g.cols - 1) * g.gap,
       rowsN * g.cellSize + (rowsN - 1) * g.gap,

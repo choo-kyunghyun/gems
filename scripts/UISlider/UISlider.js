@@ -128,7 +128,7 @@ globalThis.UISlider = class UISlider {
 
     // the border strokes under the fill, which covers its left span
     const fillR = Math.max(x1 + rad, m.thumbX);
-    drawUIBar(
+    UIDraw.bar(
       x1,
       ty1,
       x2,
@@ -154,7 +154,7 @@ globalThis.UISlider = class UISlider {
       false,
     );
     const thumbBorder = this._thumbStyle.borderColor ?? c_black;
-    drawUIOutline(
+    UIDraw.outline(
       m.thumbX - tr,
       m.cy - tr,
       m.thumbX + tr,
@@ -168,7 +168,7 @@ globalThis.UISlider = class UISlider {
       const ph = draw_get_halign();
       const pv = draw_get_valign();
       const pf = draw_get_font();
-      const vf = resolveUIFont(this.valueFont);
+      const vf = UIDraw.font(this.valueFont);
       if (vf !== -1) draw_set_font(vf);
       draw_set_halign(fa_right);
       draw_set_valign(fa_middle);

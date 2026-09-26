@@ -62,15 +62,15 @@ globalThis.UIStepper = class UIStepper {
 
   onUpdate(element, block) {
     // latched before the trigger runs, as its click commits from this frame's side
-    this._side = uiPointerSide(element, block);
+    this._side = UIDraw.pointerSide(element, block);
     return this._fsm.onUpdate(element, block);
   }
 
   onDraw(element) {
     const pos = element.getLayoutPosition();
-    const st = uiDrawSave();
+    const st = UIDraw.save();
 
-    const fnt = resolveUIFont(this.font);
+    const fnt = UIDraw.font(this.font);
     if (fnt !== -1) draw_set_font(fnt);
     draw_set_valign(this.valign);
 
@@ -78,7 +78,7 @@ globalThis.UIStepper = class UIStepper {
     const canInc = this.wrap || this.value < this.max;
 
     const cy
- = drawUIArrowPair(
+ = UIDraw.arrowPair(
       pos,
       !canDec
         ? this.arrowDisabled
@@ -96,7 +96,7 @@ globalThis.UIStepper = class UIStepper {
     draw_set_color(this.color);
     draw_text(pos.left + pos.width * 0.5, cy, this.format(this.value));
 
-    uiDrawRestore(st);
+    UIDraw.restore(st);
   }
 
   /** Horizontal nav steps the value instead of moving focus. */

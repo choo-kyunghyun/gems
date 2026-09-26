@@ -49,7 +49,7 @@ globalThis.UIAccordion = class UIAccordion {
 
   onDraw(element) {
     const pos = element.getLayoutPosition();
-    const st = uiDrawSave();
+    const st = UIDraw.save();
 
     draw_set_alpha(1);
 
@@ -69,13 +69,13 @@ globalThis.UIAccordion = class UIAccordion {
     const cy = pos.top + pos.height * 0.5;
     const pad = 14;
 
-    const fnt = resolveUIFont(this.font);
+    const fnt = UIDraw.font(this.font);
     if (fnt !== -1) draw_set_font(fnt);
     draw_set_valign(fa_middle);
 
     const ch = element.state.hover ? this.chevronHover : this.chevronColor;
     const ah = 5;
-    drawUIArrow(
+    UIDraw.arrow(
       pos.left + pos.width - pad - ah,
       cy,
       this.expanded ? "down" : "right",
@@ -87,7 +87,7 @@ globalThis.UIAccordion = class UIAccordion {
     draw_set_color(this.titleColor);
     draw_text(pos.left + pad, cy, this._title());
 
-    uiDrawRestore(st);
+    UIDraw.restore(st);
   }
 
   navActivate

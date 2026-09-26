@@ -33,12 +33,12 @@ globalThis.UIDropdown = class UIDropdown {
 
   /** Undefined if empty. */
   getValue() {
-    return uiItemValue(this.items, this._index);
+    return UIDraw.itemValue(this.items, this._index);
   }
 
   /** "" if empty. */
   getName() {
-    return uiItemName(this.items, this._index);
+    return UIDraw.itemName(this.items, this._index);
   }
 
   /** Clamps `i`; fires onChange. */
@@ -66,9 +66,9 @@ globalThis.UIDropdown = class UIDropdown {
 
   onDraw(element) {
     const pos = element.getLayoutPosition();
-    const st = uiDrawSave();
+    const st = UIDraw.save();
 
-    const fnt = resolveUIFont(this.font);
+    const fnt = UIDraw.font(this.font);
     if (fnt !== -1) draw_set_font(fnt);
     draw_set_valign(fa_middle);
     const cy = pos.top + pos.height * 0.5;
@@ -86,7 +86,7 @@ globalThis.UIDropdown = class UIDropdown {
     draw_text(tx, cy, has ? label : this.placeholder);
 
     const ah = 4;
-    drawUIArrow(
+    UIDraw.arrow(
       pos.left + pos.width - this.padX - ah,
       cy,
       this._open ? "up" : "down",
@@ -94,7 +94,7 @@ globalThis.UIDropdown = class UIDropdown {
       this.chevronColor,
     );
 
-    uiDrawRestore(st);
+    UIDraw.restore(st);
   }
 
   // its presence marks the field focusable

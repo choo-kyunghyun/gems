@@ -47,7 +47,7 @@ globalThis.Tooltip = {
     x = clamp(x, 0, display_get_gui_width() - width);
     y = clamp(y, 0, display_get_gui_height() - height);
 
-    drawUIPanel(x, y, x + width, y + height, Tooltip.panelRad, Tooltip);
+    UIDraw.panel(x, y, x + width, y + height, Tooltip.panelRad, Tooltip);
 
     draw_set_halign(fa_left);
     draw_set_valign(fa_top);

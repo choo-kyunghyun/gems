@@ -126,7 +126,7 @@ globalThis.UINav = {
     const y2 = pos.top + pos.height + m;
     const a0 = draw_get_alpha();
     draw_set_alpha(pulse);
-    drawUIOutline(x1 - 1, y1 - 1, x2 + 1, y2 + 1, 8, UINav.color, 2);
+    UIDraw.outline(x1 - 1, y1 - 1, x2 + 1, y2 + 1, 8, UINav.color, 2);
     draw_set_alpha(a0);
   },
 
@@ -135,7 +135,7 @@ globalThis.UINav = {
     const items = UINav._collect();
     if (items.length === 0) return;
 
-    const st = uiDrawSave();
+    const st = UIDraw.save();
     draw_set_halign(fa_left);
     draw_set_valign(fa_top);
 
@@ -189,7 +189,7 @@ globalThis.UINav = {
       }
     }
 
-    uiDrawRestore(st);
+    UIDraw.restore(st);
   },
 
   _dirLine(x1, y1, x2, y2, col) {

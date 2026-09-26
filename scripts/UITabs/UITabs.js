@@ -112,9 +112,9 @@ globalThis.UITabs = class UITabs {
     const n = this.tabs.length;
     if (n === 0) return;
 
-    const st = uiDrawSave();
+    const st = UIDraw.save();
 
-    const fnt = resolveUIFont(this.font);
+    const fnt = UIDraw.font(this.font);
     if (fnt !== -1) draw_set_font(fnt);
     draw_set_halign(fa_center);
     draw_set_valign(fa_middle);
@@ -202,7 +202,7 @@ globalThis.UITabs = class UITabs {
     draw_set_alpha(1);
     this._rule(pos, right, bottom);
 
-    uiDrawRestore(st);
+    UIDraw.restore(st);
   }
 
   _rule(pos, right, bottom) {

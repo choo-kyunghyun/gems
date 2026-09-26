@@ -31,7 +31,7 @@ globalThis.UIText = class UIText {
   }
 
   _font() {
-    return resolveUIFont(this.font);
+    return UIDraw.font(this.font);
   }
 
   onUpdate(element, block) {
@@ -45,7 +45,7 @@ globalThis.UIText = class UIText {
       const font = draw_get_font();
       if (fnt !== -1) draw_set_font(fnt);
 
-      uiResizeTo(
+      UIDraw.resizeTo(
         element,
         string_width_ext(this.cache, this.sep, this.w),
         string_height_ext(this.cache, this.sep, this.w),

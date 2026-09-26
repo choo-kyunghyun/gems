@@ -6,7 +6,7 @@ globalThis.UIProgress = class UIProgress {
   /** progress: { getValue|value (0..1), label, track, fill, color, font } */
   constructor(progress = {}) {
     this._get = progress.getValue ?? (() => progress.value ?? 0);
-    this.label = progress.label != null ? uiTextRef(progress.label) : null;
+    this.label = progress.label != null ? UIDraw.textRef(progress.label) : null;
 
     this._trackStyle = progress.track ?? {};
     this._fillStyle = progress.fill ?? {};
@@ -28,13 +28,13 @@ globalThis.UIProgress = class UIProgress {
     // The fill is held at least a cap wide so the rounded caps can't invert at tiny values.
     const t = clamp(this._get(), 0, 1);
     const fx = t > 0 ? clamp(x1 + pos.width * t, x1 + rad * 2, x2) : x1;
-    drawUIBar(x1, y1, x2, y2, rad, fx, this._trackStyle, this._fillStyle, true);
+    UIDraw.bar(x1, y1, x2, y2, rad, fx, this._trackStyle, this._fillStyle, true);
 
     if (this.label) {
       const str = this.label();
       if (str !== "") {
         const font = draw_get_font();
-        const fnt = resolveUIFont(this.font);
+        const fnt = UIDraw.font(this.font);
         if (fnt !== -1) draw_set_font(fnt);
         const ha = draw_get_halign();
         const va = draw_get_valign();

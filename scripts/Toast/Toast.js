@@ -86,7 +86,7 @@ globalThis.Toast = {
       const top = baseline - h + slide;
       const bot = baseline + slide;
 
-      drawUIPanel(x, top, x + Toast.width, bot, Toast.rad, Toast, a);
+      UIDraw.panel(x, top, x + Toast.width, bot, Toast.rad, Toast, a);
 
       draw_rectangle_color(
         x,

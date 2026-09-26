@@ -32,7 +32,6 @@
 The Core folder tree reads as its dependency layers — a move, never a behaviour change.
 
 - Unwired: `CameraPan` (no installer), `CameraFly` (tests only), `Lifetime` (no Game carrier) — wire, drop, or a clause each
-- `UIDraw`'s free globals into one namespace
 - Store mechanisms: whether `derive` folds into `of` behind an option — both have few call sites against the invariants they carry
 - Level cells span nine types in five areas (`Grid`, `LevelGrid`, `TileLayer`, `TileType`, `ZoneMap`, `SolidTiles`, `NavGrid`, `MotionPlanner`, `Chunks`); the edit-log readers (`SolidTiles`, `NavGrid`, `Chunks`) share one cursor shape, a shared reader once they drift
 

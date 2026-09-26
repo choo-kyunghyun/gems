@@ -91,7 +91,7 @@ globalThis.UICheckbox = class UICheckbox {
       );
       if (t > 0.01) {
         const cx = (bx1 + bx2) * 0.5;
-        drawUICheck(cx, cy, s * t, this.colorKnob, Math.max(2, s * 0.12));
+        UIDraw.check(cx, cy, s * t, this.colorKnob, Math.max(2, s * 0.12));
       }
     }
 

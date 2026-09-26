@@ -367,14 +367,14 @@ globalThis.UITable = class UITable {
     const pos = element.getLayoutPosition();
     const g = this._geometry(pos);
 
-    const st = uiDrawSave();
+    const st = UIDraw.save();
     draw_set_alpha(1);
 
     this._drawBody(pos, g);
     this._drawHeader(pos, g);
     if (g.barOn) this._drawBar(pos, g);
 
-    uiDrawRestore(st);
+    UIDraw.restore(st);
   }
 
   _drawHeader(pos, g) {
@@ -405,7 +405,7 @@ globalThis.UITable = class UITable {
       false,
     );
 
-    const hf = resolveUIFont(this.headerFont);
+    const hf = UIDraw.font(this.headerFont);
     if (hf !== -1) draw_set_font(hf);
     draw_set_valign(fa_middle);
     const cy = g.headerTop + this.headerH * 0.5;
@@ -420,7 +420,7 @@ globalThis.UITable = class UITable {
       if (rank >= 0) {
         const dir = this._sort[rank].dir;
         const ah = 4;
-        drawUIArrow(
+        UIDraw.arrow(
           c.x + c.w - this.cellPad - ah,
           cy,
           dir > 0 ? "up" : "down",
@@ -437,7 +437,7 @@ globalThis.UITable = class UITable {
     const w = pos.width - this.pad * 2;
     const bodyH = g.bodyRows * this.rowH;
 
-    const bf = resolveUIFont(this.font);
+    const bf = UIDraw.font(this.font);
     if (bf !== -1) draw_set_font(bf);
     draw_set_valign(fa_middle);
 

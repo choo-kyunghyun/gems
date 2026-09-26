@@ -37,7 +37,7 @@ globalThis.UIPanel = class UIPanel {
       this.color,
       false,
     );
-    drawUIOutline(x1, y1, x2, y2, this.rad, this.borderColor, this.border);
+    UIDraw.outline(x1, y1, x2, y2, this.rad, this.borderColor, this.border);
 
     draw_set_alpha(alpha);
   }

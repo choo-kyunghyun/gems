@@ -36,13 +36,13 @@ globalThis.UIRichText = class UIRichText {
     if (this.cache !== str) {
       this.cache = str;
 
-      const fnt = resolveUIFont(this.font);
+      const fnt = UIDraw.font(this.font);
       const font0 = draw_get_font();
       if (fnt !== -1) draw_set_font(fnt);
 
       this._parse(str);
       this._measure();
-      uiResizeTo(element, this._width, this._height);
+      UIDraw.resizeTo(element, this._width, this._height);
 
       if (fnt !== -1) draw_set_font(font0);
     }
@@ -52,8 +52,8 @@ globalThis.UIRichText = class UIRichText {
   onDraw(element) {
     const pos = element.getLayoutPosition();
 
-    const st = uiDrawSave();
-    const fnt = resolveUIFont(this.font);
+    const st = UIDraw.save();
+    const fnt = UIDraw.font(this.font);
     if (fnt !== -1) draw_set_font(fnt);
     draw_set_halign(fa_left);
     draw_set_valign(fa_top);
@@ -91,7 +91,7 @@ globalThis.UIRichText = class UIRichText {
       }
     }
 
-    uiDrawRestore(st);
+    UIDraw.restore(st);
   }
 
   _lineOffset(line) {

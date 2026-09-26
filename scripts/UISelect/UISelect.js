@@ -31,12 +31,12 @@ globalThis.UISelect = class UISelect {
 
   /** Undefined if empty. */
   getValue() {
-    return uiItemValue(this.items, this._index);
+    return UIDraw.itemValue(this.items, this._index);
   }
 
   /** "" if empty. */
   getName() {
-    return uiItemName(this.items, this._index);
+    return UIDraw.itemName(this.items, this._index);
   }
 
   /** Wraps. */
@@ -69,7 +69,7 @@ globalThis.UISelect = class UISelect {
 
   onUpdate(element, block) {
     // latched before the trigger runs: its onClick commits by this frame's side
-    this._side = uiPointerSide(element, block);
+    this._side = UIDraw.pointerSide(element, block);
     return this._fsm.onUpdate(element, block);
   }
 
@@ -77,13 +77,13 @@ globalThis.UISelect = class UISelect {
     if (this.items.length === 0) return;
 
     const pos = element.getLayoutPosition();
-    const st = uiDrawSave();
+    const st = UIDraw.save();
 
-    const fnt = resolveUIFont(this.font);
+    const fnt = UIDraw.font(this.font);
     if (fnt !== -1) draw_set_font(fnt);
     draw_set_valign(this.valign);
 
-    const cy = drawUIArrowPair(
+    const cy = UIDraw.arrowPair(
       pos,
       this._side < 0 ? this.arrowHover : this.arrowColor,
       this._side > 0 ? this.arrowHover : this.arrowColor,
@@ -93,7 +93,7 @@ globalThis.UISelect = class UISelect {
     draw_set_color(this.color);
     draw_text(pos.left + pos.width * 0.5, cy, this.getName());
 
-    uiDrawRestore(st);
+    UIDraw.restore(st);
   }
 
   /** Horizontal nav adjusts the value instead of moving focus. */

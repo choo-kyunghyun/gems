@@ -8,7 +8,7 @@
 globalThis.UIRebind = class UIRebind {
   constructor(s = {}) {
     this.actionKey = s.actionKey ?? "";
-    this.promptRef = uiTextRef(s.prompt ?? "Press a key…");
+    this.promptRef = UIDraw.textRef(s.prompt ?? "Press a key…");
     this.onRebind = s.onRebind ?? noop;
     this.color = s.color ?? c_white;
     this.captureColor = s.captureColor ?? c_aqua;
@@ -53,9 +53,9 @@ globalThis.UIRebind = class UIRebind {
 
   onDraw(element) {
     const pos = element.getLayoutPosition();
-    const st = uiDrawSave();
+    const st = UIDraw.save();
 
-    const fnt = resolveUIFont(this.font);
+    const fnt = UIDraw.font(this.font);
     if (fnt !== -1) draw_set_font(fnt);
     draw_set_halign(fa_center);
     draw_set_valign(fa_middle);
@@ -64,7 +64,7 @@ globalThis.UIRebind = class UIRebind {
     const cy = pos.top + pos.height * 0.5;
 
     if (this._capturing) {
-      drawUIOutline(
+      UIDraw.outline(
         pos.left,
         pos.top,
         pos.left + pos.width,
@@ -80,7 +80,7 @@ globalThis.UIRebind = class UIRebind {
       draw_text(cx, cy, this._label());
     }
 
-    uiDrawRestore(st);
+    UIDraw.restore(st);
   }
 
   /**

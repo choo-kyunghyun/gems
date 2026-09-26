@@ -5,7 +5,7 @@
 globalThis.UITooltip = class UITooltip {
   /** tooltip: { label: string | () => string, delay: seconds } */
   constructor(tooltip = {}) {
-    this.label = uiTextRef(tooltip.label ?? "");
+    this.label = UIDraw.textRef(tooltip.label ?? "");
     this.delay = tooltip.delay ?? 0.4;
     this._elapsed = 0;
   }

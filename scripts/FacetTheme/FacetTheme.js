@@ -164,6 +164,6 @@ globalThis.facetColor = function facetColor(c) {
 
 /** Normalize a string or () => string into a live textRef. */
 globalThis.facetTextRef = function facetTextRef(label) {
-  return uiTextRef(label);
+  return UIDraw.textRef(label);
 };
 
