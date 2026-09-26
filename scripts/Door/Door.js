@@ -16,7 +16,7 @@ globalThis.Door = {
     const col = entities.require(id, Collision);
     const mesh = entities.get(id, Mesh);
     if (it.open === 1) {
-      if (Door._blocked(entities, id)) return "BUILD_DOOR_BLOCKED";
+      if (Door._blocked(level, id)) return "BUILD_DOOR_BLOCKED";
       it.open = 0;
       col.solid = true;
       if (mesh !== undefined) mesh.yaw -= Door.SWING;
@@ -28,10 +28,16 @@ globalThis.Door = {
     return "";
   },
 
-  /** A solid non-kinematic body overlapping the frame, grown 4 px. */
-  _blocked(entities, id) {
-    const box = AABB.of(entities, id);
-    const ids = Query.maskRect(entities, box.x1 - 4, box.y1 - 4, box.x2 + 4, box.y2 + 4, {
+  /** A solid non-kinematic body overlapping the doorway's cell. */
+  _blocked(level, id) {
+    const entities = level.entities;
+    const grid = level.grid;
+    const pos = entities.require(id, Position);
+    const cw = grid.cellWidth;
+    const ch = grid.cellHeight;
+    const x1 = Math.floor(pos.x / cw) * cw;
+    const y1 = Math.floor(pos.y / ch) * ch;
+    const ids = Query.maskRect(entities, x1, y1, x1 + cw, y1 + ch, {
       has: Collision,
       ignore: id,
     });
