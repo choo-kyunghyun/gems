@@ -7,7 +7,7 @@ const TILE = 32; // `tsMask`'s tile side (px)
  * hidden layer of its own, and `mask` is its JS twin, one byte per map cell, which `walk` reads:
  * the runtime reports a tile map crossed but never which cell.
  *
- * `sync` replays the layers' edit logs, as the nav grid does. The map's cell is the tile set's,
+ * `sync` replays the layers' edit logs from its own cursor. The map's cell is the tile set's,
  * so a grid of another cell size throws; a level with no grid has no map, and `against` — what a
  * move collides with — is `Solid` alone.
  */
@@ -21,8 +21,7 @@ globalThis.SolidTiles = class SolidTiles {
     this.cols = 0; // the map's, the ring included
     this.rows = 0;
     this.mask = undefined;
-    this._layers = null; // the layer stack the mask was sampled from; null = never
-    this._seen = []; // per layer, the edit count the mask was sampled at
+    this._cursor = new EditCursor(); // where the mask was sampled in the layers' logs
     if (tiles === null) return;
     if (tiles.cellWidth !== TILE || tiles.cellHeight !== TILE)
       throw new Error(
@@ -70,42 +69,24 @@ globalThis.SolidTiles = class SolidTiles {
     const tiles = this.tiles;
     if (tiles === null) return false;
     const layers = tiles.layers;
-    const seen = this._seen;
-    let held = this._layers;
-    let all = held === null || held.length !== layers.length;
-    let moved = all;
-    for (let i = 0; i < layers.length && !all; i++) {
-      const layer = layers[i];
-      if (held[i] !== layer) {
-        all = true;
-        moved = true;
-      } else if (layer.edits !== seen[i]) {
-        moved = true;
-        if (layer.since(seen[i]) < 0) all = true;
-      }
-    }
-    if (!moved) return false;
+    const cursor = this._cursor;
+    const state = cursor.poll(layers);
+    if (state === 0) return false;
 
     // every layer spans the grid, so a layer's cell index is the grid's
     const cols = tiles.cols;
-    if (all) {
+    if (state < 0) {
       for (let y = 0; y < tiles.rows; y++)
         for (let x = 0; x < cols; x++) this._write(x + 1, y + 1, this._blocks(y * cols + x));
     } else {
+      const from = cursor.from;
       for (let i = 0; i < layers.length; i++) {
         const log = layers[i].log;
-        for (let k = layers[i].since(seen[i]); k < log.length; k++) {
+        for (let k = from[i]; k < log.length; k++) {
           const idx = log[k];
           this._write((idx % cols) + 1, Math.floor(idx / cols) + 1, this._blocks(idx));
         }
       }
-    }
-    if (held === null) held = this._layers = [];
-    held.length = layers.length;
-    seen.length = layers.length;
-    for (let i = 0; i < layers.length; i++) {
-      held[i] = layers[i];
-      seen[i] = layers[i].edits;
     }
     return true;
   }

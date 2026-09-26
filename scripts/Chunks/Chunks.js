@@ -28,21 +28,22 @@ globalThis.Chunks = class Chunks {
     this.ny = Math.ceil((grid.rows + 1) / size);
     this.count = this.nx * this.ny;
     this.dirty = new Array(this.count).fill(1); // 1 = the chunk's bake is stale
-    this._seen = -1; // the layer's edit count at the last sync; -1 = never
+    this._stack = [layer]; // the cursor polls a stack
+    this._cursor = new EditCursor();
   }
 
   /** Marks the chunks the writes since the last sync reach. */
   sync() {
-    const layer = this.layer;
-    if (layer.edits === this._seen) return;
-    const from = layer.since(this._seen);
-    this._seen = layer.edits;
+    const cursor = this._cursor;
+    const state = cursor.poll(this._stack);
+    if (state === 0) return;
     const dirty = this.dirty;
-    if (from < 0) {
+    if (state < 0) {
       dirty.fill(1);
       return;
     }
-    const log = layer.log;
+    const from = cursor.from[0];
+    const log = this.layer.log;
     const cols = this.cols;
     const size = this.size;
     const nx = this.nx;

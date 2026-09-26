@@ -1,7 +1,8 @@
 // Level, world and nav cases: a level's own entity and its rebuild, the grid and its blob, the
-// world pool, a ticker over a level, the nav grid's sync and restamp, a wall cell's replan, the
-// zone map's labeling, the generator's salted seeds, level data's footprint and copies, and
-// perf.plan, what one A* expansion costs. Every case references Core only.
+// world pool, a ticker over a level, the nav grid's sync, an edit cursor's answers, the nav grid's
+// restamp, a wall cell's replan, the zone map's labeling, the generator's salted seeds, level
+// data's footprint and copies, and perf.plan, what one A* expansion costs. Every case references
+// Core only.
 
 const PLAN_COLS = 128; // an overworld's side
 
@@ -463,6 +464,46 @@ Test.register(Test.CHECK, [
     },
     teardown(ctx) {
       ctx.nav.destroy();
+      ctx.level.destroy();
+    },
+  },
+  {
+    id: "level.cursor",
+    setup(ctx) {
+      Object.assign(ctx, Test.level(8, 8));
+      Test.types(ctx);
+      ctx.top = new TileLayer(ctx.grid);
+      ctx.grid.insert(ctx.top);
+    },
+    verify(ctx, t) {
+      const layers = ctx.grid.layers;
+      const c = new EditCursor();
+      t.eq(c.poll(layers), -1, "the first poll answers every cell");
+      t.eq(c.poll(layers), 0, "an unmoved stack answers nothing");
+      ctx.top.set(1, 1, ctx.rock);
+      ctx.top.set(2, 1, ctx.rock);
+      t.eq(c.poll(layers), 1, "a write answers the logs");
+      t.ok(c.from[0] === ctx.layer.log.length, "an unwritten layer replays nothing");
+      t.eq(ctx.top.log.length - c.from[1], 2, "a written layer replays its writes alone");
+      t.eq(c.poll(layers), 0, "the poll moved past them");
+
+      const twin = new EditCursor();
+      twin.poll(layers);
+      ctx.layer.set(0, 0, ctx.mud);
+      c.poll(layers);
+      t.eq(twin.poll(layers), 1, "each cursor keeps its own place");
+      t.eq(ctx.layer.log[twin.from[0]], 0, "and resumes at the write it missed");
+
+      ctx.top.touchAll();
+      t.eq(c.poll(layers), -1, "a bulk write answers every cell");
+      ctx.grid.remove(ctx.top);
+      t.eq(c.poll(ctx.grid.layers), -1, "a changed stack answers every cell");
+      ctx.grid.insert(ctx.top);
+      c.poll(ctx.grid.layers);
+      const swap = [ctx.top, ctx.layer];
+      t.eq(c.poll(swap), -1, "a reordered stack answers every cell");
+    },
+    teardown(ctx) {
       ctx.level.destroy();
     },
   },

@@ -21,8 +21,7 @@ globalThis.NavGrid = class NavGrid {
     this.cursor = 0;
     this._base = tiles.alloc(); // terrain costs alone
     this._cells = { x0: 0, y0: 0, x1: 0, y1: 0 }; // a static's cell range, reused per stamp
-    this._layers = null; // the layer stack the base was sampled from; null = never
-    this._seen = []; // per layer, the edit count the base was sampled at
+    this._cursor = new EditCursor(); // where the base was sampled in the layers' logs
     this.statics = []; // the last stamped snapshot, re-applied when the base resamples
     this.gen = -1; // the collider generation the snapshot was taken at; -1 = never
   }
@@ -44,43 +43,25 @@ globalThis.NavGrid = class NavGrid {
   sync() {
     const tiles = this.tiles;
     const layers = tiles.layers;
-    const seen = this._seen;
-    let held = this._layers;
-    let all = held === null || held.length !== layers.length;
-    let moved = all;
-    for (let i = 0; i < layers.length && !all; i++) {
-      const layer = layers[i];
-      if (held[i] !== layer) {
-        all = true;
-        moved = true;
-      } else if (layer.edits !== seen[i]) {
-        moved = true;
-        if (layer.since(seen[i]) < 0) all = true;
-      }
-    }
-    if (!moved) return false;
+    const cursor = this._cursor;
+    const state = cursor.poll(layers);
+    if (state === 0) return false;
 
     // every layer spans the level, so a layer's cell index is this grid's
     const b = this._base.data;
     const cols = tiles.cols;
-    if (all) {
+    if (state < 0) {
       for (let y = 0; y < tiles.rows; y++)
         for (let x = 0; x < cols; x++) b[y * cols + x] = tiles.costAt(x, y);
     } else {
+      const from = cursor.from;
       for (let i = 0; i < layers.length; i++) {
         const log = layers[i].log;
-        for (let k = layers[i].since(seen[i]); k < log.length; k++) {
+        for (let k = from[i]; k < log.length; k++) {
           const idx = log[k];
           b[idx] = tiles.costAt(idx % cols, Math.floor(idx / cols));
         }
       }
-    }
-    if (held === null) held = this._layers = [];
-    held.length = layers.length;
-    seen.length = layers.length;
-    for (let i = 0; i < layers.length; i++) {
-      held[i] = layers[i];
-      seen[i] = layers[i].edits;
     }
     this._compose();
     return true;

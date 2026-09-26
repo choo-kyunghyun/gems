@@ -273,6 +273,7 @@
     {"id":{"name":"Door","path":"scripts/Door/Door.yy",},},
     {"id":{"name":"Downed","path":"scripts/Downed/Downed.yy",},},
     {"id":{"name":"Drowsiness","path":"scripts/Drowsiness/Drowsiness.yy",},},
+    {"id":{"name":"EditCursor","path":"scripts/EditCursor/EditCursor.yy",},},
     {"id":{"name":"Effects","path":"scripts/Effects/Effects.yy",},},
     {"id":{"name":"Encumbrance","path":"scripts/Encumbrance/Encumbrance.yy",},},
     {"id":{"name":"EncumbranceSystem","path":"scripts/EncumbranceSystem/EncumbranceSystem.yy",},},

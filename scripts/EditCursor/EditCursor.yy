@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"EditCursor",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"EditCursor",
+  "parent":{
+    "name":"Level",
+    "path":"folders/Core/Level.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"EditCursor.js",
+}

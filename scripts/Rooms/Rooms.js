@@ -1,7 +1,7 @@
 /**
  * The rooms of a level: the zones its walls close off, a room being any zone past OUTSIDE.
  *
- * Two sources, each with its own refresh: the bounding layers' edit counters (`sync`) and the
+ * Two sources, each with its own refresh: the bounding layers' edit logs (`sync`) and the
  * stamped footprints (`stamp`), so a doorway closes a room whether its leaf is open or shut.
  * A derivation is one whole-level labeling, paid on a change only, never per frame.
  */
@@ -13,7 +13,8 @@ globalThis.Rooms = class Rooms {
   constructor(tiles, layers) {
     this.layers = layers;
     this.map = new ZoneMap(tiles);
-    this._edits = -1; // the layers' summed edits the map was derived at; -1 = never
+    this._cursor = new EditCursor(); // where the map was derived in the layers' logs
+    this._synced = false; // the first sync derives
     this._stamps = []; // own copies, world px, x2/y2 exclusive
     /** @type {function(number, number): boolean} */
     this._blocked = (x, y) => {
@@ -30,10 +31,8 @@ globalThis.Rooms = class Rooms {
 
   /** Returns whether it re-derived. */
   sync() {
-    let edits = 0;
-    for (let i = 0; i < this.layers.length; i++) edits += this.layers[i].edits;
-    if (edits === this._edits) return false;
-    this._edits = edits;
+    if (this._cursor.poll(this.layers) === 0) return false;
+    this._synced = true;
     this._derive();
     return true;
   }
@@ -61,7 +60,7 @@ globalThis.Rooms = class Rooms {
       const r = rects[i];
       held.push({ x1: r.x1, y1: r.y1, x2: r.x2, y2: r.y2 });
     }
-    if (this._edits !== -1) this._derive(); // else the first sync derives with these
+    if (this._synced) this._derive(); // else the first sync derives with these
     return true;
   }
 
