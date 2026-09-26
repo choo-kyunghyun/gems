@@ -27,6 +27,10 @@ Naming rules for API members, GameMaker assets, and the data keys they meet.
 - A sound is `snd<Subject>[<Event>]` for SFX and `mus<Track>` for music.
 - A media name cases acronyms as words, following word boundaries.
 
+## Folders
+
+- An area folder names its feature in the singular; a folder that groups one kind of asset names that kind in the plural.
+
 ## Included Files & Data Keys
 
 - An included file, an item id, an i18n key, and anything a save file holds are strings the engine compares, not identifiers: ids and keys are lowercase snake_case, i18n keys ALL_UPPER. Renaming an asset is a rename; renaming a key is a migration.
