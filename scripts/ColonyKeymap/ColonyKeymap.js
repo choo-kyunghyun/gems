@@ -63,13 +63,13 @@ globalThis.ColonyKeymap = {
         .inContext(["play"]),
     );
 
-    // keyboard only: the gamepad dpad is movement
+    // keyboard only: the gamepad dpad is movement; live in a window, where a key binds its slot
     for (let i = 0; i < HOTBAR_SIZE; i++) {
       Input.register(
         "hotbar" + (i + 1),
         new InputAction()
           .bindButton(INPUT_SOURCE.KEYBOARD, ord(String(i + 1)))
-          .inContext(["play"]),
+          .inContext(["play", "window"]),
       );
     }
   },

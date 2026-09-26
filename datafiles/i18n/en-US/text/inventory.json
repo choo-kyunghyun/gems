@@ -58,6 +58,7 @@
   "INV_FAVORITE": "Favorite",
   "INV_UNFAVORITE": "Unfavorite",
   "INV_HOTBAR": "Hotbar",
+  "INV_HOTBAR_HINT": "Drag an item here, or point at one and press 1-5",
   "INV_SELECT_NONE": "Select an item",
   "INV_NOT_OWNED": "You do not carry that item",
   "INV_NOT_EQUIPPABLE": "That item cannot be equipped",

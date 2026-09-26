@@ -221,7 +221,7 @@ class _SceneColonyClass {
     // before the sim, so its input reads see the context
     this._resolveContext();
 
-    // after the context, so it is inert under a window or in build mode
+    // after the context, so it is inert in build mode and binds under the bag
     this._useHotbar();
   }
 
@@ -327,11 +327,16 @@ class _SceneColonyClass {
     WorldOverlay.clearTracers();
   }
 
+  /** A hotbar key uses its slot in play, binds it over the bag, and is idle in another window. */
   _useHotbar() {
     const hb = this.level.entities.require(this.playerId, Hotbar);
     const inv = this.level.entities.require(this.playerId, Inventory);
     for (let i = 0; i < hb.slots.length; i++) {
       if (!Input.get("hotbar" + (i + 1)).pressed()) continue;
+      if (this.window.isOpen()) {
+        if (this.window.is("bag")) InventoryUI.bindKey(this, this.window.page, i);
+        continue;
+      }
       this.showHotbar(); // even an empty slot reveals the bar
       const itemId = hb.slots[i];
       if (itemId === "") continue;

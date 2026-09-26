@@ -24,6 +24,7 @@ globalThis.InventoryUI = {
       cat: "", // active category filter code ("" = all)
       grid: null,
       gridEl: null,
+      belt: null, // the hotbar's slot row
       view: [], // filtered row models, parallel to the grid's items
       detailHost: null,
       equipHost: null,
@@ -172,17 +173,21 @@ globalThis.InventoryUI = {
       cols: InventoryUI.GRID_COLS,
       cellSize: InventoryUI.GRID_CELL,
       gap: InventoryUI.GRID_GAP,
+      draggable: true,
       onSelect: (i) => InventoryUI._onGridSelect(scene, page, i),
       onActivate: (i) => {
         // browse-mode confirm acts on the cursor slot (the mouse path double-clicks)
         const row = page.view[i];
         if (row !== undefined) InventoryUI._activate(scene, row);
       },
+      onDrop: (src, from) => InventoryUI._dropOnBag(scene, page, src, from),
     });
     page.grid = grid.getComponent(UISlots);
     page.gridEl = grid;
-    const gridCell = new UIElement({ flexShrink: 0 });
+    const gridCell = new UIElement({ flexShrink: 0, gap: FacetTheme.gapSm });
     gridCell.insertChild(grid);
+    gridCell.insertChild(new UIElement({ flexGrow: 1 })); // the belt sits at the column's foot
+    gridCell.insertChild(InventoryUI._buildBelt(scene, page));
     content.insertChild(gridCell);
 
     const detail = new UIElement({
@@ -236,53 +241,75 @@ globalThis.InventoryUI = {
       ),
     );
     tab.insertChild(action);
-
-    // hotbar strip: a slot click binds the selected item, or clears the slot when none is selected
-    const hbTitle = new UIElement({ width: "100%", height: 20 });
-    hbTitle.insertChild(
-      facetLabel(I18n.textRef("INV_HOTBAR"), { color: "warn" }),
-    );
-    tab.insertChild(hbTitle);
-    const hbRow = new UIElement({
-      width: "100%",
-      height: 34,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: FacetTheme.gapSm,
-    });
-    for (let i = 0; i < HOTBAR_SIZE; i++) {
-      const cell = new UIElement({ flexGrow: 1, flexBasis: 0 });
-      cell.insertChild(InventoryUI._hotbarBtn(scene, page, i));
-      hbRow.insertChild(cell);
-    }
-    tab.insertChild(hbRow);
     return tab;
   },
 
-  _hotbarBtn(scene, page, i) {
-    return facetButton(
-      () => {
-        const hb = scene.level.entities.require(scene.playerId, Hotbar);
-        const itemId = hb.slots[i];
-        if (itemId === "" || itemId === undefined) return "[" + (i + 1) + "]";
-        const it = Item.get(itemId);
-        return (
-          "[" +
-          (i + 1) +
-          "] " +
-          (it !== undefined ? I18n.text(it.name) : itemId)
-        );
-      },
-      () => InventoryUI._assignHotbar(scene, page, i),
-      { height: 30 },
+  /**
+   * The hotbar as a slot row: a drop from the bag binds, a drop within reorders, and a click binds
+   * the selection or clears the slot when there is none.
+   */
+  _buildBelt(scene, page) {
+    const col = new UIElement({ gap: 4 });
+    const title = new UIElement({ width: "100%", height: 20 });
+    title.insertChild(
+      facetLabel(I18n.textRef("INV_HOTBAR"), { color: "warn" }),
     );
+    col.insertChild(title);
+    const belt = facetSlots(new Array(HOTBAR_SIZE).fill(null), {
+      cols: HOTBAR_SIZE,
+      cellSize: InventoryUI.GRID_CELL,
+      gap: InventoryUI.GRID_GAP,
+      draggable: true,
+      onSelect: (i) => InventoryUI._assignHotbar(scene, page, i),
+      onDrop: (src, from, to) =>
+        InventoryUI._dropOnBelt(scene, page, src, from, to),
+      tooltip: I18n.textRef("INV_HOTBAR_HINT"),
+    });
+    page.belt = belt.getComponent(UISlots);
+    col.insertChild(belt);
+    return col;
   },
 
   _assignHotbar(scene, page, i) {
     const hb = scene.level.entities.require(scene.playerId, Hotbar);
     if (page.sel !== null) Belt.set(hb, i, page.sel.itemId, page.sel.uid ?? "");
     else Belt.clear(hb, i);
-    scene.showHotbar(); // pop the HUD bar so the change is visible
+    InventoryUI._rebound(scene);
+  },
+
+  /** After a binding changes: the page redraws, and the HUD bar pops for when the window closes. */
+  _rebound(scene) {
+    scene.window.dirty = true;
+    scene.showHotbar();
+  },
+
+  /** A bag cell binds; a belt cell trades places with the one it lands on. */
+  _dropOnBelt(scene, page, src, from, to) {
+    const hb = scene.level.entities.require(scene.playerId, Hotbar);
+    if (src === page.belt) Belt.swap(hb, from, to);
+    else if (src === page.grid) {
+      const row = page.view[from];
+      if (row === undefined) return;
+      Belt.set(hb, to, row.itemId, row.uid ?? "");
+    } else return;
+    InventoryUI._rebound(scene);
+  },
+
+  /** A belt cell dragged back to the bag unbinds; the bag's own order is the sort's alone. */
+  _dropOnBag(scene, page, src, from) {
+    if (src !== page.belt) return;
+    Belt.clear(scene.level.entities.require(scene.playerId, Hotbar), from);
+    InventoryUI._rebound(scene);
+  },
+
+  /** A hotbar key over the page binds the hovered item, else the selected one. */
+  bindKey(scene, page, i) {
+    const h = page.grid.hovered();
+    const row = h >= 0 && h < page.view.length ? page.view[h] : page.sel;
+    if (row === null) return;
+    const hb = scene.level.entities.require(scene.playerId, Hotbar);
+    Belt.set(hb, i, row.itemId, row.uid ?? "");
+    InventoryUI._rebound(scene);
   },
 
   _favLabel(scene, page) {
@@ -608,6 +635,8 @@ globalThis.InventoryUI = {
    */
   rebuild(scene, page, opts) {
     InventoryUI._refreshGrid(scene, page);
+    page.belt.items = InvTable.beltCells(scene.level.entities, scene.playerId);
+    page.belt.selected = -1; // a click binds; it selects nothing
     InventoryUI._refreshDetail(scene, page);
 
     const eh = page.equipHost;

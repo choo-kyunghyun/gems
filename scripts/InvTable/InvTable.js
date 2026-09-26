@@ -185,6 +185,42 @@ globalThis.InvTable = {
     };
   },
 
+  /**
+   * Body `id`'s hotbar as slot-grid cells, one per slot, an empty one included: its key number in
+   * the corner, lit while the bound gear is worn, and the icon dimmed while the bag holds none.
+   */
+  beltCells(entities, id) {
+    const hb = entities.require(id, Hotbar);
+    const inv = entities.require(id, Inventory);
+    const eq = entities.require(id, Equipment);
+    const accent = facetColor(FacetTheme.accent);
+    const muted = facetColor(FacetTheme.textMuted);
+    const cells = [];
+    for (let i = 0; i < hb.slots.length; i++) {
+      const itemId = hb.slots[i];
+      const it = Item.get(itemId);
+      const uid = Belt.instance(hb, inv, i);
+      const n = uid !== undefined ? 1 : Bag.count(inv, itemId);
+      const worn =
+        uid !== undefined
+          ? Loadout.wears(eq, uid)
+          : Loadout.worn(entities, id, itemId);
+      cells.push({
+        sprite: it !== undefined ? it.sprite : -1,
+        count: n,
+        color: n > 0 ? c_white : c_dkgray,
+        borderColor: worn
+          ? accent
+          : it !== undefined
+            ? InvTable.rarityColor(itemId)
+            : null,
+        badge: string(i + 1),
+        badgeColor: worn ? accent : muted,
+      });
+    }
+    return cells;
+  },
+
   /** The shared item color: its rarity's, c_white when the id or its rarity is unknown. */
   rarityColor(itemId) {
     const it = Item.get(itemId);

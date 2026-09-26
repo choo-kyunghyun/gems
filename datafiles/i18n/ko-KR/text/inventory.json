@@ -58,6 +58,7 @@
   "INV_FAVORITE": "즐겨찾기",
   "INV_UNFAVORITE": "즐겨찾기 해제",
   "INV_HOTBAR": "단축바",
+  "INV_HOTBAR_HINT": "아이템을 여기로 끌어다 놓거나, 아이템에 마우스를 올리고 1-5를 누르세요",
   "INV_SELECT_NONE": "아이템 선택",
   "INV_NOT_OWNED": "소지하지 않은 아이템입니다",
   "INV_NOT_EQUIPPABLE": "장착할 수 없는 아이템입니다",
