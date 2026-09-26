@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"UINav",
   "parent":{
-    "name":"Element",
-    "path":"folders/Core/UI/Element.yy",
+    "name":"UI",
+    "path":"folders/Core/UI.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

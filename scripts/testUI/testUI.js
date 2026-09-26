@@ -657,9 +657,6 @@ Test.register(Test.CHECK, [
       slider.readOnly = true;
       t.ok(!slider.onNav(el, right), "a read-only slider leaves the side move");
 
-      const stepper = new UIStepper({ min: 0, max: 3, value: 1 });
-      t.ok(stepper.onNav(el, right) ? stepper.value === 2 : false, "a stepper's side move steps it");
-
       const tabs = new UITabs({
         tabs: [
           { label: "a", content: ctx.el() },

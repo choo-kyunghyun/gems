@@ -99,8 +99,6 @@
   "FACET_TIP_SWITCH": "A pill + sliding-knob toggle",
   "FACET_SLIDER": "Slider",
   "FACET_SELECT": "Select",
-  "FACET_STEPPER": "Stepper",
-  "FACET_TIP_STEPPER": "Click the < > sides to step the number (0–10)",
   "FACET_DROPDOWN": "Dropdown",
   "FACET_TIP_DROPDOWN": "Click to drop a list of options — pick one (keyboard / gamepad navigable)",
   "FACET_OPT_A": "Option A",

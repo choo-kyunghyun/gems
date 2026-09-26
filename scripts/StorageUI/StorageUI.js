@@ -18,7 +18,7 @@ globalThis.StorageUI = {
       }),
       bagTable: null,
       boxTable: null,
-      amount: null, // the UIStepper a stack's transfer reads
+      amount: null, // the UISlider a stack's transfer reads
       picked: "", // the stack the amount was set for
       click: { key: "", time: 0 }, // the re-click latch
       onTake: undefined, // never outlives the open
@@ -127,7 +127,7 @@ globalThis.StorageUI = {
     page.boxTable.setRows(InvTable.rows(boxInv, fav));
   },
 
-  /** The amount a stack moves: a stepper over the selected stack, with quick picks. */
+  /** The amount a stack moves: a slider over the selected stack, with quick picks. */
   _amountRow(page) {
     const row = new UIElement({
       width: "100%",
@@ -142,17 +142,17 @@ globalThis.StorageUI = {
       facetLabel(I18n.textRef("STORAGE_QTY_PROMPT"), { color: FacetTheme.textMuted }),
     );
     row.insertChild(label);
-    const stepEl = facetStepper(1, noop, { min: 1, max: 1, step: 1, width: 160 });
-    const stepper = stepEl.getComponent(UIStepper);
-    page.amount = stepper;
-    row.insertChild(stepEl);
+    const sliderEl = facetSlider({ min: 1, max: 1, value: 1, step: 1, width: 240 });
+    const slider = sliderEl.getComponent(UISlider);
+    page.amount = slider;
+    row.insertChild(sliderEl);
     const quick = (text, value) =>
-      facetButton(text, () => stepper.setValue(value()), { width: 90, height: FacetTheme.rowHSm });
+      facetButton(text, () => slider.setValue(value()), { width: 90, height: FacetTheme.rowHSm });
     row.insertChild(quick("1", () => 1));
     row.insertChild(
-      quick(I18n.textRef("STORAGE_QTY_HALF"), () => Math.max(1, Math.floor(stepper.max / 2))),
+      quick(I18n.textRef("STORAGE_QTY_HALF"), () => Math.max(1, Math.floor(slider.max / 2))),
     );
-    row.insertChild(quick(I18n.textRef("STORAGE_QTY_ALL"), () => stepper.max));
+    row.insertChild(quick(I18n.textRef("STORAGE_QTY_ALL"), () => slider.max));
     return row;
   },
 

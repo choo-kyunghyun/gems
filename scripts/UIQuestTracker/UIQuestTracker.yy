@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"UIQuestTracker",
   "parent":{
-    "name":"Element",
-    "path":"folders/Core/UI/Element.yy",
+    "name":"Progress",
+    "path":"folders/Game/Progress.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

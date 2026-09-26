@@ -21,7 +21,6 @@ class _SceneFacetClass {
     this.checkOn = true;
     this.switchOn = false;
     this.sliderVal = 50;
-    this.qty = 3;
     this.toastN = 0;
     this.selSlot = -1;
     this.tableSel = null;
@@ -464,17 +463,6 @@ class _SceneFacetClass {
         facetDropdown(resolutions, {
           index: 3,
           tooltip: I18n.textRef("FACET_TIP_DROPDOWN"),
-        }),
-      ),
-    );
-    controls.insertChild(
-      facetRow(
-        I18n.textRef("FACET_STEPPER"),
-        facetStepper(this.qty, (v) => (this.qty = v), {
-          min: 0,
-          max: 10,
-          step: 1,
-          tooltip: I18n.textRef("FACET_TIP_STEPPER"),
         }),
       ),
     );

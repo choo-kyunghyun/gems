@@ -189,7 +189,7 @@ globalThis.facetCheckbox = function facetCheckbox(
 globalThis.facetSlider = function facetSlider(opts = {}) {
   const min = opts.min ?? 0;
   const bind = facetBindValue(opts, min);
-  const el = new UIElement({ height: FacetTheme.sliderH, width: "100%" });
+  const el = new UIElement({ height: FacetTheme.sliderH, width: opts.width ?? "100%" });
   el.addComponent(
     new UISlider({
       min,
@@ -313,28 +313,6 @@ globalThis.facetDropdown = function facetDropdown(items, opts = {}) {
   wrap.insertChild(facetAttachTooltip(field, opts));
   wrap.anchorH = opts.height ?? FacetTheme.fieldH; // the field's band, which a row label keeps to
   return wrap;
-};
-
-/** Numeric stepper (`< n >`) holding its own value; `onChange(value)` fires on each step. */
-globalThis.facetStepper = function facetStepper(value, onChange, opts = {}) {
-  const el = facetFieldPanel({ height: opts.height, width: opts.width });
-  el.addComponent(
-    new UIStepper({
-      value,
-      min: opts.min ?? 0,
-      max: opts.max ?? 10,
-      step: opts.step ?? 1,
-      wrap: opts.wrap ?? false,
-      format: opts.format,
-      onChange,
-      halign: fa_center,
-      color: facetColor(FacetTheme.text),
-      arrowColor: facetColor(FacetTheme.textMuted),
-      arrowHover: facetColor(FacetTheme.accent),
-      arrowDisabled: facetColor(FacetTheme.textDim),
-    }),
-  );
-  return facetAttachTooltip(el, opts);
 };
 
 /**

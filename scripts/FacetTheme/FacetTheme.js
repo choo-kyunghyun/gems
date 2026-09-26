@@ -28,7 +28,7 @@ globalThis.FacetTheme = {
   // Row heights — every kit item is one of these, so a size change is a theme edit, not a sweep
   rowH: 56, // button / input / checkbox row / accordion header
   rowHSm: 40, // compact list button
-  fieldH: 44, // boxed field: select / dropdown / stepper
+  fieldH: 44, // boxed field: select / dropdown
   sliderH: 36, // the thumb and track scale from it
   lineH: 30, // text row
   tabH: 44,

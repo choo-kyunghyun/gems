@@ -99,8 +99,6 @@
   "FACET_TIP_SWITCH": "알약 + 슬라이딩 노브 토글",
   "FACET_SLIDER": "슬라이더",
   "FACET_SELECT": "선택",
-  "FACET_STEPPER": "스테퍼",
-  "FACET_TIP_STEPPER": "< > 양쪽을 클릭해 숫자를 조절 (0–10)",
   "FACET_DROPDOWN": "드롭다운",
   "FACET_TIP_DROPDOWN": "클릭하면 옵션 목록이 펼쳐집니다 — 하나를 선택 (키보드 / 게임패드 탐색 가능)",
   "FACET_OPT_A": "옵션 A",
