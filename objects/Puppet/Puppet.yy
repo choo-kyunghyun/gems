@@ -6,8 +6,8 @@
   "name":"Puppet",
   "overriddenProperties":[],
   "parent":{
-    "name":"Collision",
-    "path":"folders/Core/Collision.yy",
+    "name":"Objects",
+    "path":"folders/Core/Collision/Objects.yy",
   },
   "parentObjectId":null,
   "persistent":false,

@@ -25,8 +25,8 @@
   "nineSlice":null,
   "origin":0,
   "parent":{
-    "name":"Collision",
-    "path":"folders/Core/Collision.yy",
+    "name":"Masks",
+    "path":"folders/Core/Collision/Masks.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",

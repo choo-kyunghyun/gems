@@ -12,8 +12,8 @@
   "out_tilehborder":2,
   "out_tilevborder":2,
   "parent":{
-    "name":"Collision",
-    "path":"folders/Core/Collision.yy",
+    "name":"Masks",
+    "path":"folders/Core/Collision/Masks.yy",
   },
   "resourceType":"GMTileSet",
   "resourceVersion":"2.0",
