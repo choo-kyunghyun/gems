@@ -5,6 +5,10 @@
  * badge?, badgeColor? } or null; `borderColor` overrides the grid border per cell and `badge` is a
  * short corner marker. `sprite` must be raster (docs/GMRT.md).
  *
+ * A drag onto a grid with `onDrop(source, from, to)` hands the outcome to that hook and puts the
+ * carried item back, so the owner's model decides what moved; a grid without one swaps the two
+ * cells. A `passive` grid only draws: it never hovers, selects or takes the pointer.
+ *
  * `navActivate` enters browse mode, where the grid owns the arrows as a 2D slot cursor. The key
  * claim is re-requested every frame, so a stale claim lapses on its own.
  *
@@ -21,6 +25,8 @@ globalThis.UISlots = class UISlots {
     this.onSelect = s.onSelect ?? noop;
     this.onActivate = s.onActivate ?? noop; // browse-mode confirm on the cursor slot
     this.draggable = s.draggable ?? false;
+    this.onDrop = s.onDrop ?? null;
+    this.passive = s.passive ?? false;
     this.font = s.font ?? -1;
     this.rad = s.rad ?? 6;
 
@@ -46,7 +52,13 @@ globalThis.UISlots = class UISlots {
     };
   }
 
+  /** The cell under the pointer this frame, -1 for none. */
+  hovered() {
+    return this._hover;
+  }
+
   onUpdate(element, block) {
+    if (this.passive) return block;
     const pos = element.getLayoutPosition();
     const mx = Input.pointer.x;
     const my = Input.pointer.y;

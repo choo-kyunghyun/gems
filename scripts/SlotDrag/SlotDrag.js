@@ -33,13 +33,23 @@ globalThis.SlotDrag = {
     SlotDrag.hoverSlot = j;
   },
 
-  /** Back onto the source slot reads as a click; otherwise the occupant swaps back to the source. */
+  /**
+   * Back onto the source slot reads as a click; onto a grid with a drop hook, the item goes home
+   * and the hook decides; otherwise the occupant swaps back to the source.
+   */
   drop(grid, j) {
     if (!SlotDrag.active) return;
     if (grid === SlotDrag.source && j === SlotDrag.sourceIndex) {
       grid.items[j] = SlotDrag.item;
       grid.selected = j;
       grid.onSelect(j, SlotDrag.item);
+    } else if (grid.onDrop !== null) {
+      const source = SlotDrag.source;
+      const from = SlotDrag.sourceIndex;
+      source.items[from] = SlotDrag.item;
+      SlotDrag._reset();
+      grid.onDrop(source, from, j);
+      return;
     } else {
       const target = grid.items[j];
       grid.items[j] = SlotDrag.item;

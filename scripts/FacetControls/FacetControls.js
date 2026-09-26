@@ -401,8 +401,8 @@ globalThis.facetInput = function facetInput(opts = {}) {
 
 /**
  * Slot grid with hover and single selection, sized exactly to the grid so it fits a scroll
- * view. Each item is { sprite, subimg, count, color } or null; `sprite` must be raster
- * (docs/GMRT.md).
+ * view. Each item is { sprite, subimg, count, color, borderColor?, badge?, badgeColor? } or null;
+ * `sprite` must be raster (docs/GMRT.md).
  */
 globalThis.facetSlots = function facetSlots(items, opts = {}) {
   const cols = opts.cols ?? 4;
@@ -424,6 +424,8 @@ globalThis.facetSlots = function facetSlots(items, opts = {}) {
       onSelect: opts.onSelect,
       onActivate: opts.onActivate,
       draggable: opts.draggable ?? false,
+      onDrop: opts.onDrop,
+      passive: opts.passive,
       font: opts.font ?? -1,
       slotColor: facetColor(opts.slotColor ?? FacetTheme.btnPress),
       slotHover: facetColor(FacetTheme.btnHover),

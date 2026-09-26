@@ -1,5 +1,5 @@
-// Core/Render, Camera, Scene and UI cases: the camera entity, the draw passes and the live text
-// refs. Every case references Core only.
+// Core/Render, Camera, Scene and UI cases: the camera entity, the draw passes, the live text
+// refs and the slot drag. Every case references Core only.
 
 Test.register(Test.CHECK, [
   {
@@ -410,6 +410,39 @@ Test.register(Test.CHECK, [
         "TEST_ABSENT a b c",
         "values alone",
       );
+    },
+  },
+  {
+    // a drop hook owns the outcome, so the carried item goes home; without one the cells swap
+    id: "ui.slotDrop",
+    setup(ctx) {
+      ctx.drops = [];
+      ctx.a = new UISlots({ items: [{ id: "x" }, null] });
+      ctx.b = new UISlots({ items: [{ id: "y" }, null] });
+      ctx.hooked = new UISlots({
+        items: [{ id: "z" }, null],
+        onDrop: (src, from, to) => ctx.drops.push([src, from, to]),
+      });
+    },
+    verify(ctx, t) {
+      SlotDrag.begin(ctx.a, 0);
+      SlotDrag.drop(ctx.hooked, 1);
+      t.eq(ctx.drops.length, 1, "the hook fires once");
+      const d = ctx.drops[0];
+      t.ok(d[0] === ctx.a && d[1] === 0 && d[2] === 1, "the hook names source, from and to");
+      t.eq(ctx.a.items[0].id, "x", "the carried item goes home");
+      t.eq(ctx.hooked.items[1], null, "the hooked grid is left to its owner");
+      t.ok(!SlotDrag.active, "the drag ends");
+
+      SlotDrag.begin(ctx.a, 0);
+      SlotDrag.drop(ctx.b, 0);
+      t.ok(ctx.a.items[0].id === "y" && ctx.b.items[0].id === "x", "a hookless grid swaps");
+
+      const passive = new UISlots({ items: [null], passive: true });
+      t.eq(passive.onUpdate(undefined, false), false, "a passive grid never takes the pointer");
+    },
+    teardown(ctx) {
+      SlotDrag.cancel();
     },
   },
 ]);
