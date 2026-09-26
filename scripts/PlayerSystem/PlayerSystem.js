@@ -57,11 +57,11 @@ globalThis.PlayerSystem = {
 
     const vel = entities.get(id, Velocity);
     const dir = entities.get(id, Direction);
-    const stats = entities.get(id, Stats);
+    const stats = entities.require(id, Stats);
     const pp = entities.get(id, Position);
     // status and terrain scale apply here, not on Stats.speed, so the derived sheet stays clean
     const speed =
-      (stats !== undefined ? stats.speed : ColonyPlayer.TUNING.speed) *
+      stats.speed *
       Effects.scale(entities, id, "speed") *
       PathFollow.speedScale(level.grid, pp.x, pp.y);
     const len = Math.sqrt(dx * dx + dy * dy);
@@ -121,7 +121,7 @@ globalThis.PlayerSystem = {
         dir.x = adx / adist;
         dir.y = ady / adist;
       }
-      const attack = stats !== undefined ? stats.attack : 0;
+      const attack = stats.attack;
       if (wpn === null) {
         // an equipped item with no Weapon component
       } else if (wpn.kind === "gun") {
@@ -180,24 +180,26 @@ globalThis.PlayerSystem = {
     if (slot.rounds <= 0) return PlayerSystem._dryClick();
 
     const speed = wpn.velocity !== undefined ? wpn.velocity : BULLET_SPEED;
-    // the shot is instant; velocity only scales its reach
-    const damage = Math.round(wpn.power) + attack;
-    const aim = ColonyPlayer.fireBullet(level, id, {
-      damage,
-      penetration: wpn.penetration,
-      range: speed * SHOT_RANGE_SECS,
-      nx: dir.x,
-      ny: dir.y,
+    // the shot is instant, drawn as a fading tracer; velocity only scales its reach
+    const range = speed * SHOT_RANGE_SECS;
+    const pos = entities.get(id, Position);
+    const m = Math.sqrt(dir.x * dir.x + dir.y * dir.y) || 1;
+    const nx = dir.x / m;
+    const ny = dir.y / m;
+    const shot = Combat.hitscan(level, pos.x, pos.y, pos.x + nx * range, pos.y + ny * range, {
+      owner: id,
+      damage: Math.round(wpn.power) + attack,
+      penetration: wpn.penetration ?? 0,
+      pierce: 1,
     });
+    WorldOverlay.pushTracer(pos.x, pos.y, shot.x, shot.y);
     slot.rounds -= 1;
 
-    const pos = entities.get(id, Position);
-    const ang = point_direction(0, 0, aim.nx, aim.ny);
     ParticleFx.burst({
       asset: psMuzzle,
-      x: pos.x + aim.nx * 18,
-      y: pos.y + aim.ny * 18,
-      angle: ang,
+      x: pos.x + nx * 18,
+      y: pos.y + ny * 18,
+      angle: point_direction(0, 0, nx, ny),
     });
     Audio.play({ sound: sndGunFire, position: { x: pos.x, y: pos.y } });
 

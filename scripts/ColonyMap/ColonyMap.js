@@ -167,7 +167,7 @@ globalThis.ColonyMap = {
     ColonyMap._mount(level, built);
     Grassland.clearBuilt(level);
     // A trip arrival transfers the existing player instead.
-    if (player) ColonyPlayer.spawn(level.entities, built.spawn);
+    if (player) EntityPreset.spawn(level.entities, "player", built.spawn.x, built.spawn.y);
 
     // A level without an authored settlement stays unsettled until one is founded in play.
     const entities = level.entities;

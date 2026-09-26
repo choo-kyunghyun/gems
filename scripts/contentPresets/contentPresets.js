@@ -320,6 +320,56 @@ globalThis.contentPresets = {
         },
       },
       {
+        // The input-driven player: a new game's only, as a trip transfers it whole.
+        id: "player",
+        // a 24 world px bbox (16 × 1.5): near the visual body so the sprite can't bury into
+        // walls, and under the 32px cell so 1-cell doorways stay passable
+        scale: 1.5,
+        components: {
+          Velocity: {},
+          BBox: { x: -8, y: -8, width: 16, height: 16 },
+          Collision: {}, // a dynamic solid
+          Direction: { x: 0, y: 1, z: 0 },
+          Name: { name: "Player" },
+          // authored like the name, not hashed like a spawned colonist
+          Persona: { sex: "male", age: 34 },
+          Faction: { id: "player" },
+          Health: { hp: 10 },
+          Mortal: { kind: "respawn" },
+          // ~3 s from full, ~4.5 s back
+          Stamina: { value: 100, exhausted: false, drain: 34, regen: 22, recover: 0.3 },
+          Attributes: StatModel.defaults(),
+          // seeds only: post's recompute overwrites them from the attributes; speed in world px/s
+          Stats: { maxHp: 10, maxStamina: 100, attack: 1, defense: 0, speed: 220 },
+          Inventory: { capacity: 16, maxWeight: 50 },
+          Encumbrance: {},
+          Equipment: {},
+          Hotbar: {},
+          Favorites: {},
+          // the body art is a white template, so the skin is a tint over its body slots
+          Sprite: {
+            sprite: spineHuman,
+            anim: Doll.rest(spineHuman),
+            tints: ColonySpawn.skinTints(Color.parse(ColonySpawn.SKINS[0])),
+          },
+          Appearance: {},
+          // the lantern, revealing night
+          Light: { radius: 180, color: make_colour_rgb(255, 226, 168), intensity: 0.85 },
+          // the camera's target marker, resolved live so no stored id dangles across a map transfer
+          CameraFocus: {},
+        },
+        post(entities, id, ctx) {
+          // hired companions copy this id; a trip transfers every member with it
+          entities.add(id, Squad, { id: uuid() });
+          const needs = Need.all();
+          for (let i = 0; i < needs.length; i++)
+            entities.add(id, needs[i].id, Object.assign({}, needs[i].seed));
+          // marks the input-driven entity; flat scalars so its state rides the map transfer
+          entities.add(id, Playable, { cursorX: ctx.x, cursorY: ctx.y });
+          StatModel.recompute(entities, id);
+        },
+      },
+      {
         // Companion: spawns unhired, a map resident that talking to recruits. At 0 hp it goes
         // down, then revives at the recovery spot. No brain attach: followers are driven by query.
         id: "follower",
