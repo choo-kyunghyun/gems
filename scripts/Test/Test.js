@@ -110,16 +110,16 @@ globalThis.Test = {
   /**
    * Sandboxes the UI's app state, handed back by `uiRestore`: no roots, an idle nav and field
    * focus, the pointer parked off-screen, the pad idle, a keyboard whose only keys down are
-   * `ctx.keys`, and no sound.
+   * `ctx.keys`, and a silent `Audio.play` that counts its cues in `ctx.sounds`.
    */
   ui(ctx) {
     ctx.keys = [];
+    ctx.sounds = 0;
     const saved = {
       roots: UI.roots,
       focused: UINav.focused,
       engaged: UINav.engaged,
       suspended: UINav.suspended,
-      claimed: UINav._claimed,
       stickX: UINav._stickX,
       stickY: UINav._stickY,
       active: UIInput.active,
@@ -171,7 +171,10 @@ globalThis.Test = {
     Input.padDown = () => false;
     Input.padAxis = () => 0;
     Input.padValue = () => 0;
-    Audio.play = () => -1;
+    Audio.play = () => {
+      ctx.sounds += 1;
+      return -1;
+    };
   },
 
   /** One sandboxed frame: the claims clear, `keys` go down, then the tree and the nav run. */
@@ -195,7 +198,6 @@ globalThis.Test = {
     UINav.focused = saved.focused;
     UINav.engaged = saved.engaged;
     UINav.suspended = saved.suspended;
-    UINav._claimed = saved.claimed;
     UINav._stickX = saved.stickX;
     UINav._stickY = saved.stickY;
     UIInput.active = saved.active;

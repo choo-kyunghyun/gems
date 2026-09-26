@@ -617,4 +617,66 @@ Test.register(Test.CHECK, [
       Test.uiRestore(ctx);
     },
   },
+  {
+    // a confirm puts a grid or a table in browse mode, which takes every nav event until a cancel
+    // or the pointer hands control back; the nav clicks on each confirm and stays silent on moves
+    id: "ui.navBrowse",
+    setup(ctx) {
+      Test.ui(ctx);
+      ctx.picked = [];
+      ctx.used = [];
+      ctx.slots = new UISlots({
+        items: [{ id: "a" }, { id: "b" }, { id: "c" }, { id: "d" }, null, { id: "f" }],
+        cols: 3,
+        onSelect: (i) => ctx.picked.push(i),
+        onActivate: (i) => ctx.used.push(i),
+      });
+      ctx.grid = new UIElement({ width: 208, height: 136 }).addComponent(ctx.slots);
+      ctx.rows = [{ n: 1 }, { n: 2 }, { n: 3 }];
+      ctx.table = new UITable({
+        columns: [{ label: "N", text: (r) => string(r.n), sortValue: (r) => r.n }],
+        rows: ctx.rows,
+        onSelect: (r) => ctx.picked.push("r" + r.n),
+        onActivate: (r) => ctx.used.push("r" + r.n),
+      });
+      ctx.tableEl = new UIElement({ width: 300, height: 114 }).addComponent(ctx.table);
+      const root = new UIElement({ flexDirection: "column", gap: 20 });
+      root.insertChild(ctx.grid).insertChild(ctx.tableEl);
+      UI.insert(root);
+      UINav.focused = ctx.grid;
+      UINav.engaged = true;
+    },
+    verify(ctx, t) {
+      Test.uiFrame(ctx, [vk_enter]);
+      t.eq(ctx.sounds, 1, "entering browse clicks");
+      Test.uiFrame(ctx, [vk_right]);
+      Test.uiFrame(ctx, [vk_down]);
+      t.eq(ctx.picked.join(","), "1,4", "moves step the slot cursor, a row by the columns");
+      t.ok(UINav.focused === ctx.grid, "browse keeps the focus");
+      t.eq(ctx.sounds, 1, "a browse move is silent");
+      Test.uiFrame(ctx, [vk_enter]);
+      t.eq(ctx.used.join(","), "4", "a confirm activates the cursor slot");
+      t.eq(ctx.sounds, 2, "and clicks");
+      Test.uiFrame(ctx, [vk_escape]);
+      t.ok(UINav.engaged, "the Esc that leaves browse keeps the ring");
+      Test.uiFrame(ctx, [vk_down]);
+      t.ok(UINav.focused === ctx.tableEl, "out of browse a move leaves the grid");
+
+      ctx.picked = [];
+      ctx.used = [];
+      Test.uiFrame(ctx, [vk_enter]);
+      Test.uiFrame(ctx, [vk_down]);
+      t.eq(ctx.picked.join(","), "r2", "a table's move steps the row cursor");
+      Test.uiFrame(ctx, [vk_enter]);
+      t.eq(ctx.used.join(","), "r2", "a table's confirm activates the cursor row");
+
+      Input.pointer.x += 1;
+      Test.uiFrame(ctx, []);
+      Test.uiFrame(ctx, [vk_up]);
+      t.ok(UINav.focused === ctx.grid, "a pointer move hands the table back to the nav");
+    },
+    teardown(ctx) {
+      Test.uiRestore(ctx);
+    },
+  },
 ]);

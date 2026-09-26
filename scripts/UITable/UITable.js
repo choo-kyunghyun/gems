@@ -12,9 +12,8 @@
  * Sorting is a multi-key stack up to `sortDepth`: a clicked header becomes primary, re-clicking
  * the primary flips direction. Selection tracks the row OBJECT, so it survives re-sort/filter.
  *
- * Browse mode (entered by `navActivate`) owns the arrows: Up/Down move the row cursor,
- * Left/Right re-pick the sort column. Its key claim is re-requested every frame, so it lapses on
- * its own when the table stops updating.
+ * Browse mode, entered by a nav confirm, takes the nav's moves: Up/Down move the row cursor,
+ * Left/Right re-pick the sort column; its confirm is `onActivate` and its cancel the way out.
  *
  * BUG: [#15549] hit-test/hover state lives in instance fields (docs/GMRT.md).
  */
@@ -61,6 +60,7 @@ globalThis.UITable = class UITable {
     this._hoverRow = -1;
     this._hoverCol = -1;
     this._browsing = false;
+    this.focusable = true;
     this._mx = 0; // pointer movement hands control back to the mouse
     this._my = 0;
 
@@ -258,14 +258,11 @@ globalThis.UITable = class UITable {
     this._mx = mx;
     this._my = my;
 
-    // browse mode absorbs the frame's keys (the exit Esc included, so it doesn't also
-    // disengage the focus ring underneath); pointer activity hands control back to the mouse
+    // browse mode holds the pointer until pointer activity hands control back to the mouse
     if (this._browsing) {
       if (moved || (this._inside && Input.pointer.left.pressed)) {
         this._browsing = false;
       } else {
-        this._browseKeys(pos);
-        UINav.claimKeys(this);
         return true;
       }
     }
@@ -327,27 +324,17 @@ globalThis.UITable = class UITable {
     );
   }
 
-  _browseKeys(pos) {
-    const e = UINav.readEdge();
-    if (e.cancel) {
-      this._browsing = false;
-      return;
-    }
+  _moveCursor(pos, dy) {
+    if (this._view.length === 0) return;
     const bodyRows = this._bodyRows(pos);
     const maxTop = this._maxTop(pos);
-    if (this._view.length > 0) {
-      if (e.dy !== 0) {
-        this._cursor = clamp(this._cursor + e.dy, 0, this._view.length - 1);
-        if (this._cursor < this._top) this._top = this._cursor;
-        else if (this._cursor >= this._top + bodyRows)
-          this._top = this._cursor - bodyRows + 1;
-        this._top = clamp(this._top, 0, maxTop);
-        this._selRow = this._view[this._cursor];
-        this.onSelect(this._selRow, this._cursor);
-      }
-      if (e.confirm) this.onActivate(this._view[this._cursor], this._cursor);
-    }
-    if (e.dx !== 0) this._cycleSort(e.dx);
+    this._cursor = clamp(this._cursor + dy, 0, this._view.length - 1);
+    if (this._cursor < this._top) this._top = this._cursor;
+    else if (this._cursor >= this._top + bodyRows)
+      this._top = this._cursor - bodyRows + 1;
+    this._top = clamp(this._top, 0, maxTop);
+    this._selRow = this._view[this._cursor];
+    this.onSelect(this._selRow, this._cursor);
   }
 
   _cycleSort(dir) {
@@ -568,14 +555,25 @@ globalThis.UITable = class UITable {
     return string_copy(s, 1, lo);
   }
 
-  // its presence marks the element focusable
-  navActivate(element) {
-    this._browsing = true;
-    const sel = this._view.indexOf(this._selRow);
-    this._cursor = sel >= 0 ? sel : this._top;
-  }
-
-  onDestroy(element) {
-    UINav.releaseClaim(this);
+  /** A confirm enters browse mode, which then takes every move, confirm and cancel. */
+  onNav(element, ev) {
+    if (!this._browsing) {
+      if (ev.kind !== "confirm") return false;
+      this._browsing = true;
+      const sel = this._view.indexOf(this._selRow);
+      this._cursor = sel >= 0 ? sel : this._top;
+      return true;
+    }
+    if (ev.kind === "cancel") {
+      this._browsing = false;
+      return true;
+    }
+    if (ev.kind === "confirm") {
+      if (this._view.length > 0) this.onActivate(this._view[this._cursor], this._cursor);
+      return true;
+    }
+    if (ev.dy !== 0) this._moveCursor(element.getLayoutPosition(), ev.dy);
+    if (ev.dx !== 0) this._cycleSort(ev.dx);
+    return true;
   }
 };

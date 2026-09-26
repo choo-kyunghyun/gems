@@ -9,8 +9,9 @@
  * carried item back, so the owner's model decides what moved; a grid without one swaps the two
  * cells. A `passive` grid only draws: it never hovers, selects or takes the pointer.
  *
- * `navActivate` enters browse mode, where the grid owns the arrows as a 2D slot cursor. The key
- * claim is re-requested every frame, so a stale claim lapses on its own.
+ * A nav confirm enters browse mode, where the grid takes the nav's moves as a 2D slot cursor, its
+ * confirm as `onActivate` on the cursor slot and its cancel as the way out; a pointer move or click
+ * hands control back.
  *
  * Hover and selection are read live each frame, never cached in a boolean (docs/GMRT.md).
  */
@@ -27,6 +28,7 @@ globalThis.UISlots = class UISlots {
     this.draggable = s.draggable ?? false;
     this.onDrop = s.onDrop ?? null;
     this.passive = s.passive ?? false;
+    this.focusable = true;
     this.font = s.font ?? -1;
     this.rad = s.rad ?? 6;
 
@@ -69,14 +71,12 @@ globalThis.UISlots = class UISlots {
     this._mx = mx;
     this._my = my;
 
-    // browse mode owns input and absorbs the frame's keys; a pointer move or click takes over
+    // browse mode holds the pointer until a move or a click takes over
     if (this._browsing) {
       if (moved || (this._inside && Input.pointer.left.pressed)) {
         this._browsing = false;
       } else {
         this._hover = -1; // no stale mouse hover under the key cursor
-        this._browseKeys();
-        UINav.claimKeys(this); // per frame, so a stale claim lapses
         return true;
       }
     }
@@ -127,35 +127,33 @@ globalThis.UISlots = class UISlots {
     this.onSelect(i, this.items[i]);
   }
 
-  // its presence marks the element focusable
-  navActivate(element) {
-    this._browsing = true;
-    this._cursor =
-      this.selected >= 0 && this.selected < this.items.length
-        ? this.selected
-        : 0;
-  }
-
-  _browseKeys() {
-    const e = UINav.readEdge();
-    if (e.cancel) {
+  /** A confirm enters browse mode, which then takes every move, confirm and cancel. */
+  onNav(element, ev) {
+    if (!this._browsing) {
+      if (ev.kind !== "confirm") return false;
+      this._browsing = true;
+      this._cursor =
+        this.selected >= 0 && this.selected < this.items.length
+          ? this.selected
+          : 0;
+      return true;
+    }
+    if (ev.kind === "cancel") {
       this._browsing = false;
-      return;
+      return true;
     }
     const n = this.items.length;
-    if (n === 0) return;
-    if (e.dx !== 0 || e.dy !== 0) {
-      const c = clamp(this._cursor + e.dx + e.dy * this.cols, 0, n - 1);
-      if (c !== this._cursor) {
-        this._cursor = c;
-        this._select(c);
-      }
+    if (n === 0) return true;
+    if (ev.kind === "confirm") {
+      this.onActivate(this._cursor, this.items[this._cursor]);
+      return true;
     }
-    if (e.confirm) this.onActivate(this._cursor, this.items[this._cursor]);
-  }
-
-  onDestroy(element) {
-    UINav.releaseClaim(this);
+    const c = clamp(this._cursor + ev.dx + ev.dy * this.cols, 0, n - 1);
+    if (c !== this._cursor) {
+      this._cursor = c;
+      this._select(c);
+    }
+    return true;
   }
 
   onDraw(element) {

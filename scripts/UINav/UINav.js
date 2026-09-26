@@ -13,8 +13,9 @@
  *
  * A frame's input is one {UINavEvent}, offered to the focused element and then up its ancestors
  * until a component's `onNav(element, event)` returns true; only an unhandled event falls to the
- * nav's own focus move or ring release. A handler owns its feedback. A component with
- * `focusable: true` makes its element a focus stop.
+ * nav's own focus move or ring release. The nav voices the input itself — a taken confirm
+ * clicks, a focus move ticks — so a handler plays nothing. A component with `focusable: true`
+ * makes its element a focus stop.
  *
  * TODO: retire `navActivate`/`navAxis`, which still answer a confirm and a horizontal move on the
  * focused element itself and make it a stop, once every widget answers `onNav`.
@@ -29,26 +30,11 @@ globalThis.UINav = {
   _stickX: 0, // left-stick re-arm latches (0 = armed)
   _stickY: 0,
 
-  // a widget owning the arrows re-asserts its claim every frame; update() consumes it once per
-  // frame, so a stale claim self-heals the moment the owner stops updating
-  _claimed: null,
-
-  /** Claim the nav keys for this frame; re-claim every frame the claim should hold. */
-  claimKeys(owner) {
-    UINav._claimed = owner;
-  },
-
-  /** Release on owner teardown so a claim asserted earlier this frame can't outlive it. */
-  releaseClaim(owner) {
-    if (UINav._claimed === owner) UINav._claimed = null;
-  },
-
   /** Reset on every scene swap. */
   reset() {
     UINav.focused = null;
     UINav.engaged = false;
     UINav.suspended = false;
-    UINav._claimed = null;
   },
 
   /**
@@ -80,10 +66,6 @@ globalThis.UINav = {
     if (Input.pointer.moved) UINav.engaged = false;
 
     if (UIInput.active !== null) return; // caret keeps arrows/Enter while typing
-    if (UINav._claimed !== null) {
-      UINav._claimed = null;
-      return;
-    }
     if (Dialogue.isOpen()) return; // dialogue owns Enter/arrows for page advance
 
     const ev = UINav._event(UINav._readInput());
@@ -105,7 +87,10 @@ globalThis.UINav = {
       return;
     }
 
-    if (UINav._dispatch(ev)) return;
+    if (UINav._dispatch(ev)) {
+      if (ev.kind === "confirm") Audio.play({ sound: sndButtonClick });
+      return;
+    }
     if (ev.kind === "move") {
       const prevFocus = UINav.focused;
       UINav._move(items, ev.dx, ev.dy);
@@ -144,7 +129,6 @@ globalThis.UINav = {
   _legacy(c, el, ev) {
     if (ev.kind === "confirm") {
       if (typeof c.navActivate !== "function") return false;
-      Audio.play({ sound: sndButtonClick }); // before activating, which may swap the scene
       c.navActivate(el);
       return true;
     }
@@ -382,11 +366,8 @@ globalThis.UINav = {
     return best;
   },
 
-  /**
-   * Discrete directional edge read from keys and d-pad, shared with widgets holding the key claim.
-   * The analog stick is left out, as it needs the nav's re-arm latches.
-   */
-  readEdge() {
+  /** The frame's directional edge from keys, d-pad and stick, with its confirm and cancel. */
+  _readInput() {
     let dx = 0;
     let dy = 0;
     let confirm = false;
@@ -406,13 +387,9 @@ globalThis.UINav = {
     if (Input.padPressed(gp_face1)) confirm = true;
     if (Input.padPressed(gp_face2)) cancel = true;
 
-    return { dx, dy, confirm, cancel };
-  },
+    const e = { dx, dy, confirm, cancel };
 
-  _readInput() {
-    const e = UINav.readEdge();
     // hysteresis: re-arm under 0.4, fire over 0.6
-
     const ax = Input.padAxis(gp_axislh);
     const ay = Input.padAxis(gp_axislv);
     if (abs(ax) < 0.4) UINav._stickX = 0;
