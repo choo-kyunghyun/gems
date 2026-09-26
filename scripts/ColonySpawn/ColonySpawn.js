@@ -27,9 +27,10 @@ globalThis.ColonySpawn = {
       if (m !== undefined) content = m.content;
     }
     if (content === undefined) return undefined;
+    const u = RenderMesh.MODEL_UNIT;
     return {
-      w: Math.max(8, content[0] - 2),
-      h: Math.max(8, content[1] - 2),
+      w: Math.max(32, content[0] * u - 8),
+      h: Math.max(32, content[1] * u - 8),
     };
   },
 

@@ -12,7 +12,7 @@
  * station page closes when its target leaves reach.
  */
 globalThis.Interactable = {
-  RADIUS: 72, // px
+  RADIUS: 288, // px
 
   build(scene) {
     const pick = {
@@ -197,10 +197,10 @@ globalThis.Interactable = {
       );
       // silhouette height runs up, the plane's local y down.
       draw_rectangle(
-        box.left - 4,
-        -box.top - 4,
-        box.right + 4,
-        -box.bottom + 4,
+        box.left - 16,
+        -box.top - 16,
+        box.right + 16,
+        -box.bottom + 16,
         true,
       );
       matrix_set(matrix_world, matrix_build_identity());
@@ -211,10 +211,10 @@ globalThis.Interactable = {
         const left = pos.x + bbox.x;
         const top = pos.y + bbox.y;
         draw_rectangle(
-          left - 4,
-          top - 4,
-          left + bbox.width + 4,
-          top + bbox.height + 4,
+          left - 16,
+          top - 16,
+          left + bbox.width + 16,
+          top + bbox.height + 16,
           true,
         );
       }

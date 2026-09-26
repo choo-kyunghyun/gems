@@ -1,4 +1,4 @@
-const TILE = 32; // `tsMask`'s tile side (px)
+const TILE = 128; // `tsMask`'s tile side (px)
 
 /**
  * A level's blocking cells as a runtime tile map, so a move meets a wall cell the way it meets a

@@ -13,7 +13,12 @@ globalThis.FuseSystem = {
         damage: fuse.damage,
         penetration: fuse.penetration,
       });
-      ParticleFx.burst({ asset: psExplosion, x: pos.x, y: pos.y });
+      ParticleFx.burst({
+        asset: psExplosion,
+        x: pos.x,
+        y: pos.y,
+        scale: 4, // the asset is authored at a quarter of the cell
+      });
       Audio.play({
         sound: sndExplosionLarge,
         position: { x: pos.x, y: pos.y },

@@ -38,15 +38,15 @@ globalThis.WorldOverlay = {
         draw_sprite_ext(spr, 0, p.x, p.y, f, f, 0, c_white, 1);
       } else {
         draw_set_color(color);
-        draw_rectangle(p.x - 8, p.y - 8, p.x + 8, p.y + 8, false);
+        draw_rectangle(p.x - 32, p.y - 32, p.x + 32, p.y + 32, false);
         draw_set_color(c_black);
-        draw_rectangle(p.x - 8, p.y - 8, p.x + 8, p.y + 8, true);
+        draw_rectangle(p.x - 32, p.y - 32, p.x + 32, p.y + 32, true);
       }
     });
 
     // in-air cues lift off the ground so they read as flying, with no depth test so a body they
     // pass can't hide them.
-    const lift = pitch !== 0 ? 32 : 0;
+    const lift = pitch !== 0 ? 128 : 0;
     if (lift !== 0) {
       gpu_set_ztestenable(false);
       matrix_set(matrix_world, matrix_build(0, 0, -lift, 0, 0, 0, 1, 1, 1));
@@ -55,9 +55,10 @@ globalThis.WorldOverlay = {
     const fuse = entities.column(Fuse);
     const slots = Handle.SLOTS;
     entities.forEach([Projectile, Position], (id, _proj, p) => {
-      if (fuse[id % slots] !== undefined)
-        draw_sprite_ext(pixItemGrenade, 0, p.x, p.y, 1, 1, 0, c_white, 1);
-      else draw_circle(p.x, p.y, 4, false);
+      if (fuse[id % slots] !== undefined) {
+        const f = AssetMeta.fit(pixItemGrenade, 1);
+        draw_sprite_ext(pixItemGrenade, 0, p.x, p.y, f, f, 0, c_white, 1);
+      } else draw_circle(p.x, p.y, 16, false);
     });
     const tracers = WorldOverlay._tracers;
     for (let i = tracers.length - 1; i >= 0; i--) {

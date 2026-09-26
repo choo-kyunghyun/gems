@@ -45,14 +45,14 @@ globalThis.contentPresets = {
         id: "raider",
         scale: 1.5,
         components: {
-          // 16 design × 1.5 = 24 world px — near the doll's visual body, so sprites don't bury
-          // into walls or each other; < 32px cell
-          BBox: { x: -8, y: -8, width: 16, height: 16 },
+          // 64 design × 1.5 = 96 world px — near the doll's visual body, so sprites don't bury
+          // into walls or each other; < 128px cell
+          BBox: { x: -32, y: -32, width: 64, height: 64 },
           // dynamic, so its brain's velocity is integrated and collides with walls
           Collision: { solid: true, kinematic: false },
           Health: { hp: 3 },
           // maxHp mirrors hp; stamina is vestigial
-          Stats: { maxHp: 3, maxStamina: 0, attack: 1, defense: 0, speed: 90 },
+          Stats: { maxHp: 3, maxStamina: 0, attack: 1, defense: 0, speed: 360 },
           Mortal: { kind: "corpse" },
           Raider: {}, // species marker
           Faction: { id: "monster" },
@@ -86,10 +86,10 @@ globalThis.contentPresets = {
         id: "rat",
         scale: 1.4,
         components: {
-          BBox: { x: -6, y: -6, width: 12, height: 12 }, // ×1.4 ≈ 16.8 world px
+          BBox: { x: -24, y: -24, width: 48, height: 48 }, // ×1.4 ≈ 67.2 world px
           Collision: { solid: true, kinematic: false },
           Health: { hp: 2 },
-          Stats: { maxHp: 2, maxStamina: 0, attack: 1, defense: 0, speed: 120 },
+          Stats: { maxHp: 2, maxStamina: 0, attack: 1, defense: 0, speed: 480 },
           Mortal: { kind: "corpse" },
           Rat: {}, // species marker
           Faction: { id: "monster" },
@@ -109,7 +109,7 @@ globalThis.contentPresets = {
         id: "npc",
         scale: 1.5,
         components: {
-          BBox: { x: -8, y: -8, width: 16, height: 16 }, // ×1.5 = 24 world px; the doll draws 1:1
+          BBox: { x: -32, y: -32, width: 64, height: 64 }, // ×1.5 = 96 world px; the doll draws 1:1
           Collision: { solid: true, kinematic: true },
           Name: { name: "" },
           Persona: { sex: "male", age: 30 }, // baseline — adapt re-picks per spawn
@@ -137,7 +137,7 @@ globalThis.contentPresets = {
       {
         id: "chest",
         components: {
-          BBox: { x: -11, y: -9, width: 22, height: 18 }, // militaryCrate content 22×18
+          BBox: { x: -44, y: -36, width: 88, height: 72 }, // militaryCrate content 22×18 units
           Collision: { solid: true, kinematic: true },
           Interaction: { kind: "storage" },
           Name: { name: "Footlocker" },
@@ -156,7 +156,7 @@ globalThis.contentPresets = {
         // crate) and the Interaction for a kind.
         id: "prop",
         components: {
-          BBox: { x: -14, y: -14, width: 28, height: 28 }, // 1-cell default, overridden per model
+          BBox: { x: -56, y: -56, width: 112, height: 112 }, // 1-cell default, overridden per model
           Collision: { solid: true, kinematic: true },
           Name: { name: "" },
         },
@@ -180,22 +180,21 @@ globalThis.contentPresets = {
               s.kind === "door"
                 ? { kind: "door", open: 0 } // toggle state rides the component, so it saves
                 : { kind: s.kind };
-          // The emitter region is authored over a 128 px frame and the beacon is one 32 px
-          // cell, so a constant quarter: the mesh carries no sprite scale to read.
-          if (s.kind === "travel")
-            over.ParticleEmitter = { asset: "psPortal", scale: 0.25 };
+          // The emitter region is authored over a 128 px frame and the beacon is one 128 px
+          // cell, so it draws 1:1: the mesh carries no sprite scale to read.
+          if (s.kind === "travel") over.ParticleEmitter = { asset: "psPortal", scale: 1 };
         },
       },
       {
         // a small solid post carrying a light and heat
         id: "torch",
         components: {
-          BBox: { x: -3, y: -3, width: 6, height: 6 }, // thin post (content 2×2, padded)
+          BBox: { x: -12, y: -12, width: 24, height: 24 }, // thin post (content 2×2 units, padded)
           Collision: { solid: true, kinematic: true },
           Name: { name: "Lamp" },
           Mesh: { model: "torch" },
           Light: {
-            radius: 150,
+            radius: 600,
             color: Color.parse("#ffd09a"),
             intensity: 0.9,
             flicker: 0.18,
@@ -207,12 +206,12 @@ globalThis.contentPresets = {
         // standing lamp: a steadier, wider, whiter light than the torch
         id: "lantern",
         components: {
-          BBox: { x: -5, y: -5, width: 10, height: 10 }, // lanternFloor content 10×10
+          BBox: { x: -20, y: -20, width: 40, height: 40 }, // lanternFloor content 10×10 units
           Collision: { solid: true, kinematic: true },
           Name: { name: "Lantern" },
           Mesh: { model: "lanternFloor" },
           Light: {
-            radius: 190,
+            radius: 760,
             color: Color.parse("#ffedc9"),
             intensity: 0.95,
             flicker: 0.04,
@@ -224,7 +223,7 @@ globalThis.contentPresets = {
         // spatial-audio test source: re-fires its cue on a timer, to hear falloff and pan
         id: "radio",
         components: {
-          BBox: { x: -8, y: -8, width: 16, height: 16 }, // stand content 18×18
+          BBox: { x: -32, y: -32, width: 64, height: 64 }, // stand content 18×18 units
           Collision: { solid: true, kinematic: true },
           Name: { name: "Radio" },
           Mesh: { model: "stand" },
@@ -243,7 +242,7 @@ globalThis.contentPresets = {
         // faction make it a target for enemies
         id: "turret",
         components: {
-          BBox: { x: -8, y: -8, width: 16, height: 16 }, // militaryTurret content 16×16
+          BBox: { x: -32, y: -32, width: 64, height: 64 }, // militaryTurret content 16×16 units
           Collision: { solid: true, kinematic: true },
           Health: { hp: 8 },
           // shot damage is Stats.attack
@@ -257,11 +256,11 @@ globalThis.contentPresets = {
           CombatAI.attach(entities, id, {
             mobile: false,
             ranged: true,
-            aggro: 220,
-            deAggro: 220,
-            attackRange: 220,
+            aggro: 880,
+            deAggro: 880,
+            attackRange: 880,
             cdMax: 0.5,
-            bulletSpeed: 380,
+            bulletSpeed: 1520,
             speed: 0,
           });
         },
@@ -271,7 +270,7 @@ globalThis.contentPresets = {
         // bodies path around the trunk. The mature frame by default; a species makes it grow.
         id: "tree",
         components: {
-          BBox: { x: -7, y: -7, width: 14, height: 14 }, // trunk, not the 48-wide canopy
+          BBox: { x: -28, y: -28, width: 56, height: 56 }, // trunk, not the 192-wide canopy
           Collision: { solid: true, kinematic: true },
           Name: { name: "Pine" },
           Sprite: { sprite: pixPine, index: 3, speed: 0 }, // a frame per growth stage
@@ -284,7 +283,7 @@ globalThis.contentPresets = {
         // species
         id: "plant",
         components: {
-          BBox: { x: -8, y: -8, width: 16, height: 16 },
+          BBox: { x: -32, y: -32, width: 64, height: 64 },
           Name: { name: "" },
         },
         adapt: ColonySpawn.adaptFlora,
@@ -294,7 +293,7 @@ globalThis.contentPresets = {
         // One immovable boulder per cluster of w×h cells.
         id: "rock",
         components: {
-          BBox: { x: -16, y: -16, width: 32, height: 32 }, // always overridden per cluster
+          BBox: { x: -64, y: -64, width: 128, height: 128 }, // always overridden per cluster
           Collision: { solid: true, kinematic: true },
           Name: { name: "Rock" },
           Sprite: { sprite: pixRock, speed: 0 },
@@ -322,12 +321,12 @@ globalThis.contentPresets = {
       {
         // The input-driven player: a new game's only, as a trip transfers it whole.
         id: "player",
-        // a 24 world px bbox (16 × 1.5): near the visual body so the sprite can't bury into
-        // walls, and under the 32px cell so 1-cell doorways stay passable
+        // a 96 world px bbox (64 × 1.5): near the visual body so the sprite can't bury into
+        // walls, and under the 128px cell so 1-cell doorways stay passable
         scale: 1.5,
         components: {
           Velocity: {},
-          BBox: { x: -8, y: -8, width: 16, height: 16 },
+          BBox: { x: -32, y: -32, width: 64, height: 64 },
           Collision: {}, // a dynamic solid
           Direction: { x: 0, y: 1, z: 0 },
           Name: { name: "Player" },
@@ -340,7 +339,7 @@ globalThis.contentPresets = {
           Stamina: { value: 100, exhausted: false, drain: 34, regen: 22, recover: 0.3 },
           Attributes: StatModel.defaults(),
           // seeds only: post's recompute overwrites them from the attributes; speed in world px/s
-          Stats: { maxHp: 10, maxStamina: 100, attack: 1, defense: 0, speed: 220 },
+          Stats: { maxHp: 10, maxStamina: 100, attack: 1, defense: 0, speed: 880 },
           Inventory: { capacity: 16, maxWeight: 50 },
           Encumbrance: {},
           Equipment: {},
@@ -354,7 +353,7 @@ globalThis.contentPresets = {
           },
           Appearance: {},
           // the lantern, revealing night
-          Light: { radius: 180, color: make_colour_rgb(255, 226, 168), intensity: 0.85 },
+          Light: { radius: 720, color: make_colour_rgb(255, 226, 168), intensity: 0.85 },
           // the camera's target marker, resolved live so no stored id dangles across a map transfer
           CameraFocus: {},
         },
@@ -376,11 +375,11 @@ globalThis.contentPresets = {
         scale: 1.5,
         components: {
           Velocity: { x: 0, y: 0, z: 0 },
-          BBox: { x: -8, y: -8, width: 16, height: 16 }, // ×1.5 = 24 world px — matches the player
+          BBox: { x: -32, y: -32, width: 64, height: 64 }, // ×1.5 = 96 world px — matches the player
           Collision: { solid: true, kinematic: false },
           Faction: { id: "player" }, // friendly fire skips it; enemies aggro it
           Health: { hp: 6 },
-          Stats: { maxHp: 6, maxStamina: 0, attack: 1, defense: 0, speed: 260 },
+          Stats: { maxHp: 6, maxStamina: 0, attack: 1, defense: 0, speed: 1040 },
           Mortal: { kind: "down", recoverSecs: 6, reviveHp: 6 },
           Name: { name: "Companion" },
           Persona: { sex: "male", age: 30 }, // baseline — adapt re-picks per spawn
@@ -391,8 +390,8 @@ globalThis.contentPresets = {
           Appearance: Looks.outfit(pixShirtWhite, pixShoeBrown),
           Follower: {
             state: "wait", // unhired residents hold still
-            speed: 260, // > player speed (220) so it can catch up when it lags
-            range: 40,
+            speed: 1040, // > player speed (880) so it can catch up when it lags
+            range: 160,
             // carry bonus while following (0 = none); a file-authored follower grants none
             bonusCapacity: 0,
             bonusWeight: 0,
@@ -426,7 +425,7 @@ globalThis.contentPresets = {
         // a walk-through region; `half` is its half-extent in world px
         id: "reach",
         components: {
-          BBox: { x: -44, y: -44, width: 88, height: 88 },
+          BBox: { x: -176, y: -176, width: 352, height: 352 },
           Reach: { target: "" },
         },
         adapt(s, over) {

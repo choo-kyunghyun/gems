@@ -2,14 +2,14 @@
 // step, draws through the Core debug passes only, samples what a frame costs and asserts what
 // must hold under load. The screenshot is for eyes; the log line is the record.
 
-const CELL = 32;
+const CELL = 128;
 const COLS = 64;
 const ROWS = 64;
 const AGENTS = 500; // the colony's entity count, all of them movers
 const WALLS = 60;
-const HALF = 6; // px, bodies under the broadphase cell
-const SPEED = 96; // px/s
-const ARRIVE = 8; // px
+const HALF = 24; // px, bodies under the broadphase cell
+const SPEED = 384; // px/s
+const ARRIVE = 32; // px
 const REPLAN = 4; // s — ~2 requests a frame over all agents, under the budget
 const FRAMES = 300;
 const SHOT_FRAME = 150;
@@ -113,7 +113,7 @@ Test.register(Test.STRESS, [
       Cameras.create(s, {
         x: (COLS * CELL) / 2,
         y: (ROWS * CELL) / 2,
-        dist: 2000,
+        dist: 8000,
         zoom: sh / (ROWS * CELL),
       });
       CameraSystem.view(level).assign(0);

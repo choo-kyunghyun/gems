@@ -61,7 +61,7 @@ globalThis.ColonyTravel = {
     });
     for (let i = 1; i < squad.length; i++)
       scene.world.put(scene.level.id, squad[i], {
-        [Position]: { x: sp.x - 24 - i * 22, y: sp.y + 24, z: 0 },
+        [Position]: { x: sp.x - 96 - i * 88, y: sp.y + 96, z: 0 },
         [Velocity]: { x: 0, y: 0, z: 0 },
       });
   },

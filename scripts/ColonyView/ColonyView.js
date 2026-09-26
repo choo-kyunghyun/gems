@@ -14,8 +14,8 @@ globalThis.ColonyView = {
   // Camera pitch in degrees (0 = flat, debug only — front-view art reads wrong flat): the
   // frame-0 seed and the pitched-map gate; the live pitch follows PITCH_CURVE.
   BB_PITCH: 42,
-  // Pitch by zoom: look further = flatter. Zoom thresholds are tuned for the 32px-cell world.
-  PITCH_CURVE: { pitchLo: 42, pitchHi: 58, zoomLo: 1.25, zoomHi: 2.625 },
+  // Pitch by zoom: look further = flatter. Zoom thresholds are tuned for the 128px-cell world.
+  PITCH_CURVE: { pitchLo: 42, pitchHi: 58, zoomLo: 0.3125, zoomHi: 0.65625 },
 
   /**
    * The world's albedo chroma this frame, pulled toward 1 (the authored colours) by the
@@ -362,12 +362,11 @@ globalThis.ColonyView = {
   /**
    * The level's camera entity under the follow policy. A restored save keeps its entity; the
    * policy is minted either way — its tuning is this engine's, not the save's — seeded so the
-   * zoom resumes where it was. Zoom snaps through integer stops so every texel is the same size
-   * on screen; only the horizontal scale is exact under pitch.
+   * zoom resumes where it was. Zoom snaps through fixed stops.
    */
   _camera(level) {
     const pitch = ColonyView.BB_PITCH;
-    const baseZoom = pitch > 0 ? 2 : 1;
+    const baseZoom = pitch > 0 ? 0.5 : 0.25;
     const entities = level.entities;
     // Cap zoom-out to the world's width, the binding axis on a landscape surface.
     const viewCap = level.grid.cols * level.grid.cellWidth;
@@ -379,7 +378,7 @@ globalThis.ColonyView = {
         y: sp.y,
         pitch: (pitch * Math.PI) / 180, // frame-0 seed; the curve overwrites it
         // the default eye distance near-clips close ground at steep pitch
-        dist: 2000,
+        dist: 8000,
         zoom: baseZoom,
       });
     }
@@ -397,8 +396,9 @@ globalThis.ColonyView = {
         zoomTarget: entities.require(id, Camera).zoom, // resume at the persisted zoom
         zoomHome: baseZoom,
         viewCap: viewCap,
-        zoomMax: 3, // one integer stop of zoom-in headroom
-        zoomSteps: [0.5, 1, 2, 3],
+        zoomMin: 0.125,
+        zoomMax: 0.75, // one stop of zoom-in headroom
+        zoomSteps: [0.125, 0.25, 0.5, 0.75],
         // the pitched view never shows past a map edge
         bounds: {
           x1: 0,

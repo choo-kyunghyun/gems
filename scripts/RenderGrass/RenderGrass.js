@@ -112,9 +112,9 @@ globalThis.RenderGrass = class RenderGrass {
             const s2 = salt + 7 + n * 53;
             // snapped to the sheet's texel grid so the denser art still samples whole
             const px =
-              Math.round((gx * cw + 2 + hash2(gx, gy, s2) * (cw - 4)) * dens) / dens;
+              Math.round((gx * cw + 8 + hash2(gx, gy, s2) * (cw - 16)) * dens) / dens;
             const py =
-              Math.round((gy * ch + 2 + hash2(gx, gy, s2 + 1) * (ch - 4)) * dens) / dens;
+              Math.round((gy * ch + 8 + hash2(gx, gy, s2 + 1) * (ch - 16)) * dens) / dens;
             const frame = Math.min(
               frames - 1,
               Math.floor(hash2(gx, gy, s2 + 2) * frames),

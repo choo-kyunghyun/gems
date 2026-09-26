@@ -7,7 +7,7 @@
  * the texcoord packs the face normal's x/y, with z recovered as -sqrt(max(0, 1 - u² - v²)) —
  * sound only because bottom faces are never emitted, so nz ≤ 0.
  *
- * Coordinates: .vox is z-up, the game is up = -z, so game z = -vox z. 1 voxel = 1 world px; the
+ * Coordinates: .vox is z-up, the game is up = -z, so game z = -vox z. 1 voxel = 1 model unit; the
  * mesh is centered on its footprint with its feet at z = 0. The top and all four sides are
  * emitted, so a yawed model stays solid from any facing. Output is deterministic for a given file.
  */
@@ -16,7 +16,7 @@ globalThis.Vox = {
 
   /**
    * @typedef {Object} VoxModel
-   * @property {number[]} size    .vox canvas [sx, sy, sz] (voxels = world px)
+   * @property {number[]} size    .vox canvas [sx, sy, sz] (voxels)
    * @property {number[]} content tight non-empty voxel extent [w, h, d]
    * @property {number[]} grid    dense canvas, x + sx*(y + sy*z) -> 1-based palette index (0 = empty)
    * @property {number[]} palR    palette red 0-255, indexed by palette index - 1

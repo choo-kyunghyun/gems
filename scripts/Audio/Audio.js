@@ -27,8 +27,8 @@
  * group loads on its own, so init loads the others, and a play before its group lands answers -1.
  */
 globalThis.Audio = {
-  falloff_ref: 128,
-  falloff_max: 960,
+  falloff_ref: 512,
+  falloff_max: 3840,
   falloff_factor: 1.0,
 
   init() {

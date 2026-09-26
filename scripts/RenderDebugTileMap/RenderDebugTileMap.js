@@ -76,14 +76,14 @@ globalThis.RenderDebugTileMap = class RenderDebugTileMap {
             const t = this._topTile(x, y);
             if (t !== undefined) {
               draw_set_color(c_white);
-              draw_text(cx, cy, this.names ? t.name : String(t.id));
+              draw_text_transformed(cx, cy, this.names ? t.name : String(t.id), 4, 4, 0);
             }
           }
 
           if (this.coords) {
             draw_set_color(c_aqua);
             draw_set_valign(fa_top);
-            draw_text(cx, y * cellHeight + 2, `${x},${y}`);
+            draw_text_transformed(cx, y * cellHeight + 8, `${x},${y}`, 4, 4, 0);
             draw_set_valign(fa_middle);
           }
         }

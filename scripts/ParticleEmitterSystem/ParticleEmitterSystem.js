@@ -1,3 +1,5 @@
+const RISE = 4; // world px per asset px of a pitched stream's rise
+
 /**
  * Owner of every ParticleEmitter's live stream. A stream is a transient component with a release
  * hook, so it is destroyed whenever the component goes and nothing holds an id across frames to
@@ -56,7 +58,9 @@ globalThis.ParticleEmitterSystem = {
       [ParticleStream, ParticleEmitter, Position],
       (id, st, em, p) => {
         const s = em.scale;
-        matrix_set(matrix_world, matrix_build(p.x, p.y, 0, tilt, 0, 0, s, s, 1));
+        // the tilt turns the rise into z before the scale applies, so `scale` never reaches it:
+        // the rise keeps a fixed world px per asset px
+        matrix_set(matrix_world, matrix_build(p.x, p.y, 0, tilt, 0, 0, s, s, RISE));
         part_system_drawit(st.sys);
       },
     );

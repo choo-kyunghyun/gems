@@ -37,7 +37,7 @@ globalThis.Test = {
 
   /** A level with its own store. */
   level(cols, rows) {
-    const grid = new LevelGrid({ cellWidth: 32, cellHeight: 32, cols, rows });
+    const grid = new LevelGrid({ cellWidth: 128, cellHeight: 128, cols, rows });
     const layer = new TileLayer(grid, { emptyCost: 1 });
     grid.insert(layer);
     const level = new Level({ id: "test", grid, capacity: 64 });

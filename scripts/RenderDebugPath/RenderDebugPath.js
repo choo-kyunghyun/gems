@@ -41,8 +41,8 @@ globalThis.RenderDebugPath = class RenderDebugPath {
       const req = entities.get(id, PathRequest);
       const wp = grid.gridToWorld(req.goalX, req.goalY);
       draw_set_color(c_red);
-      draw_line(wp.x - 4, wp.y - 4, wp.x + 4, wp.y + 4);
-      draw_line(wp.x + 4, wp.y - 4, wp.x - 4, wp.y + 4);
+      draw_line(wp.x - 16, wp.y - 16, wp.x + 16, wp.y + 16);
+      draw_line(wp.x + 16, wp.y - 16, wp.x - 16, wp.y + 16);
     }
 
     draw_set_color(color);

@@ -40,8 +40,8 @@
  */
 globalThis.LevelGrid = class LevelGrid {
   constructor(opt = {}) {
-    this.cellWidth = opt.cellWidth ?? 32;
-    this.cellHeight = opt.cellHeight ?? 32;
+    this.cellWidth = opt.cellWidth ?? 128;
+    this.cellHeight = opt.cellHeight ?? 128;
     this.cols = opt.cols ?? Math.floor(room_width / this.cellWidth);
     this.rows = opt.rows ?? Math.floor(room_height / this.cellHeight);
     this.size = this.cols * this.rows;

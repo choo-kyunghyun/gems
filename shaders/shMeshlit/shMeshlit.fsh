@@ -122,7 +122,7 @@ void main() {
   if (u_wave > 0.5) {
     // one sine along y, its phase warped by a slower one along x: thin crest LINES that
     // drift down-screen and sway, ~1/8 of the surface
-    float w = sin(v_worldPos.y * 0.14 + sin(v_worldPos.x * 0.05 + u_time * 0.4) * 2.0 - u_time * 0.7);
+    float w = sin(v_worldPos.y * 0.035 + sin(v_worldPos.x * 0.0125 + u_time * 0.4) * 2.0 - u_time * 0.7);
     albedo = mix(albedo, u_waveColor, step(0.86, w));
   }
   if (u_chroma < 1.0) albedo = chromaScale(albedo, u_chroma);

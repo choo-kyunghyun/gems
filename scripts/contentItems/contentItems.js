@@ -217,7 +217,7 @@ globalThis.contentItems = {
           new Weapon({
             damage: 3,
             fireCd: 0.3,
-            hitbox: { width: 80, height: 24, xoffset: 40, yoffset: 0 },
+            hitbox: { width: 320, height: 96, xoffset: 160, yoffset: 0 },
             slots: [
               { id: "edge", accepts: "edge" },
               { id: "pommel", accepts: "pommel" },
@@ -276,7 +276,7 @@ globalThis.contentItems = {
         weight: 1,
         value: 40,
         rarity: "rare",
-        components: [new Equippable({ slot: "trinket", mods: { speed: 80 } })],
+        components: [new Equippable({ slot: "trinket", mods: { speed: 320 } })],
       },
       // spares the wearer its seal's share of the open sky's exposure
       {
@@ -355,7 +355,7 @@ globalThis.contentItems = {
           new Ammo({
             caliber: "standard",
             mass: 3,
-            velocity: 1440,
+            velocity: 5760,
             power: 2,
             penetration: 1,
           }),
@@ -373,7 +373,7 @@ globalThis.contentItems = {
           new Ammo({
             caliber: "standard",
             mass: 8,
-            velocity: 960,
+            velocity: 3840,
             power: 4,
             penetration: 3,
           }),
@@ -391,7 +391,7 @@ globalThis.contentItems = {
           new Ammo({
             caliber: "standard",
             mass: 5,
-            velocity: 1200,
+            velocity: 4800,
             power: 3,
             penetration: 6,
           }),
@@ -409,7 +409,7 @@ globalThis.contentItems = {
         components: [
           new WeaponMod({
             slot: "scope",
-            ops: { velocity: { add: 160 }, penetration: { add: 1 } },
+            ops: { velocity: { add: 640 }, penetration: { add: 1 } },
           }),
         ],
       },
@@ -601,7 +601,7 @@ globalThis.contentItems = {
           new Weapon({
             damage: 3,
             fireCd: 0.2,
-            hitbox: { width: 72, height: 24, xoffset: 36, yoffset: 0 },
+            hitbox: { width: 288, height: 96, xoffset: 144, yoffset: 0 },
             slots: [
               { id: "edge", accepts: "edge" },
               { id: "pommel", accepts: "pommel" },
@@ -623,7 +623,7 @@ globalThis.contentItems = {
           new Weapon({
             damage: 5,
             fireCd: 0.4,
-            hitbox: { width: 84, height: 24, xoffset: 42, yoffset: 0 },
+            hitbox: { width: 336, height: 96, xoffset: 168, yoffset: 0 },
             slots: [
               { id: "edge", accepts: "edge" },
               { id: "pommel", accepts: "pommel" },
@@ -683,7 +683,7 @@ globalThis.contentItems = {
           new Ammo({
             caliber: "standard",
             mass: 2,
-            velocity: 1800,
+            velocity: 7200,
             power: 2,
             penetration: 2,
           }),

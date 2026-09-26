@@ -23,7 +23,7 @@ globalThis.RenderWalls = class RenderWalls {
     this.enabled = true;
     this.grid = grid;
     this.layer = layer;
-    this.height = opt.height ?? 32; // world px, visual only
+    this.height = opt.height ?? 128; // world px, visual only
     this.lights = opt.lights; // the lit host pass, whose shader and light gather the walls share
     // [0] is the catch-all; a bucket with a missing sprite degrades to flat tint alone
     this._mats = [

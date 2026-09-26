@@ -1,4 +1,4 @@
-const POP_Y = 14; // world px a number pops above the body's foot
+const POP_Y = 56; // world px a number pops above the body's foot
 
 /**
  * Each combatant's hp change since last tick, popped as a floating number with its hit sound.

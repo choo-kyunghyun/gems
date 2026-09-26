@@ -4,7 +4,7 @@ globalThis.FloatingText = {
   _items: [], // { x, y, text, color, age, life, rise, scale }
 
   life: 0.9, // seconds on screen, fades included
-  rise: 60, // world px risen over life
+  rise: 240, // world px risen over life
   fadeIn: 0.12, // seconds
 
   font: -1,
@@ -33,7 +33,7 @@ globalThis.FloatingText = {
       age: 0,
       life: opts.life ?? FloatingText.life,
       rise: opts.rise ?? FloatingText.rise,
-      scale: opts.scale ?? 2, // keeps screen size under a half-zoom camera
+      scale: opts.scale ?? 8, // keeps screen size under the camera's zoom
     });
   },
 
@@ -100,8 +100,8 @@ globalThis.FloatingText = {
       const c = t.color;
       draw_set_alpha(a * 0.7);
       draw_text_transformed_color(
-        ox + 1,
-        oy + 1,
+        ox + 4,
+        oy + 4,
         t.text,
         sc,
         sc,

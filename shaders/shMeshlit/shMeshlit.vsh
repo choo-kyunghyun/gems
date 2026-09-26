@@ -33,7 +33,7 @@ void main() {
   vec4 object_space_pos = vec4(in_Position.x, in_Position.y, in_Position.z, 1.0);
   if (u_sway > 0.0) {
     float h = max(0.0, -in_Position.z);
-    float ph = in_Position.x * 0.11 + in_Position.y * 0.07;
+    float ph = in_Position.x * 0.0275 + in_Position.y * 0.0175;
     object_space_pos.x += u_sway * h * 0.22 *
       (sin(u_swayTime * 1.9 + ph) * 0.6 + sin(u_swayTime * 3.1 + ph * 1.7) * 0.4);
   }

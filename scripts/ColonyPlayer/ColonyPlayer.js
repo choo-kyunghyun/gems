@@ -4,7 +4,7 @@
 // Silhouette px up a body that the cursor means when it is over no body at all. Bodies are drawn
 // standing, so the cursor's ground point sits behind whatever it visibly covers; reading the plane
 // this high cancels that.
-const AIM_H = 16;
+const AIM_H = 64;
 
 globalThis.ColonyPlayer = {
   /** The player entity, resolved live so a map transfer can't dangle it; -1 when none. */

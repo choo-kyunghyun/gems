@@ -419,7 +419,7 @@ class _SceneColonyClass {
     if (Settings.get("hudRadar"))
       // lifted to body height under a pitched camera
       RadarArrows.draw(this.level.entities, this.playerId, this._radarRules, {
-        lift: camera.pitch !== 0 ? 32 : 0,
+        lift: camera.pitch !== 0 ? 128 : 0,
       });
     Interactable.drawTarget(this, this.interact);
     BuildMode.drawWorld(this, this.build);

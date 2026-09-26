@@ -11,10 +11,10 @@ globalThis.Loot = {
     const yBase =
       opts !== undefined && opts.yBase !== undefined ? opts.yBase : 0;
     const ySpread =
-      opts !== undefined && opts.ySpread !== undefined ? opts.ySpread : 24;
+      opts !== undefined && opts.ySpread !== undefined ? opts.ySpread : 96;
     for (let i = 0; i < inv.slots.length; i++) {
       const s = inv.slots[i];
-      const ox = (i % 2 === 0 ? -1 : 1) * 32;
+      const ox = (i % 2 === 0 ? -1 : 1) * 128;
       const oy = (i < 2 ? -1 : 1) * ySpread;
       Loot.drop(entities, s.itemId, s.qty, pos.x + ox, pos.y + yBase + oy, s);
     }
@@ -24,8 +24,8 @@ globalThis.Loot = {
   drop(entities, itemId, qty, x, y, src) {
     const id = entities.create();
     entities.add(id, Position, { x: x, y: y });
-    // Matches the 32px icon drawn 1:1, so the pick outline lines up with the drop.
-    entities.add(id, BBox, { x: -16, y: -16, width: 32, height: 32 });
+    // Matches the icon drawn one cell wide, so the pick outline lines up with the drop.
+    entities.add(id, BBox, { x: -64, y: -64, width: 128, height: 128 });
     entities.add(id, Interaction, { kind: "pickup" });
     const drop = { itemId: itemId, qty: qty };
     if (src !== undefined && src.uid !== undefined) {
@@ -38,6 +38,7 @@ globalThis.Loot = {
     entities.add(id, ParticleEmitter, {
       asset: "psDrop",
       color: InvTable.rarityColor(itemId),
+      scale: 4, // the asset is authored at a quarter of the cell
     });
   },
 

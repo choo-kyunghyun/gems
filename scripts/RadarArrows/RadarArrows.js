@@ -9,10 +9,10 @@ globalThis.RadarArrows = {
   draw(entities, target, rules, opt = {}) {
     const tp = entities.get(target, Position);
     if (tp === undefined) return;
-    const range = opt.range ?? 460;
-    const ring = opt.ring ?? 52; // world px from the target to each arrow
-    const near = opt.near ?? 22; // arrow length at the target
-    const far = opt.far ?? 10; // arrow length at the radar edge
+    const range = opt.range ?? 1840;
+    const ring = opt.ring ?? 208; // world px from the target to each arrow
+    const near = opt.near ?? 88; // arrow length at the target
+    const far = opt.far ?? 40; // arrow length at the radar edge
     const lift = opt.lift ?? 0; // world-z to raise the ring off the floor (0 = flat)
 
     const color = draw_get_color();

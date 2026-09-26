@@ -11,7 +11,8 @@
  */
 globalThis.RenderMesh = class RenderMesh {
   static MAX_LIGHTS = 8; // must match shMeshlit.fsh MAX_LIGHTS
-  static LIGHT_Z = -20; // point-light height off the ground plane (torch flame)
+  static LIGHT_Z = -80; // point-light height off the ground plane (torch flame)
+  static MODEL_UNIT = 4; // world px per model unit (a voxel)
   // BUG: a literal, since a static initializer can't reference its own class (docs/GMRT.md)
   static SUN_DEFAULT = {
     x: 0,
@@ -228,6 +229,7 @@ globalThis.RenderMesh = class RenderMesh {
       // scale and rotation are visual only, per world axis (zscale is height, a negative xscale
       // mirrors); rotation pivots on the footprint center and the lighting follows it
       const s = mesh.scale;
+      const u = RenderMesh.MODEL_UNIT;
       matrix_set(
         matrix_world,
         matrix_build(
@@ -237,9 +239,9 @@ globalThis.RenderMesh = class RenderMesh {
           mesh.pitch,
           mesh.roll,
           mesh.yaw,
-          mesh.xscale ?? s,
-          mesh.yscale ?? s,
-          mesh.zscale ?? s,
+          (mesh.xscale ?? s) * u,
+          (mesh.yscale ?? s) * u,
+          (mesh.zscale ?? s) * u,
         ),
       );
       vertex_submit(m.vb, pr_trianglelist, -1);

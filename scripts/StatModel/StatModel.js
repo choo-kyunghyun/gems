@@ -26,7 +26,7 @@ globalThis.StatModel = {
       maxHp: 4 + a.vit * 2,
       attack: Math.floor(a.pow / 2),
       defense: Math.floor(a.vit / 4),
-      speed: 320 + a.agi * 24,
+      speed: 1280 + a.agi * 96,
       maxStamina: 40 + a.end * 10,
     };
   },

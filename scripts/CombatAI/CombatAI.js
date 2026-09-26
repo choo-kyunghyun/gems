@@ -12,10 +12,10 @@ globalThis.Brain = "Brain";
   target: -1,
   mobile: true,
   ranged: false,
-  aggro: 160,
-  deAggro: 240,
-  attackRange: 30,
-  speed: 90,
+  aggro: 640,
+  deAggro: 960,
+  attackRange: 120,
+  speed: 360,
   cdMax: 0.75,
   cd: 0,
   bulletSpeed: 0,
@@ -71,7 +71,7 @@ globalThis.CombatAI = {
           if (brain.mobile) {
             const dx = brain.home.x - pos.x;
             const dy = brain.home.y - pos.y;
-            if (dx * dx + dy * dy > 256)
+            if (dx * dx + dy * dy > 4096)
               CombatAI._seek(
                 level,
                 id,
@@ -265,7 +265,7 @@ globalThis.CombatAI = {
     const vel = entities.get(id, Velocity);
     let st = "idle";
     if (attacking) st = "attack";
-    else if (vel !== undefined && vel.x * vel.x + vel.y * vel.y > 1)
+    else if (vel !== undefined && vel.x * vel.x + vel.y * vel.y > 16)
       st = running ? "run" : "walk";
     Doll.setState(entities, id, st);
     if (vel !== undefined) Doll.face(entities, id, vel.x);

@@ -1,4 +1,4 @@
-const CELL = 32; // fallback cell size; the media set is authored 1:1 at 32px/cell
+const CELL = 128; // fallback cell size; the media set is authored 1:1 at 128px/cell
 const ANCHOR_CLEAR = 6; // cells around a site's anchor kept procedural-free — no camp on the doorstep
 
 /**

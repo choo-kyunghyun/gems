@@ -1,19 +1,19 @@
 const SPRINT_MULT = 1.6;
-const BULLET_SPEED = 600; // px/s
+const BULLET_SPEED = 2400; // px/s
 const SHOT_RANGE_SECS = 1.5; // hitscan reach, in seconds of bullet flight
 const FIRE_CD = 0.13; // s
 const ATTACK_ANIM = 0.3; // s — 3 frames @ 10fps
 const KICK_ANIM = 0.38; // s — 5 frames @ 13fps, fits the fist's cadence
 // for a melee weapon without a `hitbox`
-const MELEE_HITBOX = { width: 46, height: 24, xoffset: 23, yoffset: 0 };
+const MELEE_HITBOX = { width: 184, height: 96, xoffset: 92, yoffset: 0 };
 const STICK_DEADZONE = 0.25; // drift guard
 
 // TODO: a grenade item gates the throw on the bag; until then it is unlimited
-const GRENADE_SPEED = 320; // px/s
+const GRENADE_SPEED = 1280; // px/s
 const GRENADE_FUSE = 1.5; // s
-const GRENADE_RADIUS = 96; // px
+const GRENADE_RADIUS = 384; // px
 const GRENADE_DAMAGE = 6; // at the centre
-const THROW_RANGE = 320; // px; the pad's fixed reach along the aim
+const THROW_RANGE = 1280; // px; the pad's fixed reach along the aim
 const THROW_CD = 0.5; // s
 
 // A composed melee profile for the unarmed wielder, so unarmed never fires a free bullet.
@@ -22,7 +22,7 @@ const PLAYER_FIST = {
   kind: "melee",
   damage: 1,
   fireCd: 0.37,
-  hitbox: { width: 34, height: 24, xoffset: 17, yoffset: 0 },
+  hitbox: { width: 136, height: 96, xoffset: 68, yoffset: 0 },
 };
 
 // The player brain: turns input into every Playable entity's Velocity, Direction, attacks and
@@ -197,9 +197,10 @@ globalThis.PlayerSystem = {
 
     ParticleFx.burst({
       asset: psMuzzle,
-      x: pos.x + nx * 18,
-      y: pos.y + ny * 18,
+      x: pos.x + nx * 72,
+      y: pos.y + ny * 72,
       angle: point_direction(0, 0, nx, ny),
+      scale: 4, // the asset is authored at a quarter of the cell
     });
     Audio.play({ sound: sndGunFire, position: { x: pos.x, y: pos.y } });
 

@@ -15,6 +15,7 @@
  * @property {number} y
  * @property {number} [angle]          GM angle to aim at; omitted = no rotation
  * @property {number} [base=90]        the asset's authored emission angle, rotated out of `angle`
+ * @property {number} [scale=1]        world px per asset px
  */
 globalThis.ParticleFx = {
   _active: [],
@@ -24,19 +25,19 @@ globalThis.ParticleFx = {
     const s = part_system_create(params.asset);
     part_system_automatic_draw(s, false);
     part_system_automatic_update(s, false); // ticked here, so it pauses with the scene
-    part_system_position(s, params.x, params.y); // a baked burst fires on the first update
     if (params.angle !== undefined)
       part_system_angle(s, params.angle - (params.base ?? 90));
-    ParticleFx._active.push(s);
+    // a baked burst fires on the first update, in asset space; the draw places and scales it
+    ParticleFx._active.push({ sys: s, x: params.x, y: params.y, scale: params.scale ?? 1 });
   },
 
   update() {
     const a = ParticleFx._active;
     const live = [];
     for (let i = 0; i < a.length; i++) {
-      part_system_update(a[i]);
-      if (part_particles_count(a[i]) > 0) live.push(a[i]);
-      else part_system_destroy(a[i]);
+      part_system_update(a[i].sys);
+      if (part_particles_count(a[i].sys) > 0) live.push(a[i]);
+      else part_system_destroy(a[i].sys);
     }
     ParticleFx._active = live;
   },
@@ -44,12 +45,17 @@ globalThis.ParticleFx = {
   /** World space, after the renderer. */
   draw() {
     const a = ParticleFx._active;
-    for (let i = 0; i < a.length; i++) part_system_drawit(a[i]);
+    for (let i = 0; i < a.length; i++) {
+      const b = a[i];
+      matrix_set(matrix_world, matrix_build(b.x, b.y, 0, 0, 0, 0, b.scale, b.scale, 1));
+      part_system_drawit(b.sys);
+    }
+    matrix_set(matrix_world, matrix_build_identity());
   },
 
   clear() {
     const a = ParticleFx._active;
-    for (let i = 0; i < a.length; i++) part_system_destroy(a[i]);
+    for (let i = 0; i < a.length; i++) part_system_destroy(a[i].sys);
     ParticleFx._active = [];
   },
 
@@ -57,7 +63,7 @@ globalThis.ParticleFx = {
   count() {
     const a = ParticleFx._active;
     let n = 0;
-    for (let i = 0; i < a.length; i++) n += part_particles_count(a[i]);
+    for (let i = 0; i < a.length; i++) n += part_particles_count(a[i].sys);
     return n;
   },
 };

@@ -188,9 +188,10 @@ globalThis.CameraSystem = {
           ? clamp(y, b.y1 + halfH, b.y2 - halfH)
           : (b.y1 + b.y2) / 2;
     }
-    // pixel-snap the look-at — a fractional centre shimmers tile seams under an ortho pixel view
-    pos.x = Math.round(x);
-    pos.y = Math.round(y);
+    // snap the look-at to the screen pixel — a fractional centre shimmers tile seams under an
+    // ortho pixel view
+    pos.x = Math.round(x * cam.zoom) / cam.zoom;
+    pos.y = Math.round(y * cam.zoom) / cam.zoom;
     pos.z = 0;
   },
 

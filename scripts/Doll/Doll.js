@@ -13,16 +13,16 @@ globalThis.Doll = {
   RIGS: {
     spineHuman: {
       idle: { anim: "idle0", loop: true },
-      walk: { anim: "walk0", loop: true, pace: 110 },
-      run: { anim: "run0", loop: true, pace: 45 },
+      walk: { anim: "walk0", loop: true, pace: 440 },
+      run: { anim: "run0", loop: true, pace: 180 },
       attack: { anim: "attack0", loop: false },
       kick: { anim: "attack1", loop: false },
       down: { anim: "down0", loop: false },
     },
     spineRat: {
       idle: { anim: "idle", loop: true },
-      walk: { anim: "walk", loop: true, pace: 60 },
-      run: { anim: "walk", loop: true, pace: 60 },
+      walk: { anim: "walk", loop: true, pace: 240 },
+      run: { anim: "walk", loop: true, pace: 240 },
       attack: { anim: "attack", loop: false },
       down: { anim: "down", loop: false },
     },
@@ -86,7 +86,7 @@ globalThis.Doll = {
   face(entities, id, vx, dead) {
     const spr = entities.get(id, Sprite);
     if (spr === undefined) return;
-    const d = dead ?? 1;
+    const d = dead ?? 4;
     if (vx < -d) spr.xscale = -Math.abs(spr.xscale);
     else if (vx > d) spr.xscale = Math.abs(spr.xscale);
   },

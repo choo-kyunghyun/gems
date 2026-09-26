@@ -1,4 +1,4 @@
-const SPILL = { yBase: 0, ySpread: 28 }; // loot scatter for a "despawn" kill
+const SPILL = { yBase: 0, ySpread: 112 }; // loot scatter for a "despawn" kill
 
 /**
  * Death, resolved only here: damage just subtracts hp, and this is the sole authority that

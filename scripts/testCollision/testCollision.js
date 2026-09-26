@@ -5,7 +5,7 @@
 const N = 4000;
 const BENCH_STATICS = 200;
 const BENCH_BODIES = 500; // a colony's body count
-const BENCH_RADIUS = 160; // an aggro scan's size
+const BENCH_RADIUS = 640; // an aggro scan's size
 
 Test.register(Test.CHECK, [
   {
@@ -328,15 +328,15 @@ Test.register(Test.CHECK, [
     setup(ctx) {
       Object.assign(ctx, Test.level(8, 4));
       Test.types(ctx);
-      for (let y = 0; y < 4; y++) ctx.layer.set(3, y, ctx.rock); // a wall at x 96..128
+      for (let y = 0; y < 4; y++) ctx.layer.set(3, y, ctx.rock); // a wall at x 384..512
       ctx.layer.set(5, 0, ctx.mud);
       const s = ctx.entities;
       ctx.body = s.create();
-      s.add(ctx.body, Position, { x: 40, y: 48, z: 0 });
-      s.add(ctx.body, BBox, { x: -8, y: -8, width: 16, height: 16 });
+      s.add(ctx.body, Position, { x: 160, y: 192, z: 0 });
+      s.add(ctx.body, BBox, { x: -32, y: -32, width: 64, height: 64 });
       s.add(ctx.body, Collision, { solid: true });
       s.add(ctx.body, Velocity, { x: 0, y: 0, z: 0 });
-      // the step is real frame time: pinned so a tick is 10 px whatever a frame took
+      // the step is real frame time: pinned so a tick is 40 px whatever a frame took
       ctx.step = Time.step;
       Time.step = 1 / 60;
     },
@@ -346,7 +346,7 @@ Test.register(Test.CHECK, [
       const pos = s.get(ctx.body, Position);
       const run = () => {
         for (let k = 0; k < 30; k++) {
-          s.get(ctx.body, Velocity).x = 600; // the solid pass rewrites it to what the body made
+          s.get(ctx.body, Velocity).x = 2400; // the solid pass rewrites it to what the body made
           PuppetSystem.update(level);
           SolidSystem.update(level);
         }
@@ -359,13 +359,13 @@ Test.register(Test.CHECK, [
       t.ok(tiles.at(-1, -1), "and at its corners");
       t.ok(!tiles.at(-2, 0), "past the ring nothing does");
       run();
-      t.ok(pos.x + 8 <= 96.5, "the body never enters the wall cell: " + pos.x);
-      t.ok(pos.x + 8 >= 90, "the body reaches the wall cell: " + pos.x);
+      t.ok(pos.x + 32 <= 384.5, "the body never enters the wall cell: " + pos.x);
+      t.ok(pos.x + 32 >= 360, "the body reaches the wall cell: " + pos.x);
       for (let y = 0; y < 4; y++) ctx.layer.clear(3, y);
       run();
       t.ok(!SolidSystem.tiles(level).at(3, 1), "a cleared cell stops blocking");
-      t.ok(pos.x + 8 <= 256.5, "the ring holds the body in the level: " + pos.x);
-      t.ok(pos.x + 8 >= 250, "the body crosses the cleared column: " + pos.x);
+      t.ok(pos.x + 32 <= 1024.5, "the ring holds the body in the level: " + pos.x);
+      t.ok(pos.x + 32 >= 1000, "the body crosses the cleared column: " + pos.x);
       ctx.layer.ids.data[1 * 8 + 6] = ctx.rock.id; // a bulk write, then its one mark
       ctx.layer.touchAll();
       SolidSystem.update(level);
@@ -389,38 +389,38 @@ Test.register(Test.CHECK, [
     setup(ctx) {
       Object.assign(ctx, Test.level(8, 4));
       Test.types(ctx);
-      for (let y = 0; y < 4; y++) ctx.layer.set(3, y, ctx.rock); // a wall at x 96..128
-      ctx.wall = Test.box(ctx.entities, 160, 0, 32, 64); // an entity wall past it
+      for (let y = 0; y < 4; y++) ctx.layer.set(3, y, ctx.rock); // a wall at x 384..512
+      ctx.wall = Test.box(ctx.entities, 640, 0, 128, 256); // an entity wall past it
       PuppetSystem.update(ctx.level); // the cast reads the mirrors
     },
     verify(ctx, t) {
       const level = ctx.level;
-      const hit = Query.cast(level, 16, 16, 216, 16);
+      const hit = Query.cast(level, 64, 64, 864, 64);
       t.ok(hit !== null, "a segment through a wall cell hits");
       if (hit !== null) {
         t.eq(hit.id, level.self, "a cell's hit is the level's own entity");
-        t.near(hit.x, 96, 1e-6, "hit lands on the near face");
+        t.near(hit.x, 384, 1e-6, "hit lands on the near face");
         t.near(hit.t, 0.4, 1e-6, "t is the segment parameter");
         t.eq(hit.nx, -1, "normal points back along the ray");
         t.eq(hit.ny, 0, "along one axis");
       }
-      const back = Query.cast(level, 150, 16, 50, 16);
+      const back = Query.cast(level, 600, 64, 200, 64);
       t.ok(back !== null, "a segment from the far side hits");
       if (back !== null) {
-        t.near(back.x, 128, 1e-6, "on the far face");
+        t.near(back.x, 512, 1e-6, "on the far face");
         t.eq(back.nx, 1, "its normal points back");
       }
-      const inside = Query.cast(level, 100, 16, 200, 16);
+      const inside = Query.cast(level, 400, 64, 800, 64);
       t.ok(inside !== null, "a segment starting inside hits");
       if (inside !== null) t.eq(inside.t, 0, "at t 0");
-      t.eq(Query.cast(level, 16, 16, 90, 16), null, "a segment short of the cell misses");
-      const all = Query.castAll(level, 16, 16, 300, 16);
+      t.eq(Query.cast(level, 64, 64, 360, 64), null, "a segment short of the cell misses");
+      const all = Query.castAll(level, 64, 64, 1200, 64);
       t.eq(all.length, 3, "castAll: the cell run, the entity wall, the ring");
       if (all.length === 3) {
         t.eq(all[0].id, level.self, "ascending by t: the cell first");
         t.eq(all[1].id, ctx.wall, "then the entity wall");
         t.eq(all[2].id, level.self, "then the ring");
-        t.near(all[2].x, 256, 1e-6, "the ring starts at the grid's edge");
+        t.near(all[2].x, 1024, 1e-6, "the ring starts at the grid's edge");
       }
     },
     teardown(ctx) {
@@ -436,7 +436,7 @@ Test.register(Test.CHECK, [
     id: "perf.builtin",
     frames: 2, // the masks land on the instances after their first step
     setup(ctx) {
-      const grid = new LevelGrid({ cellWidth: 32, cellHeight: 32, cols: 64, rows: 64 });
+      const grid = new LevelGrid({ cellWidth: 128, cellHeight: 128, cols: 64, rows: 64 });
       grid.insert(new TileLayer(grid, { emptyCost: 1 }));
       const level = new Level({ id: "test", grid, capacity: 1024 });
       const s = level.entities;
@@ -453,10 +453,10 @@ Test.register(Test.CHECK, [
 
       ctx.staticIds = [];
       for (let k = 0; k < BENCH_STATICS; k++) {
-        const x = 32 * Math.floor(rand() * 60);
-        const y = 32 * Math.floor(rand() * 60);
-        const w = 32 * (1 + Math.floor(rand() * 4));
-        const h = 32 * (1 + Math.floor(rand() * 4));
+        const x = 128 * Math.floor(rand() * 60);
+        const y = 128 * Math.floor(rand() * 60);
+        const w = 128 * (1 + Math.floor(rand() * 4));
+        const h = 128 * (1 + Math.floor(rand() * 4));
         const id = Test.box(s, x, y, w, h);
         ctx.staticIds.push(id);
       }
@@ -469,11 +469,11 @@ Test.register(Test.CHECK, [
       ctx.bodyBox = new Array(n);
       ctx.bodyInst = new Array(n);
       for (let i = 0; i < n; i++) {
-        const px = 16 + Math.floor(rand() * 2016);
-        const py = 16 + Math.floor(rand() * 2016);
+        const px = 64 + Math.floor(rand() * 8064);
+        const py = 64 + Math.floor(rand() * 8064);
         const id = s.create();
         const pos = { x: px, y: py, z: 0 };
-        const box = { x: -6, y: -6, width: 12, height: 12 };
+        const box = { x: -24, y: -24, width: 48, height: 48 };
         s.add(id, Position, pos);
         s.add(id, BBox, box);
         s.add(id, Collision, { solid: true });
@@ -494,16 +494,16 @@ Test.register(Test.CHECK, [
       }
       ctx.queries = [];
       for (let k = 0; k < 64; k++) {
-        const x = Math.floor(rand() * 1800);
-        const y = Math.floor(rand() * 1800);
-        ctx.queries.push({ x1: x, y1: y, x2: x + 256, y2: y + 256 });
+        const x = Math.floor(rand() * 7200);
+        const y = Math.floor(rand() * 7200);
+        ctx.queries.push({ x1: x, y1: y, x2: x + 1024, y2: y + 1024 });
       }
       ctx.segs = [];
       for (let k = 0; k < 200; k++) {
-        const x0 = 64 + Math.floor(rand() * 1920);
-        const y0 = 64 + Math.floor(rand() * 1920);
+        const x0 = 256 + Math.floor(rand() * 7680);
+        const y0 = 256 + Math.floor(rand() * 7680);
         const a = rand() * 6.2831853;
-        const len = 64 + rand() * 448;
+        const len = 256 + rand() * 1792;
         ctx.segs.push({
           x0,
           y0,
@@ -524,8 +524,8 @@ Test.register(Test.CHECK, [
 
       const b0 = bodyInst[0];
       t.eq(b0.eid, ctx.bodyIds[0], "eid reads back");
-      t.eq(b0.bbox_left, bodyPos[0].x - 6, "a body's mask left edge");
-      t.eq(b0.bbox_right - b0.bbox_left, 12, "a body's mask width");
+      t.eq(b0.bbox_left, bodyPos[0].x - 24, "a body's mask left edge");
+      t.eq(b0.bbox_right - b0.bbox_left, 48, "a body's mask width");
       const s0 = s.get(ctx.staticIds[0], Instance).inst;
       t.eq(s0.bbox_left, s.get(ctx.staticIds[0], Position).x, "a static's mask left edge");
 
@@ -622,7 +622,7 @@ Test.register(Test.CHECK, [
         const set = gmSets[k];
         for (let j = 0; j < ids.length; j++) {
           // a Position inside the rect is a mask overlapping it; statics carry Position too
-          if (!set.has(ids[j]) && s.get(ids[j], BBox).width === 12) missing++;
+          if (!set.has(ids[j]) && s.get(ids[j], BBox).width === 48) missing++;
         }
       }
       t.eq(missing, 0, "every body Query.inRect finds, Query.maskRect finds");

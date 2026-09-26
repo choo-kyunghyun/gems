@@ -11,8 +11,8 @@
  *   asset    the asset (a bare identifier, so a resource that is gone fails at load)
  *   kind     "entity" | "overlay" | "tileset" | "music" | "cue" | ... — descriptive only; readers
  *            read specific FIELDS, never switch on kind.
- *   density  a sprite's source px per world px, default 1. Declared, never inferred: a 32px cell
- *            can mean a denser subject OR a taller one — only the art's author knows. Divides the
+ *   density  a sprite's source px per world px, default 1. Declared, never inferred: a 32px sprite
+ *            can mean a coarser subject OR a smaller one — only the art's author knows. Divides the
  *            draw scale only, never the collider.
  *   bpm      a sound's tempo, default 0 = untimed. Declared, never measured: the runtime exposes
  *            no PCM to detect it from.
