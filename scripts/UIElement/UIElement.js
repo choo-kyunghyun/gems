@@ -255,158 +255,29 @@ globalThis.UIElement = class UIElement {
     );
   }
 
-  setWidth(width, unit) {
-    flexpanel_node_style_set_width(this.flexpanel, width, unit);
+  /**
+   * Any flexpanel style setter applied to this node, then a reflow:
+   * `style(flexpanel_node_style_set_margin, flexpanel_edge.left, 8)`; a getter reads `flexpanel`
+   * directly. BUG: [#15065] one door for every setter, as a method apiece would breach the class
+   * method ceiling; and a built-in takes no spread, so the arity is dispatched (docs/GMRT.md).
+   */
+  style(set, ...args) {
+    const node = this.flexpanel;
+    const k = args.length;
+    if (k === 1) set(node, args[0]);
+    else if (k === 2) set(node, args[0], args[1]);
+    else set(node, args[0], args[1], args[2]);
     this.markDirty();
     return this;
+  }
+
+  setWidth(width, unit) {
+    return this.style(flexpanel_node_style_set_width, width, unit);
   }
 
   setHeight(height, unit) {
-    flexpanel_node_style_set_height(this.flexpanel, height, unit);
-    this.markDirty();
-    return this;
+    return this.style(flexpanel_node_style_set_height, height, unit);
   }
-
-  // BUG: [#15065] the style accessors below stay commented out: enabling them all would breach
-  // the class method ceiling (docs/GMRT.md). Enable one on demand, minding the count.
-
-  // setMinWidth(value, unit) {
-  //   flexpanel_node_style_set_min_width(this.flexpanel, value, unit);
-  //   this.markDirty();
-  //   return this;
-  // }
-
-  // setMaxWidth(value, unit) {
-  //   flexpanel_node_style_set_max_width(this.flexpanel, value, unit);
-  //   this.markDirty();
-  //   return this;
-  // }
-
-  // setMinHeight(value, unit) {
-  //   flexpanel_node_style_set_min_height(this.flexpanel, value, unit);
-  //   this.markDirty();
-  //   return this;
-  // }
-
-  // setMaxHeight(value, unit) {
-  //   flexpanel_node_style_set_max_height(this.flexpanel, value, unit);
-  //   this.markDirty();
-  //   return this;
-  // }
-
-  // setAspectRatio(value) {
-  //   flexpanel_node_style_set_aspect_ratio(this.flexpanel, value);
-  //   this.markDirty();
-  //   return this;
-  // }
-
-  setPosition(edge, value, unit) {
-    flexpanel_node_style_set_position(this.flexpanel, edge, value, unit);
-    this.markDirty();
-    return this;
-  }
-
-  // setPositionType(value) {
-  //   flexpanel_node_style_set_position_type(this.flexpanel, value);
-  //   this.markDirty();
-  //   return this;
-  // }
-
-  // setMargin(edge, size, unit = flexpanel_unit.point) {
-  //   flexpanel_node_style_set_margin(this.flexpanel, edge, size, unit);
-  //   this.markDirty();
-  //   return this;
-  // }
-
-  // setPadding(edge, size, unit = flexpanel_unit.point) {
-  //   flexpanel_node_style_set_padding(this.flexpanel, edge, size, unit);
-  //   this.markDirty();
-  //   return this;
-  // }
-
-  // setBorder(edge, size) {
-  //   flexpanel_node_style_set_border(this.flexpanel, edge, size);
-  //   this.markDirty();
-  //   return this;
-  // }
-
-  // setGap(gutter, size) {
-  //   flexpanel_node_style_set_gap(this.flexpanel, gutter, size);
-  //   this.markDirty();
-  //   return this;
-  // }
-
-  // setDirection(direction) {
-  //   flexpanel_node_style_set_direction(this.flexpanel, direction);
-  //   this.markDirty();
-  //   return this;
-  // }
-
-  // setFlexDirection(direction) {
-  //   flexpanel_node_style_set_flex_direction(this.flexpanel, direction);
-  //   this.markDirty();
-  //   return this;
-  // }
-
-  // setFlexWrap(align) {
-  //   flexpanel_node_style_set_flex_wrap(this.flexpanel, align);
-  //   this.markDirty();
-  //   return this;
-  // }
-
-  // setBasis(value, unit) {
-  //   flexpanel_node_style_set_flex_basis(this.flexpanel, value, unit);
-  //   this.markDirty();
-  //   return this;
-  // }
-
-  // setGrow(grow) {
-  //   flexpanel_node_style_set_flex_grow(this.flexpanel, grow);
-  //   this.markDirty();
-  //   return this;
-  // }
-
-  // setShrink(shrink) {
-  //   flexpanel_node_style_set_flex_shrink(this.flexpanel, shrink);
-  //   this.markDirty();
-  //   return this;
-  // }
-
-  // setFlex(flex) {
-  //   flexpanel_node_style_set_flex(this.flexpanel, flex);
-  //   this.markDirty();
-  //   return this;
-  // }
-
-  // setJustifyContent(justify) {
-  //   flexpanel_node_style_set_justify_content(this.flexpanel, justify);
-  //   this.markDirty();
-  //   return this;
-  // }
-
-  // setAlignItems(align) {
-  //   flexpanel_node_style_set_align_items(this.flexpanel, align);
-  //   this.markDirty();
-  //   return this;
-  // }
-
-  // setAlignSelf(align) {
-  //   flexpanel_node_style_set_align_self(this.flexpanel, align);
-  //   this.markDirty();
-  //   return this;
-  // }
-
-  // setAlignContent(align) {
-  //   flexpanel_node_style_set_align_content(this.flexpanel, align);
-  //   this.markDirty();
-  //   return this;
-  // }
-
-  // setDisplay(display) {
-  //   flexpanel_node_style_set_display(this.flexpanel, display);
-  //   this.markDirty();
-  //   return this;
-  // }
 
   /** Style width (not computed layout width). */
   getWidth() {
@@ -417,96 +288,4 @@ globalThis.UIElement = class UIElement {
   getHeight() {
     return flexpanel_node_style_get_height(this.flexpanel);
   }
-
-  // getMinWidth() {
-  //   return flexpanel_node_style_get_min_width(this.flexpanel);
-  // }
-
-  // getMaxWidth() {
-  //   return flexpanel_node_style_get_max_width(this.flexpanel);
-  // }
-
-  // getMinHeight() {
-  //   return flexpanel_node_style_get_min_height(this.flexpanel);
-  // }
-
-  // getMaxHeight() {
-  //   return flexpanel_node_style_get_max_height(this.flexpanel);
-  // }
-
-  // getAspectRatio() {
-  //   return flexpanel_node_style_get_aspect_ratio(this.flexpanel);
-  // }
-
-  // getPosition(edge) {
-  //   return flexpanel_node_style_get_position(this.flexpanel, edge);
-  // }
-
-  // getPositionType() {
-  //   return flexpanel_node_style_get_position_type(this.flexpanel);
-  // }
-
-  // getMargin(edge) {
-  //   return flexpanel_node_style_get_margin(this.flexpanel, edge);
-  // }
-
-  // getPadding(edge) {
-  //   return flexpanel_node_style_get_padding(this.flexpanel, edge);
-  // }
-
-  // getBorder(edge) {
-  //   return flexpanel_node_style_get_border(this.flexpanel, edge);
-  // }
-
-  // getGap(gutter) {
-  //   return flexpanel_node_style_get_gap(this.flexpanel, gutter);
-  // }
-
-  // getDirection() {
-  //   return flexpanel_node_style_get_direction(this.flexpanel);
-  // }
-
-  // getFlexDirection() {
-  //   return flexpanel_node_style_get_flex_direction(this.flexpanel);
-  // }
-
-  // getFlexWrap() {
-  //   return flexpanel_node_style_get_flex_wrap(this.flexpanel);
-  // }
-
-  // getFlexBasis() {
-  //   return flexpanel_node_style_get_flex_basis(this.flexpanel);
-  // }
-
-  // getFlexGrow() {
-  //   return flexpanel_node_style_get_flex_grow(this.flexpanel);
-  // }
-
-  // getFlexShrink() {
-  //   return flexpanel_node_style_get_flex_shrink(this.flexpanel);
-  // }
-
-  // getFlex() {
-  //   return flexpanel_node_style_get_flex(this.flexpanel);
-  // }
-
-  // getJustifyContent() {
-  //   return flexpanel_node_style_get_justify_content(this.flexpanel);
-  // }
-
-  // getAlignItems() {
-  //   return flexpanel_node_style_get_align_items(this.flexpanel);
-  // }
-
-  // getAlignSelf() {
-  //   return flexpanel_node_style_get_align_self(this.flexpanel);
-  // }
-
-  // getAlignContent() {
-  //   return flexpanel_node_style_get_align_content(this.flexpanel);
-  // }
-
-  // getDisplay() {
-  //   return flexpanel_node_style_get_display(this.flexpanel);
-  // }
 };

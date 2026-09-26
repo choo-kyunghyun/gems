@@ -446,6 +446,31 @@ Test.register(Test.CHECK, [
     },
   },
   {
+    // a built-in setter handed over as a value styles the node, arguments intact, and reflows it
+    id: "ui.style",
+    setup(ctx) {
+      ctx.el = new UIElement({ width: 10, height: 10 });
+      ctx.root = new UIElement();
+      ctx.root.insertChild(ctx.el);
+      ctx.root.refresh();
+    },
+    verify(ctx, t) {
+      ctx.el.style(flexpanel_node_style_set_width, 50, flexpanel_unit.point);
+      t.ok(ctx.root.dirty, "a style dirties the tree");
+      ctx.el.style(flexpanel_node_style_set_margin, flexpanel_edge.left, 8);
+      ctx.root.refresh();
+      const pos = ctx.el.getLayoutPosition();
+      t.eq(pos.width, 50, "the setter lands");
+      t.eq(pos.left, 8, "an edge setter's arguments pass through");
+      ctx.el.setHeight(20, flexpanel_unit.point);
+      ctx.root.refresh();
+      t.eq(ctx.el.getLayoutPosition().height, 20, "a named setter goes through the same door");
+    },
+    teardown(ctx) {
+      ctx.root.destroy();
+    },
+  },
+  {
     // a viewport's wheel and thumb answer to what lies over it, never to a descendant's capture
     id: "ui.scrollAbove",
     setup(ctx) {
