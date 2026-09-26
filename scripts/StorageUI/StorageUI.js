@@ -180,7 +180,8 @@ globalThis.StorageUI = {
     let moved;
     if (side === "bag") {
       moved = Bag.transfer(bag, box, row.idx, amount);
-      if (moved > 0) StorageUI._afterStore(scene, bag, row.itemId);
+      // a worn instance that left comes off; a hotbar binding outlives its stock
+      if (moved > 0) Loadout.reconcile(entities, scene.playerId);
     } else {
       moved = Bag.transfer(box, bag, row.idx, amount);
       if (moved > 0 && page.onTake !== undefined)
@@ -213,7 +214,7 @@ globalThis.StorageUI = {
 
   /**
    * The bag's keep-back rule as a slot predicate. A favorite never stores; a bulk store also keeps
-   * hotbar-bound items and worn instances, which a single move stores and unbinds instead.
+   * hotbar-bound items and worn instances, which a single move stores instead.
    */
   _kept(scene, bulk) {
     const entities = scene.level.entities;
@@ -225,17 +226,5 @@ globalThis.StorageUI = {
       if (hb !== undefined && Belt.has(hb, s.itemId)) return true;
       return eq !== undefined ? Loadout.wears(eq, s.uid) : false;
     };
-  },
-
-  /**
-   * Only the last copy unbinds its hotbar slot, so a partial store keeps the binding usable; a
-   * worn instance that left is unequipped.
-   */
-  _afterStore(scene, bag, itemId) {
-    const entities = scene.level.entities;
-    if (!Bag.has(bag, itemId, 1)) {
-      Belt.clearItem(entities.require(scene.playerId, Hotbar), itemId);
-    }
-    Loadout.reconcile(entities, scene.playerId);
   },
 };
