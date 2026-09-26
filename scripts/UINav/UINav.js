@@ -22,9 +22,6 @@
  * the ring and falls to the injected `back`, the app's back-out, which alone still hears a cancel
  * while the nav is suspended. What the UI or `back` acts on is spent, so a later reader sees only
  * the input they left.
- *
- * TODO: retire `navActivate`/`navAxis`, which still answer a confirm and a horizontal move on the
- * focused element itself and make it a stop, once every widget answers `onNav`.
  */
 globalThis.UINav = {
   focused: null,
@@ -126,20 +123,22 @@ globalThis.UINav = {
 
   /** Offers `ev` from the focused element up its ancestors; true once a component took it. */
   _dispatch(ev) {
-    const focused = UINav.focused;
-    let el = focused;
+    let el = UINav.focused;
     while (el !== null) {
       if (el._destroyed) return true; // a handler tore its subtree down: nothing left to offer
-      const comps = el.components;
-      for (let i = 0; i < comps.length; i++) {
-        const c = comps[i];
-        if (typeof c.onNav === "function") {
-          if (c.onNav(el, ev) === true) return true;
-        } else if (el === focused) {
-          if (UINav._legacy(c, el, ev)) return true;
-        }
-      }
+      if (UINav._offer(el, ev)) return true;
       el = el.parent;
+    }
+    return false;
+  },
+
+  /** Offers `ev` to `el`'s own components in order; true once one took it. */
+  _offer(el, ev) {
+    const comps = el.components;
+    for (let i = 0; i < comps.length; i++) {
+      if (typeof comps[i].onNav === "function") {
+        if (comps[i].onNav(el, ev) === true) return true;
+      }
     }
     return false;
   },
@@ -149,12 +148,7 @@ globalThis.UINav = {
     for (let i = UI.roots.length - 1; i >= 0; i--) {
       const r = UI.roots[i];
       if (!r.enabled) continue;
-      const comps = r.components;
-      for (let k = 0; k < comps.length; k++) {
-        if (typeof comps[k].onNav === "function") {
-          if (comps[k].onNav(r, ev) === true) return true;
-        }
-      }
+      if (UINav._offer(r, ev)) return true;
       if (UINav._exclusive(r)) return false;
     }
     return false;
@@ -172,18 +166,6 @@ globalThis.UINav = {
     for (let i = 0; i < src.keys.length; i++) if (Input.keyPressed(src.keys[i])) return true;
     for (let i = 0; i < src.pads.length; i++) if (Input.padPressed(src.pads[i])) return true;
     return false;
-  },
-
-  _legacy(c, el, ev) {
-    if (ev.kind === "confirm") {
-      if (typeof c.navActivate !== "function") return false;
-      c.navActivate(el);
-      return true;
-    }
-    if (ev.kind !== "move" || ev.dx === 0) return false;
-    if (typeof c.navAxis !== "function") return false;
-    c.navAxis(el, ev.dx);
-    return true;
   },
 
   /** Draw the focus ring, and the debug overlay while its key is held. */
@@ -243,7 +225,6 @@ globalThis.UINav = {
     if (fi !== -1) {
       const fx = items[fi].cx;
       const fy = items[fi].cy;
-      const consumesAxis = UINav._comp(UINav.focused, "navAxis") !== null;
       const dirs = [
         [0, -1, "U", c_red],
         [0, 1, "D", c_lime],
@@ -251,7 +232,6 @@ globalThis.UINav = {
         [1, 0, "R", c_fuchsia],
       ];
       for (let d = 0; d < dirs.length; d++) {
-        if (dirs[d][0] !== 0 && consumesAxis) continue; // horizontal adjusts, never moves
         const j = UINav._pick(items, fi, dirs[d][0], dirs[d][1]);
         if (j === -1) continue;
         const tx = items[j].cx;
@@ -315,22 +295,8 @@ globalThis.UINav = {
 
   _focusable(el) {
     const comps = el.components;
-    for (let i = 0; i < comps.length; i++) {
-      const c = comps[i];
-      if (c.focusable === true) return true;
-      if (typeof c.navActivate === "function") return true;
-      if (typeof c.navAxis === "function") return true;
-    }
+    for (let i = 0; i < comps.length; i++) if (comps[i].focusable === true) return true;
     return false;
-  },
-
-  _comp(el, method) {
-    for (let i = 0; i < el.components.length; i++) {
-      if (typeof el.components[i][method] === "function") {
-        return el.components[i];
-      }
-    }
-    return null;
   },
 
   /**

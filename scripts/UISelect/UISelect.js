@@ -14,6 +14,7 @@ globalThis.UISelect = class UISelect {
     this.font = select.font ?? -1;
     this.halign = select.halign ?? fa_center;
     this.valign = select.valign ?? fa_middle;
+    this.focusable = true;
     // -1 = cursor over left arrow, 1 = right, 0 = not hovering.
     this._side = 0;
     // its onClick reads the _side latched earlier in the same onUpdate
@@ -96,13 +97,15 @@ globalThis.UISelect = class UISelect {
     UIDraw.restore(st);
   }
 
-  /** Horizontal nav adjusts the value instead of moving focus. */
-  navAxis(element, dir) {
-    if (dir < 0) this.retreat();
+  /** A horizontal move cycles the value instead of moving focus; a confirm advances it. */
+  onNav(element, ev) {
+    if (ev.kind === "confirm") {
+      this.advance();
+      return true;
+    }
+    if (ev.kind !== "move" || ev.dx === 0) return false;
+    if (ev.dx < 0) this.retreat();
     else this.advance();
-  }
-
-  navActivate(element) {
-    this.advance();
+    return true;
   }
 };

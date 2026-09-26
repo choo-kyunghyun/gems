@@ -30,6 +30,7 @@ globalThis.UIButton = class UIButton {
     this.borderColorNormal = btn.borderColorNormal;
     this.borderColorHover = btn.borderColorHover;
     this.animSpeed = btn.animSpeed ?? 16; // per-second lerp rate
+    this.focusable = true;
     // callbacks are live closures, so reassigning a handler after construction keeps working
     this._fsm = new UITrigger({
       onEnter: () => this.onEnter(),
@@ -142,9 +143,10 @@ globalThis.UIButton = class UIButton {
     this._fsm.onDestroy(element);
   }
 
-  // nav confirm fires the click; its presence marks the element focusable
-
-  navActivate(element) {
-    if (!this._disabled()) this.onClick();
+  /** A confirm fires the click. */
+  onNav(element, ev) {
+    if (ev.kind !== "confirm" || this._disabled()) return false;
+    this.onClick();
+    return true;
   }
 };

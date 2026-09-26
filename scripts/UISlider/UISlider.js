@@ -10,6 +10,7 @@ globalThis.UISlider = class UISlider {
     this.min = slider.min ?? 0;
     this.max = slider.max ?? 1;
     this.value = slider.value ?? this.min;
+    this.focusable = true;
     this.step = slider.step;
     this.values = slider.values;
     this.readOnly = slider.readOnly ?? false;
@@ -191,13 +192,14 @@ globalThis.UISlider = class UISlider {
     draw_set_alpha(a0);
   }
 
-  /** Horizontal nav nudges the value instead of moving focus. */
-  navAxis(element, dir) {
-    if (this.readOnly) return;
+  /** A horizontal move nudges the value instead of moving focus. */
+  onNav(element, ev) {
+    if (ev.kind !== "move" || ev.dx === 0 || this.readOnly) return false;
     const inc =
       typeof this.step === "number" && this.step > 0
         ? this.step
         : (this.max - this.min) / 20;
-    this.setValue(this.value + dir * inc);
+    this.setValue(this.value + ev.dx * inc);
+    return true;
   }
 };

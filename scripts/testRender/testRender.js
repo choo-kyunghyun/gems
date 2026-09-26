@@ -560,7 +560,7 @@ Test.register(Test.CHECK, [
   },
   {
     // an event climbs from the focused element through its ancestors until one takes it, and only
-    // an untaken one moves the focus or lets go of the ring; a bare navAxis still answers
+    // an untaken one moves the focus or lets go of the ring
     id: "ui.navBubble",
     setup(ctx) {
       Test.ui(ctx);
@@ -611,10 +611,10 @@ Test.register(Test.CHECK, [
 
       UINav.focused = ctx.sel;
       UINav.engaged = true;
-      t.eq(step([vk_right]), "", "a navAxis answers on the focused element alone");
-      t.eq(ctx.select.getIndex(), 1, "and adjusts rather than moves");
+      t.eq(step([vk_right]), "", "a focused widget takes the event before its ancestors");
+      t.eq(ctx.select.getIndex(), 1, "a select's horizontal move adjusts rather than moves");
       step([vk_enter]);
-      t.eq(ctx.select.getIndex(), 2, "a navActivate answers a confirm");
+      t.eq(ctx.select.getIndex(), 2, "and its confirm advances");
       t.ok(UINav.focused === ctx.sel, "neither moves the focus");
     },
     teardown(ctx) {
@@ -848,6 +848,80 @@ Test.register(Test.CHECK, [
     teardown(ctx) {
       Dialogue.clear();
       Test.uiRestore(ctx);
+    },
+  },
+  {
+    // a widget acts on the nav events it takes, and leaves to the nav what it cannot act on
+    id: "ui.navWidgets",
+    setup(ctx) {
+      ctx.clicks = 0;
+      ctx.toggles = 0;
+      ctx.opened = 0;
+      ctx.els = [];
+      ctx.el = () => {
+        const e = new UIElement({ width: 100, height: 40 });
+        ctx.els.push(e);
+        return e;
+      };
+    },
+    verify(ctx, t) {
+      const confirm = { kind: "confirm", dx: 0, dy: 0 };
+      const right = { kind: "move", dx: 1, dy: 0 };
+      const down = { kind: "move", dx: 0, dy: 1 };
+      const el = ctx.el();
+
+      const button = new UIButton({
+        onClick: () => {
+          ctx.clicks += 1;
+        },
+      });
+      t.ok(button.onNav(el, confirm) ? ctx.clicks === 1 : false, "a button's confirm clicks it");
+      t.ok(!button.onNav(el, right), "a button leaves the moves");
+      button.disabled = true;
+      t.ok(!button.onNav(el, confirm), "a disabled button leaves the confirm");
+
+      const box = new UICheckbox({
+        onToggle: () => {
+          ctx.toggles += 1;
+        },
+      });
+      t.ok(box.onNav(el, confirm) ? ctx.toggles === 1 : false, "a checkbox's confirm toggles it");
+      box.readOnly = true;
+      t.ok(!box.onNav(el, confirm), "a read-only checkbox leaves the confirm");
+
+      const slider = new UISlider({ min: 0, max: 10, value: 5, step: 1 });
+      t.ok(slider.onNav(el, right) ? slider.value === 6 : false, "a slider's side move nudges it");
+      t.ok(!slider.onNav(el, down), "a slider leaves the vertical move");
+      slider.readOnly = true;
+      t.ok(!slider.onNav(el, right), "a read-only slider leaves the side move");
+
+      const stepper = new UIStepper({ min: 0, max: 3, value: 1 });
+      t.ok(stepper.onNav(el, right) ? stepper.value === 2 : false, "a stepper's side move steps it");
+
+      const tabs = new UITabs({
+        tabs: [
+          { label: "a", content: ctx.el() },
+          { label: "b", content: ctx.el() },
+        ],
+      });
+      t.ok(tabs.onNav(el, right) ? tabs.index === 1 : false, "a tab strip's side move switches");
+      t.ok(tabs.onNav(el, confirm) ? tabs.index === 0 : false, "and its confirm cycles");
+
+      const header = ctx.el();
+      ctx.el().insertChild(header);
+      const acc = new UIAccordion({ body: ctx.el() });
+      t.ok(acc.onNav(header, confirm) ? acc.expanded : false, "an accordion's confirm toggles it");
+
+      const dd = new UIDropdown({
+        items: [{ name: "x", value: 1 }],
+        onOpen: () => {
+          ctx.opened += 1;
+        },
+      });
+      t.ok(dd.onNav(el, confirm) ? ctx.opened === 1 : false, "a dropdown's confirm opens it");
+    },
+    teardown(ctx) {
+      for (let i = ctx.els.length - 1; i >= 0; i--) ctx.els[i].destroy();
     },
   },
 ]);

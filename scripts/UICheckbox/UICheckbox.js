@@ -7,6 +7,7 @@ globalThis.UICheckbox = class UICheckbox {
     this._get = box.getValue ?? (() => box.value ?? false);
     this.onToggle = box.onToggle ?? noop;
     this.readOnly = box.readOnly ?? false;
+    this.focusable = true;
     this.style = box.style ?? "check"; // "check" | "switch"
     this.animSpeed = box.animSpeed ?? 16;
 
@@ -98,8 +99,10 @@ globalThis.UICheckbox = class UICheckbox {
     draw_set_alpha(a0);
   }
 
-  // its presence makes the element focusable
-  navActivate(element) {
-    if (!this.readOnly) this.onToggle();
+  /** A confirm toggles the box. */
+  onNav(element, ev) {
+    if (ev.kind !== "confirm" || this.readOnly) return false;
+    this.onToggle();
+    return true;
   }
 };

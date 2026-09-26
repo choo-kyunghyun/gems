@@ -7,6 +7,7 @@ globalThis.UIStepper = class UIStepper {
     this.min = stepper.min ?? 0;
     this.max = stepper.max ?? 10;
     this.step = stepper.step ?? 1;
+    this.focusable = true;
     this.wrap = stepper.wrap ?? false;
     this.value = this._snap(stepper.value ?? this.min);
     this.onChange = stepper.onChange ?? noop;
@@ -99,9 +100,11 @@ globalThis.UIStepper = class UIStepper {
     UIDraw.restore(st);
   }
 
-  /** Horizontal nav steps the value instead of moving focus. */
-  navAxis(element, dir) {
-    if (dir < 0) this.decrement();
+  /** A horizontal move steps the value instead of moving focus. */
+  onNav(element, ev) {
+    if (ev.kind !== "move" || ev.dx === 0) return false;
+    if (ev.dx < 0) this.decrement();
     else this.increment();
+    return true;
   }
 };

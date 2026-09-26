@@ -8,6 +8,7 @@ globalThis.UIAccordion = class UIAccordion {
   constructor(acc = {}) {
     this.title = acc.title ?? ""; // string or () => string
     this.expanded = acc.expanded ?? false;
+    this.focusable = true;
     this.body = acc.body ?? null; // inserted/removed on toggle
     this.onToggle = acc.onToggle ?? noop;
     this.font = acc.font ?? -1;
@@ -90,8 +91,10 @@ globalThis.UIAccordion = class UIAccordion {
     UIDraw.restore(st);
   }
 
-  navActivate
-(element) {
+  /** A confirm toggles the body. */
+  onNav(element, ev) {
+    if (ev.kind !== "confirm") return false;
     this.toggle(element);
+    return true;
   }
 };

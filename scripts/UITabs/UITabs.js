@@ -17,6 +17,7 @@ globalThis.UITabs = class UITabs {
     this.vertical = tabs.vertical ?? false;
     this.segment = tabs.segment ?? 56; // vertical: px per segment (horizontal divides the strip)
     this.tipDelay = tabs.tipDelay ?? 0.4; // s of hover dwell before a `short` tab's label tooltip
+    this.focusable = true;
 
     this.color = tabs.color ?? c_white; // active label
     this.colorIdle = tabs.colorIdle ?? c_gray; // inactive label
@@ -213,12 +214,14 @@ globalThis.UITabs = class UITabs {
     }
   }
 
-  /** The axis switches tabs, so the strip is one focus stop. */
-  navAxis(element, dir) {
-    this.select(clamp(this.index + dir, 0, this.tabs.length - 1));
-  }
-
-  navActivate(element) {
-    if (this.tabs.length > 0) this.select((this.index + 1) % this.tabs.length);
+  /** A horizontal move switches tabs, so the strip is one focus stop; a confirm cycles them. */
+  onNav(element, ev) {
+    if (ev.kind === "confirm") {
+      if (this.tabs.length > 0) this.select((this.index + 1) % this.tabs.length);
+      return true;
+    }
+    if (ev.kind !== "move" || ev.dx === 0) return false;
+    this.select(clamp(this.index + ev.dx, 0, this.tabs.length - 1));
+    return true;
   }
 };

@@ -19,6 +19,7 @@ globalThis.UIDropdown = class UIDropdown {
     this.font = dd.font ?? -1;
     this.halign = dd.halign ?? fa_left;
     this.padX = dd.padX ?? 12;
+    this.focusable = true;
 
     this._open = false;
     this._el = null; // stashed each onUpdate for the onClick closure
@@ -97,8 +98,10 @@ globalThis.UIDropdown = class UIDropdown {
     UIDraw.restore(st);
   }
 
-  // its presence marks the field focusable
-  navActivate(element) {
+  /** A confirm opens the popup. */
+  onNav(element, ev) {
+    if (ev.kind !== "confirm") return false;
     this._toggle(element);
+    return true;
   }
 };
