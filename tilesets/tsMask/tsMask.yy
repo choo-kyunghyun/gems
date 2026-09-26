@@ -12,8 +12,8 @@
   "out_tilehborder":2,
   "out_tilevborder":2,
   "parent":{
-    "name":"Media",
-    "path":"folders/Core/Media.yy",
+    "name":"Collision",
+    "path":"folders/Core/Collision.yy",
   },
   "resourceType":"GMTileSet",
   "resourceVersion":"2.0",

@@ -6,7 +6,7 @@
   "name":"testGame",
   "parent":{
     "name":"Test",
-    "path":"folders/Game/Dev/Test.yy",
+    "path":"folders/Game/Test.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

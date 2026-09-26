@@ -25,8 +25,8 @@
   "nineSlice":null,
   "origin":0,
   "parent":{
-    "name":"Media",
-    "path":"folders/Core/Media.yy",
+    "name":"Collision",
+    "path":"folders/Core/Collision.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",
