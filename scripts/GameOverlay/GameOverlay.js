@@ -27,7 +27,7 @@ globalThis.GameOverlay = {
     GameOverlay._extraTabs.push({ label, short, build });
   },
 
-  /** Per-frame pause/open driver, ahead of the nav, which it suspends during bare gameplay. */
+  /** Per-frame pause/open driver. */
   update(game) {
     GameOverlay._game = game;
     const scene = game.scene;
@@ -37,7 +37,6 @@ globalThis.GameOverlay = {
         GameOverlay.close();
         return;
       }
-      UINav.suspended = false; // the page must stay nav-reachable over any scene
       Time.scale = 0;
       Time.delta = 0;
       Time.step = 0;
@@ -52,13 +51,7 @@ globalThis.GameOverlay = {
     // BUG: scene.gameplay is read live, never cached in a local bool — GMRT #15549 (docs/GMRT.md)
     if (scene === null || scene.gameplay !== true) return;
 
-    if (Input.padPressed(gp_start)) {
-      GameOverlay.open();
-      return;
-    }
-
-    // gameplay owns the gamepad unless a window is open
-    UINav.suspended = !InputContext.is("window");
+    if (Input.padPressed(gp_start)) GameOverlay.open();
   },
 
   /**
@@ -175,7 +168,7 @@ globalThis.GameOverlay = {
 
     UI.insert(root);
     GameOverlay._root = root;
-    UINav.suspended = false;
+    UINav.suspended = false; // the page stays nav-reachable over a scene that suspended the nav
     if (tabIndex > 0) tabsRoot.tabs.select(tabIndex);
   },
 

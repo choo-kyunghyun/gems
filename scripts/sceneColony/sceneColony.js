@@ -376,6 +376,8 @@ class _SceneColonyClass {
     else if (this.window.isOpen()) ctx = "window";
     else if (this.build.armed) ctx = "build";
     InputContext.set(ctx);
+    // the menu nav drives a window alone, so elsewhere the gamepad plays
+    UINav.suspended = ctx !== "window";
   }
 
   /**
