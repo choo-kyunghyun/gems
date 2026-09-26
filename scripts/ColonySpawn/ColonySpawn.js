@@ -137,48 +137,9 @@ globalThis.ColonySpawn = {
     };
   },
 
-  // tints over the white body art
-  SKINS: ["#e8b890", "#d19a6b", "#a2714c"],
-
-  // the body parts only: a garment or gear slot keeps its authored colours, which a whole-rig
-  // colour would wash
-  SKIN_SLOTS: ["head", "eyes", "mouth", "neck", "torso", "armL", "armR", "handL", "handR", "legL", "legR", "footLB", "footLF", "footRB", "footRF"],
-
-  /** The slot -> colour tint map. */
-  skinTints(color) {
-    const tints = {};
-    for (let j = 0; j < ColonySpawn.SKIN_SLOTS.length; j++)
-      tints[ColonySpawn.SKIN_SLOTS[j]] = color;
-    return tints;
-  },
-
-  /** Hashed from the spawn cell, so a regenerated level's humanoid keeps the same face. */
-  skin(s) {
-    const gx = s.gx ?? 0;
-    const gy = s.gy ?? 0;
-    const i = Math.abs(gx * 7 + gy * 13) % ColonySpawn.SKINS.length;
-    return Color.parse(ColonySpawn.SKINS[i]);
-  },
-
-  // tints over the white body art; white is as authored
-  COATS: ["#ffffff", "#b4b4b4", "#a06a3c", "#585858"],
-  // the furred parts only
-  COAT_SLOTS: ["torso", "head", "legF", "legB"],
-
-  /** Cell-hashed like skin; returns the slot -> colour tint map. */
-  coat(s) {
-    const gx = s.gx ?? 0;
-    const gy = s.gy ?? 0;
-    const i = Math.abs(gx * 11 + gy * 17) % ColonySpawn.COATS.length;
-    const color = Color.parse(ColonySpawn.COATS[i]);
-    const tints = {};
-    for (let j = 0; j < ColonySpawn.COAT_SLOTS.length; j++)
-      tints[ColonySpawn.COAT_SLOTS[j]] = color;
-    return tints;
-  },
-
   /**
-   * Cell-hashed like skin, over an age band; distinct seeds keep sex, age and skin independent.
+   * Hashed from the spawn cell over an age band, so a regenerated level's body keeps who it is;
+   * distinct seeds keep sex, age and look independent.
    */
   persona(s, minAge, maxAge) {
     const gx = s.gx ?? 0;
@@ -187,15 +148,5 @@ globalThis.ColonySpawn = {
       sex: hash2(gx, gy, 7717) < 0.5 ? "male" : "female",
       age: minAge + Math.floor(hash2(gx, gy, 3373) * (maxAge - minAge + 1)),
     };
-  },
-
-  /**
-   * An outfit as a slot map, one sprite per slot: a slot has no tint of its own, so an outfit
-   * varies by art, never by colour. `hat` is optional.
-   */
-  outfit(shirt, shoe, hat) {
-    const slots = { shirt: shirt, shoeL: shoe, shoeR: shoe };
-    if (hat !== undefined) slots.hat = hat;
-    return { slots: slots, dirty: true };
   },
 };
