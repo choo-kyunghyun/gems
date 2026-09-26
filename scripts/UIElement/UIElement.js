@@ -1,6 +1,8 @@
 /**
+ * `onUpdate(element, block, above)`: `block` also counts a descendant's capture, `above` only
+ * what lies over the element.
  * @typedef {Object} UIComponent
- * @property {function(UIElement|boolean): boolean} onUpdate
+ * @property {function(UIElement, boolean, boolean): boolean} onUpdate
  * @property {function(UIElement): void} onDraw
  * @property {function(UIElement): void} onDestroy
  */
@@ -103,7 +105,7 @@ globalThis.UIElement = class UIElement {
     let result = this.clip && !insideClip ? block : childBlock;
     for (const component of this.components) {
       if (component.onUpdate) {
-        const response = component.onUpdate(this, result);
+        const response = component.onUpdate(this, result, block);
         if (response === true) result = true;
       }
     }

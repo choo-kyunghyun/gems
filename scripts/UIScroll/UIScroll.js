@@ -16,7 +16,7 @@ globalThis.UIScroll = class UIScroll {
     this._max = 0; // px of overflow at the last update
   }
 
-  onUpdate(element, block) {
+  onUpdate(element, block, above) {
     const pos = element.getLayoutPosition();
     const contentH = this.content ? this.content.getLayoutPosition().height : 0;
 
@@ -37,8 +37,9 @@ globalThis.UIScroll = class UIScroll {
     const mx = Input.pointer.x;
     const my = Input.pointer.y;
 
+    // a descendant's capture never stops the wheel or the grab; what lies over the viewport does.
     // BUG: positionMeeting is read live, never cached in a local (docs/GMRT.md #15549)
-    if (max > 0) {
+    if (max > 0 && !above) {
       const wheel = Input.pointer.wheel;
       if (wheel !== 0 && element.positionMeeting(mx, my))
         this.scroll += wheel * this.wheelStep;
@@ -48,7 +49,7 @@ globalThis.UIScroll = class UIScroll {
       m,
       mx,
       my,
-      max > 0 && element.positionMeeting(mx, my),
+      max > 0 && !above && element.positionMeeting(mx, my),
     );
     if (t >= 0 && max > 0) this.scroll = t * max;
 

@@ -446,6 +446,49 @@ Test.register(Test.CHECK, [
     },
   },
   {
+    // a viewport's wheel and thumb answer to what lies over it, never to a descendant's capture
+    id: "ui.scrollAbove",
+    setup(ctx) {
+      Test.ui(ctx);
+      ctx.body = new UIElement({ width: "100%", flexShrink: 0 });
+      ctx.body.insertChild(new UIElement({ width: 100, height: 40 }).addComponent(new UIButton()));
+      ctx.body.insertChild(new UIElement({ width: 100, height: 400 }));
+      ctx.viewport = new UIElement({ width: 200, height: 100 });
+      ctx.viewport.clip = true;
+      ctx.viewport.insertChild(ctx.body);
+      ctx.scroll = new UIScroll({ content: ctx.body });
+      ctx.viewport.addComponent(ctx.scroll);
+      ctx.cover = new UIElement({ width: 300, height: 300 }).addComponent(new UITrigger());
+      UI.insert(ctx.viewport);
+      UI.insert(ctx.cover);
+    },
+    verify(ctx, t) {
+      const p = Input.pointer;
+      const at = (x, y, wheel, press) => {
+        p.x = x;
+        p.y = y;
+        p.wheel = wheel;
+        p.left.pressed = press;
+        p.left.down = press;
+        Test.uiFrame(ctx, []);
+      };
+      at(50, 20, 1, false);
+      t.eq(ctx.scroll.scroll, 0, "a root over the viewport keeps the wheel");
+      at(190, 20, 0, true);
+      t.ok(!ctx.scroll._bar.dragging, "and the thumb");
+      at(190, 20, 0, false);
+
+      UI.setEnabled(ctx.cover, false);
+      at(50, 20, 1, false);
+      t.ok(ctx.scroll.scroll > 0, "a hovered child leaves the wheel to its viewport");
+      at(190, 20, 0, true);
+      t.ok(ctx.scroll._bar.dragging, "the thumb grabs with nothing over it");
+    },
+    teardown(ctx) {
+      Test.uiRestore(ctx);
+    },
+  },
+  {
     // the nearest focusable along the axis wins, a full-width row hands Down to the first in
     // visual order, a disabled item is never collected, and past an edge nothing is picked, not
     // even a wider row whose center lies that way
