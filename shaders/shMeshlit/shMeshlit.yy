@@ -3,8 +3,8 @@
   "%Name":"shMeshlit",
   "name":"shMeshlit",
   "parent":{
-    "name":"Shader",
-    "path":"folders/Core/Render/Shader.yy",
+    "name":"Shaders",
+    "path":"folders/Core/Render/Shaders.yy",
   },
   "resourceType":"GMShader",
   "resourceVersion":"2.0",

@@ -28,7 +28,7 @@
     {"$GMFolder":"","%Name":"Debug","folderPath":"folders/Core/Render/Debug.yy","name":"Debug","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Light","folderPath":"folders/Core/Render/Light.yy","name":"Light","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Particle","folderPath":"folders/Core/Render/Particle.yy","name":"Particle","resourceType":"GMFolder","resourceVersion":"2.0",},
-    {"$GMFolder":"","%Name":"Shader","folderPath":"folders/Core/Render/Shader.yy","name":"Shader","resourceType":"GMFolder","resourceVersion":"2.0",},
+    {"$GMFolder":"","%Name":"Shaders","folderPath":"folders/Core/Render/Shaders.yy","name":"Shaders","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Terrain","folderPath":"folders/Core/Render/Terrain.yy","name":"Terrain","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Volume","folderPath":"folders/Core/Render/Volume.yy","name":"Volume","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Scene","folderPath":"folders/Core/Scene.yy","name":"Scene","resourceType":"GMFolder","resourceVersion":"2.0",},
