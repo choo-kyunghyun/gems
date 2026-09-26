@@ -48,7 +48,7 @@ Placement rule for new code:
 - References only engine concepts (space/time/presentation/entity lifecycle) → Core. A data
   structure that knows no layer — the id-keyed store (`Table`, `Handle`), the
   1-D `Grid`, the def `Registry`, the asset-keyed `AssetMeta` — or the serialization of one
-  (`Json`, `Snapshot`) → `Core/Data`. A leaf helper that references nothing else in Core
+  (`Json`) → `Core/Data`. A leaf helper that references nothing else in Core
   (`Log`, `Time`, `File`) → `Core/Util`, the floor every area may reach; an app singleton over
   the device or the session (`Settings`, `Display`) → `Core/App`; a Core check case →
   `Core/Test`.
@@ -275,9 +275,9 @@ and are cited from here, never restated):
   serialized field holds plain arrays/objects only — no `Set`/`Map` (both cross the boundary empty
   — GMRT.md) and no asset ref outside the codec's tagging. Dense/large arrays still go to binary
   blobs, not JSON — a store token with a codec (`entities.codec`) crosses its export as buffers the
-  save hands to the Snapshot bundle (`File` moves the bytes). A runtime-rebuilt component (a diff baseline, a
+  save names as blobs (`File` moves the bytes). A runtime-rebuilt component (a diff baseline, a
   path, a live handle) is minted — `entities.add(…, { mint: true })` at the system that rebuilds it — so no export
-  or whole-entity snapshot carries it, and a save pass or a transfer names no component. One
+  or whole-entity snapshot carries it, and a save or a transfer names no component. One
   that holds a native handle (`Instance`, `ParticleStream`) mints with its RELEASE hook, which
   the store runs as the datum leaves its slot (a detach, the entity's flush, a level's teardown),
   so no module keeps a roster of ids to reap.

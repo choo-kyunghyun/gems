@@ -427,7 +427,6 @@
     {"id":{"name":"Silhouette","path":"scripts/Silhouette/Silhouette.yy",},},
     {"id":{"name":"Sleep","path":"scripts/Sleep/Sleep.yy",},},
     {"id":{"name":"SlotDrag","path":"scripts/SlotDrag/SlotDrag.yy",},},
-    {"id":{"name":"Snapshot","path":"scripts/Snapshot/Snapshot.yy",},},
     {"id":{"name":"SolidSystem","path":"scripts/SolidSystem/SolidSystem.yy",},},
     {"id":{"name":"SolidTiles","path":"scripts/SolidTiles/SolidTiles.yy",},},
     {"id":{"name":"SoundEmitter","path":"scripts/SoundEmitter/SoundEmitter.yy",},},

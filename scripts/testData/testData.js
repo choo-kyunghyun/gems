@@ -1,4 +1,4 @@
-// Core/Data cases: the id-keyed store — entity lifecycle, walks, the codecs and the snapshot —
+// Core/Data cases: the id-keyed store — entity lifecycle, walks and the codecs —
 // the file and JSON round trips, the def and asset registries, and perf.layout, a walk's cost per
 // lead carrier. Every case here references Core only.
 
@@ -397,35 +397,6 @@ Test.register(Test.CHECK, [
     teardown(ctx) {
       ctx.src.destroy();
       ctx.dst.destroy();
-    },
-  },
-  {
-    // a bare fn is a capture-only pass, and a pass is removed by what was inserted
-    id: "snapshot.passes",
-    setup(ctx) {
-      ctx.log = [];
-      ctx.bare = (c) => {
-        ctx.log.push("bare:" + c.mode);
-      };
-      const note = (c) => {
-        ctx.log.push("full:" + c.mode);
-      };
-      ctx.full = { id: "full", capture: note, restore: note };
-      ctx.snap = new Snapshot().insert(ctx.full).insert(ctx.bare, 0);
-    },
-    verify(ctx, t) {
-      const snap = ctx.snap;
-      const bundle = snap.capture(undefined);
-      snap.restore(undefined, bundle.manifest, {});
-      t.eq(
-        ctx.log.join(","),
-        "bare:capture,full:capture,full:restore",
-        "passes run in insertion order, a bare fn on capture only",
-      );
-      snap.remove(ctx.bare);
-      t.eq(snap.passes.length, 1, "remove finds a bare fn");
-      snap.remove(ctx.full);
-      t.eq(snap.passes.length, 0, "remove finds a pass");
     },
   },
   {
