@@ -164,7 +164,7 @@ globalThis.Build = {
         if (st !== undefined && st.module !== undefined && st.module !== "")
           Bag.add(entities.require(actorId, Inventory), st.module, 1);
         // spill the contents first, else removing the entity deletes them
-        ColonyCombat.spillLoot(entities, ent.ent);
+        Loot.spill(entities, ent.ent);
         entities.remove(ent.ent);
       }
       Build._refund(entities, actorId, ent.itemId);

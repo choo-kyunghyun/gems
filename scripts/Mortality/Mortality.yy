@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Mortality",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Mortality",
+  "parent":{
+    "name":"Combat",
+    "path":"folders/Game/Combat.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Mortality.js",
+}

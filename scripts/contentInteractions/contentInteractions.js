@@ -94,7 +94,7 @@ globalThis.contentInteractions = {
         id: "pickup",
         prompt: "INV_PICKUP_PROMPT",
         run(ctx) {
-          const r = ColonyCombat.pickup(ctx.entities, ctx.id, ctx.playerId);
+          const r = Loot.pickup(ctx.entities, ctx.id, ctx.playerId);
           if (r.qty === 0) {
             Toast.push(I18n.text(r.reason), { type: "info" });
             return;

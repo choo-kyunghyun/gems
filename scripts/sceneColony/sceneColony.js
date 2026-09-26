@@ -28,6 +28,17 @@ class _SceneColonyClass {
     Progression.onReward = () => {
       this.window.dirty = true;
     };
+    // a squad member's knock-out and recovery show as toasts
+    Mortality.onDown = (entities, id) => {
+      Toast.push(I18n.text("FOLLOWER_DOWN", this._followerName(entities, id)), {
+        type: "warn",
+      });
+    };
+    Mortality.onRecover = (entities, id) => {
+      Toast.push(I18n.text("FOLLOWER_RECOVERED", this._followerName(entities, id)), {
+        type: "success",
+      });
+    };
     // a fresh session starts from a blank world; a load imports its records below
     this.world = new World();
     World.active = this.world;
@@ -54,11 +65,6 @@ class _SceneColonyClass {
       },
       { has: Follower, color: Color.parse("#6fd0a0") },
     ];
-    // a squad member's knock-out and recovery, minted once rather than per tick
-    this._downRules = {
-      onDown: (id) => this._onDown(id),
-      onRecover: (id) => this._onRecover(id),
-    };
 
     this._buildUI();
 
@@ -226,7 +232,7 @@ class _SceneColonyClass {
   /**
    * The frame's order, one phase per line. A map swap never runs in here — it lands between
    * frames, so nothing in a frame touches a swapped-out map. What the scene shows of a gameplay
-   * reaction is a named `_on*` member passed in as a hook set, so the phases state order alone.
+   * reaction is a hook wired at create, so the phases state order alone.
    */
   update() {
     // no pause gate: a paused scene is not updated
@@ -308,10 +314,8 @@ class _SceneColonyClass {
     FuseSystem.update(this.level);
     LifetimeSystem.update(this.level);
 
-    ColonyCombat.trackDamage(this.level, 14);
-    ColonyCombat.resolveHealth(this.level, this._downRules);
-    ColonyCombat.updateDowned(this.level, this._downRules);
-    ColonyCombat.reapCorpses(this.level);
+    HitFeedbackSystem.update(this.level);
+    MortalSystem.update(this.level);
     Progression.reach(this.level);
   }
 
@@ -402,21 +406,9 @@ class _SceneColonyClass {
     Hud.showHotbar(this.hud);
   }
 
-  _followerName(id) {
-    const nm = this.level.entities.get(id, Name);
+  _followerName(entities, id) {
+    const nm = entities.get(id, Name);
     return nm !== undefined ? nm.name : I18n.text("FOLLOWER_DEFAULT");
-  }
-
-  _onDown(id) {
-    Toast.push(I18n.text("FOLLOWER_DOWN", this._followerName(id)), {
-      type: "warn",
-    });
-  }
-
-  _onRecover(id) {
-    Toast.push(I18n.text("FOLLOWER_RECOVERED", this._followerName(id)), {
-      type: "success",
-    });
   }
 
   /** A window outranks build mode, which it pauses. */
@@ -483,6 +475,7 @@ class _SceneColonyClass {
   destroy() {
     Radio.reset();
     Progression.reset();
+    Mortality.reset();
     WorldEvents.reset();
     ColonyTravel.suspend(this); // release the view before its camera is freed with the level
     for (const id in this.stages) this.stages[id].renderer.destroy();

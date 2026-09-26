@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"ColonyCombat",
+  "%Name":"HitFeedbackSystem",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"ColonyCombat",
+  "name":"HitFeedbackSystem",
   "parent":{
     "name":"Combat",
     "path":"folders/Game/Combat.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"ColonyCombat.js",
+  "scriptSource":"HitFeedbackSystem.js",
 }
