@@ -108,6 +108,108 @@ globalThis.Test = {
   },
 
   /**
+   * Sandboxes the UI's app state, handed back by `uiRestore`: no roots, an idle nav and field
+   * focus, the pointer parked off-screen, the pad idle, and a keyboard whose only keys down are
+   * `ctx.keys`.
+   */
+  ui(ctx) {
+    ctx.keys = [];
+    const saved = {
+      roots: UI.roots,
+      focused: UINav.focused,
+      engaged: UINav.engaged,
+      suspended: UINav.suspended,
+      claimed: UINav._claimed,
+      stickX: UINav._stickX,
+      stickY: UINav._stickY,
+      active: UIInput.active,
+      raw: Time.raw,
+      pointer: Input.pointer,
+      typed: Input.typed,
+      pointerClaimed: Input._pointerClaimed,
+      keysClaimed: Input._keysClaimed,
+      padClaimed: Input._padClaimed,
+      consumedKeys: Input._consumedKeys,
+      consumedPad: Input._consumedPad,
+      reads: {},
+    };
+    for (let i = 0; i < _TEST_READS.length; i++)
+      saved.reads[_TEST_READS[i]] = Input[_TEST_READS[i]];
+    ctx._ui = saved;
+
+    UI.roots = [];
+    UINav.reset();
+    UIInput.active = null;
+    const button = () => ({ pressed: false, released: false, down: false, owner: "" });
+    Input.pointer = {
+      x: -100000,
+      y: -100000,
+      moved: false,
+      wheel: 0,
+      roomX: 0,
+      roomY: 0,
+      winX: 0,
+      winY: 0,
+      left: button(),
+      right: button(),
+      middle: button(),
+    };
+    Input.typed = "";
+    Input._consumedKeys = [];
+    Input._consumedPad = [];
+    Input.keyPressed = (code) =>
+      Input._keysClaimed
+        ? false
+        : Input._consumedKeys.indexOf(code) !== -1
+          ? false
+          : ctx.keys.indexOf(code) !== -1;
+    Input.keyDown = (code) => (Input._keysClaimed ? false : ctx.keys.indexOf(code) !== -1);
+    Input.keyReleased = () => false;
+    Input.padPressed = () => false;
+    Input.padReleased = () => false;
+    Input.padDown = () => false;
+    Input.padAxis = () => 0;
+    Input.padValue = () => 0;
+  },
+
+  /** One sandboxed frame: the claims clear, `keys` go down, then the tree and the nav run. */
+  uiFrame(ctx, keys) {
+    Input._pointerClaimed = false;
+    Input._keysClaimed = false;
+    Input._padClaimed = false;
+    Input._consumedKeys.length = 0;
+    Input._consumedPad.length = 0;
+    ctx.keys = keys;
+    UI.update();
+    UINav.update();
+  },
+
+  /** Frees every root left in the sandbox and hands the UI's app state back. */
+  uiRestore(ctx) {
+    const saved = ctx._ui;
+    const roots = UI.roots;
+    for (let i = roots.length - 1; i >= 0; i--) roots[i].destroy();
+    UI.roots = saved.roots;
+    UINav.focused = saved.focused;
+    UINav.engaged = saved.engaged;
+    UINav.suspended = saved.suspended;
+    UINav._claimed = saved.claimed;
+    UINav._stickX = saved.stickX;
+    UINav._stickY = saved.stickY;
+    UIInput.active = saved.active;
+    Time.raw = saved.raw;
+    Input.pointer = saved.pointer;
+    Input.typed = saved.typed;
+    Input._pointerClaimed = saved.pointerClaimed;
+    Input._keysClaimed = saved.keysClaimed;
+    Input._padClaimed = saved.padClaimed;
+    Input._consumedKeys = saved.consumedKeys;
+    Input._consumedPad = saved.consumedPad;
+    for (let i = 0; i < _TEST_READS.length; i++)
+      Input[_TEST_READS[i]] = saved.reads[_TEST_READS[i]];
+  },
+
+  /**
    * `sample` accumulates one value per frame under an id, reported at the case's end as a
    * distribution, since a scenario's cost is its spread, not a mean.
    */
@@ -191,6 +293,18 @@ globalThis.Test = {
 };
 
 const REPEATS = 3; // per measure, base and run each; the minimum of each is what the figure nets
+
+// the device reads the UI sandbox stands in for
+const _TEST_READS = [
+  "keyPressed",
+  "keyDown",
+  "keyReleased",
+  "padPressed",
+  "padReleased",
+  "padDown",
+  "padAxis",
+  "padValue",
+];
 
 /** Wall microseconds. */
 function _testTime(fn) {

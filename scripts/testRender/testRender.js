@@ -1,5 +1,5 @@
 // Core/Render, Camera, Scene and UI cases: the camera entity, the draw passes, the live text
-// refs and the slot drag. Every case references Core only.
+// refs, the slot drag and the menu navigation. Every case references Core only.
 
 Test.register(Test.CHECK, [
   {
@@ -443,6 +443,115 @@ Test.register(Test.CHECK, [
     },
     teardown(ctx) {
       SlotDrag.cancel();
+    },
+  },
+  {
+    // the nearest focusable along the axis wins, a full-width row hands Down to the first in
+    // visual order, a disabled item is never collected, and past an edge nothing is picked
+    id: "ui.navPick",
+    setup(ctx) {
+      Test.ui(ctx);
+      const item = (w) =>
+        new UIElement({ width: w, height: 40 }).addComponent(new UIButton());
+      ctx.head = item(600);
+      ctx.a = item(100);
+      ctx.b = item(100);
+      ctx.c = item(100);
+      ctx.off = item(100);
+      ctx.off.enabled = false;
+      const row = new UIElement({ flexDirection: "row", gap: 20 });
+      row.insertChild(ctx.a).insertChild(ctx.b).insertChild(ctx.c).insertChild(ctx.off);
+      ctx.root = new UIElement({ width: 600, flexDirection: "column", gap: 20 });
+      ctx.root.insertChild(ctx.head).insertChild(row);
+      UI.insert(ctx.root);
+    },
+    verify(ctx, t) {
+      const items = UINav._collect();
+      t.eq(items.length, 4, "every enabled focusable is collected");
+      t.eq(UINav._indexOf(items, ctx.off), -1, "a disabled item is never collected");
+      const pick = (from, dx, dy) => {
+        const j = UINav._pick(items, UINav._indexOf(items, from), dx, dy);
+        return j === -1 ? null : items[j].el;
+      };
+      t.ok(pick(ctx.head, 0, 1) === ctx.a, "Down from a full-width row lands on its first");
+      t.ok(pick(ctx.a, 1, 0) === ctx.b, "the nearest along the axis wins");
+      t.ok(pick(ctx.c, 0, -1) === ctx.head, "Up reaches the row above");
+      t.ok(pick(ctx.a, -1, 0) === null, "nothing past the left edge");
+      t.ok(pick(ctx.head, 0, -1) === null, "nothing past the top edge");
+    },
+    teardown(ctx) {
+      Test.uiRestore(ctx);
+    },
+  },
+  {
+    // an exclusive root hides every root beneath it from the nav until it is removed
+    id: "ui.navModal",
+    setup(ctx) {
+      Test.ui(ctx);
+      ctx.base = new UIElement({ width: 200, height: 40 }).addComponent(new UIButton());
+      UI.insert(ctx.base);
+      ctx.card = new UIElement({ width: 200, height: 40 }).addComponent(new UIButton());
+      ctx.overlay = new UIElement({ width: "100%", height: "100%" });
+      ctx.overlay.insertChild(ctx.card);
+      ctx.modal = new UIModal({ root: ctx.overlay });
+      ctx.overlay.addComponent(ctx.modal);
+      UI.insert(ctx.overlay);
+    },
+    verify(ctx, t) {
+      let items = UINav._collect();
+      t.ok(items.length === 1 ? items[0].el === ctx.card : false, "only the modal is reachable");
+      ctx.modal.remove();
+      items = UINav._collect();
+      t.ok(items.length === 1 ? items[0].el === ctx.base : false, "a removal hands the nav back");
+    },
+    teardown(ctx) {
+      Test.uiRestore(ctx);
+    },
+  },
+  {
+    // Esc goes to its innermost owner, which spends it: a focused field blurs, then the modal
+    // closes, and only then does the nav let go of its ring
+    id: "ui.navCancel",
+    setup(ctx) {
+      Test.ui(ctx);
+      Time.raw = 1; // longer than any fade, so a modal enters or exits within one frame
+      ctx.base = new UIElement({ width: 200, height: 40 }).addComponent(new UIButton());
+      UI.insert(ctx.base);
+      ctx.field = new UIInput();
+      const fieldEl = new UIElement({ width: 200, height: 40 }).addComponent(ctx.field);
+      ctx.overlay = new UIElement({ width: "100%", height: "100%" });
+      ctx.overlay.insertChild(fieldEl);
+      ctx.closed = 0;
+      ctx.modal = new UIModal({
+        root: ctx.overlay,
+        onClose: () => {
+          ctx.closed += 1;
+        },
+      });
+      ctx.overlay.addComponent(ctx.modal);
+      UI.insert(ctx.overlay);
+      UINav.focused = fieldEl;
+      UINav.engaged = true;
+      ctx.field.focus();
+    },
+    verify(ctx, t) {
+      Test.uiFrame(ctx, [vk_escape]);
+      t.ok(UIInput.active === null, "the first Esc blurs the field");
+      t.ok(UINav.engaged, "the field's Esc never reaches the nav");
+      Test.uiFrame(ctx, []);
+      t.eq(ctx.closed, 0, "the field's Esc never reaches the modal");
+
+      Test.uiFrame(ctx, [vk_escape]);
+      t.ok(UINav.engaged, "the modal's Esc never reaches the nav");
+      Test.uiFrame(ctx, []);
+      t.eq(ctx.closed, 1, "the next Esc closes the modal");
+      t.ok(UI.roots.indexOf(ctx.overlay) === -1, "a closed modal leaves the roots");
+
+      Test.uiFrame(ctx, [vk_escape]);
+      t.ok(!UINav.engaged, "the last Esc lets go of the ring");
+    },
+    teardown(ctx) {
+      Test.uiRestore(ctx);
     },
   },
 ]);
