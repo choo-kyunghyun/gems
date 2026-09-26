@@ -8,7 +8,7 @@
     "TileSerialiseData":[],
   },
   "name":"tsMask",
-  "out_columns":2,
+  "out_columns":1,
   "out_tilehborder":2,
   "out_tilevborder":2,
   "parent":{
