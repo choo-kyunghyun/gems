@@ -716,6 +716,31 @@ Test.register(Test.CHECK, [
     },
   },
   {
+    // the cells cross a buffer in order, at its position, with no header of their own
+    id: "grid.buffer",
+    setup(ctx) {
+      ctx.src = new Grid(3, 2);
+      ctx.dst = new Grid(3, 2);
+      ctx.buf = buffer_create(2 + 6 * 2, buffer_fixed, 1);
+    },
+    verify(ctx, t) {
+      const src = ctx.src;
+      for (let i = 0; i < 6; i++) src.data[i] = i * 1000;
+      buffer_write(ctx.buf, buffer_u16, 65535);
+      src.write(ctx.buf, buffer_u16);
+      t.eq(buffer_tell(ctx.buf), 14, "write advances by every cell");
+      buffer_seek(ctx.buf, buffer_seek_start, 2);
+      ctx.dst.read(ctx.buf, buffer_u16);
+      t.eq(ctx.dst.data.join(","), src.data.join(","), "read restores every cell in order");
+      t.eq(ctx.dst.get(2, 1), 5000, "a cell reads back at its position");
+    },
+    teardown(ctx) {
+      buffer_delete(ctx.buf);
+      ctx.src.destroy();
+      ctx.dst.destroy();
+    },
+  },
+  {
     id: "id.pack",
     setup() {},
     verify(ctx, t) {

@@ -153,11 +153,7 @@ globalThis.LevelGrid = class LevelGrid {
     buffer_write(buf, buffer_u32, this.cellWidth);
     buffer_write(buf, buffer_u32, this.cellHeight);
     buffer_write(buf, buffer_u32, n);
-    const size = this.size;
-    for (let l = 0; l < n; l++) {
-      const d = this.layers[l].ids.data;
-      for (let i = 0; i < size; i++) buffer_write(buf, buffer_u16, d[i]);
-    }
+    for (let l = 0; l < n; l++) this.layers[l].ids.write(buf, buffer_u16);
     return buf;
   }
 
@@ -197,15 +193,13 @@ globalThis.LevelGrid = class LevelGrid {
     let unknown = 0;
     for (let l = 0; l < n; l++) {
       const layer = this.layers[l];
+      layer.ids.read(buf, buffer_u16);
       const d = layer.ids.data;
       const types = layer.types;
       for (let i = 0; i < size; i++) {
-        const id = buffer_read(buf, buffer_u16);
-        if (types[id] !== undefined) d[i] = id;
-        else {
-          d[i] = 0;
-          unknown++;
-        }
+        if (types[d[i]] !== undefined) continue;
+        d[i] = 0;
+        unknown++;
       }
       layer.touchAll();
     }

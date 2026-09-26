@@ -7,41 +7,11 @@ globalThis.Grid = class Grid {
   constructor(cols, rows) {
     this.rows = rows;
     this.cols = cols;
-    this.data = Array(this.size()).fill(0);
+    this.data = Array(rows * cols).fill(0);
   }
 
   destroy() {
     this.data = undefined;
-  }
-
-  export() {
-    return {
-      cols: this.cols,
-      rows: this.rows,
-      data: this.data.slice(),
-    };
-  }
-
-  static import(data) {
-    const grid = new Grid(data.cols, data.rows);
-    grid.data = data.data;
-    return grid;
-  }
-
-  size() {
-    return this.rows * this.cols;
-  }
-
-  inBounds(x, y) {
-    return x >= 0 && x < this.cols && y >= 0 && y < this.rows;
-  }
-
-  toIndex(x, y) {
-    return y * this.cols + x;
-  }
-
-  toPosition(index) {
-    return { x: index % this.cols, y: Math.floor(index / this.cols) };
   }
 
   clear(value) {
@@ -49,14 +19,26 @@ globalThis.Grid = class Grid {
     return this;
   }
 
-  /** No bounds check — guard with inBounds. */
+  /** No bounds check. */
   set(x, y, value) {
-    this.data[this.toIndex(x, y)] = value;
+    this.data[y * this.cols + x] = value;
     return this;
   }
 
   get(x, y) {
-    return this.data[this.toIndex(x, y)];
+    return this.data[y * this.cols + x];
+  }
+
+  /** The cells, row-major, as `type` values (a `buffer_*` constant) at the buffer's position. */
+  write(buf, type) {
+    const d = this.data;
+    for (let i = 0; i < d.length; i++) buffer_write(buf, type, d[i]);
+  }
+
+  /** Fills every cell from `write`'s layout at the buffer's position. */
+  read(buf, type) {
+    const d = this.data;
+    for (let i = 0; i < d.length; i++) d[i] = buffer_read(buf, type);
   }
 
   /**
