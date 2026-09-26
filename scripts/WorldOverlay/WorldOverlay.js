@@ -53,9 +53,9 @@ globalThis.WorldOverlay = {
     }
     draw_set_color(make_colour_rgb(255, 230, 90));
     const fuse = entities.column(Fuse);
-    const mask = Handle.INDEX_MASK;
+    const slots = Handle.SLOTS;
     entities.forEach([Projectile, Position], (id, _proj, p) => {
-      if (fuse[id & mask] !== undefined)
+      if (fuse[id % slots] !== undefined)
         draw_sprite_ext(pixItemGrenade, 0, p.x, p.y, 1, 1, 0, c_white, 1);
       else draw_circle(p.x, p.y, 4, false);
     });

@@ -18,7 +18,7 @@ globalThis.SeparationSystem = {
   update(level) {
     const entities = level.entities;
     const held = entities.column(Instance);
-    const mask = Handle.INDEX_MASK;
+    const slots = Handle.SLOTS;
     const against = SolidSystem.tiles(level).against;
 
     const hs = SeparationSystem._held;
@@ -45,7 +45,7 @@ globalThis.SeparationSystem = {
           const o = ds_list_find_value(list, k);
           const oid = o.eid;
           if (oid === undefined) continue; // a Puppet that mirrors no entity
-          const oh = held[oid & mask];
+          const oh = held[oid % slots];
           if (oh === undefined) continue;
           if (oh.still) continue; // a Solid
           const bx1 = o.bbox_left;

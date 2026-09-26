@@ -8,12 +8,12 @@ globalThis.RenderEntity = class RenderEntity {
 
   draw(entities) {
     const held = entities.column(Instance); // one index read per sprite, not a get
-    const mask = Handle.INDEX_MASK;
+    const slots = Handle.SLOTS;
     entities.forEach([Sprite, Position], (entity, spr, rp) => {
       if (!spr.visible) return;
       const rx = rp.x;
       const ry = rp.y;
-      const h = held[entity & mask];
+      const h = held[entity % slots];
       if (h !== undefined && h.rigged) {
         // a skeletal body poses only through its puppet's draw_self (docs/SPINE.md)
         matrix_set(

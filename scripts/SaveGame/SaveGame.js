@@ -1,7 +1,7 @@
 /**
  * The colony's disk save/load driver. A save is the session as it stands: the world's store whole
- * and each resident map's entity store whole, every entity under its saved id and every dead id
- * reclaimed; no pass names a system or a field, and binary codec entries cross as named blobs. A load rebuilds, spawns and
+ * and each resident map's entity store whole, every entity under its saved id; no pass names a
+ * system or a field, and binary codec entries cross as named blobs. A load rebuilds, spawns and
  * re-meshes nothing — every saved map is pooled back as data and gets its runtime on its first
  * visit — so the entity set after a load is exactly the one saved.
  *
@@ -11,7 +11,7 @@
  * VERSION is refused — no migration.
  */
 globalThis.SaveGame = {
-  VERSION: 22, // bump when the manifest/blob layout changes incompatibly
+  VERSION: 23, // bump when the manifest/blob layout changes incompatibly
   DIR: "saves/",
   INDEX: "saves/index.json",
   _index: null,
@@ -25,7 +25,6 @@ globalThis.SaveGame = {
       SaveGame._frame.insert(SaveGame._metaPass);
       SaveGame._frame.insert(SaveGame._worldPass);
       SaveGame._frame.insert(SaveGame._mapsPass);
-      SaveGame._frame.insert(SaveGame._compactPass);
     }
     return SaveGame._frame;
   },
@@ -239,14 +238,6 @@ globalThis.SaveGame = {
             "' could not be restored — building it fresh",
         );
     },
-  },
-
-  // capture-only: the stores' dead ids are reclaimed once every store is in the manifest.
-  _compactPass(ctx) {
-    const m = ctx.manifest;
-    const stores = [m.world];
-    for (let i = 0; i < m.maps.length; i++) stores.push(m.maps[i].level);
-    Table.compact(stores);
   },
 
   SLOTS: 3,

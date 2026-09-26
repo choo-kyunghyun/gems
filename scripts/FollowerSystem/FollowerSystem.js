@@ -12,11 +12,11 @@ globalThis.FollowerSystem = {
     const pp = entities.get(playerId, Position);
     if (pp === undefined) return;
     const downed = entities.column(Downed);
-    const mask = Handle.INDEX_MASK;
+    const slots = Handle.SLOTS;
     entities.forEach([Follower, Velocity, Position], (id, f, vel, pos) => {
       if (id === playerId) return;
       // returns before the doll drive, which would stand a downed body back up
-      if (downed[id & mask] !== undefined) {
+      if (downed[id % slots] !== undefined) {
         vel.x = 0;
         vel.y = 0;
         return;

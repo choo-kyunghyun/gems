@@ -99,12 +99,12 @@ globalThis.PuppetSystem = {
   update(level) {
     const entities = level.entities;
     const held = entities.column(Instance); // one index read per collider, not a get
-    const mask = Handle.INDEX_MASK;
+    const slots = Handle.SLOTS;
     const c = PuppetSystem.colliders(level);
     let still = 0;
     let moved = false;
     entities.forEach([Collision, Position, BBox], (id, col, pos, box) => {
-      let h = held[id & mask];
+      let h = held[id % slots];
       if (h === undefined) h = PuppetSystem.attach(entities, id);
       if (!h.shaped) {
         PuppetSystem._shape(h, id, col, pos, box);

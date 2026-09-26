@@ -22,7 +22,7 @@ Test.register(Test.CHECK, [
   },
   // A static-method call and an object literal each cost about a hundred plain reads, a hash
   // lookup a dozen: the rule for every hot loop is the cheap form in the paired row — an inline
-  // mask, a cached column, a rect filled in place, a reused buffer, and never a per-element reset
+  // index, a cached column, a rect filled in place, a reused buffer, and never a per-element reset
   // of a level-sized scratch (a generation stamp instead).
   {
     id: "perf.measured",
@@ -30,7 +30,7 @@ Test.register(Test.CHECK, [
       const n = N;
       ctx.vals = Test.vals(n);
       ctx.packed = new Array(n);
-      for (let i = 0; i < n; i++) ctx.packed[i] = Handle.make(i & 63, 3);
+      for (let i = 0; i < n; i++) ctx.packed[i] = Handle.make(i & 63, (i & 63) * 67108859); // up to ~2^32
       Test.store(ctx, 64, n);
       ctx.pos = new Array(n);
       for (let i = 0; i < n; i++) ctx.pos[i] = { x: i, y: i, z: 0 };
@@ -90,10 +90,10 @@ Test.register(Test.CHECK, [
         for (let i = 0; i < n; i++) s += Handle.index(packed[i]);
         return s;
       });
-      const mask = Handle.INDEX_MASK;
+      const slots = Handle.SLOTS;
       t.measure("id.index.inline", n, readPacked, () => {
         let s = 0;
-        for (let i = 0; i < n; i++) s += packed[i] & mask;
+        for (let i = 0; i < n; i++) s += packed[i] % slots;
         return s;
       });
 
@@ -120,7 +120,7 @@ Test.register(Test.CHECK, [
       t.measure("store.get.cached", n, readObjs, () => {
         let s = 0;
         for (let i = 0; i < n; i++) {
-          const p = col[ids[i] & mask];
+          const p = col[ids[i] % slots];
           s += p.x;
         }
         return s;
@@ -335,12 +335,11 @@ Test.register(Test.CHECK, [
   },
   // One read at a loop-variant index. A JS property and a user-defined instance property cost
   // the same; access by name ~5x that, the price of any token-driven path; a typed array element
-  // ~20x a plain one — the outlier, so a hot value stored in one is mirrored into a plain array.
+  // ~20x a plain one — the outlier, so a hot value lives in a plain array, never a typed one.
   // A built-in instance variable goes through accessors at 3-4.5x a column read, which is why an
   // instance holds scope, never data.
   // TODO when `read.typed` reaches `read.array` (AOT does not close it: ~22x under `--runtime
-  // native`), the plain-array mirror stops paying for itself and typed scratch is an option
-  // again; when a built-in reaches a user-defined property, an instance may hold data.
+  // native`), a typed array is an option again for a hot value or scratch; when a built-in reaches a user-defined property, an instance may hold data.
   {
     id: "perf.access",
     setup(ctx) {

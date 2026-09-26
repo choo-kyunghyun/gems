@@ -46,96 +46,23 @@ Test.register(Test.CHECK, [
     },
   },
   {
-    // a slot churned through every generation is retired, so no stale handle revalidates
-    id: "entity.retire",
+    // a generation past the last wraps to 0, so every id stays within its bound
+    id: "entity.wrap",
     setup(ctx) {
       ctx.entities = new Table(8);
-      ctx.copy = new Table(8);
     },
     verify(ctx, t) {
       const s = ctx.entities;
-      const first = s.create();
-      let id = first;
-      for (let k = 0; k <= Handle.GENERATION_MASK; k++) {
-        s.remove(id);
-        s.flush();
-        id = s.create();
-      }
-      t.ok(Handle.index(id) !== Handle.index(first), "the wrapped index is not handed out");
-      t.ok(!s.isValid(first), "the generation-0 handle stays invalid");
-      t.eq(s.count(), 1, "a retired index does not count");
-      const live = s.query();
-      t.eq(live.length, 1, "a retired index is not live");
-      t.eq(live[0], id, "the live id is the fresh one");
-
-      const c = ctx.copy;
-      c.import(s.export());
-      t.eq(c.count(), 1, "the retirement survives a round trip");
-      t.ok(!c.isValid(first), "the stale handle stays invalid after import");
-      t.ok(
-        Handle.index(c.create()) !== Handle.index(first),
-        "an imported retired index is not handed out",
-      );
+      const last = Handle.make(0, Handle.GENERATIONS - 1);
+      s.import({ ids: { packed: [last], freeIndices: [] }, components: {} });
+      t.ok(s.isValid(last), "the last generation is live");
+      s.remove(last);
+      s.flush();
+      t.ok(!s.isValid(last), "its freed id reads invalid");
+      t.eq(s.create(), 0, "the index comes back at generation 0");
     },
     teardown(ctx) {
       ctx.entities.destroy();
-      ctx.copy.destroy();
-    },
-  },
-  {
-    // a compacted export hands its dead rows out low again, yet no id its data keeps revalidates
-    id: "entity.compact",
-    setup(ctx) {
-      ctx.entities = new Table(8);
-      ctx.other = new Table(8);
-      ctx.copy = new Table(8);
-    },
-    verify(ctx, t) {
-      const s = ctx.entities;
-      const first = s.create();
-      let id = first;
-      for (let k = 0; k <= Handle.GENERATION_MASK; k++) {
-        s.remove(id);
-        s.flush();
-        id = s.create();
-      }
-      s.remove(s.create());
-      s.flush();
-      const keeper = s.create(); // on a recycled row
-      const gone = s.create();
-      const loose = s.create();
-      const far = s.create();
-      s.add(keeper, "TestRef", { target: gone });
-      const o = ctx.other;
-      o.add(o.create(), "TestRef", { target: far });
-      s.remove(gone);
-      s.remove(loose);
-      s.remove(far);
-      s.flush();
-
-      const exp = s.export();
-      Table.compact([exp, o.export()]);
-      const c = ctx.copy;
-      c.import(exp);
-      t.eq(c.count(), 2, "the live rows survive");
-      t.ok(c.isValid(keeper), "a live row keeps its generation");
-      const got = [c.create(), c.create(), c.create(), c.create()];
-      t.ok(got.indexOf(first) >= 0, "the retired row comes back at generation 0");
-      t.ok(got.indexOf(loose) >= 0, "a dead row no data names drops to generation 0");
-      t.ok(!c.isValid(gone), "a stale id the store's data keeps stays stale");
-      t.ok(!c.isValid(far), "a stale id another store's data keeps stays stale");
-
-      const floor = [0, 0, 0, 0];
-      Handle.scan({ ids: [Handle.make(3, 3000)] }, floor);
-      t.eq(floor[3], 3001, "a high-generation id, a negative number, is read");
-      const rec = { generations: [Handle.RETIRED], freeIndices: [], next: 1 };
-      Handle.compact(rec, [Handle.GENERATION_MASK + 1]);
-      t.eq(rec.generations[0], Handle.RETIRED, "a row whose last id is kept stays retired");
-    },
-    teardown(ctx) {
-      ctx.entities.destroy();
-      ctx.other.destroy();
-      ctx.copy.destroy();
     },
   },
   {
@@ -824,16 +751,13 @@ Test.register(Test.CHECK, [
       const id = Handle.make(5, 7);
       t.eq(Handle.index(id), 5, "index unpacks");
       t.eq(Handle.generation(id), 7, "generation unpacks");
-      const top = Handle.make(
-        Handle.INDEX_MASK,
-        Handle.GENERATION_MASK,
-      );
-      t.eq(Handle.index(top), Handle.INDEX_MASK, "index at its mask");
-      t.eq(
-        Handle.generation(top),
-        Handle.GENERATION_MASK,
-        "generation at its mask",
-      );
+      const top = Handle.make(Handle.SLOTS - 1, Handle.GENERATIONS - 1);
+      t.eq(top, 4503599627370495, "the widest id is 2^52 - 1");
+      t.eq(Handle.index(top), Handle.SLOTS - 1, "index at its top");
+      t.eq(Handle.generation(top), Handle.GENERATIONS - 1, "generation at its top");
+      const d = Json.decode(Json.encode({ top }));
+      t.eq(d === undefined ? undefined : d.top, top, "the Json codec round-trips it");
+      t.eq(json_parse(json_stringify({ top })).top, top, "the native codec round-trips it");
     },
   },
   {
@@ -1016,13 +940,13 @@ Test.register(Test.CHECK, [
       const ids = ctx.ids;
       const objs = ctx.objs;
       const scratch = ctx.scratch;
-      const mask = Handle.INDEX_MASK;
+      const slots = Handle.SLOTS;
       t.measure(
         "store.churn",
         n,
         () => {
           for (let i = 0; i < n; i++) {
-            const k = ids[i] & mask;
+            const k = ids[i] % slots;
             scratch[k] = undefined;
             scratch[k] = objs[i];
           }

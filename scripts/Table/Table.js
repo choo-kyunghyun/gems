@@ -151,7 +151,7 @@ globalThis.Table = class Table {
       set = this._byToken.get(token);
     }
     if (set.fill !== undefined) Table._fill(set, data);
-    const i = id & Handle.INDEX_MASK;
+    const i = id % Handle.SLOTS;
     if (set.destroy !== undefined) {
       const prev = set.column[i];
       if (prev !== undefined) if (prev !== data) set.destroy(prev); // replaced: the old data is released
@@ -183,7 +183,7 @@ globalThis.Table = class Table {
   }
 
   /** The token's column, registered if new — a per-tick reader hoists it once and indexes it by
-   *  `id & Handle.INDEX_MASK` in place of a `get` per entity, never holding it past the tick. */
+   *  `id % Handle.SLOTS` in place of a `get` per entity, never holding it past the tick. */
   column(token) {
     this.register(token);
     return this._byToken.get(token).column;
@@ -192,7 +192,7 @@ globalThis.Table = class Table {
   get(id, token) {
     const set = this._byToken.get(token);
     if (set === undefined) return undefined;
-    return set.column[id & Handle.INDEX_MASK];
+    return set.column[id % Handle.SLOTS];
   }
 
   /** The component under `token`, seeded by `make()` when absent: how a consumer reads the
@@ -229,7 +229,7 @@ globalThis.Table = class Table {
    *  included), where `get` reads undefined for a component whose absence is a state. */
   require(id, token) {
     const set = this._byToken.get(token);
-    const data = set === undefined ? undefined : set.column[id & Handle.INDEX_MASK];
+    const data = set === undefined ? undefined : set.column[id % Handle.SLOTS];
     if (data === undefined)
       throw new Error(`entity ${id} carries no ${token}`);
     return data;
@@ -239,12 +239,12 @@ globalThis.Table = class Table {
   has(id, token) {
     const set = this._byToken.get(token);
     if (set === undefined) return false;
-    return set.column[id & Handle.INDEX_MASK] !== undefined;
+    return set.column[id % Handle.SLOTS] !== undefined;
   }
 
   detach(id, token) {
     const set = this._byToken.get(token);
-    if (set !== undefined) this._drop(set, id & Handle.INDEX_MASK);
+    if (set !== undefined) this._drop(set, id % Handle.SLOTS);
   }
 
   /** Empty index i's slot now (releasing its data through the set's hook); its dense entry goes
@@ -322,7 +322,7 @@ globalThis.Table = class Table {
 
   _of(id, skipTransient) {
     const out = {};
-    const i = id & Handle.INDEX_MASK;
+    const i = id % Handle.SLOTS;
     for (let c = 0; c < this._tokens.length; c++) {
       const set = this._sets[c];
       // BUG: comparisons as the operands, never a bare flag left of && (docs/GMRT.md #15549)
@@ -512,27 +512,6 @@ globalThis.Table = class Table {
       components[token] = entries;
     }
     return { ids: this.ids.export(), components };
-  }
-
-  /**
-   * Reclaim the dead rows of exports kept together, in place: each one's dead ids drop to the least
-   * generation no number in any of their persisted data could name, so a row retired in play comes
-   * back and a stale id the data keeps stays stale. A number counts against every store, since one
-   * store's data may name another's rows; a codec blob is not read, so a codec datum holds no id.
-   */
-  static compact(snapshots) {
-    let n = 0;
-    for (let s = 0; s < snapshots.length; s++) n = Math.max(n, snapshots[s].ids.next);
-    const floor = new Array(n).fill(0);
-    for (let s = 0; s < snapshots.length; s++) {
-      const components = snapshots[s].components;
-      const toks = Object.keys(components);
-      for (let t = 0; t < toks.length; t++) {
-        const entries = components[toks[t]];
-        for (let j = 0; j < entries.length; j++) Handle.scan(entries[j][1], floor);
-      }
-    }
-    for (let s = 0; s < snapshots.length; s++) Handle.compact(snapshots[s].ids, floor);
   }
 
   /**

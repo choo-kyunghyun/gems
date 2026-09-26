@@ -10,14 +10,14 @@ globalThis.SpriteSystem = {
   update(level) {
     const entities = level.entities;
     const held = entities.column(Instance); // one index read per sprite, not a get
-    const mask = Handle.INDEX_MASK;
+    const slots = Handle.SLOTS;
     const clock = Time.scale * Time.tempo;
     const retime = clock !== Anim.clock;
     Anim.clock = clock;
     const fps = game_get_speed(gamespeed_fps);
     const dt = Time.delta;
     entities.forEach([Sprite], (id, spr) => {
-      const h = held[id & mask];
+      const h = held[id % slots];
       if (h !== undefined && h.rigged) {
         SpriteSystem._rig(h.inst, spr, retime, fps);
         return;

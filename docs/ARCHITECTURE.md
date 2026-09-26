@@ -219,7 +219,7 @@ and are cited from here, never restated):
       (`MotionPlanner.scratch`'s `stamp`).
     - A GML built-in costs the boundary crossing whatever it does, so it is reached for only where
       it replaces more JS than the crossing — bulk work inside one call, never a scalar helper.
-    - A hot value in a typed array is mirrored into a plain array (`Handle.packed`) and an
+    - A hot value lives in a plain array, never a typed one (`Handle.packed`), and an
       instance holds scope plus a DERIVED mirror of its entity's Position, BBox and `solid` (`Instance`, kept by `PuppetSystem`; the components stay the truth and nothing reads a position off the instance) — the two layout decisions that carry such a
       `TODO`.
     - A render pass mirroring a grid never sweeps it per frame — it bakes (a `VertexBuffer`, a
