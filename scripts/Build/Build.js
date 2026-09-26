@@ -112,7 +112,7 @@ globalThis.Build = {
 
   // The placement core: no cost or validity gate, no inventory — the caller decides. Records the
   // cell in the build record.
-  //   opts.record  restore this exact Row instead of a fresh descriptor, moved to the cell.
+  //   opts.record  restore this captured row instead of a fresh descriptor, moved to the cell.
   // Returns the entity id for an entity, else undefined.
   put(level, gx, gy, item, opts = {}) {
     const grid = level.grid;
@@ -135,7 +135,7 @@ globalThis.Build = {
     let id;
     if (opts.record !== undefined) {
       const wp = grid.gridToWorld(gx, gy);
-      id = Row.restore(level.entities, opts.record, {
+      id = level.entities.restore(opts.record, {
         [Position]: { x: wp.x, y: wp.y, z: 0 },
       });
     } else {

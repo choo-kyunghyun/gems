@@ -25,7 +25,7 @@
  * from any entity. A carrier added mid-walk is visited from the next walk.
  *
  * Persistence: a set is transient once an add mints its token — rebuilt at runtime, so `export`
- * and `persistentOf` skip it. An add may hand the set a release hook, `destroy(data)`, called as
+ * and `capture` skip it. An add may hand the set a release hook, `destroy(data)`, called as
  * data leaves its slot by any path, so a component holding a native handle frees it with no reap
  * pass.
  *
@@ -34,6 +34,7 @@
  * what JSON can't carry (docs/GMRT.md #15565). An import fills the codec sets last, so an unpack
  * may read a record the same import restored.
  */
+/** @typedef {Object} RowRecord @property {Object<string,Object>} components token -> data */
 // scripts load by name (docs/GMRT.md), so a component script may open it first
 globalThis.Blank ??= {};
 
@@ -125,7 +126,7 @@ globalThis.Table = class Table {
         sparse: new Array(this.maxEntities).fill(-1),
         walking: 0, // forEach nesting depth with this token as the lead
         pending: [], // indices whose swap-remove waits for the walk to end
-        transient: false, // minted: skipped by export/persistentOf
+        transient: false, // minted: skipped by export/capture
         destroy: undefined, // release hook, called as data leaves a slot
         codec: undefined, // { pack, unpack }
         blank: blank,
@@ -315,9 +316,30 @@ globalThis.Table = class Table {
     return this._of(id, false);
   }
 
-  /** `componentsOf` minus the transient sets — the shape a whole-entity snapshot carries. */
-  persistentOf(id) {
-    return this._of(id, true);
+  /**
+   * A row captured whole — its persistent components, a minted one left for the destination to
+   * rebuild — for migration between stores and for exact stamps. The record references the
+   * row's data; serializing it for disk is the caller's (docs/GMRT.md).
+   * @returns {RowRecord}
+   */
+  capture(id) {
+    return { components: this._of(id, true) };
+  }
+
+  /**
+   * A new row stamped from a record, `overrides` applied after it (a migrated entity's fresh
+   * position). Each stamp lays down its own copy of the plain data, so one record stamps any
+   * number of rows that share nothing with it, its source or each other — an asset ref or other
+   * non-plain value is shared, never copied (docs/GMRT.md).
+   * @param {RowRecord} record
+   */
+  restore(record, overrides) {
+    const id = this.create();
+    const comps = record.components;
+    for (const token in comps) this.add(id, token, Plain.copy(comps[token]));
+    if (overrides !== undefined)
+      for (const token in overrides) this.add(id, token, overrides[token]);
+    return id;
   }
 
   _of(id, skipTransient) {

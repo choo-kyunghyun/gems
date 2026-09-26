@@ -87,7 +87,7 @@ globalThis.World = class World {
   take(mapId, id) {
     const lv = this.get(mapId);
     if (lv === null) throw new Error(`World.take: map "${mapId}" is not resident`);
-    const record = Row.capture(lv.entities, id);
+    const record = lv.entities.capture(id);
     lv.entities.remove(id);
     return record;
   }
@@ -96,7 +96,7 @@ globalThis.World = class World {
   put(mapId, record, overrides) {
     const lv = this.get(mapId);
     if (lv === null) throw new Error(`World.put: map "${mapId}" is not resident`);
-    return Row.restore(lv.entities, record, overrides);
+    return lv.entities.restore(record, overrides);
   }
 
   /** Frees the store — every pooled level with it, every record gone. */

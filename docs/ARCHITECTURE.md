@@ -46,7 +46,7 @@ render passes sit together, so a change to a feature opens one folder.
 Placement rule for new code:
 
 - References only engine concepts (space/time/presentation/entity lifecycle) → Core. A data
-  structure that knows no layer — the id-keyed store (`Table`, `Handle`, `Row`), the
+  structure that knows no layer — the id-keyed store (`Table`, `Handle`), the
   1-D `Grid`, the def `Registry`, the asset-keyed `AssetMeta` — or the serialization of one
   (`Json`, `Snapshot`) → `Core/Data`. A leaf helper that references nothing else in Core
   (`Log`, `Time`, `File`) → `Core/Util`, the floor every area may reach; an app singleton over
@@ -270,7 +270,7 @@ and are cited from here, never restated):
   The contract — the poll-once rule, the claims, pointer ownership, the UI tree's raw-record
   exception — lives at `Input`.
 - Serialization-safe data: persisted blobs (Settings/InputPreset, `entities.export`/
-  `Row`) may nest — serialize them with GML `json_stringify` or, when the data carries
+  `capture`) may nest — serialize them with GML `json_stringify` or, when the data carries
   sprite refs or can cycle, the `Json` codec, never JS `JSON.stringify` (#15565, GMRT.md). A
   serialized field holds plain arrays/objects only — no `Set`/`Map` (both cross the boundary empty
   — GMRT.md) and no asset ref outside the codec's tagging. Dense/large arrays still go to binary

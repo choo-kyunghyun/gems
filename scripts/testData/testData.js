@@ -455,7 +455,7 @@ Test.register(Test.CHECK, [
   },
   {
     // one record stamped twice: every stamp owns its data, apart from the source and each other
-    id: "row.stamp",
+    id: "entity.stamp",
     setup(ctx) {
       const s = new Table(8);
       ctx.entities = s;
@@ -466,10 +466,10 @@ Test.register(Test.CHECK, [
     },
     verify(ctx, t) {
       const s = ctx.entities;
-      const rec = Row.capture(s, ctx.src);
+      const rec = s.capture(ctx.src);
       t.eq(rec.components.TestRuntime, undefined, "a minted component stays behind");
-      const a = Row.restore(s, rec);
-      const b = Row.restore(s, rec, { [Position]: { x: 9, y: 9, z: 0 } });
+      const a = s.restore(rec);
+      const b = s.restore(rec, { [Position]: { x: 9, y: 9, z: 0 } });
       s.get(a, Position).x = 5;
       s.get(a, "TestBag").slots[0].qty = 7;
       t.eq(s.get(ctx.src, Position).x, 1, "a stamp's edit leaves the source");
@@ -509,9 +509,9 @@ Test.register(Test.CHECK, [
         undefined,
         "export skips the minted token",
       );
-      const whole = s.persistentOf(ctx.a);
-      t.ok(whole[Position] !== undefined, "persistentOf carries the added token");
-      t.eq(whole[PathResponse], undefined, "persistentOf skips the minted token");
+      const whole = s.capture(ctx.a).components;
+      t.ok(whole[Position] !== undefined, "capture carries the added token");
+      t.eq(whole[PathResponse], undefined, "capture skips the minted token");
       t.ok(
         s.componentsOf(ctx.a)[PathResponse] !== undefined,
         "componentsOf still lists the minted token",

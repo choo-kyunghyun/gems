@@ -60,7 +60,7 @@ globalThis.Blueprint = {
       s.gy = gy - y1;
       s.item = e.itemId;
       if (opts.withState === true && level.entities.isValid(e.ent))
-        s.record = Row.capture(level.entities, e.ent);
+        s.record = level.entities.capture(e.ent);
       spawns.push(s);
     }
     return { cols: cols, rows: rows, tiles: tiles, spawns: spawns };
