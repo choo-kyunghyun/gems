@@ -91,75 +91,108 @@ globalThis.ColonyView = {
   },
 
   /**
-   * The renderer pass stack.
-   *
-   * A generated map's biome materials stack as one dual-grid pass per material, lowest first: an
-   * upper material's transparent corners reveal the one below, the A-over-B transition the sets
-   * are drawn for. `skipAbove` drops the quads the next material covers whole, so no material
-   * draws its full extent under the ones above.
+   * The renderer pass stack, inserted in draw order: the ground, the resident tiles, the overlays
+   * under the bodies, the meshes and lit walls of a pitched map, the bodies, the overlays over
+   * them, the sky and the lighting over everything.
    */
   _renderer(level) {
     const pitch = ColonyView.BB_PITCH;
-    const rt = ColonyMap.runtime(level);
-    const camera = CameraSystem.view(level);
-    const renderer = new Renderer();
-    const terrainPasses = [];
-    let grassPass;
-    // Generated ground under everything.
+    const ctx = {
+      level: level,
+      rt: ColonyMap.runtime(level),
+      camera: CameraSystem.view(level),
+      renderer: new Renderer(),
+      lit: [], // the flat passes that share the mesh pass's light gather on a pitched map
+      wall: undefined, // the lit-box wall pass, absent on a flat map
+    };
+    ColonyView._ground(ctx);
+    ColonyView._tiles(ctx, pitch);
+    ColonyView._underlays(ctx);
+    const meshPass = pitch > 0 ? ColonyView._mesh(ctx) : undefined;
+    // Pitched maps light the sprites like the mesh faces.
+    ctx.renderer.insert(
+      pitch > 0
+        ? new RenderBillboard({ lights: meshPass, camera: ctx.camera })
+        : new RenderEntity(),
+    );
+    const bbox = ColonyView._overlays(ctx);
+    ColonyView._sky(ctx);
+    // Lighting last, composited over everything; day/night is its ambient term.
+    ctx.renderer.insert(
+      new RenderLighting({
+        ambient: () => Daylight.tint(),
+        vignette: 0, // the flat look: night is one even multiply
+        camera: ctx.camera,
+      }),
+    );
+    return { renderer: ctx.renderer, bbox };
+  },
+
+  /**
+   * The generated ground under everything. A biome's materials stack as one dual-grid pass per
+   * material, lowest first: an upper material's transparent corners reveal the one below, the
+   * A-over-B transition the sets are drawn for. `skipAbove` drops the quads the next material
+   * covers whole, so no material draws its full extent under the ones above.
+   */
+  _ground(ctx) {
+    const level = ctx.level;
+    const rt = ctx.rt;
     const mats = rt.terrainMats;
-    if (mats !== undefined)
-      for (let i = 0; i < mats.length; i++) {
-        const spr = mats[i].sprite;
-        if (!sprite_exists(spr)) {
-          // a saved row whose art is gone since
-          Log.warn(`terrain sprite missing: ${mats[i].material}`);
-          continue;
-        }
-        const pass = new RenderTileMap(rt.terrainLayer, level.grid, spr, {
-          autotile: "dual",
-          minId: mats[i].type.id,
-          skipAbove: i < mats.length - 1 ? mats[i + 1].type.id : undefined,
-          wave: ColonyView._wave(mats[i].material),
-          camera: camera,
-        });
-        terrainPasses.push(pass);
-        renderer.insert(pass);
+    if (mats === undefined) return;
+    for (let i = 0; i < mats.length; i++) {
+      const spr = mats[i].sprite;
+      if (!sprite_exists(spr)) {
+        // a saved row whose art is gone since
+        Log.warn(`terrain sprite missing: ${mats[i].material}`);
+        continue;
       }
-    // Upright grass clumps enter the depth pool over the finished ground, before the entities.
-    if (mats !== undefined) {
-      const profile = contentBiomes.BIOMES[level.entities.get(level.self, ColonyMap.BIOME)];
-      const cdefs = ColonyView._clumpDefs(mats, profile);
-      if (cdefs.length > 0) {
-        // a save without the wind record falls back to the biome profile
-        let wind = level.entities.get(level.self, ColonyMap.WIND);
-        if (wind === undefined)
-          wind = profile !== undefined && profile.wind !== undefined ? profile.wind : 0;
-        grassPass = new RenderGrass(rt.terrainLayer, level.grid, cdefs, {
-          wind: wind,
-          time: () => Weather.time(),
-          camera: camera,
-        });
-        renderer.insert(grassPass);
-      }
+      const pass = new RenderTileMap(rt.terrainLayer, level.grid, spr, {
+        autotile: "dual",
+        minId: mats[i].type.id,
+        skipAbove: i < mats.length - 1 ? mats[i + 1].type.id : undefined,
+        wave: ColonyView._wave(mats[i].material),
+        camera: ctx.camera,
+      });
+      ctx.lit.push(pass);
+      ctx.renderer.insert(pass);
     }
-    // Resident tile layers, bottom to top, keyed by layer — a materials layer by
-    // `<layer>.<material>`, one pass per material sheet.
-    // An empty layer emits no quads, so unbuilt floor/fence layers are free.
-    const tilePasses = {};
+    // Upright grass clumps enter the depth pool over the finished ground, before the entities.
+    const profile = contentBiomes.BIOMES[level.entities.get(level.self, ColonyMap.BIOME)];
+    const cdefs = ColonyView._clumpDefs(mats, profile);
+    if (cdefs.length === 0) return;
+    // a save without the wind record falls back to the biome profile
+    let wind = level.entities.get(level.self, ColonyMap.WIND);
+    if (wind === undefined)
+      wind = profile !== undefined && profile.wind !== undefined ? profile.wind : 0;
+    const grass = new RenderGrass(rt.terrainLayer, level.grid, cdefs, {
+      wind: wind,
+      time: () => Weather.time(),
+      camera: ctx.camera,
+    });
+    ctx.lit.push(grass);
+    ctx.renderer.insert(grass);
+  },
+
+  /**
+   * Resident tile layers, bottom to top, one pass per material sheet on a materials layer. An
+   * empty layer emits no quads, so unbuilt floor/fence layers are free.
+   */
+  _tiles(ctx, pitch) {
+    const level = ctx.level;
     for (let i = 0; i < contentTiles.LAYERS.length; i++) {
       const cfg = contentTiles.LAYERS[i];
-      if (cfg.key === "wall") continue; // lit boxes below; no flat fallback
-      if (cfg.key === "fence" && pitch > 0) continue; // lit boxes below
-      if (cfg.key === "terrain" && mats !== undefined) continue; // the material stack above
-      const layer = rt[cfg.key + "Layer"];
+      if (cfg.key === "wall") continue; // lit boxes; no flat fallback
+      if (cfg.key === "fence" && pitch > 0) continue; // lit boxes
+      if (cfg.key === "terrain" && ctx.rt.terrainMats !== undefined) continue; // the ground's stack
+      const layer = ctx.rt[cfg.key + "Layer"];
       if (cfg.materials === undefined) {
         const pass = new RenderTileMap(layer, level.grid, cfg.sprite, {
           autotile: cfg.type,
           color: Color.parse(cfg.color),
-          camera: camera,
+          camera: ctx.camera,
         });
-        tilePasses[cfg.key] = pass;
-        renderer.insert(pass);
+        ctx.lit.push(pass);
+        ctx.renderer.insert(pass);
         continue;
       }
       for (let m = 0; m < cfg.materials.length; m++) {
@@ -168,27 +201,34 @@ globalThis.ColonyView = {
           autotile: cfg.type,
           match: mat.id,
           color: Color.parse(mat.color),
-          camera: camera,
+          camera: ctx.camera,
         });
-        tilePasses[cfg.key + "." + mat.key] = pass;
-        renderer.insert(pass);
+        ctx.lit.push(pass);
+        ctx.renderer.insert(pass);
       }
     }
-    // inspection overlays, off until toggled; camera-culled for large maps
-    const costPass = new RenderDebugTileMap(level.grid, {
+  },
+
+  /**
+   * Under the bodies: the inspection overlays, off until toggled and camera-culled for large
+   * maps, then the foot shadows.
+   */
+  _underlays(ctx) {
+    const grid = ctx.level.grid;
+    const costPass = new RenderDebugTileMap(grid, {
       cost: true,
       tiles: false,
       alpha: 0.5,
-      camera: camera,
+      camera: ctx.camera,
     });
     costPass.enabled = false;
-    renderer.insert(costPass);
-    const gridPass = new RenderGrid(level.grid, { camera: camera });
+    ctx.renderer.insert(costPass);
+    const gridPass = new RenderGrid(grid, { camera: ctx.camera });
     gridPass.enabled = false;
-    renderer.insert(gridPass);
-    // Foot shadows under the entities. A body lying flat casts none; NPCs carry no Health, so a
-    // corpse is known by its interaction kind.
-    renderer.insert(
+    ctx.renderer.insert(gridPass);
+    // A body lying flat casts no shadow; NPCs carry no Health, so a corpse is known by its
+    // interaction kind.
+    ctx.renderer.insert(
       new RenderEntityShadow({
         filter: (entities, id) => {
           if (entities.has(id, Downed)) return false;
@@ -197,82 +237,80 @@ globalThis.ColonyView = {
         },
       }),
     );
-    // Deep-furniture meshes share the depth pool, so pitched maps only — a flat map has no
-    // depth-writing entity pass to sort against. Lights are injected because the pass is Core;
-    // seed = entity id keeps the mesh flicker in phase with the glow pools.
-    let meshPass;
-    if (pitch > 0) {
-      meshPass = new RenderMesh({
-        sun: () => Daylight.sun(),
-        chroma: () => ColonyView.chroma(),
-        pointLights: (entities) => {
-          const out = [];
-          entities.forEach([Light, Position], (id, lt, p) => {
-            out.push({
-              x: p.x,
-              y: p.y,
-              radius: lt.radius,
-              color: lt.color,
-              intensity: lt.intensity,
-              flicker: lt.flicker,
-              seed: id,
-            });
+  },
+
+  /**
+   * A pitched map's deep-furniture meshes, which share the depth pool — a flat map has no
+   * depth-writing entity pass to sort against — then its lit walls and fences. Lights are
+   * injected because the pass is Core; seed = entity id keeps the mesh flicker in phase with the
+   * glow pools. Returns the mesh pass, whose light gather the flat passes share.
+   */
+  _mesh(ctx) {
+    const grid = ctx.level.grid;
+    const meshPass = new RenderMesh({
+      sun: () => Daylight.sun(),
+      chroma: () => ColonyView.chroma(),
+      pointLights: (entities) => {
+        const out = [];
+        entities.forEach([Light, Position], (id, lt, p) => {
+          out.push({
+            x: p.x,
+            y: p.y,
+            radius: lt.radius,
+            color: lt.color,
+            intensity: lt.intensity,
+            flicker: lt.flicker,
+            seed: id,
           });
-          return out;
-        },
-        camera: camera,
-      });
-      renderer.insert(meshPass);
-      // The ground shares this pass's light gather; assigned late because the ground passes
-      // exist before it. Flat maps stay unlit.
-      for (let i = 0; i < terrainPasses.length; i++)
-        terrainPasses[i].lights = meshPass;
-      if (grassPass !== undefined) grassPass.lights = meshPass;
-      const tileKeys = Object.keys(tilePasses);
-      for (let i = 0; i < tileKeys.length; i++)
-        tilePasses[tileKeys[i]].lights = meshPass;
-      // One lit-box pass covers every wall on the map.
-      // The first material doubles as the default bucket for generated walls.
-      const wallCfg = contentTiles.get("wall");
-      const wallMats = [];
-      for (let i = 0; i < wallCfg.materials.length; i++) {
-        const m = wallCfg.materials[i];
-        wallMats.push({
-          id: m.id,
-          sprite: m.sprite,
-          frame: 0,
-          color: Color.parse(m.color),
         });
-      }
-      tilePasses.wall = new RenderWalls(level.grid, rt.wallLayer, {
-        color: wallMats[0].color,
-        sprite: wallMats[0].sprite,
+        return out;
+      },
+      camera: ctx.camera,
+    });
+    ctx.renderer.insert(meshPass);
+    // assigned late because the flat passes exist before it; flat maps stay unlit
+    for (let i = 0; i < ctx.lit.length; i++) ctx.lit[i].lights = meshPass;
+    // One lit-box pass covers every wall on the map.
+    // The first material doubles as the default bucket for generated walls.
+    const wallCfg = contentTiles.get("wall");
+    const wallMats = [];
+    for (let i = 0; i < wallCfg.materials.length; i++) {
+      const m = wallCfg.materials[i];
+      wallMats.push({
+        id: m.id,
+        sprite: m.sprite,
         frame: 0,
-        lights: meshPass,
-        materials: wallMats,
-        camera: camera,
+        color: Color.parse(m.color),
       });
-      renderer.insert(tilePasses.wall);
-      // the flat fence config stays for the editor
-      tilePasses.fence = new RenderFence(level.grid, rt.fenceLayer, {
+    }
+    ctx.wall = new RenderWalls(grid, ctx.rt.wallLayer, {
+      color: wallMats[0].color,
+      sprite: wallMats[0].sprite,
+      frame: 0,
+      lights: meshPass,
+      materials: wallMats,
+      camera: ctx.camera,
+    });
+    ctx.renderer.insert(ctx.wall);
+    // the flat fence config stays for the editor
+    ctx.renderer.insert(
+      new RenderFence(grid, ctx.rt.fenceLayer, {
         color: Color.parse(contentTiles.get("fence").color),
         lights: meshPass,
-        camera: camera,
-      });
-      renderer.insert(tilePasses.fence);
-    }
-    // Pitched maps light the sprites like the mesh faces.
-    renderer.insert(
-      pitch > 0
-        ? new RenderBillboard({ lights: meshPass, camera: camera })
-        : new RenderEntity(),
+        camera: ctx.camera,
+      }),
     );
+    return meshPass;
+  },
+
+  /** The inspection overlays over the bodies, off until toggled; returns the bbox overlay. */
+  _overlays(ctx) {
     const bbox = new RenderDebugEntity();
     bbox.enabled = Settings.get("debugBBox");
-    renderer.insert(bbox);
-    const paths = new RenderDebugPath(level.grid);
+    ctx.renderer.insert(bbox);
+    const paths = new RenderDebugPath(ctx.level.grid);
     paths.enabled = false;
-    renderer.insert(paths);
+    ctx.renderer.insert(paths);
     const ranges = new RenderDebugRange({
       ranges: [
         {
@@ -293,36 +331,32 @@ globalThis.ColonyView = {
         },
       ],
     });
-    renderer.insert(ranges);
-    // The sky overlay sits under the day/night tint so night darkens the rain, and is cut out
-    // over every room — no weather under a roof. No open sky indoors.
-    if (level.entities.get(level.self, ColonyMap.INDOOR) !== true) {
-      const clouds = new RenderCloudShadow({ camera: camera });
-      clouds.enabled = false; // the flat look
-      const weather = new RenderWeather({ camera: camera });
-      const wall = tilePasses.wall; // absent on a flat map
-      const roofH =
-        wall !== undefined && wall.height !== undefined ? wall.height : 0;
-      const rooms = RoomSystem.rooms(level);
-      renderer.insert(
-        new RenderOverlay({
-          layers: [clouds, weather],
-          cutout: () => rooms.map.cells(),
-          tiles: level.grid,
-          height: roofH,
-          camera: camera,
-        }),
-      );
-    }
-    // Lighting last, composited over everything; day/night is its ambient term.
-    renderer.insert(
-      new RenderLighting({
-        ambient: () => Daylight.tint(),
-        vignette: 0, // the flat look: night is one even multiply
-        camera: camera,
+    ctx.renderer.insert(ranges);
+    return bbox;
+  },
+
+  /**
+   * The sky overlay sits under the day/night tint so night darkens the rain, and is cut out over
+   * every room — no weather under a roof. No open sky indoors.
+   */
+  _sky(ctx) {
+    const level = ctx.level;
+    if (level.entities.get(level.self, ColonyMap.INDOOR) === true) return;
+    const clouds = new RenderCloudShadow({ camera: ctx.camera });
+    clouds.enabled = false; // the flat look
+    const weather = new RenderWeather({ camera: ctx.camera });
+    const wall = ctx.wall;
+    const roofH = wall !== undefined && wall.height !== undefined ? wall.height : 0;
+    const rooms = RoomSystem.rooms(level);
+    ctx.renderer.insert(
+      new RenderOverlay({
+        layers: [clouds, weather],
+        cutout: () => rooms.map.cells(),
+        tiles: level.grid,
+        height: roofH,
+        camera: ctx.camera,
       }),
     );
-    return { renderer, bbox };
   },
 
   /**
