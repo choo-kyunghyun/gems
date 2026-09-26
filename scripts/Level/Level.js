@@ -9,9 +9,10 @@
  * switch is a pointer swap: nothing of one level survives in a singleton. Per-tick scratch that
  * holds no data between ticks stays module-scope (docs/ARCHITECTURE.md).
  *
- * The grid crosses a save as a binary blob through the store's codec: a saved level registers a
- * codec for `Level.GRID` whose unpack is the builder's, since only it knows the tile types. A
- * level with no codec exports its grid as JSON, which only an unsaved test level does.
+ * The grid is two components: its cells record under `CELLS`, pure data that a save carries as a
+ * binary blob, and the live `LevelGrid` over it under `GRID`, minted and freed as it leaves its
+ * slot. A saved level comes back with its cells alone; whoever knows the tile types builds the
+ * grid over them.
  *
  * `self` is index 0, allocated first and never removed, so it keeps its id across an
  * export/import.
@@ -20,7 +21,8 @@
  * be assigned after construction when the builder needs the store first.
  */
 globalThis.Level = class Level {
-  static GRID = "grid"; // the grid's token on `self`; a save holds it as a blob
+  static GRID = "grid"; // the live grid on `self`; never saved
+  static CELLS = "cells"; // the grid's cells record on `self`; a save holds it as a blob
 
   /**
    * @param {Object} [opt]
@@ -32,6 +34,7 @@ globalThis.Level = class Level {
     this.id = opt.id ?? "";
     this.entities = new Table(opt.capacity ?? 256);
     this.self = this.entities.create();
+    this.entities.codec(Level.CELLS, { pack: LevelGrid.pack, unpack: LevelGrid.unpack });
     if (opt.grid !== undefined) this.grid = opt.grid;
   }
 
@@ -41,15 +44,24 @@ globalThis.Level = class Level {
     return g === undefined ? null : g;
   }
 
+  /** The level owns the grid from here: it is freed as it leaves its slot. */
   set grid(g) {
-    if (g === null) this.entities.detach(this.self, Level.GRID);
-    else this.entities.add(this.self, Level.GRID, g);
+    const s = this.entities;
+    if (g === null) {
+      s.detach(this.self, Level.GRID);
+      s.detach(this.self, Level.CELLS);
+      return;
+    }
+    s.add(this.self, Level.GRID, g, { mint: true, destroy: Level._free });
+    s.add(this.self, Level.CELLS, g.cells);
   }
 
-  /** Frees the store, derived entries included, then the grid. */
+  static _free(grid) {
+    grid.destroy();
+  }
+
+  /** Frees the store, the grid and every derived entry with it. */
   destroy() {
-    const g = this.grid;
     this.entities.destroy();
-    if (g !== null) g.destroy();
   }
 };

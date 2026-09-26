@@ -57,19 +57,27 @@ Test.register(Test.CHECK, [
       level.destroy();
       t.eq(ctx.freed, 2, "the level's destroy frees every derived entry");
       const g = new LevelGrid({ cellWidth: 32, cellHeight: 32, cols: 2, rows: 2 });
+      g.insert(new TileLayer(g));
       const lg = new Level({ id: "g", grid: g, capacity: 4 });
       t.ok(lg.entities.get(lg.self, Level.GRID) === g, "the grid is the GRID component of self");
       t.ok(lg.grid === g, "grid reads that component");
+      const cells = lg.entities.get(lg.self, Level.CELLS);
+      t.ok(cells === g.cells, "its cells record is the CELLS component");
+      t.ok(cells.layers[0] === g.layers[0].ids, "a layer's channel is its record's");
       lg.grid = null;
       t.eq(lg.grid, null, "a grid-less level reads null");
-      lg.grid = g;
+      t.eq(g.layers.length, 0, "detaching the grid frees it");
+      t.eq(lg.entities.get(lg.self, Level.CELLS), undefined, "its cells record goes with it");
+      const g2 = new LevelGrid({ cellWidth: 32, cellHeight: 32, cols: 2, rows: 2 });
+      g2.insert(new TileLayer(g2));
+      lg.grid = g2;
       lg.destroy();
-      t.eq(g.layers.length, 0, "the level's destroy frees its grid");
+      t.eq(g2.layers.length, 0, "the level's destroy frees its grid");
     },
   },
   {
     id: "level.grid.blob",
-    // the grid's own pack/unpack: a blob names its shape, so a fresh grid unpacks it
+    // the cells record crosses a save as a blob naming its shape, and a fresh grid adopts it
     setup(ctx) {
       Object.assign(ctx, Test.level(3, 2));
       // numeric ids: a blob's cell holds a u16
@@ -97,28 +105,40 @@ Test.register(Test.CHECK, [
         range = e.message;
       }
       t.ok(range !== "", "an id that is no u16 above 0 throws");
-      const buf = ctx.grid.pack();
-      buffer_seek(buf, buffer_seek_start, 20 + 2 * 1);
-      t.eq(buffer_read(buf, buffer_u16), 7, "the blob names a cell by its type's id");
-      const shape = LevelGrid.shape(buf);
-      t.eq(shape.cols, 3, "the header carries cols");
-      t.eq(shape.rows, 2, "the header carries rows");
-      t.eq(shape.cellWidth, 32, "the header carries the cell width");
-      t.eq(shape.layers, 1, "the header carries the layer count");
-      const grid = new LevelGrid({ cellWidth: shape.cellWidth, cellHeight: shape.cellHeight, cols: shape.cols, rows: shape.rows });
-      const twin = new TileLayer(grid, { emptyCost: 1 });
-      grid.insert(twin);
-      twin.bind(ctx.rock);
-      t.ok(grid.unpack(buf), "the blob unpacks into the fresh grid");
-      t.ok(twin.get(1, 0) === ctx.rock, "a cell comes back as its type");
-      t.ok(twin.get(0, 1) === ctx.rock, "another cell too");
-      t.ok(!twin.get(2, 1), "a cell whose id the layer holds no type for comes back empty");
-      t.ok(!twin.get(0, 0), "an empty cell stays empty");
-      t.ok(twin.edits > 0 && twin.since(0) < 0, "an unpack marks every cell edited");
-      buffer_delete(buf);
-      grid.destroy();
+      const exp = ctx.level.entities.export((token, index, buffer) => {
+        ctx.buf = buffer;
+        return "blob";
+      });
+      t.eq(exp.components[Level.GRID], undefined, "the live grid is never saved");
+      t.eq(exp.components[Level.CELLS][0][1], "blob", "its cells cross as a blob");
+      buffer_seek(ctx.buf, buffer_seek_start, 20 + 2 * 1);
+      t.eq(buffer_read(ctx.buf, buffer_u16), 7, "the blob names a cell by its type's id");
+      const twin = new Level({ id: "twin", capacity: 4 });
+      twin.entities.import(exp, () => ctx.buf);
+      const cells = twin.entities.get(twin.self, Level.CELLS);
+      t.ok(cells.cols === 3 && cells.rows === 2, "the blob carries the shape");
+      t.ok(cells.cellWidth === 32 && cells.cellHeight === 32, "and the cell size");
+      t.eq(cells.layers.length, 1, "and every layer");
+      t.eq(twin.grid, null, "no grid comes back without its builder");
+      const grid = new LevelGrid(cells);
+      const adopted = new TileLayer(grid, { emptyCost: 1, ids: cells.layers[0] });
+      grid.insert(adopted);
+      adopted.bind(ctx.rock);
+      grid.prune();
+      twin.grid = grid;
+      t.ok(adopted.get(1, 0) === ctx.rock, "a cell comes back as its type");
+      t.ok(adopted.get(0, 1) === ctx.rock, "another cell too");
+      t.ok(!adopted.get(2, 1), "a cell whose id the layer binds no type for is pruned empty");
+      t.ok(!adopted.get(0, 0), "an empty cell stays empty");
+      t.ok(adopted.edits > 0 && adopted.since(0) < 0, "a prune marks every cell edited");
+      t.ok(
+        twin.entities.get(twin.self, Level.CELLS).layers[0] === cells.layers[0],
+        "the grid writes through to the saved channel",
+      );
+      twin.destroy();
     },
     teardown(ctx) {
+      if (ctx.buf !== undefined) buffer_delete(ctx.buf);
       ctx.level.destroy();
     },
   },

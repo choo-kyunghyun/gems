@@ -16,11 +16,14 @@ const LOG_CAP = 256; // cell writes kept for replay before a reader behind them 
  * @implements {LevelLayer}
  */
 globalThis.TileLayer = class TileLayer {
-  /** @param {LevelGrid} tiles the grid whose shape the layer takes */
+  /**
+   * @param {LevelGrid} tiles the grid whose shape the layer takes
+   * @param {Grid} [opt.ids] a saved id channel to adopt in place of a fresh one
+   */
   constructor(tiles, opt = {}) {
     this.cols = tiles.cols;
     this.rows = tiles.rows;
-    this.ids = tiles.alloc();
+    this.ids = opt.ids ?? tiles.alloc();
     this.types = [0];
     this.emptyCost = opt.emptyCost;
     this.edits = 0;

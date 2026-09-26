@@ -19,10 +19,24 @@
  */
 
 /**
+ * What a level's grid is as data: its shape and each layer's TileType-id channel, bottom→top.
+ * @typedef {Object} LevelCells
+ * @property {number} cellWidth
+ * @property {number} cellHeight
+ * @property {number} cols
+ * @property {number} rows
+ * @property {Grid[]} layers  each layer's `ids`, in `layers` order
+ */
+
+/**
  * A level's cell grid and its stacked tile layers — the one owner of the level's shape. Every
  * layer spans the grid and every level-sized array is minted by `alloc`, so a cell index means the
  * same cell in each. Live pathfinding never reads the layers: the nav source mirrors `costAt`
  * whenever `edits` moves.
+ *
+ * `cells` is the grid as pure data, kept in step with `layers` and sharing each layer's id
+ * channel, so a write through a layer is a write to it. A grid over saved cells is built as a
+ * fresh one is, each layer adopting its channel, then pruned once its types are bound.
  */
 globalThis.LevelGrid = class LevelGrid {
   constructor(opt = {}) {
@@ -33,6 +47,14 @@ globalThis.LevelGrid = class LevelGrid {
     this.size = this.cols * this.rows;
 
     this.layers = [];
+    /** @type {LevelCells} */
+    this.cells = {
+      cellWidth: this.cellWidth,
+      cellHeight: this.cellHeight,
+      cols: this.cols,
+      rows: this.rows,
+      layers: [],
+    };
   }
 
   /** A fresh level-sized `Grid`, every cell `fill`. */
@@ -52,12 +74,16 @@ globalThis.LevelGrid = class LevelGrid {
         `LevelGrid.insert: layer is ${layer.cols}x${layer.rows}, grid is ${this.cols}x${this.rows}`,
       );
     this.layers.splice(index, 0, layer);
+    this.cells.layers.splice(index, 0, layer.ids);
     return this;
   }
 
   remove(layer) {
     const i = this.layers.indexOf(layer);
-    if (i >= 0) this.layers.splice(i, 1);
+    if (i >= 0) {
+      this.layers.splice(i, 1);
+      this.cells.layers.splice(i, 1);
+    }
     return this;
   }
 
@@ -137,63 +163,54 @@ globalThis.LevelGrid = class LevelGrid {
   }
 
   /**
-   * The tile layers' cells as one binary buffer — the dense half of a level save (the JSON half
-   * is what a cell can't say: which TileType an id means).
-   * Layout, little-endian: u32 cols, u32 rows, u32 cellWidth, u32 cellHeight, u32 layer count,
-   * then per layer in `layers` order cols×rows u16 TileType ids row-major (0 = empty). Returns
-   * the buffer; the caller owns it.
+   * A cells record as one binary buffer. Layout, little-endian: u32 cols, u32 rows, u32
+   * cellWidth, u32 cellHeight, u32 layer count, then per layer its ids as u16 row-major
+   * (0 = empty). The caller owns the buffer.
+   * @param {LevelCells} cells
    */
-  pack() {
-    const cols = this.cols;
-    const rows = this.rows;
-    const n = this.layers.length;
-    const buf = buffer_create(20 + n * cols * rows * 2, buffer_fixed, 1);
-    buffer_write(buf, buffer_u32, cols);
-    buffer_write(buf, buffer_u32, rows);
-    buffer_write(buf, buffer_u32, this.cellWidth);
-    buffer_write(buf, buffer_u32, this.cellHeight);
+  static pack(cells) {
+    const n = cells.layers.length;
+    const buf = buffer_create(20 + n * cells.cols * cells.rows * 2, buffer_fixed, 1);
+    buffer_write(buf, buffer_u32, cells.cols);
+    buffer_write(buf, buffer_u32, cells.rows);
+    buffer_write(buf, buffer_u32, cells.cellWidth);
+    buffer_write(buf, buffer_u32, cells.cellHeight);
     buffer_write(buf, buffer_u32, n);
-    for (let l = 0; l < n; l++) this.layers[l].ids.write(buf, buffer_u16);
+    for (let l = 0; l < n; l++) cells.layers[l].write(buf, buffer_u16);
     return buf;
   }
 
-  /** A pack() buffer's header — { cols, rows, cellWidth, cellHeight, layers } — the shape to
-   *  build the grid that unpacks it. */
-  static shape(buf) {
+  /**
+   * The cells record a `pack` buffer holds; undefined for a missing buffer. The buffer stays the
+   * caller's.
+   * @returns {LevelCells|undefined}
+   */
+  static unpack(buf) {
+    if (buf === undefined) return undefined;
     buffer_seek(buf, buffer_seek_start, 0);
     const cols = buffer_read(buf, buffer_u32);
     const rows = buffer_read(buf, buffer_u32);
     const cellWidth = buffer_read(buf, buffer_u32);
     const cellHeight = buffer_read(buf, buffer_u32);
-    const layers = buffer_read(buf, buffer_u32);
-    return { cols, rows, cellWidth, cellHeight, layers };
+    const n = buffer_read(buf, buffer_u32);
+    const layers = [];
+    for (let l = 0; l < n; l++) {
+      const g = new Grid(cols, rows);
+      g.read(buf, buffer_u16);
+      layers.push(g);
+    }
+    return { cellWidth, cellHeight, cols, rows, layers };
   }
 
   /**
-   * Fill the tile layers from a pack() buffer, each layer's types bound beforehand: an id its
-   * layer holds no type for leaves the cell empty and is logged. The buffer must describe this
-   * grid — same cols/rows and layer count — else nothing is written and false is returned. The
-   * buffer stays the caller's to free.
+   * Empty every cell whose id its layer binds no type for, logged, and mark every cell edited —
+   * the step after adopted channels have their types bound.
    */
-  unpack(buf) {
-    buffer_seek(buf, buffer_seek_start, 0);
-    const cols = buffer_read(buf, buffer_u32);
-    const rows = buffer_read(buf, buffer_u32);
-    buffer_read(buf, buffer_u32); // cellWidth — the grid's own
-    buffer_read(buf, buffer_u32); // cellHeight
-    const n = buffer_read(buf, buffer_u32);
-    if (cols !== this.cols || rows !== this.rows || n !== this.layers.length) {
-      Log.error(
-        `LevelGrid.unpack: buffer is ${cols}x${rows}/${n} layer(s), grid is ` +
-          `${this.cols}x${this.rows}/${this.layers.length}`,
-      );
-      return false;
-    }
+  prune() {
     const size = this.size;
     let unknown = 0;
-    for (let l = 0; l < n; l++) {
+    for (let l = 0; l < this.layers.length; l++) {
       const layer = this.layers[l];
-      layer.ids.read(buf, buffer_u16);
       const d = layer.ids.data;
       const types = layer.types;
       for (let i = 0; i < size; i++) {
@@ -204,10 +221,7 @@ globalThis.LevelGrid = class LevelGrid {
       layer.touchAll();
     }
     if (unknown > 0)
-      Log.error(
-        `LevelGrid.unpack: ${unknown} cell(s) name an id their layer holds no type for`,
-      );
-    return true;
+      Log.error(`LevelGrid.prune: ${unknown} cell(s) name an id their layer holds no type for`);
   }
 
   destroy() {
@@ -215,5 +229,6 @@ globalThis.LevelGrid = class LevelGrid {
       layer.destroy();
     }
     this.layers = [];
+    this.cells.layers = [];
   }
 };

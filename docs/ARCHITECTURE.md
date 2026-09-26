@@ -104,10 +104,11 @@ and are cited from here, never restated):
       `Weather.KEY`, `Tracker.KEY` on the world — read through the owner's accessor
       (`Settlement.of(level)`, `WorldClock.state()`), which seeds the record blank on a miss
       (`entities.of(self, KEY, make)`), so a fresh level or world starts every record blank. The
-      grid is that entity's `Level.GRID` component (the `grid` accessor), and a pooled map is an
+      grid is that entity's pure cells record (`Level.CELLS`) with the live grid over it minted
+      beside it (`Level.GRID`, the `grid` accessor), and a pooled map is an
       entity of the world's store (`World.MAP` + a minted `World.LEVEL`). A save holds a Level's
       store and the world's store and nothing else, so a new per-level or per-world fact rides
-      along unlisted; what is dense (the grid) crosses as a blob through the store's codec
+      along unlisted; what is dense (the cells) crosses as a blob through the store's codec
       channel (`entities.codec` — pack/unpack per token, the sink and source the save's).
     - SCENE data is a field of the live scene instance (or a handle it holds — `hud`, `window`,
       `build`) and dies with it.

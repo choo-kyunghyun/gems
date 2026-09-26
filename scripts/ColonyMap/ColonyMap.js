@@ -92,47 +92,28 @@ globalThis.ColonyMap = {
   },
 
   /**
-   * The level's grid codec. Unpack also mounts the layer handles, since the TileTypes the cells
-   * name are runtime objects; it runs after the plain components, so the map record is readable.
-   */
-  _gridCodec(level) {
-    return {
-      pack: (grid) => grid.pack(),
-      unpack: (buf) => {
-        if (buf === undefined) {
-          Log.error(`map "${level.id}": save carries no grid blob`);
-          return undefined;
-        }
-        const rec = ColonyMap.of(level);
-        const h = ColonyLevel.restore(
-          LevelGrid.shape(buf),
-          rec === undefined ? undefined : rec.terrainMats,
-          buf,
-        );
-        if (h === null) return undefined;
-        ColonyMap._mount(level, h);
-        return h.grid;
-      },
-    };
-  },
-
-  /**
    * Pool a saved map in `world` with no seed or spawn, mounted but not activated. `source(name)`
    * yields its blobs (the source's to free). Returns the level, or null when the entry is unusable
    * (logged, nothing pooled) — the map's first visit then builds it fresh.
    */
   restoreLevel(world, m, source) {
     const level = new Level({ id: m.id, capacity: m.capacity });
-    level.entities.codec(Level.GRID, ColonyMap._gridCodec(level));
     level.entities.import(m.level, source);
-    if (ColonyMap.of(level) === undefined)
-      Log.error(`map "${m.id}": save entry carries no map record`);
-    else if (level.grid !== null) {
-      world.add(m.id, level);
-      Log.info(`colony map: ${m.id} [restored]`);
-      return level;
+    const rec = ColonyMap.of(level);
+    const cells = level.entities.get(level.self, Level.CELLS);
+    if (rec === undefined) Log.error(`map "${m.id}": save entry carries no map record`);
+    else if (cells === undefined) Log.error(`map "${m.id}": save carries no grid`);
+    else {
+      const h = ColonyLevel.restore(cells, rec.terrainMats);
+      if (h !== null) {
+        level.grid = h.grid;
+        ColonyMap._mount(level, h);
+        world.add(m.id, level);
+        Log.info(`colony map: ${m.id} [restored]`);
+        return level;
+      }
     }
-    level.destroy(); // the codec said why
+    level.destroy(); // logged above
     return null;
   },
 
@@ -170,7 +151,6 @@ globalThis.ColonyMap = {
       id: mapId,
       capacity: Math.max(1024, Math.ceil((data.cols * data.rows) / 4)),
     });
-    level.entities.codec(Level.GRID, ColonyMap._gridCodec(level)); // the grid saves as a blob
     const built = ColonyLevel.build(data, entryId);
     level.grid = built.grid;
     const rec = ColonyMap._data();

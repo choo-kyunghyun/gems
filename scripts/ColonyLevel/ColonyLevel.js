@@ -4,7 +4,8 @@ const ANCHOR_CLEAR = 6; // cells around a site's anchor kept procedural-free —
 /**
  * The colony's level builder: load() turns a world-map site into level data (a LevelData plus
  * `meta`, the generator inputs and whole-map flags), build() generates and paints it into a store
- * + grid, and restore() rebuilds a saved map. The caller owns the returned grid.
+ * + grid, and restore() rebuilds a saved map's grid over its cells. The caller owns the returned
+ * grid.
  *
  * Every level is procedural and fully resident: the site's seed and biome drive the generator and
  * its anchor prefab fixes the one hand-built structure, on a build only — a saved map comes back
@@ -67,14 +68,15 @@ globalThis.ColonyLevel = {
   /**
    * Insert the tile layers bottom→top and return a handles bag keyed `<key>Layer`/`<key>Type`; a
    * materials-bearing layer also gets `<key>Types` by material key, with `<key>Type` the default
-   * (first) material.
+   * (first) material. With `cells`, each layer adopts its saved id channel.
    */
-  _makeLayers(grid) {
+  _makeLayers(grid, cells) {
     const h = {};
     for (let i = 0; i < contentTiles.LAYERS.length; i++) {
       const cfg = contentTiles.LAYERS[i];
       const layer = new TileLayer(grid, {
         emptyCost: cfg.emptyCost,
+        ids: cells === undefined ? undefined : cells.layers[i],
       });
       grid.insert(layer);
       h[cfg.key + "Layer"] = layer;
@@ -223,19 +225,27 @@ globalThis.ColonyLevel = {
   },
 
   /**
-   * Rebuild a saved map's grid: the layers come up as build() makes them and the cells fill from
-   * the packed buffer — no seed, no generator, nothing spawned. `buf` stays the
-   * caller's to free. Returns null when the buffer doesn't fit the layer stack.
+   * Rebuild a saved map's grid over its cells record: the layers come up as build() makes them,
+   * each adopting its saved cells — no seed, no generator, nothing spawned. Returns null when the
+   * record doesn't fit the layer stack.
+   * @param {LevelCells} cells
    */
-  restore(shape, terrainMats, buf) {
+  restore(cells, terrainMats) {
+    if (cells.layers.length !== contentTiles.LAYERS.length) {
+      Log.error(
+        `ColonyLevel.restore: the save holds ${cells.layers.length} layer(s), ` +
+          `the stack ${contentTiles.LAYERS.length}`,
+      );
+      return null;
+    }
     const grid = new LevelGrid({
-      cellWidth: shape.cellWidth,
-      cellHeight: shape.cellHeight,
-      cols: shape.cols,
-      rows: shape.rows,
+      cellWidth: cells.cellWidth,
+      cellHeight: cells.cellHeight,
+      cols: cells.cols,
+      rows: cells.rows,
     });
-    const h = ColonyLevel._makeLayers(grid);
-    // every type a packed id may name, bound before the cells arrive
+    const h = ColonyLevel._makeLayers(grid, cells);
+    // every type a saved id may name, bound before the prune
     let mats;
     for (let i = 0; i < contentTiles.LAYERS.length; i++) {
       const cfg = contentTiles.LAYERS[i];
@@ -252,10 +262,7 @@ globalThis.ColonyLevel = {
         layer.bind(h[cfg.key + "Type"]);
       }
     }
-    if (!grid.unpack(buf)) {
-      grid.destroy();
-      return null;
-    }
+    grid.prune();
     return { grid, terrainMats: mats, ...h };
   },
 
