@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"EntityPreset",
   "parent":{
-    "name":"Entity",
-    "path":"folders/Core/Entity.yy",
+    "name":"Preset",
+    "path":"folders/Core/Preset.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

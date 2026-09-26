@@ -31,8 +31,6 @@
 
 The Core folder tree reads as its dependency layers — a move, never a behaviour change.
 
-- A `Puppet` area for the instance bridge (`Instance`, `PuppetSystem`, the `Puppet`/`Solid` objects) out of `Collision`, so `Sprite`, `Render` and `Nav` depend on the bridge, not on collision
-- `EntityPreset` out of `Entity` into an area above `Sprite`/`Render` — it builds looks — ending the Entity↔Render cycle
 - Unwired: `CameraPan` (no installer), `CameraFly` (tests only), `Lifetime` (no Game carrier) — wire, drop, or a clause each
 - `Render` subfolders: passes, debug passes, geometry (`Vox`, `Poly`, `VertexBuffer`, `VertexBatch`, `Chunks`)
 - `UIDraw`'s free globals into one namespace

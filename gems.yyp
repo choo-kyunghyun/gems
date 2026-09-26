@@ -23,6 +23,7 @@
     {"$GMFolder":"","%Name":"Level","folderPath":"folders/Core/Level.yy","name":"Level","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Media","folderPath":"folders/Core/Media.yy","name":"Media","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Nav","folderPath":"folders/Core/Nav.yy","name":"Nav","resourceType":"GMFolder","resourceVersion":"2.0",},
+    {"$GMFolder":"","%Name":"Preset","folderPath":"folders/Core/Preset.yy","name":"Preset","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Render","folderPath":"folders/Core/Render.yy","name":"Render","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Particle","folderPath":"folders/Core/Render/Particle.yy","name":"Particle","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Scene","folderPath":"folders/Core/Scene.yy","name":"Scene","resourceType":"GMFolder","resourceVersion":"2.0",},
