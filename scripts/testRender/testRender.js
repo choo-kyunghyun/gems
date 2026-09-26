@@ -814,9 +814,19 @@ Test.register(Test.CHECK, [
       t.eq(ctx.used.join(","), "r2", "a table's confirm activates the cursor row");
 
       Input.pointer.x += 1;
+      Input.pointer.moved = true;
       Test.uiFrame(ctx, []);
+      Input.pointer.moved = false;
+      t.ok(!ctx.table._browsing, "a pointer move ends the table's browse");
+      Test.uiFrame(ctx, [vk_up]); // re-engages the ring the move let go of
       Test.uiFrame(ctx, [vk_up]);
-      t.ok(UINav.focused === ctx.grid, "a pointer move hands the table back to the nav");
+      t.ok(UINav.focused === ctx.grid, "and hands the table back to the nav");
+
+      Test.uiFrame(ctx, [vk_enter]);
+      t.ok(ctx.slots._browsing, "the grid browses again");
+      UINav.focus(ctx.tableEl);
+      Test.uiFrame(ctx, []);
+      t.ok(!ctx.slots._browsing, "a focus that leaves a browse ends it");
     },
     teardown(ctx) {
       Test.uiRestore(ctx);

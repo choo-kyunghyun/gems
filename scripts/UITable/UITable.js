@@ -13,7 +13,8 @@
  * the primary flips direction. Selection tracks the row OBJECT, so it survives re-sort/filter.
  *
  * Browse mode, entered by a nav confirm, takes the nav's moves: Up/Down move the row cursor,
- * Left/Right re-pick the sort column; its confirm is `onActivate` and its cancel the way out.
+ * Left/Right re-pick the sort column; its confirm is `onActivate` and its cancel the way out. A
+ * pointer move or click hands control back, and a focus that leaves the table ends it.
  *
  * BUG: [#15549] hit-test/hover state lives in instance fields (docs/GMRT.md).
  */
@@ -61,8 +62,6 @@ globalThis.UITable = class UITable {
     this._hoverCol = -1;
     this._browsing = false;
     this.focusable = true;
-    this._mx = 0; // pointer movement hands control back to the mouse
-    this._my = 0;
 
     if (t.sortBy != null) this._pushSort(t.sortBy, t.sortDir ?? 1);
     this._recompute();
@@ -254,13 +253,14 @@ globalThis.UITable = class UITable {
     const mx = Input.pointer.x;
     const my = Input.pointer.y;
     this._inside = !block && element.positionMeeting(mx, my);
-    const moved = mx !== this._mx || my !== this._my;
-    this._mx = mx;
-    this._my = my;
 
-    // browse mode holds the pointer until pointer activity hands control back to the mouse
+    // browse mode holds the pointer until pointer activity takes over, or the focus leaves
     if (this._browsing) {
-      if (moved || (this._inside && Input.pointer.left.pressed)) {
+      if (
+        Input.pointer.moved ||
+        UINav.focused !== element ||
+        (this._inside && Input.pointer.left.pressed)
+      ) {
         this._browsing = false;
       } else {
         return true;

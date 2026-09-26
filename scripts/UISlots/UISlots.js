@@ -11,7 +11,7 @@
  *
  * A nav confirm enters browse mode, where the grid takes the nav's moves as a 2D slot cursor, its
  * confirm as `onActivate` on the cursor slot and its cancel as the way out; a pointer move or click
- * hands control back.
+ * hands control back, and a focus that leaves the grid ends it.
  *
  * Hover and selection are read live each frame, never cached in a boolean (docs/GMRT.md).
  */
@@ -42,8 +42,6 @@ globalThis.UISlots = class UISlots {
     this._inside = false; // a field, not a local boolean (docs/GMRT.md)
     this._browsing = false;
     this._cursor = 0;
-    this._mx = -1; // last pointer position — a move hands browse back to the mouse
-    this._my = -1;
   }
 
   _slotXY(pos, i) {
@@ -67,13 +65,14 @@ globalThis.UISlots = class UISlots {
 
     // an instance field, not a boolean local (docs/GMRT.md)
     this._inside = !block && element.positionMeeting(mx, my);
-    const moved = mx !== this._mx || my !== this._my;
-    this._mx = mx;
-    this._my = my;
 
-    // browse mode holds the pointer until a move or a click takes over
+    // browse mode holds the pointer until a move or a click takes over, or the focus leaves
     if (this._browsing) {
-      if (moved || (this._inside && Input.pointer.left.pressed)) {
+      if (
+        Input.pointer.moved ||
+        UINav.focused !== element ||
+        (this._inside && Input.pointer.left.pressed)
+      ) {
         this._browsing = false;
       } else {
         this._hover = -1; // no stale mouse hover under the key cursor
