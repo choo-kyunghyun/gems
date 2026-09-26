@@ -129,11 +129,9 @@ globalThis.InventoryUI = {
     const cats = [
       { name: I18n.text("INV_CAT_ALL"), value: "" },
       { name: I18n.text("INV_CAT_FAV"), value: "fav" },
-      { name: I18n.text("INV_CAT_WEAPON"), value: "weapon" },
-      { name: I18n.text("INV_CAT_GEAR"), value: "gear" },
-      { name: I18n.text("INV_CAT_CONSUMABLE"), value: "consumable" },
-      { name: I18n.text("INV_CAT_MISC"), value: "misc" },
     ];
+    for (const c of Bag.CATEGORIES)
+      cats.push({ name: I18n.text(c.key), value: c.code });
     // fixed width: a full-width select would squish the usage label
     const filterCell = new UIElement({ width: 170, flexShrink: 0 });
     filterCell.insertChild(

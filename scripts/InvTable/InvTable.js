@@ -92,7 +92,7 @@ globalThis.InvTable = {
         width: 116,
         flex: 1,
         text: (r) => I18n.text(r.catKey),
-        sortValue: (r) => r.cat,
+        sortValue: (r) => r.catRank,
       });
     cols.push({
       key: "qty",
@@ -153,7 +153,8 @@ globalThis.InvTable = {
 
   rowModel(itemId, qty, uid, mods) {
     const it = Item.get(itemId);
-    const cat = InvTable.category(it);
+    const catRank = Bag.category(it);
+    const cat = Bag.CATEGORIES[catRank];
     // mods is a plain object, not a Map (docs/GMRT.md)
     let modCount = 0;
     if (mods !== undefined) for (const slotId in mods) modCount++;
@@ -171,6 +172,7 @@ globalThis.InvTable = {
       search: InvTable.lower(name),
       cat: cat.code,
       catKey: cat.key,
+      catRank,
       rarityName: rar !== undefined ? I18n.text(rar.name) : "",
       rarityRank: rarId !== undefined ? Rarity.rank(rarId) : -1,
       makerName: mk !== undefined ? I18n.text(mk.name) : "",
@@ -188,17 +190,6 @@ globalThis.InvTable = {
     const it = Item.get(itemId);
     const r = it !== undefined ? Rarity.get(it.rarity) : undefined;
     return r !== undefined ? r.color : c_white;
-  },
-
-  category(it) {
-    if (it === undefined) return { code: "misc", key: "INV_CAT_MISC" };
-    if (it.hasComponent(Weapon))
-      return { code: "weapon", key: "INV_CAT_WEAPON" };
-    if (it.hasComponent(Equippable))
-      return { code: "gear", key: "INV_CAT_GEAR" };
-    if (it.hasComponent(Consumable))
-      return { code: "consumable", key: "INV_CAT_CONSUMABLE" };
-    return { code: "misc", key: "INV_CAT_MISC" };
   },
 
   /** BUG: ASCII lowercase via char codes; toLowerCase() is broken (docs/GMRT.md #15563) */

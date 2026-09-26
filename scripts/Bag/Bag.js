@@ -173,7 +173,7 @@ globalThis.Bag = {
   },
 
   /**
-   * Tidy + sort in place: merge fungible stacks, order by category then rarer-first then itemId.
+   * Tidy + sort in place: merge fungible stacks, order by CATEGORIES then rarer-first then itemId.
    * Reordering is safe — Equipment references by uid, not slot index. Instance slots kept individual
    * (uid/mods preserved); only fungibles merge.
    */
@@ -226,28 +226,34 @@ globalThis.Bag = {
     inv.slots = slots;
   },
 
+  /** The bag's categories in sort order; an item files under the first whose test it passes. */
+  CATEGORIES: [
+    { code: "weapon", key: "INV_CAT_WEAPON", test: (it) => it.hasComponent(Weapon) },
+    { code: "gear", key: "INV_CAT_GEAR", test: (it) => it.hasComponent(Equippable) },
+    {
+      code: "consumable",
+      key: "INV_CAT_CONSUMABLE",
+      test: (it) => it.hasComponent(Consumable),
+    },
+    { code: "misc", key: "INV_CAT_MISC", test: (it) => true },
+  ],
+
+  /** The index into CATEGORIES of def `it`; an unknown def files as misc. */
+  category(it) {
+    const cats = Bag.CATEGORIES;
+    if (it === undefined) return cats.length - 1;
+    for (let i = 0; i < cats.length; i++) if (cats[i].test(it)) return i;
+    return cats.length - 1;
+  },
+
   _cmp(a, b) {
-    const ca = Bag._category(a);
-    const cb = Bag._category(b);
+    const ca = Bag.category(Item.get(a));
+    const cb = Bag.category(Item.get(b));
     if (ca !== cb) return ca < cb ? -1 : 1;
     const ra = Bag._rarityRank(a);
     const rb = Bag._rarityRank(b);
     if (ra !== rb) return ra > rb ? -1 : 1; // higher tier index = rarer = first
     return a < b ? -1 : a > b ? 1 : 0;
-  },
-
-  _category(itemId) {
-    const def = Item.get(itemId);
-    if (def === undefined) return 5;
-    if (def.hasComponent(Equippable)) {
-      const slot = def.getComponent(Equippable).slot;
-      if (slot === "weapon") return 0;
-      if (slot === "armor") return 1;
-      if (slot === "trinket") return 2;
-      return 3; // other equip slot (e.g. backpack)
-    }
-    if (def.hasComponent(Consumable)) return 4;
-    return 5; // misc
   },
 
   _rarityRank(itemId) {
