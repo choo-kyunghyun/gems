@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"RenderTerrain",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"RenderTerrain",
+  "parent":{
+    "name":"Terrain",
+    "path":"folders/Core/Render/Terrain.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"RenderTerrain.js",
+}

@@ -3,8 +3,8 @@
   "%Name":"pixTerrainGravel",
   "bboxMode":0,
   "bbox_bottom":127,
-  "bbox_left":0,
-  "bbox_right":127,
+  "bbox_left":128,
+  "bbox_right":2047,
   "bbox_top":0,
   "collisionKind":1,
   "collisionTolerance":0,
@@ -12,25 +12,10 @@
   "edgeFiltering":false,
   "For3D":false,
   "frames":[
-    {"$GMSpriteFrame":"v1","%Name":"16d725dc-7c13-401c-bfd9-88be61f43f46","name":"16d725dc-7c13-401c-bfd9-88be61f43f46","resourceType":"GMSpriteFrame","resourceVersion":"2.0",},
-    {"$GMSpriteFrame":"v1","%Name":"6a6e0ee3-fc30-4ce4-9048-c7a98bc90e07","name":"6a6e0ee3-fc30-4ce4-9048-c7a98bc90e07","resourceType":"GMSpriteFrame","resourceVersion":"2.0",},
-    {"$GMSpriteFrame":"v1","%Name":"a4fc068c-96b4-419a-a721-cc47c2eeb780","name":"a4fc068c-96b4-419a-a721-cc47c2eeb780","resourceType":"GMSpriteFrame","resourceVersion":"2.0",},
-    {"$GMSpriteFrame":"v1","%Name":"1710dbb4-b6e2-4eb9-8a3e-957f6aa7004e","name":"1710dbb4-b6e2-4eb9-8a3e-957f6aa7004e","resourceType":"GMSpriteFrame","resourceVersion":"2.0",},
-    {"$GMSpriteFrame":"v1","%Name":"571fe9b8-cdae-466e-8302-1fbf1e4ad1f7","name":"571fe9b8-cdae-466e-8302-1fbf1e4ad1f7","resourceType":"GMSpriteFrame","resourceVersion":"2.0",},
-    {"$GMSpriteFrame":"v1","%Name":"c6c97ff5-2047-44a2-b557-d5660d6bac7b","name":"c6c97ff5-2047-44a2-b557-d5660d6bac7b","resourceType":"GMSpriteFrame","resourceVersion":"2.0",},
-    {"$GMSpriteFrame":"v1","%Name":"af4779bd-8112-4c87-90ae-8a77f8dc37e1","name":"af4779bd-8112-4c87-90ae-8a77f8dc37e1","resourceType":"GMSpriteFrame","resourceVersion":"2.0",},
-    {"$GMSpriteFrame":"v1","%Name":"5700115e-5438-4c54-9241-2129ee6bfbc2","name":"5700115e-5438-4c54-9241-2129ee6bfbc2","resourceType":"GMSpriteFrame","resourceVersion":"2.0",},
-    {"$GMSpriteFrame":"v1","%Name":"06d417ab-4671-471e-8d05-3b796e8f3c9f","name":"06d417ab-4671-471e-8d05-3b796e8f3c9f","resourceType":"GMSpriteFrame","resourceVersion":"2.0",},
-    {"$GMSpriteFrame":"v1","%Name":"07bec075-9841-4382-9292-2e2b9df673a9","name":"07bec075-9841-4382-9292-2e2b9df673a9","resourceType":"GMSpriteFrame","resourceVersion":"2.0",},
-    {"$GMSpriteFrame":"v1","%Name":"bc42b51a-e1e2-43fc-afd6-aeedfdc57c3e","name":"bc42b51a-e1e2-43fc-afd6-aeedfdc57c3e","resourceType":"GMSpriteFrame","resourceVersion":"2.0",},
-    {"$GMSpriteFrame":"v1","%Name":"c4251ed5-ef5a-48ab-99c8-50f1f44e24fd","name":"c4251ed5-ef5a-48ab-99c8-50f1f44e24fd","resourceType":"GMSpriteFrame","resourceVersion":"2.0",},
-    {"$GMSpriteFrame":"v1","%Name":"6c2b6d58-6ced-46a1-8581-94d24d44f1b9","name":"6c2b6d58-6ced-46a1-8581-94d24d44f1b9","resourceType":"GMSpriteFrame","resourceVersion":"2.0",},
-    {"$GMSpriteFrame":"v1","%Name":"cbaa37b7-a6a6-4bb3-b9af-265d14f7a891","name":"cbaa37b7-a6a6-4bb3-b9af-265d14f7a891","resourceType":"GMSpriteFrame","resourceVersion":"2.0",},
-    {"$GMSpriteFrame":"v1","%Name":"b801b154-b150-4ffa-86b7-2c3c1edf867e","name":"b801b154-b150-4ffa-86b7-2c3c1edf867e","resourceType":"GMSpriteFrame","resourceVersion":"2.0",},
-    {"$GMSpriteFrame":"v1","%Name":"9886a820-b670-4573-b45d-09c8f177a251","name":"9886a820-b670-4573-b45d-09c8f177a251","resourceType":"GMSpriteFrame","resourceVersion":"2.0",},
+    {"$GMSpriteFrame":"v1","%Name":"a1f1095b-044d-4830-8d76-cd03f47bcfdd","name":"a1f1095b-044d-4830-8d76-cd03f47bcfdd","resourceType":"GMSpriteFrame","resourceVersion":"2.0",},
   ],
-  "gridX":16,
-  "gridY":16,
+  "gridX":0,
+  "gridY":0,
   "height":128,
   "HTile":false,
   "layers":[
@@ -64,7 +49,7 @@
     },
     "eventStubScript":null,
     "eventToFunction":{},
-    "length":16.0,
+    "length":1.0,
     "lockOrigin":false,
     "moments":{
       "$KeyframeStore<MomentsEventKeyframe>":"",
@@ -84,53 +69,8 @@
     "tracks":[
       {"$GMSpriteFramesTrack":"","builtinName":0,"events":[],"inheritsTrackColour":true,"interpolation":1,"isCreationTrack":false,"keyframes":{"$KeyframeStore<SpriteFrameKeyframe>":"","Keyframes":[
             {"$Keyframe<SpriteFrameKeyframe>":"","Channels":{
-                "0":{"$SpriteFrameKeyframe":"","Id":{"name":"16d725dc-7c13-401c-bfd9-88be61f43f46","path":"sprites/pixTerrainGravel/pixTerrainGravel.yy",},"resourceType":"SpriteFrameKeyframe","resourceVersion":"2.0",},
-              },"Disabled":false,"id":"e67577d2-2a8a-4dc5-a7a1-efe6bb4a8a33","IsCreationKey":false,"Key":0.0,"Length":1.0,"resourceType":"Keyframe<SpriteFrameKeyframe>","resourceVersion":"2.0","Stretch":false,},
-            {"$Keyframe<SpriteFrameKeyframe>":"","Channels":{
-                "0":{"$SpriteFrameKeyframe":"","Id":{"name":"6a6e0ee3-fc30-4ce4-9048-c7a98bc90e07","path":"sprites/pixTerrainGravel/pixTerrainGravel.yy",},"resourceType":"SpriteFrameKeyframe","resourceVersion":"2.0",},
-              },"Disabled":false,"id":"9fe85ba9-9946-4f06-88f5-a56e77b39a5d","IsCreationKey":false,"Key":1.0,"Length":1.0,"resourceType":"Keyframe<SpriteFrameKeyframe>","resourceVersion":"2.0","Stretch":false,},
-            {"$Keyframe<SpriteFrameKeyframe>":"","Channels":{
-                "0":{"$SpriteFrameKeyframe":"","Id":{"name":"a4fc068c-96b4-419a-a721-cc47c2eeb780","path":"sprites/pixTerrainGravel/pixTerrainGravel.yy",},"resourceType":"SpriteFrameKeyframe","resourceVersion":"2.0",},
-              },"Disabled":false,"id":"c16c4685-43c0-45fc-a227-be008598b0b8","IsCreationKey":false,"Key":2.0,"Length":1.0,"resourceType":"Keyframe<SpriteFrameKeyframe>","resourceVersion":"2.0","Stretch":false,},
-            {"$Keyframe<SpriteFrameKeyframe>":"","Channels":{
-                "0":{"$SpriteFrameKeyframe":"","Id":{"name":"1710dbb4-b6e2-4eb9-8a3e-957f6aa7004e","path":"sprites/pixTerrainGravel/pixTerrainGravel.yy",},"resourceType":"SpriteFrameKeyframe","resourceVersion":"2.0",},
-              },"Disabled":false,"id":"2d1ed736-c463-48e0-b575-fa26ec9204b7","IsCreationKey":false,"Key":3.0,"Length":1.0,"resourceType":"Keyframe<SpriteFrameKeyframe>","resourceVersion":"2.0","Stretch":false,},
-            {"$Keyframe<SpriteFrameKeyframe>":"","Channels":{
-                "0":{"$SpriteFrameKeyframe":"","Id":{"name":"571fe9b8-cdae-466e-8302-1fbf1e4ad1f7","path":"sprites/pixTerrainGravel/pixTerrainGravel.yy",},"resourceType":"SpriteFrameKeyframe","resourceVersion":"2.0",},
-              },"Disabled":false,"id":"3ffdab77-5358-46f8-98e7-5813f7eefd42","IsCreationKey":false,"Key":4.0,"Length":1.0,"resourceType":"Keyframe<SpriteFrameKeyframe>","resourceVersion":"2.0","Stretch":false,},
-            {"$Keyframe<SpriteFrameKeyframe>":"","Channels":{
-                "0":{"$SpriteFrameKeyframe":"","Id":{"name":"c6c97ff5-2047-44a2-b557-d5660d6bac7b","path":"sprites/pixTerrainGravel/pixTerrainGravel.yy",},"resourceType":"SpriteFrameKeyframe","resourceVersion":"2.0",},
-              },"Disabled":false,"id":"a7292f3d-6153-4fa4-83e5-b5543b7b8619","IsCreationKey":false,"Key":5.0,"Length":1.0,"resourceType":"Keyframe<SpriteFrameKeyframe>","resourceVersion":"2.0","Stretch":false,},
-            {"$Keyframe<SpriteFrameKeyframe>":"","Channels":{
-                "0":{"$SpriteFrameKeyframe":"","Id":{"name":"af4779bd-8112-4c87-90ae-8a77f8dc37e1","path":"sprites/pixTerrainGravel/pixTerrainGravel.yy",},"resourceType":"SpriteFrameKeyframe","resourceVersion":"2.0",},
-              },"Disabled":false,"id":"8ad46b17-61ff-4f33-b7e9-e8f9512784fe","IsCreationKey":false,"Key":6.0,"Length":1.0,"resourceType":"Keyframe<SpriteFrameKeyframe>","resourceVersion":"2.0","Stretch":false,},
-            {"$Keyframe<SpriteFrameKeyframe>":"","Channels":{
-                "0":{"$SpriteFrameKeyframe":"","Id":{"name":"5700115e-5438-4c54-9241-2129ee6bfbc2","path":"sprites/pixTerrainGravel/pixTerrainGravel.yy",},"resourceType":"SpriteFrameKeyframe","resourceVersion":"2.0",},
-              },"Disabled":false,"id":"36494a9a-7dec-4e9e-8ef0-0996811819ce","IsCreationKey":false,"Key":7.0,"Length":1.0,"resourceType":"Keyframe<SpriteFrameKeyframe>","resourceVersion":"2.0","Stretch":false,},
-            {"$Keyframe<SpriteFrameKeyframe>":"","Channels":{
-                "0":{"$SpriteFrameKeyframe":"","Id":{"name":"06d417ab-4671-471e-8d05-3b796e8f3c9f","path":"sprites/pixTerrainGravel/pixTerrainGravel.yy",},"resourceType":"SpriteFrameKeyframe","resourceVersion":"2.0",},
-              },"Disabled":false,"id":"d07a09f0-8223-4dd7-9f90-50e30bac6683","IsCreationKey":false,"Key":8.0,"Length":1.0,"resourceType":"Keyframe<SpriteFrameKeyframe>","resourceVersion":"2.0","Stretch":false,},
-            {"$Keyframe<SpriteFrameKeyframe>":"","Channels":{
-                "0":{"$SpriteFrameKeyframe":"","Id":{"name":"07bec075-9841-4382-9292-2e2b9df673a9","path":"sprites/pixTerrainGravel/pixTerrainGravel.yy",},"resourceType":"SpriteFrameKeyframe","resourceVersion":"2.0",},
-              },"Disabled":false,"id":"31eef80e-1c7d-44e3-8dd8-f24932bb394e","IsCreationKey":false,"Key":9.0,"Length":1.0,"resourceType":"Keyframe<SpriteFrameKeyframe>","resourceVersion":"2.0","Stretch":false,},
-            {"$Keyframe<SpriteFrameKeyframe>":"","Channels":{
-                "0":{"$SpriteFrameKeyframe":"","Id":{"name":"bc42b51a-e1e2-43fc-afd6-aeedfdc57c3e","path":"sprites/pixTerrainGravel/pixTerrainGravel.yy",},"resourceType":"SpriteFrameKeyframe","resourceVersion":"2.0",},
-              },"Disabled":false,"id":"d31cc8ad-c3be-4e81-9c27-9a938b61bc3c","IsCreationKey":false,"Key":10.0,"Length":1.0,"resourceType":"Keyframe<SpriteFrameKeyframe>","resourceVersion":"2.0","Stretch":false,},
-            {"$Keyframe<SpriteFrameKeyframe>":"","Channels":{
-                "0":{"$SpriteFrameKeyframe":"","Id":{"name":"c4251ed5-ef5a-48ab-99c8-50f1f44e24fd","path":"sprites/pixTerrainGravel/pixTerrainGravel.yy",},"resourceType":"SpriteFrameKeyframe","resourceVersion":"2.0",},
-              },"Disabled":false,"id":"59320274-cb92-4b23-bfab-7e948f546e1e","IsCreationKey":false,"Key":11.0,"Length":1.0,"resourceType":"Keyframe<SpriteFrameKeyframe>","resourceVersion":"2.0","Stretch":false,},
-            {"$Keyframe<SpriteFrameKeyframe>":"","Channels":{
-                "0":{"$SpriteFrameKeyframe":"","Id":{"name":"6c2b6d58-6ced-46a1-8581-94d24d44f1b9","path":"sprites/pixTerrainGravel/pixTerrainGravel.yy",},"resourceType":"SpriteFrameKeyframe","resourceVersion":"2.0",},
-              },"Disabled":false,"id":"bc5e5647-0fb9-434b-ba57-70f73977b1cf","IsCreationKey":false,"Key":12.0,"Length":1.0,"resourceType":"Keyframe<SpriteFrameKeyframe>","resourceVersion":"2.0","Stretch":false,},
-            {"$Keyframe<SpriteFrameKeyframe>":"","Channels":{
-                "0":{"$SpriteFrameKeyframe":"","Id":{"name":"cbaa37b7-a6a6-4bb3-b9af-265d14f7a891","path":"sprites/pixTerrainGravel/pixTerrainGravel.yy",},"resourceType":"SpriteFrameKeyframe","resourceVersion":"2.0",},
-              },"Disabled":false,"id":"bb9d2840-7c21-4fd2-a4af-90cae62cdebb","IsCreationKey":false,"Key":13.0,"Length":1.0,"resourceType":"Keyframe<SpriteFrameKeyframe>","resourceVersion":"2.0","Stretch":false,},
-            {"$Keyframe<SpriteFrameKeyframe>":"","Channels":{
-                "0":{"$SpriteFrameKeyframe":"","Id":{"name":"b801b154-b150-4ffa-86b7-2c3c1edf867e","path":"sprites/pixTerrainGravel/pixTerrainGravel.yy",},"resourceType":"SpriteFrameKeyframe","resourceVersion":"2.0",},
-              },"Disabled":false,"id":"3110e8a6-e50f-4cad-9eb3-f01240eae939","IsCreationKey":false,"Key":14.0,"Length":1.0,"resourceType":"Keyframe<SpriteFrameKeyframe>","resourceVersion":"2.0","Stretch":false,},
-            {"$Keyframe<SpriteFrameKeyframe>":"","Channels":{
-                "0":{"$SpriteFrameKeyframe":"","Id":{"name":"9886a820-b670-4573-b45d-09c8f177a251","path":"sprites/pixTerrainGravel/pixTerrainGravel.yy",},"resourceType":"SpriteFrameKeyframe","resourceVersion":"2.0",},
-              },"Disabled":false,"id":"d4ba881e-28e3-4f4b-b5ed-37d628f34135","IsCreationKey":false,"Key":15.0,"Length":1.0,"resourceType":"Keyframe<SpriteFrameKeyframe>","resourceVersion":"2.0","Stretch":false,},
+                "0":{"$SpriteFrameKeyframe":"","Id":{"name":"a1f1095b-044d-4830-8d76-cd03f47bcfdd","path":"sprites/pixTerrainGravel/pixTerrainGravel.yy",},"resourceType":"SpriteFrameKeyframe","resourceVersion":"2.0",},
+              },"Disabled":false,"id":"6738d137-2af0-45f5-8178-6ac9c014379b","IsCreationKey":false,"Key":0.0,"Length":1.0,"resourceType":"Keyframe<SpriteFrameKeyframe>","resourceVersion":"2.0","Stretch":false,},
           ],"resourceType":"KeyframeStore<SpriteFrameKeyframe>","resourceVersion":"2.0",},"modifiers":[],"name":"frames","resourceType":"GMSpriteFramesTrack","resourceVersion":"2.0","spriteId":null,"trackColour":0,"tracks":[],"traits":0,},
     ],
     "visibleRange":null,
@@ -146,5 +86,5 @@
   },
   "type":0,
   "VTile":false,
-  "width":128,
+  "width":2048,
 }

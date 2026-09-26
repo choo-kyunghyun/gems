@@ -4,8 +4,8 @@
  * biome.
  */
 globalThis.contentBiomes = {
-  // Terrain materials by id; a biome profile supplies each one's band position. `sprite` is the
-  // untinted dual-grid tileset; `color` is a design-reference tint, not drawn. `pathCost` is the
+  // Terrain materials by id; a biome profile supplies each one's band position. `tileset` is the
+  // untinted dual-grid tile set; `color` is a design-reference tint, not drawn. `pathCost` is the
   // weighted movement cost for both pathfinding and movement speed (null = impassable).
   // Shallow water wades at 3 but is not `spawnable`.
   MATERIALS: {
@@ -13,14 +13,14 @@ globalThis.contentBiomes = {
     deepwater: {
       name: "Deep Water",
       color: "#3e5870",
-      sprite: pixTerrainDeepWater,
+      tileset: tsDeepWater,
       wave: "#285cc4",
       pathCost: null,
     },
     water: {
       name: "Water",
       color: "#2e6b8f",
-      sprite: pixTerrainWater,
+      tileset: tsWater,
       wave: "#249fde",
       pathCost: 3,
       spawnable: false,
@@ -28,19 +28,19 @@ globalThis.contentBiomes = {
     sand: {
       name: "Sand",
       color: "#c2a878",
-      sprite: pixTerrainSand,
+      tileset: tsSand,
       pathCost: 1.5,
     },
     mud: {
       name: "Mud",
       color: "#605444",
-      sprite: pixTerrainMud,
+      tileset: tsMud,
       pathCost: 2,
     },
     soil: {
       name: "Soil",
       color: "#8c7558",
-      sprite: pixTerrainSoil,
+      tileset: tsSoil,
       clutter: [
         {
           sprite: pixGrassWeeds,
@@ -57,17 +57,17 @@ globalThis.contentBiomes = {
     richsoil: {
       name: "Rich Soil",
       color: "#6e5840",
-      sprite: pixTerrainRichSoil,
+      tileset: tsRichSoil,
       pathCost: 1,
     },
     // `clump` grows a volume layer dense enough to carry the green itself over the soil sheet,
-    // so grass needs no tileset of its own. `clutter` entries are sparse accents of the same
+    // so grass needs no tile set of its own. `clutter` entries are sparse accents of the same
     // shape plus `chance` (share of cells that carry any); a white-mask sheet takes a `tint`,
     // and `flat` lays an entry on the ground plane instead of standing it.
     grass: {
       name: "Grass",
       color: "#5d8a46",
-      sprite: pixTerrainSoil,
+      tileset: tsSoil,
       clump: {
         sprite: pixGrass,
         tint: "#328464", // the sheet is a white mask, so this is the field's green
@@ -94,19 +94,19 @@ globalThis.contentBiomes = {
     lawn: {
       name: "Lawn",
       color: "#328464",
-      sprite: pixTerrainLawn,
+      tileset: tsLawn,
       pathCost: 1,
     },
     gravel: {
       name: "Gravel",
       color: "#858178",
-      sprite: pixTerrainGravel,
+      tileset: tsGravel,
       pathCost: 1.5,
     },
     rocky: {
       name: "Rocky",
       color: "#76746e",
-      sprite: pixTerrainRocky,
+      tileset: tsRocky,
       pathCost: 2,
     },
   },

@@ -31,12 +31,6 @@ const _BLOB8 = [
  * @property {View} [camera] - draw and bake only the chunks its view reaches (default: all)
  * @property {number} [alpha]
  * @property {number} [color]
- * @property {number} [minId] - "dual" only: a cell counts as filled iff its TileType id is at least
- *   this, so ordered ids let one layer render as a cumulative material stack.
- * @property {number} [skipAbove] - "dual" only: skip a display tile the next material covers
- *   whole, so a stack costs about one grid's quads, not one per material.
- * @property {{r: number, g: number, b: number, time: function(): number}} [wave] - a flowing
- *   material's crest tone (0..1 floats), drifting on a sim clock so it freezes on pause. Lit only.
  */
 
 /**
@@ -59,10 +53,6 @@ globalThis.RenderTileMap = class RenderTileMap {
     this._win = { x0: 0, y0: 0, x1: 0, y1: 0 }; // the chunks in view this frame
     this.camera = opt.camera;
     this.lights = opt.lights; // unset = unlit
-    this.wave = opt.wave;
-    // 0 accepts any TileType, so a single-material dual layer is plain occupancy
-    this.minId = opt.minId ?? 0;
-    this.skipAbove = opt.skipAbove;
     this.match = opt.match;
 
     const mode = opt.autotile ?? 0;
@@ -153,9 +143,9 @@ globalThis.RenderTileMap = class RenderTileMap {
 
   /**
    * Dual grid: a display tile centered on each data-grid corner, its frame the corner mask of the
-   * four cells around it (TL=1 TR=2 BR=4 BL=8) — a cell counting when its TileType id is at least
-   * `minId`, and off-grid reading empty so a level edge fades out rather than tiling past itself.
-   * The cells are read off the layer's ids, never a call per corner.
+   * four cells around it (TL=1 TR=2 BR=4 BL=8) — a cell counting when it holds any TileType, and
+   * off-grid reading empty so a level edge fades out rather than tiling past itself. The cells are
+   * read off the layer's ids, never a call per corner.
    */
   _bakeDual(batch, r) {
     const { layer, grid, sprite } = this;
@@ -163,9 +153,6 @@ globalThis.RenderTileMap = class RenderTileMap {
     const hw = cellWidth * 0.5;
     const hh = cellHeight * 0.5;
     const d = layer.ids.data;
-    const lo = this.minId > 1 ? this.minId : 1; // an empty cell (0) never fills
-    const skip = this.skipAbove;
-    const hi = skip === undefined ? Infinity : skip > 1 ? skip : 1;
     for (let j = r.y0; j < r.y1; j++) {
       const up = (j - 1) * cols;
       const dn = j * cols;
@@ -175,12 +162,11 @@ globalThis.RenderTileMap = class RenderTileMap {
         const br = i < cols ? (j < rows ? d[dn + i] : 0) : 0;
         const bl = i > 0 ? (j < rows ? d[dn + i - 1] : 0) : 0;
         let mask = 0;
-        if (tl >= lo) mask |= 1;
-        if (tr >= lo) mask |= 2;
-        if (br >= lo) mask |= 4;
-        if (bl >= lo) mask |= 8;
+        if (tl !== 0) mask |= 1;
+        if (tr !== 0) mask |= 2;
+        if (br !== 0) mask |= 4;
+        if (bl !== 0) mask |= 8;
         if (mask === 0) continue;
-        if (tl >= hi) if (tr >= hi) if (br >= hi) if (bl >= hi) continue;
         batch.addFrame(
           sprite,
           mask,
@@ -210,12 +196,6 @@ globalThis.RenderTileMap = class RenderTileMap {
       this.lights.setupLights(entities);
       shader_set_uniform_f(this.lights.uUseTex, 1);
       shader_set_uniform_f(this.lights.uNormal, 0, 0, -1);
-      const wave = this.wave;
-      if (wave !== undefined) {
-        shader_set_uniform_f(this.lights.uWave, 1);
-        shader_set_uniform_f(this.lights.uWaveColor, wave.r, wave.g, wave.b);
-        shader_set_uniform_f(this.lights.uTime, wave.time());
-      }
     }
     const batches = this._batches;
     for (let cy = w.y0; cy < w.y1; cy++)

@@ -180,7 +180,7 @@ globalThis.ColonyLevel = {
       rows.push({
         name: mats[i].type.name,
         pathCost: mats[i].type.pathCost,
-        sprite: sprite_get_name(mats[i].sprite),
+        tileset: tileset_get_name(mats[i].tileset),
         material: mats[i].material,
       });
     return rows;
@@ -188,8 +188,9 @@ globalThis.ColonyLevel = {
 
   /**
    * Terrain TileTypes for a material table, id = index + 1 (0 is an empty cell); the order is the
-   * paint order, so render passes can threshold on the id. `defs` is a generator palette (sprite
-   * refs) or saved rows (sprite names). Returns `{ types, mats }`.
+   * paint order, so render passes can threshold on the id. `defs` is a generator palette (tile set
+   * refs) or saved rows (tile set names, undefined once the asset is gone). Returns
+   * `{ types, mats }`.
    */
   _terrainTypes(defs) {
     const types = [];
@@ -202,9 +203,14 @@ globalThis.ColonyLevel = {
         pathCost: d.pathCost,
       });
       types.push(type);
-      const sprite =
-        typeof d.sprite === "string" ? asset_get_index(d.sprite) : d.sprite;
-      mats.push({ type: type, sprite: sprite, material: d.material ?? d.id });
+      // BUG: a gone name is told by the index alone, as asset_get_type never answers asset_tiles
+      // for a tile set (docs/GMRT.md)
+      const found = typeof d.tileset === "string" ? asset_get_index(d.tileset) : d.tileset;
+      mats.push({
+        type: type,
+        tileset: found === -1 ? undefined : found,
+        material: d.material ?? d.id,
+      });
     }
     return { types: types, mats: mats };
   },

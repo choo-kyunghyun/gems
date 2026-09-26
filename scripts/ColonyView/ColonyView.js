@@ -129,33 +129,31 @@ globalThis.ColonyView = {
   },
 
   /**
-   * The generated ground under everything. A biome's materials stack as one dual-grid pass per
-   * material, lowest first: an upper material's transparent corners reveal the one below, the
-   * A-over-B transition the sets are drawn for. `skipAbove` drops the quads the next material
-   * covers whole, so no material draws its full extent under the ones above.
+   * The generated ground under everything: a biome's materials stacked lowest first, an upper
+   * material's transparent corners revealing the one below — the A-over-B transition the tile sets
+   * are drawn for.
    */
   _ground(ctx) {
     const level = ctx.level;
     const rt = ctx.rt;
     const mats = rt.terrainMats;
     if (mats === undefined) return;
+    const stack = [];
     for (let i = 0; i < mats.length; i++) {
-      const spr = mats[i].sprite;
-      if (!sprite_exists(spr)) {
-        // a saved row whose art is gone since
-        Log.warn(`terrain sprite missing: ${mats[i].material}`);
+      if (mats[i].tileset === undefined) {
+        // a saved row whose tile set is gone since
+        Log.warn(`terrain tile set missing: ${mats[i].material}`);
         continue;
       }
-      const pass = new RenderTileMap(rt.terrainLayer, level.grid, spr, {
-        autotile: "dual",
-        minId: mats[i].type.id,
-        skipAbove: i < mats.length - 1 ? mats[i + 1].type.id : undefined,
+      stack.push({
+        type: mats[i].type,
+        tileset: mats[i].tileset,
         wave: ColonyView._wave(mats[i].material),
-        camera: ctx.camera,
       });
-      ctx.lit.push(pass);
-      ctx.renderer.insert(pass);
     }
+    const pass = new RenderTerrain(rt.terrainLayer, level.grid, stack);
+    ctx.lit.push(pass);
+    ctx.renderer.insert(pass);
     // Upright grass clumps enter the depth pool over the finished ground, before the entities.
     const profile = contentBiomes.BIOMES[level.entities.get(level.self, ColonyMap.BIOME)];
     const cdefs = ColonyView._clumpDefs(mats, profile);
@@ -377,8 +375,11 @@ globalThis.ColonyView = {
         x: sp.x,
         y: sp.y,
         pitch: (pitch * Math.PI) / 180, // frame-0 seed; the curve overwrites it
-        // the default eye distance near-clips close ground at steep pitch
-        dist: 8000,
+        // the eye at the look-at, the near plane behind it: a tile map culls around the eye
+        // (docs/GMRT.md), and nothing on screen is then clipped
+        dist: 1,
+        znear: -32000,
+        zfar: 32000,
         zoom: baseZoom,
       });
     }

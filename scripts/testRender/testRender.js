@@ -391,4 +391,52 @@ Test.register(Test.CHECK, [
       ctx.level.destroy();
     },
   },
+  {
+    // a corner's tile is its cells' mask per material, none where the next material covers it
+    // whole; a stack's tile maps hold them and follow a write on the next sync. The mask case's
+    // tile set has two tiles and a tile map keeps no index past its set, so the maps are read at
+    // 0 and 1 only
+    id: "render.terrain",
+    setup(ctx) {
+      Object.assign(ctx, Test.level(3, 3));
+      Test.types(ctx);
+      const layer = ctx.layer;
+      for (let y = 0; y < 3; y++) for (let x = 0; x < 3; x++) layer.set(x, y, ctx.rock);
+      for (let y = 0; y < 2; y++) for (let x = 0; x < 2; x++) layer.set(x, y, ctx.mud);
+      ctx.pass = new RenderTerrain(layer, ctx.grid, [
+        { type: ctx.rock, tileset: tsMask },
+        { type: ctx.mud, tileset: tsMask },
+      ]);
+    },
+    verify(ctx, t) {
+      const tile = RenderTerrain.tile;
+      t.eq(tile(2, 2, 2, 2, 1, 2), 0, "a corner the next material covers whole takes no tile");
+      t.eq(tile(2, 2, 2, 2, 2, Infinity), 15, "the covering material takes the whole tile");
+      t.eq(tile(2, 1, 2, 1, 1, 2), 15, "a corner the next material covers in part keeps its tile");
+      t.eq(tile(2, 1, 2, 1, 2, Infinity), 5, "the corner bits are TL=1 TR=2 BL=4 BR=8");
+      t.eq(tile(0, 1, 0, 0, 2, Infinity), 0, "a material under its id takes nothing");
+
+      const pass = ctx.pass;
+      const at = (k, i, j) => tile_get_index(tilemap_get(pass._maps[k], i, j));
+      pass.sync();
+      t.eq(at(0, 1, 1), 0, "the lower map skips the covered corner");
+      t.eq(at(0, 3, 3), 1, "the far corner line reads its one cell, off-grid empty");
+      t.eq(at(1, 3, 3), 0, "the upper map leaves it to the lower");
+      ctx.layer.clear(2, 2);
+      pass.sync();
+      t.eq(at(0, 3, 3), 0, "a write reaches its corners by the next sync");
+      let threw = false;
+      try {
+        const g = new LevelGrid({ cellWidth: 64, cellHeight: 64, cols: 2, rows: 2 });
+        new RenderTerrain(new TileLayer(g), g, [{ type: ctx.rock, tileset: tsMask }]).destroy();
+      } catch (e) {
+        threw = true;
+      }
+      t.ok(threw, "a tile other than the grid's cell throws");
+    },
+    teardown(ctx) {
+      ctx.pass.destroy();
+      ctx.level.destroy();
+    },
+  },
 ]);

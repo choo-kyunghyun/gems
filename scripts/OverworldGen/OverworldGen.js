@@ -123,7 +123,7 @@ globalThis.OverworldGen = {
     const e = {
       id: id,
       name: m.name,
-      sprite: m.sprite,
+      tileset: m.tileset,
       color: m.color,
       pathCost: m.pathCost,
     };
