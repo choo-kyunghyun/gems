@@ -1,6 +1,6 @@
 // The root registry: update() runs topmost-first (a later root blocks earlier), draw() in order.
 globalThis.UI = {
-  roots: [],
+  roots: [], // replaced on every insert/remove, never mutated, as a walk reads the one it began with
 
   // the app's widget cues, injected; -1 stays silent
   sounds: {
@@ -30,7 +30,9 @@ globalThis.UI = {
 
   insert(root, index = UI.roots.length, enabled = true) {
     root.enabled = enabled;
-    UI.roots.splice(index, 0, root);
+    const roots = UI.roots.slice();
+    roots.splice(index, 0, root);
+    UI.roots = roots;
     // THE LAYOUT GUARANTEE: layout reads are NaN until the first layout pass, so a root is laid
     // out at registration, at the end of update and before draw — components carry NO per-widget
     // NaN guards. The one residual path, a subtree inserted mid-update into a not-yet-traversed
@@ -43,7 +45,9 @@ globalThis.UI = {
   remove(root) {
     const index = UI.roots.indexOf(root);
     if (index > -1) {
-      UI.roots.splice(index, 1);
+      const roots = UI.roots.slice();
+      roots.splice(index, 1);
+      UI.roots = roots;
       return true;
     }
     return false;
@@ -76,9 +80,11 @@ globalThis.UI = {
    */
   update() {
     let block = false;
-    [...UI.roots].reverse().forEach((root) => {
+    const roots = UI.roots;
+    for (let i = roots.length - 1; i >= 0; i--) {
+      const root = roots[i];
       if (root.enabled) block = root.update(block) || block;
-    });
+    }
     if (block) Input.claimPointer();
   },
 

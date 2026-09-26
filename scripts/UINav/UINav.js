@@ -69,10 +69,7 @@ globalThis.UINav = {
       return;
     }
 
-    const items = UINav._collect();
-    if (UINav.focused !== null && UINav._indexOf(items, UINav.focused) === -1) {
-      UINav.focused = null;
-    }
+    if (UINav.focused !== null && !UINav._reachable(UINav.focused)) UINav.focused = null;
 
     if (Input.pointer.moved) UINav.engaged = false;
 
@@ -85,6 +82,8 @@ globalThis.UINav = {
       if (taken ? true : UINav.back()) UINav._spend(ev);
       return;
     }
+    // walked only for an event that needs it, as an idle frame checks the focus alone
+    const items = UINav._collect();
     if (items.length === 0) return;
 
     // the first nav input only engages, never also acts
@@ -264,6 +263,24 @@ globalThis.UINav = {
       if (UINav._exclusive(r)) break;
     }
     return out;
+  },
+
+  /** Whether `_collect` would gather `el`, found up its own ancestors rather than by a walk. */
+  _reachable(el) {
+    if (el._destroyed) return false;
+    if (!UINav._focusable(el) || !UINav._visible(el)) return false;
+    let root = el;
+    while (root.parent !== null) {
+      if (!root.enabled) return false;
+      root = root.parent;
+    }
+    if (!root.enabled) return false;
+    for (let i = UI.roots.length - 1; i >= 0; i--) {
+      const r = UI.roots[i];
+      if (r === root) return true;
+      if (r.enabled ? UINav._exclusive(r) : false) return false;
+    }
+    return false;
   },
 
   _exclusive(el) {

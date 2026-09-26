@@ -489,6 +489,57 @@ Test.register(Test.CHECK, [
     },
   },
   {
+    // an idle frame drops a focus the walk would no longer gather — hidden, under a hidden
+    // parent or root, behind an exclusive root, unregistered or destroyed — and keeps one it would
+    id: "ui.navReach",
+    setup(ctx) {
+      Test.ui(ctx);
+      ctx.btn = new UIElement({ width: 100, height: 40 }).addComponent(new UIButton());
+      ctx.group = new UIElement();
+      ctx.group.insertChild(ctx.btn);
+      ctx.root = new UIElement({ flexDirection: "column" });
+      ctx.root.insertChild(ctx.group);
+      ctx.cover = new UIElement({ width: 10, height: 10 });
+      ctx.cover.addComponent({ navExclusive: () => true });
+      UI.insert(ctx.root);
+      UI.insert(ctx.cover, UI.roots.length, false);
+    },
+    verify(ctx, t) {
+      const btn = ctx.btn;
+      const check = (hides, msg) => {
+        UINav.focused = btn;
+        Test.uiFrame(ctx, []);
+        const walked = UINav._indexOf(UINav._collect(), btn) !== -1;
+        t.ok(walked === !hides, msg + ": the walk");
+        t.ok((UINav.focused === btn) === !hides, msg + ": the focus");
+      };
+      check(false, "a shown focus");
+      btn.enabled = false;
+      check(true, "a hidden focus");
+      btn.enabled = true;
+      ctx.group.enabled = false;
+      check(true, "a hidden parent");
+      ctx.group.enabled = true;
+      UI.setEnabled(ctx.root, false);
+      check(true, "a hidden root");
+      UI.setEnabled(ctx.root, true);
+      UI.setEnabled(ctx.cover, true);
+      check(true, "an exclusive root above");
+      UI.setEnabled(ctx.cover, false);
+      check(false, "an exclusive root hidden");
+      UI.remove(ctx.root);
+      check(true, "an unregistered root");
+      UI.insert(ctx.root, 0);
+      check(false, "a registered root");
+      ctx.group.removeChild(btn);
+      btn.destroy();
+      check(true, "a destroyed focus");
+    },
+    teardown(ctx) {
+      Test.uiRestore(ctx);
+    },
+  },
+  {
     // the nearest focusable along the axis wins, a full-width row hands Down to the first in
     // visual order, a disabled item is never collected, and past an edge nothing is picked, not
     // even a wider row whose center lies that way
@@ -974,4 +1025,83 @@ Test.register(Test.CHECK, [
       for (let i = ctx.els.length - 1; i >= 0; i--) ctx.els[i].destroy();
     },
   },
+  // perf.ui: a GUI frame's fixed costs over a tree of labelled buttons, gross — `ui.update` per
+  // node, `nav.idle` (a frame with a focus and no input) and `nav.collect` (the focus walk) per
+  // focusable, `ui.rect` per layout read. `children.copy` against `children.loop` is the tree
+  // walk's per-child step, a copied reversed array against a reverse index loop.
+  {
+    id: "perf.ui",
+    setup(ctx) {
+      Test.ui(ctx);
+      ctx.buttons = [];
+      const root = new UIElement({ flexDirection: "column" });
+      for (let i = 0; i < UI_BUTTONS; i++) {
+        const b = new UIElement({ width: 200, height: 8 })
+          .addComponent(new UIPanel())
+          .addComponent(new UIButton());
+        b.insertChild(new UIElement().addComponent(new UIText({ textRef: () => "x" })));
+        root.insertChild(b);
+        ctx.buttons.push(b);
+      }
+      ctx.nodes = 1 + UI_BUTTONS * 2;
+      UI.insert(root);
+      UI.update(); // settles each label's measured size
+      UINav.focused = ctx.buttons[0];
+      UINav.engaged = true;
+      ctx.lists = [];
+      for (let k = 0; k < UI_BUTTONS; k++) {
+        const list = [];
+        for (let i = 0; i < 8; i++) list.push({ v: i });
+        ctx.lists.push(list);
+      }
+    },
+    verify(ctx, t) {
+      const frames = 20;
+      const none = () => 0;
+      t.measure("ui.update", frames * ctx.nodes, none, () => {
+        for (let f = 0; f < frames; f++) UI.update();
+        return UI.roots.length;
+      });
+      t.measure("nav.idle", frames * UI_BUTTONS, none, () => {
+        for (let f = 0; f < frames; f++) UINav.update();
+        return UINav.focused;
+      });
+      t.measure("nav.collect", frames * UI_BUTTONS, none, () => {
+        let s = 0;
+        for (let f = 0; f < frames; f++) s += UINav._collect().length;
+        return s;
+      });
+      const buttons = ctx.buttons;
+      t.measure("ui.rect", frames * UI_BUTTONS, none, () => {
+        let s = 0;
+        for (let f = 0; f < frames; f++)
+          for (let i = 0; i < buttons.length; i++) s += buttons[i].getLayoutPosition().top;
+        return s;
+      });
+      const lists = ctx.lists;
+      const n = lists.length * 8;
+      t.measure("children.copy", n, none, () => {
+        let s = 0;
+        for (let k = 0; k < lists.length; k++)
+          [...lists[k]].reverse().forEach((c) => {
+            s += c.v;
+          });
+        return s;
+      });
+      t.measure("children.loop", n, none, () => {
+        let s = 0;
+        for (let k = 0; k < lists.length; k++) {
+          const list = lists[k];
+          for (let i = list.length - 1; i >= 0; i--) s += list[i].v;
+        }
+        return s;
+      });
+      t.ok(UINav.focused === buttons[0], "an idle nav keeps its focus");
+    },
+    teardown(ctx) {
+      Test.uiRestore(ctx);
+    },
+  },
 ]);
+
+const UI_BUTTONS = 100; // perf.ui's tree: one labelled button per row

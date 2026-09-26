@@ -31,6 +31,8 @@ globalThis.UIElement = class UIElement {
     this.flexpanel = flexpanel_create_node(style);
     this.direction = flexpanel_direction.LTR;
     this.parent = null;
+    // replaced on every insert/remove, never mutated, so a walk over the array it began with sees
+    // the tree as it was
     this.children = [];
     this.components = [];
     /** @type {UIState} */
@@ -77,9 +79,8 @@ globalThis.UIElement = class UIElement {
     for (const component of this.components) {
       if (component.onDestroy) component.onDestroy(this);
     }
-    [...this.children].reverse().forEach((element) => {
-      element.destroy();
-    });
+    const kids = this.children;
+    for (let i = kids.length - 1; i >= 0; i--) kids[i].destroy();
     if (this.parent !== null) this.parent.removeChild(this);
     flexpanel_delete_node(this.flexpanel, false);
   }
@@ -96,9 +97,11 @@ globalThis.UIElement = class UIElement {
       insideClip = this.positionMeeting(mx, my);
       if (!insideClip) childBlock = true;
     }
-    [...this.children].reverse().forEach((child) => {
+    const kids = this.children;
+    for (let i = kids.length - 1; i >= 0; i--) {
+      const child = kids[i];
       if (child.enabled) childBlock = child.update(childBlock) || childBlock;
-    });
+    }
     // a descendant's onUpdate may destroy this element mid-traversal.
     if (this._destroyed) return block;
     // don't propagate the forced block from out-of-viewport children.
@@ -185,7 +188,9 @@ globalThis.UIElement = class UIElement {
   insertChild(element, index = this.children.length) {
     if (element.parent !== null) element.parent.removeChild(element);
     element.parent = this;
-    this.children.splice(index, 0, element);
+    const kids = this.children.slice();
+    kids.splice(index, 0, element);
+    this.children = kids;
     flexpanel_node_insert_child(this.flexpanel, element.flexpanel, index);
     this.markDirty();
     return this;
@@ -194,7 +199,9 @@ globalThis.UIElement = class UIElement {
   removeChild(element) {
     const index = this.children.indexOf(element);
     if (index > -1) {
-      this.children.splice(index, 1);
+      const kids = this.children.slice();
+      kids.splice(index, 1);
+      this.children = kids;
       flexpanel_node_remove_child(this.flexpanel, element.flexpanel);
       element.parent = null;
       this.markDirty();
