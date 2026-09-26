@@ -195,8 +195,8 @@ and are cited from here, never restated):
     - The RAREST token LEADS the token list, since the lead's carrier list is what a walk visits (a
       marker joins the query, never a `has` filter after it).
     - One match wants `first(...)`, not `query(...)[0]`.
-    - Geometry in a pair sweep writes into a caller-owned `AABB.rect()` scratch through
-      `at`/`ofInto` rather than allocating per test.
+    - Geometry in a pair sweep writes into a caller-owned scratch rect rather than allocating
+      per test.
     - A collector writes through a reused buffer (`buf[w++] = id`, then `length = w`), never a
       fresh array per tick.
     - Anything loop-invariant (a `Map` lookup, a `this.` chain, a class static) is hoisted out of
@@ -218,12 +218,9 @@ and are cited from here, never restated):
   frames (a built entity in `Build`'s build record, a `Window` page's `target`) validates it
   through `entities.isValid` before every use, and no id ever crosses a map — it names a slot in
   one store. Markers are components, not tag strings.
-- AABB convention: every collision/geometry consumer derives world-space edges through
-  `AABB.at(pos, box, out)` / `AABB.of(entities, id)` — never inline `pos.x + box.x` (the
-  non-uniform BBox anchor lives in one place). The overlap test is `AABB.overlap`, except in a per-candidate
-  loop, which inlines it — the call is about twice the test (testRuntime perf.measured
-  `aabb.overlap`). The collision itself is the runtime's, over each collider's mirror instance
-  (`PuppetSystem`): a query, a cast or a move goes through `Puppet`/`Solid`, never a JS sweep.
+- Collision is the runtime's, over each collider's mirror instance (`PuppetSystem`): a query, a
+  cast or a move goes through `Puppet`/`Solid`, never a JS sweep. What only needs a box's
+  world-space edges reads them off Position + BBox (the anchor contract at `BBox`).
 - Injection idiom: a module stays model-agnostic by exposing a hook its consumer wires at scene
   setup — Core to Game (`RenderLighting`'s `ambient`, `UIQuestTracker`'s `source`) and, inside
   Game, a system to the scene that owns the stat model (`Combat.mitigate`,

@@ -29,7 +29,9 @@ globalThis.PathfindingSystem = {
     entities.forEach([Collision, Position, BBox], (id, col, pos, box) => {
       if (col.kinematic !== true) return;
       if (!col.solid) return;
-      statics.push(AABB.at(pos, box, AABB.rect()));
+      const x1 = pos.x + box.x;
+      const y1 = pos.y + box.y;
+      statics.push({ x1, y1, x2: x1 + box.width, y2: y1 + box.height });
     });
     return statics;
   },

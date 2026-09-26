@@ -56,17 +56,16 @@ globalThis.Progression = {
     Log.info(`quest complete: ${qid} — questsCompleted=${Tracker.count("questsCompleted")}`);
   },
 
-  _zone: AABB.rect(), // scratch
-
-  /** Per frame: a Reach region the player enters reports its target once and is removed. */
+  /** Per frame: a Reach region the player's mask enters reports its target once and is removed. */
   reach(level) {
     const entities = level.entities;
-    const pid = ColonyPlayer.id(entities);
-    if (pid === -1) return;
-    const p = AABB.of(entities, pid);
-    const zone = Progression._zone;
     entities.forEach([Reach, Position, BBox], (id, r, pos, box) => {
-      if (!AABB.overlap(p, AABB.at(pos, box, zone))) return;
+      const x1 = pos.x + box.x;
+      const y1 = pos.y + box.y;
+      const hit = Query.maskRect(entities, x1, y1, x1 + box.width, y1 + box.height, {
+        has: Playable,
+      });
+      if (hit.length === 0) return;
       entities.remove(id);
       Progression.report(entities, "reach", r.target, 1);
       Log.info(`reached ${r.target}`);

@@ -12,9 +12,10 @@ globalThis.Melee = {
    * @param {MeleeHitbox} hitbox
    */
   swing(entities, attackerId, facing, hitbox, damage) {
-    const a = AABB.of(entities, attackerId);
-    const cx = a.cx + (facing < 0 ? -hitbox.xoffset : hitbox.xoffset);
-    const cy = a.cy + hitbox.yoffset;
+    const pos = entities.require(attackerId, Position);
+    const box = entities.require(attackerId, BBox);
+    const cx = pos.x + box.x + box.width * 0.5 + (facing < 0 ? -hitbox.xoffset : hitbox.xoffset);
+    const cy = pos.y + box.y + box.height * 0.5 + hitbox.yoffset;
     const hw = hitbox.width * 0.5;
     const hh = hitbox.height * 0.5;
 

@@ -198,7 +198,6 @@
     {"id":{"name":"psMuzzle","path":"particles/psMuzzle/psMuzzle.yy",},},
     {"id":{"name":"psPortal","path":"particles/psPortal/psPortal.yy",},},
     {"id":{"name":"Room","path":"rooms/Room/Room.yy",},},
-    {"id":{"name":"AABB","path":"scripts/AABB/AABB.yy",},},
     {"id":{"name":"Achievement","path":"scripts/Achievement/Achievement.yy",},},
     {"id":{"name":"Ammo","path":"scripts/Ammo/Ammo.yy",},},
     {"id":{"name":"Anim","path":"scripts/Anim/Anim.yy",},},

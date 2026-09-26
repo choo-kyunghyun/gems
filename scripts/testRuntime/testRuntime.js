@@ -23,8 +23,7 @@ Test.register(Test.CHECK, [
   // A static-method call and an object literal each cost about a hundred plain reads, a hash
   // lookup a dozen: the rule for every hot loop is the cheap form in the paired row — an inline
   // mask, a cached column, a rect filled in place, a reused buffer, and never a per-element reset
-  // of a level-sized scratch (a generation stamp instead). The overlap pair is why a
-  // per-candidate loop inlines the test: the call is about twice it.
+  // of a level-sized scratch (a generation stamp instead).
   {
     id: "perf.measured",
     setup(ctx) {
@@ -52,14 +51,6 @@ Test.register(Test.CHECK, [
       for (let i = 0; i < n; i++) {
         ctx.keys[i] = names[i % names.length];
         ctx.keyVals[i] = i % names.length;
-      }
-      // every other pair overlaps
-      ctx.ra = new Array(n);
-      ctx.rb = new Array(n);
-      for (let i = 0; i < n; i++) {
-        ctx.ra[i] = { x1: i, y1: 0, x2: i + 16, y2: 16 };
-        const bx = i + (i & 1 ? 8 : 20);
-        ctx.rb[i] = { x1: bx, y1: 0, x2: bx + 16, y2: 16 };
       }
       ctx.buf = [];
       ctx.fillArr = new Array(n).fill(0);
@@ -142,43 +133,24 @@ Test.register(Test.CHECK, [
         for (let i = 0; i < n; i++) s += pos[i].x + box[i].x;
         return s;
       };
-      t.measure("aabb.literal", n, readPosBox, () => {
+      t.measure("rect.literal", n, readPosBox, () => {
         let s = 0;
         for (let i = 0; i < n; i++) {
           const x1 = pos[i].x + box[i].x;
           const y1 = pos[i].y + box[i].y;
-          const x2 = x1 + box[i].width;
-          const y2 = y1 + box[i].height;
-          s += { x1, y1, x2, y2, cx: (x1 + x2) * 0.5, cy: (y1 + y2) * 0.5 }.x1;
+          s += { x1, y1, x2: x1 + box[i].width, y2: y1 + box[i].height }.x1;
         }
         return s;
       });
-      const rect = AABB.rect();
-      t.measure("aabb.at", n, readPosBox, () => {
-        let s = 0;
-        for (let i = 0; i < n; i++)
-          s += AABB.at(pos[i], box[i], rect).x1;
-        return s;
-      });
-      const ra = ctx.ra;
-      const rb = ctx.rb;
-      const readRects = () => {
-        let s = 0;
-        for (let i = 0; i < n; i++) s += ra[i].x1 + rb[i].x1;
-        return s;
-      };
-      t.measure("aabb.overlap", n, readRects, () => {
-        let s = 0;
-        for (let i = 0; i < n; i++) s += AABB.overlap(ra[i], rb[i]) ? 1 : 0;
-        return s;
-      });
-      t.measure("aabb.overlap.inline", n, readRects, () => {
+      const rect = { x1: 0, y1: 0, x2: 0, y2: 0 };
+      t.measure("rect.fill", n, readPosBox, () => {
         let s = 0;
         for (let i = 0; i < n; i++) {
-          const a = ra[i];
-          const b = rb[i];
-          s +=
-            a.x2 > b.x1 && b.x2 > a.x1 && a.y2 > b.y1 && b.y2 > a.y1 ? 1 : 0;
+          rect.x1 = pos[i].x + box[i].x;
+          rect.y1 = pos[i].y + box[i].y;
+          rect.x2 = rect.x1 + box[i].width;
+          rect.y2 = rect.y1 + box[i].height;
+          s += rect.x1;
         }
         return s;
       });

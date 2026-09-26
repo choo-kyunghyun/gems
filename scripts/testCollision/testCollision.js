@@ -135,37 +135,6 @@ Test.register(Test.CHECK, [
     },
   },
   {
-    id: "collision.aabb",
-    setup(ctx) {
-      const s = new Table(8);
-      ctx.entities = s;
-      ctx.id = s.create();
-      s.add(ctx.id, Position, { x: 10, y: 20, z: 0 });
-      s.add(ctx.id, BBox, { x: -4, y: -8, width: 8, height: 16 });
-    },
-    verify(ctx, t) {
-      const e = AABB.of(ctx.entities, ctx.id);
-      t.eq(e.x1, 6, "x1 = pos + anchor");
-      t.eq(e.y2, 28, "y2 = y1 + height");
-      t.eq(e.cx, 10, "centre x");
-      const into = AABB.ofInto(ctx.entities, ctx.id, AABB.rect());
-      t.ok(
-        into.x1 === e.x1 &&
-          into.y1 === e.y1 &&
-          into.x2 === e.x2 &&
-          into.y2 === e.y2,
-        "ofInto matches of",
-      );
-      const b = { x1: 14, y1: 0, x2: 30, y2: 30 };
-      t.eq(AABB.overlap(e, b), false, "touching edges do not overlap");
-      b.x1 = 13.9;
-      t.eq(AABB.overlap(e, b), true, "crossing edges overlap");
-    },
-    teardown(ctx) {
-      ctx.entities.destroy();
-    },
-  },
-  {
     id: "collision.query",
     setup(ctx) {
       const s = new Table(8);
@@ -225,12 +194,15 @@ Test.register(Test.CHECK, [
       const bi = body.inst;
       t.eq(object_get_name(wi.object_index), "Solid", "a kinematic's object");
       t.eq(object_get_name(bi.object_index), "Puppet", "a body's object");
-      const e = AABB.of(s, ctx.wall);
+      const wp = s.get(ctx.wall, Position);
+      const wb = s.get(ctx.wall, BBox);
+      const x1 = wp.x + wb.x;
+      const y1 = wp.y + wb.y;
       t.ok(
-        wi.bbox_left === e.x1 && wi.bbox_top === e.y1 && wi.bbox_right === e.x2 && wi.bbox_bottom === e.y2,
-        "a static's mask is its AABB: " + wi.bbox_left + "," + wi.bbox_top + "-" + wi.bbox_right + "," + wi.bbox_bottom,
+        wi.bbox_left === x1 && wi.bbox_top === y1 && wi.bbox_right === x1 + wb.width && wi.bbox_bottom === y1 + wb.height,
+        "a static's mask is its box: " + wi.bbox_left + "," + wi.bbox_top + "-" + wi.bbox_right + "," + wi.bbox_bottom,
       );
-      t.ok(bi.bbox_left === 32 && bi.bbox_right === 48, "a body's mask is its AABB: " + bi.bbox_left + "-" + bi.bbox_right);
+      t.ok(bi.bbox_left === 32 && bi.bbox_right === 48, "a body's mask is its box: " + bi.bbox_left + "-" + bi.bbox_right);
       t.eq(bi.x, 40, "a centred body's instance sits at its Position");
       t.eq(bi.eid, ctx.body, "eid names the entity");
       const at = (x1, y1, x2, y2, obj) => instance_exists(probe.collision_rectangle(x1, y1, x2, y2, obj, false, true));
@@ -353,7 +325,7 @@ Test.register(Test.CHECK, [
   // at a colony's scale. Every built-in runs instance-scoped and a hit is read back through its
   // list and `eid` — the price a replacement pays, not a benchmark shortcut. The checks record
   // where the two agree and differ: the runtime keeps a fractional bbox (docs/GMRT.md), and
-  // rectangle_in_rectangle counts a touching edge where AABB.overlap is strict.
+  // rectangle_in_rectangle counts a touching edge where the JS test is strict.
   {
     id: "perf.builtin",
     frames: 2, // the masks land on the instances after their first step
@@ -452,11 +424,6 @@ Test.register(Test.CHECK, [
       t.eq(s0.bbox_left, s.get(ctx.staticIds[0], Position).x, "a static's mask left edge");
 
       const touch = rectangle_in_rectangle(0, 0, 16, 16, 16, 0, 32, 16);
-      t.eq(
-        AABB.overlap({ x1: 0, y1: 0, x2: 16, y2: 16 }, { x1: 16, y1: 0, x2: 32, y2: 16 }),
-        false,
-        "AABB: touching edges do not overlap",
-      );
       Log.info("[BENCH] builtin.touching rectangle_in_rectangle " + touch);
       const fa = instance_create_depth(500.5, 500.5, 0, Puppet);
       ctx.insts.push(fa);
@@ -471,7 +438,7 @@ Test.register(Test.CHECK, [
       };
       let jsOverlaps = 0;
       let gmOverlaps = 0;
-      t.measure("aabb.overlap.inline", N, readRects, () => {
+      t.measure("builtin.js.overlap", N, readRects, () => {
         let acc = 0;
         for (let i = 0; i < N; i++) {
           const a = ra[i];
@@ -491,7 +458,7 @@ Test.register(Test.CHECK, [
         gmOverlaps = acc;
         return acc;
       });
-      t.eq(gmOverlaps, jsOverlaps, "rectangle_in_rectangle agrees with AABB.overlap on the pairs");
+      t.eq(gmOverlaps, jsOverlaps, "rectangle_in_rectangle agrees with the strict test on the pairs");
 
       // the sync a replacement pays every tick
       const readPos = () => {

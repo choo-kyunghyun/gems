@@ -36,11 +36,14 @@ globalThis.RoomSystem = {
     const entities = level.entities;
     const rects = RoomSystem._rects;
     let n = 0;
-    entities.forEach([Interaction, Position, BBox], (id, it) => {
+    entities.forEach([Interaction, Position, BBox], (id, it, pos, box) => {
       if (it.kind !== "door") return;
-      if (rects.length <= n) rects.push(AABB.rect());
-      AABB.ofInto(entities, id, rects[n]);
-      n++;
+      if (rects.length <= n) rects.push({ x1: 0, y1: 0, x2: 0, y2: 0 });
+      const r = rects[n++];
+      r.x1 = pos.x + box.x;
+      r.y1 = pos.y + box.y;
+      r.x2 = r.x1 + box.width;
+      r.y2 = r.y1 + box.height;
     });
     rects.length = n;
     rooms.stamp(rects);

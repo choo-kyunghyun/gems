@@ -9,7 +9,6 @@ const BATCH_VERTS = 1000;
 globalThis.RenderDebugEntity = class RenderDebugEntity {
   constructor() {
     this.enabled = true;
-    this._rect = AABB.rect(); // scratch
   }
 
   destroy() {}
@@ -34,15 +33,19 @@ globalThis.RenderDebugEntity = class RenderDebugEntity {
         draw_primitive_begin(pr_linelist);
         verts = 0;
       }
-      const e = AABB.at(entities.get(id, Position), bbox, this._rect);
-      draw_vertex(e.x1, e.y1);
-      draw_vertex(e.x2, e.y1);
-      draw_vertex(e.x2, e.y1);
-      draw_vertex(e.x2, e.y2);
-      draw_vertex(e.x1, e.y2);
-      draw_vertex(e.x2, e.y2);
-      draw_vertex(e.x1, e.y1);
-      draw_vertex(e.x1, e.y2);
+      const pos = entities.get(id, Position);
+      const x1 = pos.x + bbox.x;
+      const y1 = pos.y + bbox.y;
+      const x2 = x1 + bbox.width;
+      const y2 = y1 + bbox.height;
+      draw_vertex(x1, y1);
+      draw_vertex(x2, y1);
+      draw_vertex(x2, y1);
+      draw_vertex(x2, y2);
+      draw_vertex(x1, y2);
+      draw_vertex(x2, y2);
+      draw_vertex(x1, y1);
+      draw_vertex(x1, y2);
       verts += 8;
     }
     draw_primitive_end();

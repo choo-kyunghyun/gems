@@ -5,7 +5,6 @@
  */
 globalThis.WorldOverlay = {
   _tracers: [], // aged on real time
-  _zone: AABB.rect(), // scratch
 
   pushTracer(x0, y0, x1, y1) {
     WorldOverlay._tracers.push({ x0, y0, x1, y1, age: 0, life: 0.07 });
@@ -79,10 +78,10 @@ globalThis.WorldOverlay = {
 
     draw_set_alpha(0.35);
     draw_set_color(make_colour_rgb(120, 200, 255));
-    const z = WorldOverlay._zone;
     entities.forEach([Reach, Position, BBox], (_id, _r, pos, box) => {
-      AABB.at(pos, box, z);
-      draw_rectangle(z.x1, z.y1, z.x2, z.y2, false);
+      const x1 = pos.x + box.x;
+      const y1 = pos.y + box.y;
+      draw_rectangle(x1, y1, x1 + box.width, y1 + box.height, false);
     });
     draw_set_alpha(1);
     draw_set_color(c_white);

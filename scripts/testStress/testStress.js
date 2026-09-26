@@ -21,17 +21,19 @@ const OVERLAP_EVERY = 60; // frames
  */
 function _stressOverlaps(level) {
   const statics = PathfindingSystem.nav(level).statics;
-  const rect = AABB.rect();
   let overlaps = 0;
   level.entities.forEach(["StressAgent", Position, BBox], (id, ag, pos, box) => {
-    AABB.at(pos, box, rect);
+    const x1 = pos.x + box.x;
+    const y1 = pos.y + box.y;
+    const x2 = x1 + box.width;
+    const y2 = y1 + box.height;
     for (let k = 0; k < statics.length; k++) {
       const st = statics[k];
       if (
-        rect.x2 > st.x1 + 0.5 &&
-        st.x2 > rect.x1 + 0.5 &&
-        rect.y2 > st.y1 + 0.5 &&
-        st.y2 > rect.y1 + 0.5
+        x2 > st.x1 + 0.5 &&
+        st.x2 > x1 + 0.5 &&
+        y2 > st.y1 + 0.5 &&
+        st.y2 > y1 + 0.5
       )
         overlaps += 1;
     }

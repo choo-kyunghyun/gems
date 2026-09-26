@@ -115,9 +115,15 @@ globalThis.ColonyPlayer = {
       has: Health,
       ignore: shooterId,
     });
-    if (target !== -1 && entities.get(target, BBox) !== undefined) {
-      const e = AABB.of(entities, target);
-      return { x: e.cx, y: e.cy };
+    if (target !== -1) {
+      const box = entities.get(target, BBox);
+      if (box !== undefined) {
+        const pos = entities.require(target, Position);
+        return {
+          x: pos.x + box.x + box.width * 0.5,
+          y: pos.y + box.y + box.height * 0.5,
+        };
+      }
     }
     return view.cursorWorld(-AIM_H * RenderBillboard.tall(pitch));
   },
