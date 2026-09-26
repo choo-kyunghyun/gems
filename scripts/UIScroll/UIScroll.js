@@ -63,6 +63,24 @@ globalThis.UIScroll = class UIScroll {
     return this._bar.dragging || element.positionMeeting(mx, my) || block;
   }
 
+  /** Scrolls the least that brings `target`, a descendant, inside the viewport `element`. */
+  reveal(element, target) {
+    const vp = element.getLayoutPosition(); // its own scroll is not applied to itself
+    const tp = target.getLayoutPosition(); // already offset by the current scroll
+    const margin = 8;
+    let delta = 0;
+    if (tp.top < vp.top + margin) {
+      delta = tp.top - (vp.top + margin);
+    } else if (tp.top + tp.height > vp.top + vp.height - margin) {
+      delta = tp.top + tp.height - (vp.top + vp.height - margin);
+    }
+    if (delta === 0) return;
+    const contentH = this.content ? this.content.getLayoutPosition().height : 0;
+    const max = Math.max(0, contentH - vp.height);
+    this.scroll = clamp(this.scroll + delta, 0, max);
+    element.scrollY = this.scroll; // applied now, so a reveal up the chain reads it
+  }
+
   onDraw(element) {
     if (this._track === null || !(this._max > 0)) return;
     this._bar.draw(this._track);

@@ -48,7 +48,7 @@ globalThis.UIRebind = class UIRebind {
     }
 
     const result = this._fsm.onUpdate(element, block);
-    if (this._capturing) UINav.focused = element; // a click armed it
+    if (this._capturing) UINav.focus(element); // a click armed it
     return result;
   }
 

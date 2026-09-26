@@ -489,6 +489,49 @@ Test.register(Test.CHECK, [
     },
   },
   {
+    // a focus move reveals its target in the viewport around it, by the least scroll that does
+    id: "ui.navReveal",
+    setup(ctx) {
+      Test.ui(ctx);
+      ctx.body = new UIElement({ width: "100%", flexShrink: 0, gap: 10 });
+      ctx.rows = [];
+      for (let i = 0; i < 6; i++) {
+        const row = new UIElement({ width: 100, height: 40 }).addComponent(new UIButton());
+        ctx.body.insertChild(row);
+        ctx.rows.push(row);
+      }
+      ctx.viewport = new UIElement({ width: 200, height: 100 });
+      ctx.viewport.clip = true;
+      ctx.viewport.insertChild(ctx.body);
+      ctx.scroll = new UIScroll({ content: ctx.body });
+      ctx.viewport.addComponent(ctx.scroll);
+      UI.insert(ctx.viewport);
+    },
+    verify(ctx, t) {
+      const inside = (el) => {
+        const vp = ctx.viewport.getLayoutPosition();
+        const p = el.getLayoutPosition();
+        return p.top >= vp.top ? p.top + p.height <= vp.top + vp.height : false;
+      };
+      const last = ctx.rows[5];
+      UINav.focus(last);
+      t.ok(UINav.focused === last, "the focus moves");
+      t.ok(inside(last), "a focus below the viewport scrolls into it");
+      UINav.focus(ctx.rows[0]);
+      t.eq(ctx.scroll.scroll, 0, "and one above scrolls back");
+
+      UINav.engaged = true;
+      Test.uiFrame(ctx, [vk_down]);
+      Test.uiFrame(ctx, [vk_down]);
+      Test.uiFrame(ctx, [vk_down]);
+      t.ok(UINav.focused === ctx.rows[3], "the nav's own moves go through it");
+      t.ok(inside(ctx.rows[3]), "and reveal their target");
+    },
+    teardown(ctx) {
+      Test.uiRestore(ctx);
+    },
+  },
+  {
     // an idle frame drops a focus the walk would no longer gather — hidden, under a hidden
     // parent or root, behind an exclusive root, unregistered or destroyed — and keeps one it would
     id: "ui.navReach",

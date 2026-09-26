@@ -44,6 +44,17 @@ globalThis.UINav = {
     cancel: { keys: [vk_escape], pads: [gp_face2] },
   },
 
+  /** Moves the focus to `el`, revealing it in every viewport around it; the ring stays as it is. */
+  focus(el) {
+    UINav.focused = el;
+    let p = el.parent;
+    while (p !== null) {
+      const sc = p.getComponent(UIScroll);
+      if (sc !== undefined) sc.reveal(p, el);
+      p = p.parent;
+    }
+  },
+
   /** Reset on every scene swap. */
   reset() {
     UINav.focused = null;
@@ -89,10 +100,7 @@ globalThis.UINav = {
     // the first nav input only engages, never also acts
     if (UINav.engaged ? UINav.focused === null : true) {
       UINav.engaged = true;
-      if (UINav.focused === null) {
-        UINav.focused = items[0].el;
-        UINav._scrollIntoView(UINav.focused);
-      }
+      if (UINav.focused === null) UINav.focus(items[0].el);
       UINav._spend(ev);
       return;
     }
@@ -325,32 +333,6 @@ globalThis.UINav = {
     return pos.width > 0 && pos.height > 0;
   },
 
-  _scrollIntoView(el) {
-    let p = el.parent;
-    while (p !== null) {
-      const sc = p.getComponent(UIScroll);
-      if (sc !== undefined) UINav._scrollOne(sc, p, el);
-      p = p.parent;
-    }
-  },
-
-  _scrollOne(sc, viewport, el) {
-    const vp = viewport.getLayoutPosition(); // its own scroll is not applied to itself
-    const fp = el.getLayoutPosition(); // already offset by the current scroll
-    const margin = 8;
-    let delta = 0;
-    if (fp.top < vp.top + margin) {
-      delta = fp.top - (vp.top + margin);
-    } else if (fp.top + fp.height > vp.top + vp.height - margin) {
-      delta = fp.top + fp.height - (vp.top + vp.height - margin);
-    }
-    if (delta === 0) return;
-    const contentH = sc.content ? sc.content.getLayoutPosition().height : 0;
-    const max = Math.max(0, contentH - vp.height);
-    sc.scroll = clamp(sc.scroll + delta, 0, max);
-    viewport.scrollY = sc.scroll; // apply now so the ring + next layout reflect it
-  },
-
   _indexOf(items, el) {
     for (let i = 0; i < items.length; i++) if (items[i].el === el) return i;
     return -1;
@@ -359,15 +341,11 @@ globalThis.UINav = {
   _move(items, dx, dy) {
     const i = UINav._indexOf(items, UINav.focused);
     if (i === -1) {
-      UINav.focused = items[0].el;
-      UINav._scrollIntoView(UINav.focused);
+      UINav.focus(items[0].el);
       return;
     }
     const best = UINav._pick(items, i, dx, dy);
-    if (best !== -1) {
-      UINav.focused = items[best].el;
-      UINav._scrollIntoView(UINav.focused);
-    }
+    if (best !== -1) UINav.focus(items[best].el);
   },
 
   /**

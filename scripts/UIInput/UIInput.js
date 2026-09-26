@@ -49,7 +49,7 @@ globalThis.UIInput = class UIInput {
 
   /** Starts editing `element`'s field, taking the nav focus with it. */
   focus(element) {
-    UINav.focused = element;
+    UINav.focus(element);
     if (this._editing) return this;
     this._editing = true;
     this._setCursor(this.value.length, false);
