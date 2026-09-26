@@ -146,7 +146,7 @@ globalThis.contentPrefabs = {
               buyMargin: 1.15,
               sellMargin: 0.6,
               credits: 500,
-              restockSecs: 60,
+              restockHours: 6,
               capacity: 40,
               stock: [
                 { itemId: "combat_stim", qty: 3 },

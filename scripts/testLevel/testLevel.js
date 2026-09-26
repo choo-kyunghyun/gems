@@ -195,6 +195,35 @@ Test.register(Test.CHECK, [
     },
   },
   {
+    id: "world.catchup",
+    // a record owes nothing under its minimum, the whole span once past it, and an uncalled
+    // record owes its whole absence at its next call
+    setup(ctx) {
+      ctx.prev = World.active;
+      ctx.world = new World();
+      World.active = ctx.world;
+    },
+    verify(ctx, t) {
+      const perHour = WorldClock.dayLength / 24;
+      const rec = { lastHour: WorldClock.absHours() };
+      const start = rec.lastHour;
+      WorldClock.update(0.5 * perHour);
+      t.eq(WorldClock.catchUp(rec, 1), 0, "under the minimum owes nothing");
+      t.eq(rec.lastHour, start, "and leaves the record where it was");
+      WorldClock.update(0.75 * perHour);
+      const dh = WorldClock.catchUp(rec, 1);
+      t.ok(Math.abs(dh - 1.25) < 1e-6, "past the minimum owes the whole span");
+      t.eq(rec.lastHour, WorldClock.absHours(), "and catches the record up to now");
+      t.eq(WorldClock.catchUp(rec, 0), 0, "a caught-up record owes nothing");
+      WorldClock.update(30 * perHour);
+      t.ok(Math.abs(WorldClock.catchUp(rec, 1) - 30) < 1e-6, "an absence is owed whole");
+    },
+    teardown(ctx) {
+      World.active = ctx.prev;
+      ctx.world.destroy();
+    },
+  },
+  {
     id: "world.carry",
     // an entity in no level rides a queued event's payload through the save codec into a level
     setup(ctx) {

@@ -28,17 +28,19 @@ globalThis.FloraSystem = {
    * its clock.
    */
   update(level) {
-    const now = WorldClock.absHours();
-    const rec = level.entities.of(level.self, FloraSystem.KEY, () => ({ lastHour: now }));
-    if (now - rec.lastHour < 1) return;
-    let t = rec.lastHour;
+    const rec = level.entities.of(level.self, FloraSystem.KEY, () => ({
+      lastHour: WorldClock.absHours(),
+    }));
+    const dh = WorldClock.catchUp(rec, 1);
+    if (dh === 0) return;
+    const now = rec.lastHour;
+    let t = now - dh;
     while (t < now) {
       const dayEnd = (Math.floor(t / 24) + 1) * 24;
       const end = dayEnd < now ? dayEnd : now;
       FloraSystem._tick(level, t, end - t);
       t = end;
     }
-    rec.lastHour = now;
   },
 
   /** One span of `dh` hours starting at hour `t`, all under t's season. */

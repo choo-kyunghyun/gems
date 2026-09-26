@@ -1,18 +1,17 @@
-// The restock heartbeat over every finite Merchant.
+// The restock over every finite Merchant, on world hours.
 globalThis.TradeSystem = {
   /**
-   * Every `restockSecs`, top each finite merchant's stock up to `template`; nothing is removed,
-   * so sold extras stay for buyback. Runs on sim time, so it pauses with the game.
+   * Once the world passes a merchant's `restockAt`, top its stock up to `template` and set the
+   * next one `restockHours` on; nothing is removed, so sold extras stay for buyback. A restock
+   * falls due while its map is parked and lands on the first tick back.
    */
   update(level) {
-    const entities = level.entities;
-    const dt = Time.delta;
-    entities.forEach([Merchant, Inventory], (id, m, inv) => {
+    const now = WorldClock.absHours();
+    level.entities.forEach([Merchant, Inventory], (id, m, inv) => {
       if (m.infinite) return;
-      if (m.restockSecs <= 0 || m.template === undefined) return;
-      m.restockTimer -= dt;
-      if (m.restockTimer > 0) return;
-      m.restockTimer = m.restockSecs;
+      if (m.restockHours <= 0 || m.template === undefined) return;
+      if (now < m.restockAt) return;
+      m.restockAt = now + m.restockHours;
       for (let k = 0; k < m.template.length; k++) {
         const t = m.template[k];
         const have = Bag.count(inv, t.itemId);

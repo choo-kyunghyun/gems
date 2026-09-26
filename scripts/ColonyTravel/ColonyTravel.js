@@ -8,8 +8,8 @@
  * chart distance.
  *
  * Contract: the scene owns `world`, `level`, `playerId`, `stages` (map id → its ColonyStage),
- * `build`, `nearNpc` and `window`; this engine pools through `world`, writes the rest on arrival
- * and reads nothing else of it.
+ * `build`, `nearNpc`, `window` and `tickWorld(dt)`; this engine pools through `world`, spends a
+ * crossing's hours through `tickWorld`, writes the rest on arrival and reads nothing else of it.
  */
 globalThis.ColonyTravel = {
   // in-game hours per world-map chart unit (corner to corner is ~1.4 units)
@@ -169,15 +169,14 @@ globalThis.ColonyTravel = {
   },
 
   /**
-   * The world-map trip: the crossing's hours pass first, so events due in them fire on arrival,
+   * The world-map trip: the crossing's hours pass first, the events due in them firing on the way,
    * then the squad lands at the site's default entry. A same-site request is a no-op.
    */
   travel(scene, siteId) {
     if (siteId === scene.level.id) return;
     const hours = ColonyTravel.travelHours(scene.level.id, siteId);
     const secs = (hours / 24) * WorldClock.dayLength;
-    WorldClock.update(secs);
-    Weather.update(secs);
+    scene.tickWorld(secs);
     Log.info(`travel → ${siteId} (${hours} h)`);
     ColonyTravel.go(scene, siteId, "default");
   },

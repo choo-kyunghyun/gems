@@ -55,11 +55,12 @@ globalThis.RoomSystem = {
     const rooms = RoomSystem.rooms(level);
     RoomSystem._sync(level, rooms);
     const map = rooms.map;
-    const now = WorldClock.absHours();
-    const rec = level.entities.of(level.self, RoomSystem.KEY, () => ({ lastHour: now, temps: {} }));
-    const dh = now - rec.lastHour;
-    if (dh <= 0) return;
-    rec.lastHour = now;
+    const rec = level.entities.of(level.self, RoomSystem.KEY, () => ({
+      lastHour: WorldClock.absHours(),
+      temps: {},
+    }));
+    const dh = WorldClock.catchUp(rec, 0);
+    if (dh === 0) return;
 
     const list = map.zones;
     const n = list.length;

@@ -15,13 +15,11 @@ globalThis.GrassSystem = {
 
   /** Cheap when under an hour has passed; the first call starts the map's clock. */
   update(level) {
-    const now = WorldClock.absHours();
-    const rec = level.entities.of(level.self, GrassSystem.KEY, () => ({ lastHour: now }));
-    if (now - rec.lastHour >= 1) {
-      const hours = now - rec.lastHour;
-      rec.lastHour = now;
-      GrassSystem._creep(level, hours);
-    }
+    const rec = level.entities.of(level.self, GrassSystem.KEY, () => ({
+      lastHour: WorldClock.absHours(),
+    }));
+    const hours = WorldClock.catchUp(rec, 1);
+    if (hours > 0) GrassSystem._creep(level, hours);
   },
 
   /** A no-op on a map whose palette lacks grass or the host material. */

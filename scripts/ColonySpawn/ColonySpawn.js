@@ -99,8 +99,7 @@ globalThis.ColonySpawn = {
       sellMargin: mc.sellMargin,
       infinite: mc.infinite,
       credits: mc.credits,
-      restockSecs: mc.restockSecs,
-      restockTimer: mc.restockSecs,
+      restockHours: mc.restockHours,
       template: mc.template,
     });
   },

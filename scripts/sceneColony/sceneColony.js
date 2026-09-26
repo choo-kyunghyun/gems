@@ -246,8 +246,8 @@ class _SceneColonyClass {
   }
 
   /**
-   * The frame's order: input, context and the world mirrors before the sim, the sim on
-   * Time.step, then presentation and dirty UI rebuilds. What the scene shows of a gameplay
+   * The frame's order: input, context, the world's time and the world mirrors before the sim, the
+   * sim on Time.step, then presentation and dirty UI rebuilds. What the scene shows of a gameplay
    * reaction is a named `_on*` member passed in as a hook set, so this body states order alone. A
    * map swap never runs in here — it lands between frames, so nothing in a frame touches a
    * swapped-out map.
@@ -289,6 +289,10 @@ class _SceneColonyClass {
     // after the context, so it is inert under a window or in build mode
     this._useHotbar();
 
+    // the world first, on sim time so it pauses with the game: every system below reads one
+    // now, and what a due event spawns simulates this frame
+    this.tickWorld(Time.delta);
+
     // before the needs read shelter
     RoomSystem.update(this.level);
 
@@ -324,9 +328,6 @@ class _SceneColonyClass {
     BuildMode.update(this, this.build);
     BuildMode.reapDestroyed(this);
     Hud.update(this, this.hud); // after the pick and build mode it reports
-    WorldClock.update(Time.delta); // sim time, so it pauses with the game
-    WorldEvents.update(WorldClock.absHours());
-    Weather.update(Time.delta);
     FloraSystem.update(this.level);
     GrassSystem.update(this.level);
     TradeSystem.update(this.level);
@@ -348,6 +349,16 @@ class _SceneColonyClass {
     // last, so every write above lands this frame; after the UI update, so a rebuild never
     // lands inside the click that requested it
     this.window.update();
+  }
+
+  /**
+   * The world's own time — the clock, then the sky and the events due by it. Every passage of
+   * world time goes through here, so no world ticker is left behind.
+   */
+  tickWorld(dt) {
+    WorldClock.update(dt);
+    Weather.update(dt);
+    WorldEvents.update(WorldClock.absHours());
   }
 
   _useHotbar() {

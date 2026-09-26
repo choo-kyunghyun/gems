@@ -183,7 +183,16 @@ and are cited from here, never restated):
   system takes one step whatever the refresh rate, a cooldown or fuse is seconds it decrements
   by `step`, and nothing runs more than once a frame, so a slow frame takes a bigger step, never
   more steps. The world clocks (`WorldClock`, `Weather`) consume the whole `delta`, which is what
-  lets the bed fast-forward skip hours while bodies still move one bounded step a frame.
+  lets the bed fast-forward skip hours while bodies still move one bounded step a frame. The
+  scene passes world time through ONE step of its own — clock, sky, then the due events — ahead
+  of the level's systems, so a frame's systems all read one `now`, and a crossing's hours take
+  the same step, so no world ticker is skipped.
+    - A parked map runs nothing, and the two clocks split its processes too: a body's own
+      process (a need, a status, a cooldown) integrates `step` and stops with its map, while
+      one that should run on through an absence (growth, a room's heat, a restock) is written
+      against world hours — a deadline in absolute hours (`Merchant.restockAt`) or a record's
+      `lastHour` caught up through `WorldClock.catchUp` — so its first tick after a resume or a
+      load spans the absence. Such a process never accumulates per-frame time.
 - Hot-path idioms: the runtime is a VM, so per-element constants decide the frame, not complexity
   class — a call, an allocation or a hash lookup per element is what costs, and the fix is the
   cheap form, never a better complexity class. The costs are measured, not remembered: the

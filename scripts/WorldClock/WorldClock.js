@@ -34,6 +34,19 @@ globalThis.WorldClock = {
     return (c.day - 1) * 24 + c.hour;
   },
 
+  /**
+   * The hours a record's `lastHour` owes up to now: 0 while under `min`, else the whole span, with
+   * the record caught up. A record left uncalled keeps its `lastHour`, so its next call spans the
+   * whole gap — how a process runs on through an absence without being ticked.
+   */
+  catchUp(rec, min) {
+    const now = WorldClock.absHours();
+    const dh = now - rec.lastHour;
+    if (dh <= 0 || dh < min) return 0;
+    rec.lastHour = now;
+    return dh;
+  },
+
   clockText() {
     const hour = WorldClock.state().hour;
     const h = Math.floor(hour);
