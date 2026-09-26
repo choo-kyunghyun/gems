@@ -554,4 +554,67 @@ Test.register(Test.CHECK, [
       Test.uiRestore(ctx);
     },
   },
+  {
+    // an event climbs from the focused element through its ancestors until one takes it, and only
+    // an untaken one moves the focus or lets go of the ring; a bare navAxis still answers
+    id: "ui.navBubble",
+    setup(ctx) {
+      Test.ui(ctx);
+      ctx.log = [];
+      ctx.takes = {};
+      const hook = (name, focusable) => ({
+        focusable,
+        onNav: (el, ev) => {
+          ctx.log.push(name + ":" + ev.kind);
+          return ctx.takes[name] === true;
+        },
+      });
+      const item = (name) =>
+        new UIElement({ width: 200, height: 40 }).addComponent(hook(name, true));
+      ctx.a = item("a");
+      ctx.b = item("b");
+      ctx.select = new UISelect({ items: [{ name: "x" }, { name: "y" }, { name: "z" }] });
+      ctx.sel = new UIElement({ width: 200, height: 40 }).addComponent(ctx.select);
+      ctx.list = new UIElement({ width: 200, flexDirection: "column", gap: 20 });
+      ctx.list.addComponent(hook("list", false));
+      ctx.list.insertChild(ctx.a).insertChild(ctx.b).insertChild(ctx.sel);
+      UI.insert(ctx.list);
+      UINav.focused = ctx.a;
+      UINav.engaged = true;
+    },
+    verify(ctx, t) {
+      const step = (keys) => {
+        ctx.log = [];
+        Test.uiFrame(ctx, keys);
+        return ctx.log.join(" ");
+      };
+      t.eq(UINav._indexOf(UINav._collect(), ctx.list), -1, "a hook alone is no focus stop");
+
+      t.eq(step([vk_down]), "a:move list:move", "an untaken move climbs every ancestor");
+      t.ok(UINav.focused === ctx.b, "then the nav moves the focus");
+
+      ctx.takes.b = true;
+      t.eq(step([vk_up]), "b:move", "a taken event stops where it is taken");
+      t.ok(UINav.focused === ctx.b, "and the focus stays");
+      ctx.takes.b = false;
+
+      ctx.takes.list = true;
+      t.eq(step([vk_escape]), "b:cancel list:cancel", "a cancel climbs too");
+      t.ok(UINav.engaged, "a taken cancel keeps the ring");
+      ctx.takes.list = false;
+      step([vk_escape]);
+      t.ok(!UINav.engaged, "an untaken cancel lets go of the ring");
+
+      UINav.focused = ctx.sel;
+      UINav.engaged = true;
+      t.eq(step([vk_right]), "", "a navAxis answers on the focused element alone");
+      t.eq(ctx.select.getIndex(), 1, "and adjusts rather than moves");
+      step([vk_enter]);
+      t.eq(ctx.select.getIndex(), 2, "a navActivate answers a confirm");
+      t.ok(UINav.focused === ctx.sel, "neither moves the focus");
+    },
+    teardown(ctx) {
+      Test.uiRestore(ctx);
+    },
+  },
 ]);

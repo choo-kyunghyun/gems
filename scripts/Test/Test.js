@@ -109,8 +109,8 @@ globalThis.Test = {
 
   /**
    * Sandboxes the UI's app state, handed back by `uiRestore`: no roots, an idle nav and field
-   * focus, the pointer parked off-screen, the pad idle, and a keyboard whose only keys down are
-   * `ctx.keys`.
+   * focus, the pointer parked off-screen, the pad idle, a keyboard whose only keys down are
+   * `ctx.keys`, and no sound.
    */
   ui(ctx) {
     ctx.keys = [];
@@ -132,6 +132,7 @@ globalThis.Test = {
       consumedKeys: Input._consumedKeys,
       consumedPad: Input._consumedPad,
       reads: {},
+      play: Audio.play,
     };
     for (let i = 0; i < _TEST_READS.length; i++)
       saved.reads[_TEST_READS[i]] = Input[_TEST_READS[i]];
@@ -170,6 +171,7 @@ globalThis.Test = {
     Input.padDown = () => false;
     Input.padAxis = () => 0;
     Input.padValue = () => 0;
+    Audio.play = () => -1;
   },
 
   /** One sandboxed frame: the claims clear, `keys` go down, then the tree and the nav run. */
@@ -207,6 +209,7 @@ globalThis.Test = {
     Input._consumedPad = saved.consumedPad;
     for (let i = 0; i < _TEST_READS.length; i++)
       Input[_TEST_READS[i]] = saved.reads[_TEST_READS[i]];
+    Audio.play = saved.play;
   },
 
   /**

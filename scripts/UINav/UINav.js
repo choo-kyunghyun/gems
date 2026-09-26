@@ -1,7 +1,23 @@
 /**
+ * One frame's nav input. `dx`/`dy` are the move's direction, 0 on a confirm or a cancel.
+ * @typedef {Object} UINavEvent
+ * @property {"move"|"confirm"|"cancel"} kind
+ * @property {number} dx
+ * @property {number} dy
+ */
+
+/**
  * Keyboard/gamepad menu navigation over the focusable widgets of the UI roots, stopping at an
  * exclusive (modal) root. The first nav input only engages the focus ring; pointer movement
  * disengages it. While live it claims the gamepad, so gameplay pad bindings read idle.
+ *
+ * A frame's input is one {UINavEvent}, offered to the focused element and then up its ancestors
+ * until a component's `onNav(element, event)` returns true; only an unhandled event falls to the
+ * nav's own focus move or ring release. A handler owns its feedback. A component with
+ * `focusable: true` makes its element a focus stop.
+ *
+ * TODO: retire `navActivate`/`navAxis`, which still answer a confirm and a horizontal move on the
+ * focused element itself and make it a stop, once every widget answers `onNav`.
  */
 globalThis.UINav = {
   focused: null,
@@ -70,15 +86,17 @@ globalThis.UINav = {
     }
     if (Dialogue.isOpen()) return; // dialogue owns Enter/arrows for page advance
 
-    const inp = UINav._readInput();
-    if (inp.cancel) {
-      UINav.engaged = false;
+    const ev = UINav._event(UINav._readInput());
+    if (ev === null) return;
+    const live = UINav.engaged ? UINav.focused !== null : false;
+
+    if (ev.kind === "cancel") {
+      if (live ? !UINav._dispatch(ev) : true) UINav.engaged = false;
       return;
     }
-    if (inp.dx === 0 && inp.dy === 0 && !inp.confirm) return;
 
     // the first nav input only engages, never also acts
-    if (!UINav.engaged || UINav.focused === null) {
+    if (!live) {
       UINav.engaged = true;
       if (UINav.focused === null) {
         UINav.focused = items[0].el;
@@ -87,25 +105,53 @@ globalThis.UINav = {
       return;
     }
 
-    if (inp.confirm) {
-      const comp = UINav._comp(UINav.focused, "navActivate");
-      if (comp !== null) {
-        Audio.play({ sound: sndButtonClick }); // before activating, which may swap the scene
-        comp.navActivate(UINav.focused);
-      }
-      return;
+    if (UINav._dispatch(ev)) return;
+    if (ev.kind === "move") {
+      const prevFocus = UINav.focused;
+      UINav._move(items, ev.dx, ev.dy);
+      if (UINav.focused !== prevFocus) Audio.play({ sound: sndButtonMuted });
     }
+  },
 
-    if (inp.dx !== 0) {
-      const comp = UINav._comp(UINav.focused, "navAxis");
-      if (comp !== null) {
-        comp.navAxis(UINav.focused, inp.dx);
-        return;
+  /** The frame's one event, a cancel over a confirm over a move; null when idle. */
+  _event(inp) {
+    if (inp.cancel) return { kind: "cancel", dx: 0, dy: 0 };
+    if (inp.confirm) return { kind: "confirm", dx: 0, dy: 0 };
+    if (inp.dx === 0 ? inp.dy === 0 : false) return null;
+    return { kind: "move", dx: inp.dx, dy: inp.dy };
+  },
+
+  /** Offers `ev` from the focused element up its ancestors; true once a component took it. */
+  _dispatch(ev) {
+    const focused = UINav.focused;
+    let el = focused;
+    while (el !== null) {
+      if (el._destroyed) return true; // a handler tore its subtree down: nothing left to offer
+      const comps = el.components;
+      for (let i = 0; i < comps.length; i++) {
+        const c = comps[i];
+        if (typeof c.onNav === "function") {
+          if (c.onNav(el, ev) === true) return true;
+        } else if (el === focused) {
+          if (UINav._legacy(c, el, ev)) return true;
+        }
       }
+      el = el.parent;
     }
-    const prevFocus = UINav.focused;
-    UINav._move(items, inp.dx, inp.dy);
-    if (UINav.focused !== prevFocus) Audio.play({ sound: sndButtonMuted });
+    return false;
+  },
+
+  _legacy(c, el, ev) {
+    if (ev.kind === "confirm") {
+      if (typeof c.navActivate !== "function") return false;
+      Audio.play({ sound: sndButtonClick }); // before activating, which may swap the scene
+      c.navActivate(el);
+      return true;
+    }
+    if (ev.kind !== "move" || ev.dx === 0) return false;
+    if (typeof c.navAxis !== "function") return false;
+    c.navAxis(el, ev.dx);
+    return true;
   },
 
   /** Draw the focus ring, and the debug overlay while its key is held. */
@@ -236,10 +282,14 @@ globalThis.UINav = {
   },
 
   _focusable(el) {
-    return (
-      UINav._comp(el, "navActivate") !== null ||
-      UINav._comp(el, "navAxis") !== null
-    );
+    const comps = el.components;
+    for (let i = 0; i < comps.length; i++) {
+      const c = comps[i];
+      if (c.focusable === true) return true;
+      if (typeof c.navActivate === "function") return true;
+      if (typeof c.navAxis === "function") return true;
+    }
+    return false;
   },
 
   _comp(el, method) {
