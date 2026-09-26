@@ -282,8 +282,8 @@ globalThis.InventoryUI = {
 
   _assignHotbar(scene, page, i) {
     const hb = scene.level.entities.require(scene.playerId, Hotbar);
-    if (page.sel !== null) HotbarSystem.set(hb, i, page.sel.itemId);
-    else HotbarSystem.clear(hb, i);
+    if (page.sel !== null) Belt.set(hb, i, page.sel.itemId);
+    else Belt.clear(hb, i);
     scene.showHotbar(); // pop the HUD bar so the change is visible
   },
 

@@ -214,6 +214,7 @@
     {"id":{"name":"Audio","path":"scripts/Audio/Audio.yy",},},
     {"id":{"name":"Bag","path":"scripts/Bag/Bag.yy",},},
     {"id":{"name":"BBox","path":"scripts/BBox/BBox.yy",},},
+    {"id":{"name":"Belt","path":"scripts/Belt/Belt.yy",},},
     {"id":{"name":"Blueprint","path":"scripts/Blueprint/Blueprint.yy",},},
     {"id":{"name":"Build","path":"scripts/Build/Build.yy",},},
     {"id":{"name":"BuildMode","path":"scripts/BuildMode/BuildMode.yy",},},

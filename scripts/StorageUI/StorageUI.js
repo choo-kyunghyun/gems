@@ -222,7 +222,7 @@ globalThis.StorageUI = {
     const eq = bulk ? entities.get(scene.playerId, Equipment) : undefined;
     return (s) => {
       if (fav !== undefined && Star.has(fav, s.itemId)) return true;
-      if (hb !== undefined && hb.slots.indexOf(s.itemId) !== -1) return true;
+      if (hb !== undefined && Belt.has(hb, s.itemId)) return true;
       if (eq !== undefined && s.uid !== undefined) {
         for (const slot in eq.slots) if (eq.slots[slot] === s.uid) return true;
       }
@@ -237,7 +237,7 @@ globalThis.StorageUI = {
   _afterStore(scene, bag, itemId) {
     const entities = scene.level.entities;
     if (!Bag.has(bag, itemId, 1)) {
-      HotbarSystem.clearItem(entities.require(scene.playerId, Hotbar), itemId);
+      Belt.clearItem(entities.require(scene.playerId, Hotbar), itemId);
     }
     Loadout.reconcile(entities, scene.playerId);
   },

@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Belt",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Belt",
+  "parent":{
+    "name":"Inventory",
+    "path":"folders/Game/Inventory.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Belt.js",
+}

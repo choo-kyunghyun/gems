@@ -329,7 +329,7 @@ class _SceneColonyClass {
 
   _useHotbar() {
     const hb = this.level.entities.require(this.playerId, Hotbar);
-    for (let i = 0; i < hb.size; i++) {
+    for (let i = 0; i < hb.slots.length; i++) {
       if (!Input.get("hotbar" + (i + 1)).pressed()) continue;
       this.showHotbar(); // even an empty slot reveals the bar
       const itemId = hb.slots[i];
