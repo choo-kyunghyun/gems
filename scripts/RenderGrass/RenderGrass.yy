@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"RenderGrass",
   "parent":{
-    "name":"Render",
-    "path":"folders/Core/Render.yy",
+    "name":"Terrain",
+    "path":"folders/Core/Render/Terrain.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

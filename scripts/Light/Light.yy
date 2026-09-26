@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Light",
   "parent":{
-    "name":"Render",
-    "path":"folders/Core/Render.yy",
+    "name":"Light",
+    "path":"folders/Core/Render/Light.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

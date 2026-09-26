@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"RenderMesh",
   "parent":{
-    "name":"Render",
-    "path":"folders/Core/Render.yy",
+    "name":"Volume",
+    "path":"folders/Core/Render/Volume.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

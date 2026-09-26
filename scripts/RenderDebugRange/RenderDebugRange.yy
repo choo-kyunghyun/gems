@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"RenderDebugRange",
   "parent":{
-    "name":"Render",
-    "path":"folders/Core/Render.yy",
+    "name":"Debug",
+    "path":"folders/Core/Render/Debug.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
