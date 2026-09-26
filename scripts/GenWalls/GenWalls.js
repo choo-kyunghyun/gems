@@ -2,7 +2,7 @@
  * The WALLS stage: a cell whose noise reaches `threshold` becomes a wall, plus a ring around the
  * level when `border` is set (a cave's shell). Claimed cells stay open, so an earlier anchor keeps
  * its pocket; every wall cell is claimed in turn, so later passes land only in open space. Emitted
- * greedy-meshed into one tiles entry. Draws no rng.
+ * into one tiles entry. Draws no rng.
  * TODO: no connectivity guarantee — a pocket the noise seals off can hold a stamped structure
  * nobody can walk to.
  */
@@ -20,7 +20,7 @@ globalThis.GenWalls = class GenWalls {
   apply(ctx) {
     const cols = ctx.cols;
     const rows = ctx.rows;
-    const solid = new Uint8Array(cols * rows);
+    let dst;
     for (let y = 0; y < rows; y++)
       for (let x = 0; x < cols; x++) {
         if (ctx.claimed(x, y)) continue;
@@ -29,12 +29,9 @@ globalThis.GenWalls = class GenWalls {
           wall = x === 0 || y === 0 || x === cols - 1 || y === rows - 1;
         if (!wall) wall = noise2(x, y, ctx.seed, this.lattice) >= this.threshold;
         if (!wall) continue;
-        solid[y * cols + x] = 1;
+        if (dst === undefined) dst = ctx.cells(this.layer, this.material);
+        dst.push(x, y);
         ctx.claim(x, y, 1, 1);
       }
-    const rects = Grid.meshRects(cols, rows, (x, y) => solid[y * cols + x] === 1);
-    if (rects.length === 0) return;
-    const dst = ctx.rects(this.layer, this.material);
-    for (let i = 0; i < rects.length; i++) dst.push(rects[i]);
   }
 };

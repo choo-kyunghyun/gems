@@ -158,12 +158,12 @@ globalThis.ColonyLevel = {
     h.terrainTypes = {};
     for (let i = 0; i < terrain.mats.length; i++)
       h.terrainTypes[terrain.mats[i].material] = terrain.mats[i].type;
-    let rects = 0;
+    let cells = 0;
     for (let i = 0; i < out.tiles.length; i++)
-      rects += out.tiles[i].rects.length;
+      cells += out.tiles[i].cells.length / 2;
     Log.info(
       `ColonyLevel: generated ${grid.cols}x${grid.rows} ${biomeId} in ${current_time - t0}ms — ` +
-        `${rects} tile rect(s), ${out.spawns.length} spawn(s)`,
+        `${cells} tile cell(s), ${out.spawns.length} spawn(s)`,
     );
     return { out: out, mats: terrain.mats };
   },

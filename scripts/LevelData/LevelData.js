@@ -2,7 +2,7 @@
  * @typedef {Object} LevelTiles
  * @property {string} layer       tile-layer key, resolved through paint()'s `opts.layers` bag
  * @property {string} [material]  material key on a materials-bearing layer
- * @property {number[][]} rects   [[x,y,w,h]...] cell rects in the data's local coords
+ * @property {number[]} cells     flat [x0, y0, x1, y1, ...] cells in the data's local coords
  */
 /**
  * @typedef {Object} LevelData
@@ -47,18 +47,15 @@ globalThis.LevelData = {
       const t = tiles[i];
       if (typeof t.layer !== "string")
         throw new Error(`${name}: tiles[${i}] needs a layer name`);
-      for (let j = 0; j < t.rects.length; j++) {
-        const r = t.rects[j];
-        const ok =
-          r[0] >= 0 &&
-          r[1] >= 0 &&
-          r[2] >= 1 &&
-          r[3] >= 1 &&
-          r[0] + r[2] <= data.cols &&
-          r[1] + r[3] <= data.rows;
-        if (!ok)
+      const c = t.cells;
+      if (c.length % 2 !== 0)
+        throw new Error(`${name}: tiles[${i}] cells are not x/y pairs`);
+      for (let j = 0; j < c.length; j += 2) {
+        const x = c[j];
+        const y = c[j + 1];
+        if (!(x >= 0) || !(y >= 0) || x >= data.cols || y >= data.rows)
           throw new Error(
-            `${name}: tiles rect (${r[0]},${r[1]},${r[2]},${r[3]}) outside ${data.cols}x${data.rows}`,
+            `${name}: tiles cell (${x},${y}) outside ${data.cols}x${data.rows}`,
           );
       }
     }
@@ -89,7 +86,7 @@ globalThis.LevelData = {
       tiles.push({
         layer: t.layer,
         material: t.material,
-        rects: LevelData._shiftRects(t.rects, ox, oy),
+        cells: LevelData._shiftCells(t.cells, ox, oy),
       });
     }
     return {
@@ -116,13 +113,9 @@ globalThis.LevelData = {
       if (layer === undefined)
         throw new Error(`LevelData: no '${t.layer}' layer passed to paint()`);
       const type = LevelData._type(layers, t);
-      for (let j = 0; j < t.rects.length; j++) {
-        const r = t.rects[j];
-        const x0 = ox + r[0];
-        const y0 = oy + r[1];
-        for (let y = y0; y < y0 + r[3]; y++)
-          for (let x = x0; x < x0 + r[2]; x++) layer.set(x, y, type);
-      }
+      const c = t.cells;
+      for (let j = 0; j < c.length; j += 2)
+        layer.set(ox + c[j], oy + c[j + 1], type);
     }
 
     return {
@@ -149,12 +142,10 @@ globalThis.LevelData = {
     return type;
   },
 
-  _shiftRects(rects, ox, oy) {
+  _shiftCells(cells, ox, oy) {
     const out = [];
-    for (let i = 0; i < rects.length; i++) {
-      const r = rects[i];
-      out.push([ox + r[0], oy + r[1], r[2], r[3]]);
-    }
+    for (let i = 0; i < cells.length; i += 2)
+      out.push(ox + cells[i], oy + cells[i + 1]);
     return out;
   },
 

@@ -655,17 +655,15 @@ Test.register(Test.CHECK, [
       t.eq(map.at(-1, 0), ZoneMap.OUTSIDE, "off-grid reads outside");
       t.eq(map.atWorld(2 * 32 + 5, 2 * 32 + 31), 1, "atWorld reads the cell under the point");
 
-      const rects = map.rects();
-      t.eq(rects.length, 1, "the zone meshes into one rect");
-      const r = rects[0];
+      const cells = map.cells();
       t.ok(
-        r.x1 === 64 && r.y1 === 64 && r.x2 === 128 && r.y2 === 96,
-        "the rect is world px with exclusive far edges",
+        cells.length === 2 && cells[0] === 2 * 6 + 2 && cells[1] === 2 * 6 + 3,
+        "cells lists the zone's cell indices",
       );
-      t.ok(map.rects() === rects, "rects is cached");
+      t.ok(map.cells() === cells, "cells is cached");
       map.label(ctx.ring);
-      t.ok(map.rects() !== rects, "a label drops the cache");
-      t.eq(map.rects().length, 0, "an unlabeled ring has no zone rects");
+      t.ok(map.cells() !== cells, "a label drops the cache");
+      t.eq(map.cells().length, 0, "an unlabeled ring has no zone cells");
 
       const cross = new ZoneMap(new LevelGrid({ cellWidth: 32, cellHeight: 32, cols: 4, rows: 4 }));
       cross.label(ctx.cross);
@@ -739,7 +737,7 @@ Test.register(Test.CHECK, [
       ctx.src = {
         cols: 4,
         rows: 3,
-        tiles: [{ layer: "test_wall", rects: [[0, 0, 4, 1]] }],
+        tiles: [{ layer: "test_wall", cells: [0, 0, 3, 2] }],
         spawns: [
           { gx: 1, gy: 2, kind: "test_a", items: [{ itemId: "test_b", qty: 2, tag: 7 }] },
         ],
@@ -757,15 +755,20 @@ Test.register(Test.CHECK, [
       };
       t.ok(!throws(src), "content inside the footprint passes");
       t.ok(
-        throws({ cols: 4, rows: 3, tiles: [{ layer: "test_wall", rects: [[1, 0, 4, 1]] }] }),
-        "a rect past the footprint throws",
+        throws({ cols: 4, rows: 3, tiles: [{ layer: "test_wall", cells: [1, 0, 4, 0] }] }),
+        "a cell past the footprint throws",
+      );
+      t.ok(
+        throws({ cols: 4, rows: 3, tiles: [{ layer: "test_wall", cells: [1, 0, 2] }] }),
+        "an unpaired coordinate throws",
       );
       t.ok(throws({ cols: 4, rows: 3, spawns: [{ gx: 0, gy: 3 }] }), "a spawn past it throws");
 
       const st = LevelData.translate(src, 5, 6);
       const s = st.spawns[0];
       t.ok(s.gx === 6 && s.gy === 8, "translate shifts the spawn");
-      t.eq(st.tiles[0].rects[0][0], 5, "and the rects");
+      const c = st.tiles[0].cells;
+      t.ok(c[0] === 5 && c[1] === 6 && c[2] === 8 && c[3] === 8, "and the cells");
       t.eq(s.kind, "test_a", "a spawn keeps its own keys");
       t.eq(s.items[0].tag, 7, "and its nested ones whole");
       s.items[0].qty = 9;

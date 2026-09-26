@@ -26,21 +26,21 @@ globalThis.Blueprint = {
         for (let m = 0; m < cfg.materials.length; m++) {
           const key = cfg.materials[m].key;
           const type = types[key];
-          const rects = Grid.meshRects(
+          const cells = Blueprint._cells(
             cols,
             rows,
             (x, y) => layer.get(x1 + x, y1 + y) === type,
           );
-          if (rects.length > 0)
-            tiles.push({ layer: cfg.key, material: key, rects: rects });
+          if (cells.length > 0)
+            tiles.push({ layer: cfg.key, material: key, cells: cells });
         }
       } else {
-        const rects = Grid.meshRects(
+        const cells = Blueprint._cells(
           cols,
           rows,
           (x, y) => !!layer.get(x1 + x, y1 + y),
         );
-        if (rects.length > 0) tiles.push({ layer: cfg.key, rects: rects });
+        if (cells.length > 0) tiles.push({ layer: cfg.key, cells: cells });
       }
     }
     const spawns = [];
@@ -83,13 +83,10 @@ globalThis.Blueprint = {
         );
         continue;
       }
-      for (let r = 0; r < t.rects.length; r++) {
-        const rc = t.rects[r];
-        for (let y = rc[1]; y < rc[1] + rc[3]; y++)
-          for (let x = rc[0]; x < rc[0] + rc[2]; x++) {
-            Build.put(level, ox + x, oy + y, item);
-            n++;
-          }
+      const c = t.cells;
+      for (let j = 0; j < c.length; j += 2) {
+        Build.put(level, ox + c[j], oy + c[j + 1], item);
+        n++;
       }
     }
     const spawns = plan.spawns ?? [];
@@ -115,5 +112,13 @@ globalThis.Blueprint = {
     if (text === undefined) return false; // never write a truncated plan
     File.write(name, text);
     return true;
+  },
+
+  /** A cols×rows area's cells where `has(x, y)` holds, as flat x/y pairs. */
+  _cells(cols, rows, has) {
+    const out = [];
+    for (let y = 0; y < rows; y++)
+      for (let x = 0; x < cols; x++) if (has(x, y)) out.push(x, y);
+    return out;
   },
 };

@@ -307,7 +307,8 @@ globalThis.ColonyView = {
       renderer.insert(
         new RenderOverlay({
           layers: [clouds, weather],
-          cutout: () => rooms.map.rects(),
+          cutout: () => rooms.map.cells(),
+          tiles: level.grid,
           height: roofH,
           camera: camera,
         }),

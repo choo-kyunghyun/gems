@@ -1,9 +1,10 @@
 /**
  * A screen-space OVERLAY over the world: its `layers` draw in surface pixels onto one transparent
- * surface, the `cutout` rects are erased from it, and it composites once — which lets an overlay
- * spare a region, such as a roof. `cutout()` returns world rects ({x1,y1,x2,y2}, x2/y2 exclusive)
- * standing `height` world px tall (up = -z); under the fixed-yaw pitched ortho camera such a box
- * projects to ONE screen rect, so the erase is a rectangle per box. A yawing camera breaks that.
+ * surface, the `cutout` cells are erased from it, and it composites once — which lets an overlay
+ * spare a region, such as a roof. `cutout()` returns cell indices of `tiles`, each a box standing
+ * `height` world px tall (up = -z); under the fixed-yaw pitched ortho camera such a box projects
+ * to ONE screen rect, and the projection is affine, so the erase is a rectangle per cell off one
+ * set of per-frame steps. A yawing camera breaks that.
  *
  * The surface holds premultiplied colour under its true coverage (separate-alpha blend), so a
  * layer darkens with a black quad at alpha and tints with a coloured one; the composite is
@@ -16,7 +17,8 @@ globalThis.RenderOverlay = class RenderOverlay {
     this.enabled = true;
     this.camera = opt.camera; // {View}
     this.layers = opt.layers ?? []; // RenderPass[], owned: destroyed with this
-    this.cutout = opt.cutout; // () => world rects to erase, or undefined for none
+    this.cutout = opt.cutout; // () => cell indices to erase, or undefined for none
+    this.tiles = opt.tiles; // {LevelGrid} the grid `cutout` indexes
     this.height = opt.height ?? 0;
     this._surf = -1; // created lazily
   }
@@ -83,23 +85,32 @@ globalThis.RenderOverlay = class RenderOverlay {
   }
 
   /** An opaque draw under this blend zeroes colour and alpha. Expects the surface as target. */
-  _erase(rects, w, h) {
-    if (rects.length === 0) return;
+  _erase(cells, w, h) {
+    if (cells.length === 0) return;
     const cam = this.camera;
-    const z = -this.height;
+    const tiles = this.tiles;
+    const cols = tiles.cols;
+    // one cell's steps on screen: across a column, down a row, up to the roof
+    const o = cam.project(0, 0, 0);
+    const dx = cam.project(tiles.cellWidth, 0, 0).x - o.x;
+    const dy = cam.project(0, tiles.cellHeight, 0).y - o.y;
+    const dz = cam.project(0, 0, -this.height).y - o.y;
+    const lo = Math.min(0, dy, dz, dy + dz);
+    const hi = Math.max(0, dy, dz, dy + dz);
     gpu_set_blendmode_ext(bm_zero, bm_inv_src_alpha);
     draw_set_color(c_black);
     draw_set_alpha(1);
-    for (let i = 0; i < rects.length; i++) {
-      const r = rects[i];
-      const f0 = cam.project(r.x1, r.y1, 0);
-      const f1 = cam.project(r.x2, r.y2, 0);
-      const c0 = cam.project(r.x1, r.y1, z);
-      const c1 = cam.project(r.x2, r.y2, z);
-      const x0 = Math.min(f0.x, c0.x);
-      const x1 = Math.max(f1.x, c1.x);
-      const y0 = Math.min(f0.y, f1.y, c0.y, c1.y);
-      const y1 = Math.max(f0.y, f1.y, c0.y, c1.y);
+    for (let i = 0; i < cells.length; i++) {
+      const gx = cells[i] % cols;
+      const gy = Math.floor(cells[i] / cols);
+      // both edges off the same product, so neighbours meet with no seam
+      const xa = o.x + gx * dx;
+      const xb = o.x + (gx + 1) * dx;
+      const sy = o.y + gy * dy;
+      const x0 = Math.min(xa, xb);
+      const x1 = Math.max(xa, xb);
+      const y0 = sy + lo;
+      const y1 = sy + hi;
       if (x1 < 0 || y1 < 0 || x0 > w || y0 > h) continue;
       draw_rectangle(x0, y0, x1, y1, false);
     }

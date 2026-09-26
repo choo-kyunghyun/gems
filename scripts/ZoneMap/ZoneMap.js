@@ -15,7 +15,7 @@ globalThis.ZoneMap = class ZoneMap {
     this.tiles = tiles;
     this.grid = tiles.alloc();
     this.zones = [{ id: 0, first: -1, cells: 0 }];
-    this._rects = null; // rects() cache, dropped by a label
+    this._zoned = null; // cells() cache, dropped by a label
     this._queue = [];
     this._cells = { x0: 0, y0: 0, x1: 0, y1: 0 }; // a rect's cell range, reused per label
   }
@@ -31,7 +31,7 @@ globalThis.ZoneMap = class ZoneMap {
    * covers it. `blocked` is asked about every cell once.
    */
   label(blocked, rects = []) {
-    this._rects = null;
+    this._zoned = null;
     const tiles = this.tiles;
     const cols = tiles.cols;
     const rows = tiles.rows;
@@ -77,26 +77,13 @@ globalThis.ZoneMap = class ZoneMap {
     return i < 0 ? ZoneMap.OUTSIDE : this.grid.data[i];
   }
 
-  /** The zones as the fewest world-px rects (x2/y2 exclusive), cached until the next label. */
-  rects() {
-    if (this._rects !== null) return this._rects;
+  /** Every zone's cell indices, ascending, cached until the next label. */
+  cells() {
+    if (this._zoned !== null) return this._zoned;
     const d = this.grid.data;
-    const tiles = this.tiles;
-    const cols = tiles.cols;
-    const cw = tiles.cellWidth;
-    const ch = tiles.cellHeight;
-    const cells = Grid.meshRects(cols, tiles.rows, (x, y) => d[y * cols + x] > 0);
     const out = [];
-    for (let i = 0; i < cells.length; i++) {
-      const c = cells[i];
-      out.push({
-        x1: c[0] * cw,
-        y1: c[1] * ch,
-        x2: (c[0] + c[2]) * cw,
-        y2: (c[1] + c[3]) * ch,
-      });
-    }
-    this._rects = out;
+    for (let i = 0; i < d.length; i++) if (d[i] > 0) out.push(i);
+    this._zoned = out;
     return out;
   }
 

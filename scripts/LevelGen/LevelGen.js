@@ -132,23 +132,23 @@ globalThis.LevelGen = class LevelGen {
       claimed(x, y) {
         return this.mask[y * this.cols + x] === 1;
       },
-      /** The (layer, material) channel's one rect array, created on first use. */
-      rects(layer, material) {
+      /** The (layer, material) channel's one flat cell array, created on first use. */
+      cells(layer, material) {
         const tiles = this.out.tiles;
         for (let i = 0; i < tiles.length; i++)
           if (tiles[i].layer === layer && tiles[i].material === material)
-            return tiles[i].rects;
-        const entry = { layer: layer, material: material, rects: [] };
+            return tiles[i].cells;
+        const entry = { layer: layer, material: material, cells: [] };
         tiles.push(entry);
-        return entry.rects;
+        return entry.cells;
       },
       /** Append an already-translated LevelData to `out`. */
       merge(data) {
         const tiles = data.tiles ?? [];
         for (let i = 0; i < tiles.length; i++) {
           const t = tiles[i];
-          const dst = this.rects(t.layer, t.material);
-          for (let j = 0; j < t.rects.length; j++) dst.push(t.rects[j]);
+          const dst = this.cells(t.layer, t.material);
+          for (let j = 0; j < t.cells.length; j++) dst.push(t.cells[j]);
         }
         const spawns = data.spawns ?? [];
         for (let i = 0; i < spawns.length; i++) this.out.spawns.push(spawns[i]);
