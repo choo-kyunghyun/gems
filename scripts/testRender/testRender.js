@@ -447,7 +447,8 @@ Test.register(Test.CHECK, [
   },
   {
     // the nearest focusable along the axis wins, a full-width row hands Down to the first in
-    // visual order, a disabled item is never collected, and past an edge nothing is picked
+    // visual order, a disabled item is never collected, and past an edge nothing is picked, not
+    // even a wider row whose center lies that way
     id: "ui.navPick",
     setup(ctx) {
       Test.ui(ctx);
@@ -477,6 +478,7 @@ Test.register(Test.CHECK, [
       t.ok(pick(ctx.a, 1, 0) === ctx.b, "the nearest along the axis wins");
       t.ok(pick(ctx.c, 0, -1) === ctx.head, "Up reaches the row above");
       t.ok(pick(ctx.a, -1, 0) === null, "nothing past the left edge");
+      t.ok(pick(ctx.c, 1, 0) === null, "a row's end never jumps to the wider row above");
       t.ok(pick(ctx.head, 0, -1) === null, "nothing past the top edge");
     },
     teardown(ctx) {

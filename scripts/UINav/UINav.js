@@ -354,9 +354,11 @@ globalThis.UINav = {
   },
 
   /**
-   * Nearest focusable from `i` along (dx, dy), or -1. The cross-axis term is the gap between
-   * rects, 0 when they overlap, so a full-width row moving Down picks the first item in visual
-   * order rather than whatever sits nearest mid-screen.
+   * Nearest focusable from `i` along (dx, dy), or -1. A candidate lies wholly past the edge
+   * faced, so a row's end never jumps to a wider row beside it; only where the rects overlap does
+   * the center decide. The cross-axis term is the gap between rects, 0 when they overlap, so a
+   * full-width row moving Down picks the first item in visual order rather than whatever sits
+   * nearest mid-screen.
    */
   _pick(items, i, dx, dy) {
     const s = items[i];
@@ -367,6 +369,7 @@ globalThis.UINav = {
       const t = items[j];
       const primary = (t.cx - s.cx) * dx + (t.cy - s.cy) * dy;
       if (primary <= 0) continue;
+      if (!UINav._past(s, t, dx, dy)) continue;
       const perp =
         dy !== 0
           ? max(0, s.left - t.right, t.left - s.right)
@@ -378,6 +381,19 @@ globalThis.UINav = {
       }
     }
     return best;
+  },
+
+  /** Whether `t` clears `s`'s edge along (dx, dy), or overlaps `s` at all. */
+  _past(s, t, dx, dy) {
+    const e = 0.5; // fractional layout slack
+    const apartX = t.right <= s.left + e ? true : t.left >= s.right - e;
+    const apartY = t.bottom <= s.top + e ? true : t.top >= s.bottom - e;
+    if (apartX ? false : !apartY) return true;
+    if (dx > 0 ? t.left < s.right - e : false) return false;
+    if (dx < 0 ? t.right > s.left + e : false) return false;
+    if (dy > 0 ? t.top < s.bottom - e : false) return false;
+    if (dy < 0 ? t.bottom > s.top + e : false) return false;
+    return true;
   },
 
   /** The frame's directional edge from keys, d-pad and stick, with its confirm and cancel. */
