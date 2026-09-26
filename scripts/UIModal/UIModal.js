@@ -1,8 +1,8 @@
 /**
  * @implements {UIComponent}
  * Exclusive modal controller on a full-screen root: blocks all pointer input beneath it until
- * removed. Closes on Escape or a backdrop click (a press no card child captured). Enter and exit
- * fade the backdrop and slide the card by scroll offset, with no flex mutation. `close()` is
+ * removed. Closes on a nav cancel or a backdrop click (a press no card child captured). Enter and
+ * exit fade the backdrop and slide the card by scroll offset, with no flex mutation. `close()` is
  * safe mid-update: the root is removed and onClose fires once the exit completes.
  */
 globalThis.UIModal = class UIModal {
@@ -83,19 +83,21 @@ globalThis.UIModal = class UIModal {
       return true; // exiting: swallow input, skip dismiss triggers
     }
 
-    // the consumable key edge, not the raw one: a child may already own this Esc; consumed in
-    // turn so gameplay, read after the tree, doesn't also act on it
-    if (this.closeOnEscape && Input.keyPressed(vk_escape)) {
-      Input.consumeKey(vk_escape);
-      this.close();
-      return true;
-    }
     // backdrop click: a press the card didn't capture
     if (this.closeOnBackdrop && !block && Input.pointer.left.pressed) {
       this.close();
       return true;
     }
     return true; // exclusive: swallow all pointer input beneath
+  }
+
+  /** A cancel no child took closes the modal; one arriving mid-exit is spent on it. */
+  onNav(element, ev) {
+    if (ev.kind !== "cancel") return false;
+    if (this._phase >= 2) return true;
+    if (!this.closeOnEscape) return false;
+    this.close();
+    return true;
   }
 
   // blocks keyboard focus beneath the modal, as the pointer block does, until it's removed

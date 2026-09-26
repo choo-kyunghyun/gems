@@ -17,6 +17,12 @@
  * clicks, a focus move ticks — so a handler plays nothing. A component with `focusable: true`
  * makes its element a focus stop.
  *
+ * A cancel reaches its owner even with the ring down: from the focus, or with none, through the
+ * roots' own components from the top down to the first exclusive one. An untaken cancel drops
+ * the ring and falls to the injected `back`, the app's back-out, which alone still hears a cancel
+ * while the nav is suspended. What the UI or `back` acts on is spent, so a later reader sees only
+ * the input they left.
+ *
  * TODO: retire `navActivate`/`navAxis`, which still answer a confirm and a horizontal move on the
  * focused element itself and make it a stop, once every widget answers `onNav`.
  */
@@ -26,9 +32,20 @@ globalThis.UINav = {
   suspended: false, // gameplay keys don't drive the menu
   color: c_aqua,
   debugKey: vk_tab, // hold to show the traversal overlay (-1 disables)
+  back: () => false, // () => bool: took the cancel the UI left
 
   _stickX: 0, // left-stick re-arm latches (0 = armed)
   _stickY: 0,
+
+  // each event's keys and pad buttons: read into it, spent with it
+  _src: {
+    move: {
+      keys: [vk_left, vk_right, vk_up, vk_down],
+      pads: [gp_padl, gp_padr, gp_padu, gp_padd],
+    },
+    confirm: { keys: [vk_enter, vk_space], pads: [gp_face1] },
+    cancel: { keys: [vk_escape], pads: [gp_face2] },
+  },
 
   /** Reset on every scene swap. */
   reset() {
@@ -50,50 +67,52 @@ globalThis.UINav = {
     if (UINav.suspended) {
       UINav.engaged = false;
       UINav.focused = null;
+      const took = UINav._pressed(UINav._src.cancel) ? UINav.back() : false;
+      if (took) UINav._spend({ kind: "cancel" });
       return;
     }
 
     const items = UINav._collect();
-    if (items.length === 0) {
-      UINav.focused = null;
-      return;
-    }
-
     if (UINav.focused !== null && UINav._indexOf(items, UINav.focused) === -1) {
       UINav.focused = null;
     }
 
     if (Input.pointer.moved) UINav.engaged = false;
 
-    if (Dialogue.isOpen()) return; // dialogue owns Enter/arrows for page advance
-
     const ev = UINav._event(UINav._readInput());
     if (ev === null) return;
-    const live = UINav.engaged ? UINav.focused !== null : false;
 
     if (ev.kind === "cancel") {
-      if (live ? !UINav._dispatch(ev) : true) UINav.engaged = false;
+      const taken = UINav.focused !== null ? UINav._dispatch(ev) : UINav._dispatchRoots(ev);
+      if (!taken) UINav.engaged = false;
+      if (taken ? true : UINav.back()) UINav._spend(ev);
       return;
     }
+    if (items.length === 0) return;
 
     // the first nav input only engages, never also acts
-    if (!live) {
+    if (UINav.engaged ? UINav.focused === null : true) {
       UINav.engaged = true;
       if (UINav.focused === null) {
         UINav.focused = items[0].el;
         UINav._scrollIntoView(UINav.focused);
       }
+      UINav._spend(ev);
       return;
     }
 
     if (UINav._dispatch(ev)) {
+      UINav._spend(ev);
       if (ev.kind === "confirm") Audio.play({ sound: sndButtonClick });
       return;
     }
     if (ev.kind === "move") {
       const prevFocus = UINav.focused;
       UINav._move(items, ev.dx, ev.dy);
-      if (UINav.focused !== prevFocus) Audio.play({ sound: sndButtonMuted });
+      if (UINav.focused !== prevFocus) {
+        UINav._spend(ev);
+        Audio.play({ sound: sndButtonMuted });
+      }
     }
   },
 
@@ -122,6 +141,36 @@ globalThis.UINav = {
       }
       el = el.parent;
     }
+    return false;
+  },
+
+  /** Offers `ev` to each enabled root's own components, top-down to the first exclusive root. */
+  _dispatchRoots(ev) {
+    for (let i = UI.roots.length - 1; i >= 0; i--) {
+      const r = UI.roots[i];
+      if (!r.enabled) continue;
+      const comps = r.components;
+      for (let k = 0; k < comps.length; k++) {
+        if (typeof comps[k].onNav === "function") {
+          if (comps[k].onNav(r, ev) === true) return true;
+        }
+      }
+      if (UINav._exclusive(r)) return false;
+    }
+    return false;
+  },
+
+  /** A taken event's keys are spent, so no later reader acts on the same press. */
+  _spend(ev) {
+    const src = UINav._src[ev.kind];
+    for (let i = 0; i < src.keys.length; i++) Input.consumeKey(src.keys[i]);
+    for (let i = 0; i < src.pads.length; i++) Input.consumePad(src.pads[i]);
+  },
+
+  /** Whether any of `src`'s keys or pad buttons has a pressed edge. */
+  _pressed(src) {
+    for (let i = 0; i < src.keys.length; i++) if (Input.keyPressed(src.keys[i])) return true;
+    for (let i = 0; i < src.pads.length; i++) if (Input.padPressed(src.pads[i])) return true;
     return false;
   },
 
@@ -369,24 +418,23 @@ globalThis.UINav = {
   _readInput() {
     let dx = 0;
     let dy = 0;
-    let confirm = false;
-    let cancel = false;
 
     if (Input.keyPressed(vk_left)) dx = -1;
     else if (Input.keyPressed(vk_right)) dx = 1;
     if (Input.keyPressed(vk_up)) dy = -1;
     else if (Input.keyPressed(vk_down)) dy = 1;
-    if (Input.keyPressed(vk_enter) || Input.keyPressed(vk_space)) confirm = true;
-    if (Input.keyPressed(vk_escape)) cancel = true;
 
     if (Input.padPressed(gp_padl)) dx = -1;
     else if (Input.padPressed(gp_padr)) dx = 1;
     if (Input.padPressed(gp_padu)) dy = -1;
     else if (Input.padPressed(gp_padd)) dy = 1;
-    if (Input.padPressed(gp_face1)) confirm = true;
-    if (Input.padPressed(gp_face2)) cancel = true;
 
-    const e = { dx, dy, confirm, cancel };
+    const e = {
+      dx,
+      dy,
+      confirm: UINav._pressed(UINav._src.confirm),
+      cancel: UINav._pressed(UINav._src.cancel),
+    };
 
     // hysteresis: re-arm under 0.4, fire over 0.6
     const ax = Input.padAxis(gp_axislh);

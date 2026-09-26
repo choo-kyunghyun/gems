@@ -1,5 +1,6 @@
 /**
- * Key-rebind row.
+ * Key-rebind row. A nav confirm or a click arms capture, which holds the nav focus: the next key
+ * pressed becomes the binding, while a nav cancel, a click or the focus moving away disarms it.
  *
  * Keyboard only; mouse/gamepad bindings show read-only. BUG: capture state is an instance field
  * read live, never a cached bool (docs/GMRT.md #15549).
@@ -15,6 +16,7 @@ globalThis.UIRebind = class UIRebind {
     this.font = s.font ?? -1;
     this.rad = s.rad ?? 6;
 
+    this.focusable = true;
     this._capturing = false;
     // release-inside arms capture mode
     this._fsm = new UITrigger({
@@ -25,12 +27,9 @@ globalThis.UIRebind = class UIRebind {
   }
 
   onUpdate(element, block) {
+    if (this._capturing && UINav.focused !== element) this._capturing = false;
     if (this._capturing) {
-      // Esc checked first — the scan below would otherwise pick it up.
-      if (Input.keyPressed(vk_escape)) {
-        this._capturing = false;
-        Input.consumeKey(vk_escape); // an enclosing modal reads Esc after its children
-      } else if (Input.pointer.left.pressed) {
+      if (Input.pointer.left.pressed) {
         this._capturing = false;
       } else {
         // BUG: scan for the live pressed edge, not keyboard_lastkey, which lags vk_anykey by a
@@ -48,7 +47,20 @@ globalThis.UIRebind = class UIRebind {
       return true; // swallow input from the rest of the tree while capturing
     }
 
-    return this._fsm.onUpdate(element, block);
+    const result = this._fsm.onUpdate(element, block);
+    if (this._capturing) UINav.focused = element; // a click armed it
+    return result;
+  }
+
+  /** A confirm arms capture; while armed, the row takes every nav event and a cancel disarms it. */
+  onNav(element, ev) {
+    if (!this._capturing) {
+      if (ev.kind !== "confirm") return false;
+      this._capturing = true;
+      return true;
+    }
+    if (ev.kind === "cancel") this._capturing = false;
+    return true;
   }
 
   onDraw(element) {
@@ -92,8 +104,8 @@ globalThis.UIRebind = class UIRebind {
   }
 
   /**
-   * The first keycode with a live pressed edge this frame (0 = none). Only runs while capturing,
-   * so scanning the whole range is negligible.
+   * The first keycode with a live pressed edge this frame (0 = none), Escape aside: that one is
+   * the nav's cancel. Only runs while capturing, so scanning the whole range is negligible.
    */
   _scanKey() {
     let code = 8; // vk_backspace — below this is nokey/anykey/mouse aliases

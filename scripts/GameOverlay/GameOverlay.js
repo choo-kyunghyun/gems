@@ -2,7 +2,7 @@
  * The app's pause overlay: a side sheet over the right half of a dimmed, still-visible scene.
  * Pause is global: while it is open the scene does not update and the time scale is forced to 0
  * each frame. F1 opens it anywhere; during gameplay (a scene's `gameplay` flag) gamepad Start
- * does too, and Esc opens it only when the scene's `handleEscape` declines the press.
+ * does too, and an Esc the UI left opens it only when the scene's `handleEscape` declines it.
  */
 globalThis.GameOverlay = {
   _modal: null,
@@ -27,7 +27,7 @@ globalThis.GameOverlay = {
     GameOverlay._extraTabs.push({ label, short, build });
   },
 
-  /** Per-frame pause/open driver. */
+  /** Per-frame pause/open driver, ahead of the nav, which it suspends during bare gameplay. */
   update(game) {
     GameOverlay._game = game;
     const scene = game.scene;
@@ -56,28 +56,23 @@ globalThis.GameOverlay = {
       return;
     }
 
-    // the scene gets first refusal of Esc; the consumed-aware press lets a widget's own Esc win
-    if (Input.keyPressed(vk_escape)) {
-      if (scene.handleEscape !== undefined && scene.handleEscape()) {
-        Input.consumeKey(vk_escape);
-        UINav.suspended = true;
-      } else {
-        GameOverlay.open();
-      }
-      return;
-    }
-
-    // gamepad B is back: the same escape hook, but it never opens the menu
-    if (Input.padPressed(gp_face2)) {
-      if (scene.handleEscape !== undefined && scene.handleEscape()) {
-        Input.consumePad(gp_face2);
-        UINav.suspended = true;
-        return;
-      }
-    }
-
     // gameplay owns the gamepad unless a window is open
     UINav.suspended = !InputContext.is("window");
+  },
+
+  /**
+   * The cancel the UI left, during gameplay: the scene gets first refusal of Esc or B, and an Esc
+   * it declines opens the overlay, which B never does. True when it took the press.
+   */
+  back() {
+    if (GameOverlay._modal !== null) return false;
+    const scene = GameOverlay._game !== null ? GameOverlay._game.scene : null;
+    if (scene === null || scene.gameplay !== true) return false;
+    const handled = scene.handleEscape !== undefined ? scene.handleEscape() : false;
+    if (handled) return true;
+    if (!Input.keyPressed(vk_escape)) return false;
+    GameOverlay.open();
+    return true;
   },
 
   isOpen() {

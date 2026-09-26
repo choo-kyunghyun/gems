@@ -110,12 +110,15 @@ globalThis.Test = {
   /**
    * Sandboxes the UI's app state, handed back by `uiRestore`: no roots, an idle nav, the pointer
    * parked off-screen, a keyboard and a pad whose only buttons down are `ctx.keys` and `ctx.pads`,
-   * the sticks at rest, and a silent `Audio.play` that counts its cues in `ctx.sounds`.
+   * the sticks at rest, a silent `Audio.play` that counts its cues in `ctx.sounds`, and a nav
+   * `back` that counts its calls in `ctx.backs` and takes the cancel while `ctx.backTakes`.
    */
   ui(ctx) {
     ctx.keys = [];
     ctx.pads = [];
     ctx.sounds = 0;
+    ctx.backs = 0;
+    ctx.backTakes = false;
     const saved = {
       roots: UI.roots,
       focused: UINav.focused,
@@ -123,6 +126,7 @@ globalThis.Test = {
       suspended: UINav.suspended,
       stickX: UINav._stickX,
       stickY: UINav._stickY,
+      back: UINav.back,
       raw: Time.raw,
       pointer: Input.pointer,
       typed: Input.typed,
@@ -140,6 +144,10 @@ globalThis.Test = {
 
     UI.roots = [];
     UINav.reset();
+    UINav.back = () => {
+      ctx.backs += 1;
+      return ctx.backTakes;
+    };
     const button = () => ({ pressed: false, released: false, down: false, owner: "" });
     Input.pointer = {
       x: -100000,
@@ -183,7 +191,7 @@ globalThis.Test = {
 
   /**
    * One sandboxed frame: the claims clear, `keys` and `pads` go down and `typed` is the frame's
-   * text, then the tree and the nav run.
+   * text, then the tree, the dialogue and the nav run in the app's order.
    */
   uiFrame(ctx, keys, pads = [], typed = "") {
     Input._pointerClaimed = false;
@@ -195,6 +203,7 @@ globalThis.Test = {
     ctx.pads = pads;
     Input.typed = typed;
     UI.update();
+    Dialogue.update();
     UINav.update();
   },
 
@@ -209,6 +218,7 @@ globalThis.Test = {
     UINav.suspended = saved.suspended;
     UINav._stickX = saved.stickX;
     UINav._stickY = saved.stickY;
+    UINav.back = saved.back;
     Time.raw = saved.raw;
     Input.pointer = saved.pointer;
     Input.typed = saved.typed;

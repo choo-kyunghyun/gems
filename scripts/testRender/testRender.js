@@ -736,4 +736,118 @@ Test.register(Test.CHECK, [
       Test.uiRestore(ctx);
     },
   },
+  {
+    // a cancel finds its modal with no focus to start from; one the UI leaves falls to `back`,
+    // which alone hears it while the nav is suspended, and only a taken cancel is spent
+    id: "ui.navBack",
+    setup(ctx) {
+      Test.ui(ctx);
+      Time.raw = 1; // longer than any fade, so a modal enters or exits within one frame
+      ctx.closed = 0;
+      ctx.openModal = () => {
+        const overlay = new UIElement({ width: "100%", height: "100%" });
+        ctx.card = new UIElement({ width: 200, height: 40 }).addComponent(new UIButton());
+        overlay.insertChild(ctx.card);
+        overlay.addComponent(
+          new UIModal({
+            root: overlay,
+            onClose: () => {
+              ctx.closed += 1;
+            },
+          }),
+        );
+        UI.insert(overlay);
+      };
+      UI.insert(new UIElement({ width: 200, height: 40 }).addComponent(new UIButton()));
+    },
+    verify(ctx, t) {
+      ctx.openModal();
+      Test.uiFrame(ctx, [vk_escape]);
+      t.ok(!Input.keyPressed(vk_escape), "a cancel the UI takes is spent");
+      Test.uiFrame(ctx, []);
+      t.eq(ctx.closed, 1, "with no focus an Esc still closes the modal");
+      t.eq(ctx.backs, 0, "and never reaches back");
+
+      Test.uiFrame(ctx, [vk_escape]);
+      t.eq(ctx.backs, 1, "a cancel the UI leaves falls to back");
+      t.ok(Input.keyPressed(vk_escape), "and stays for later readers while back declines it");
+      ctx.backTakes = true;
+      Test.uiFrame(ctx, [vk_escape]);
+      t.ok(!Input.keyPressed(vk_escape), "a cancel back takes is spent");
+      ctx.backTakes = false;
+
+      ctx.openModal();
+      UINav.focused = ctx.card;
+      UINav.engaged = true;
+      Test.uiFrame(ctx, [], [gp_face2]);
+      Test.uiFrame(ctx, []);
+      t.eq(ctx.closed, 2, "a pad cancel closes the modal too");
+
+      UINav.suspended = true;
+      ctx.backs = 0;
+      Test.uiFrame(ctx, [vk_escape]);
+      t.eq(ctx.backs, 1, "a suspended nav still hands the cancel to back");
+      ctx.backTakes = true;
+      Test.uiFrame(ctx, [], [gp_face2]);
+      t.ok(!Input.padPressed(gp_face2), "and spends what back takes");
+    },
+    teardown(ctx) {
+      Test.uiRestore(ctx);
+    },
+  },
+  {
+    // an armed rebind row takes the Esc that disarms it before its modal can, and an open
+    // dialogue shuts the nav out
+    id: "ui.navCapture",
+    setup(ctx) {
+      Test.ui(ctx);
+      Time.raw = 1; // longer than any fade, so a modal enters or exits within one frame
+      ctx.closed = 0;
+      ctx.row = new UIElement({ width: 200, height: 40 }).addComponent(
+        new UIRebind({ actionKey: "test_absent" }),
+      );
+      ctx.overlay = new UIElement({ width: "100%", height: "100%" });
+      ctx.overlay.insertChild(ctx.row);
+      ctx.overlay.addComponent(
+        new UIModal({
+          root: ctx.overlay,
+          onClose: () => {
+            ctx.closed += 1;
+          },
+        }),
+      );
+      UI.insert(ctx.overlay);
+      UINav.focused = ctx.row;
+      UINav.engaged = true;
+    },
+    verify(ctx, t) {
+      Test.uiFrame(ctx, [vk_enter]);
+      Test.uiFrame(ctx, [vk_escape]);
+      Test.uiFrame(ctx, []);
+      t.eq(ctx.closed, 0, "an armed row takes the Esc that disarms it");
+      Test.uiFrame(ctx, [vk_escape]);
+      Test.uiFrame(ctx, []);
+      t.eq(ctx.closed, 1, "a disarmed row leaves the next Esc to its modal");
+
+      const a = new UIElement({ width: 200, height: 40 }).addComponent(new UIButton());
+      const b = new UIElement({ width: 200, height: 40 }).addComponent(new UIButton());
+      const col = new UIElement({ flexDirection: "column", gap: 20 });
+      col.insertChild(a).insertChild(b);
+      UI.insert(col);
+      UINav.focused = a;
+      UINav.engaged = true;
+      Dialogue.start(["TEST_ABSENT"]);
+      Test.uiFrame(ctx, [vk_down]);
+      t.ok(UINav.focused === a, "an open dialogue keeps the moves from the nav");
+      Test.uiFrame(ctx, [vk_escape]);
+      t.ok(UINav.engaged ? ctx.backs === 0 : false, "and the cancel");
+      Dialogue.clear();
+      Test.uiFrame(ctx, [vk_down]);
+      t.ok(UINav.focused === b, "a closed one hands them back");
+    },
+    teardown(ctx) {
+      Dialogue.clear();
+      Test.uiRestore(ctx);
+    },
+  },
 ]);

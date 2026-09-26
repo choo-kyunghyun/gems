@@ -4,7 +4,7 @@
  *
  * 1. The contract (duck-typed): the game drives any object shaped like this class —
  *      create(openScene) / update() / draw() / destroy()   required
- *      handleEscape()         optional — first refusal on Esc/B
+ *      handleEscape()         optional — first refusal on an Esc/B the UI left
  *      retheme()              optional — rebuilds the scene's UI on a live theme swap
  *      label / gameplay       optional fields — display fallback / pause+nav opt-in
  *    A scene is live or gone, never frozen: a switch destroys it, so it carries no state across

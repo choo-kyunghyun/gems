@@ -1,6 +1,7 @@
 /**
  * The typewriter dialogue box. An advance press first reveals the rest of the page, the next
- * moves on; past the last page it closes and fires onComplete. What advances is consumed.
+ * moves on; past the last page it closes and fires onComplete. While open it owns the keyboard
+ * and the pad: it reads its advance, then claims both for the frame.
  */
 globalThis.Dialogue = {
   speedDefault: 45, // chars/sec
@@ -72,18 +73,9 @@ globalThis.Dialogue = {
 
     // a click advances only inside the box, so a click on background UI doesn't page too
     let advance = false;
-    if (Input.keyPressed(vk_enter)) {
-      Input.consumeKey(vk_enter);
-      advance = true;
-    }
-    if (Input.keyPressed(vk_space)) {
-      Input.consumeKey(vk_space);
-      advance = true;
-    }
-    if (Input.padPressed(gp_face1)) {
-      Input.consumePad(gp_face1);
-      advance = true;
-    }
+    if (Input.keyPressed(vk_enter)) advance = true;
+    if (Input.keyPressed(vk_space)) advance = true;
+    if (Input.padPressed(gp_face1)) advance = true;
     if (Input.pointerPressed(mb_left)) {
       const mx = Input.pointer.x;
       const my = Input.pointer.y;
@@ -93,6 +85,8 @@ globalThis.Dialogue = {
       }
     }
     if (advance) Dialogue._advance();
+    Input.claimKeys();
+    Input.claimPad();
   },
 
   _advance() {

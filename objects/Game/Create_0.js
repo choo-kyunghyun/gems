@@ -95,6 +95,7 @@ contentSounds.register(); // sound metadata (tempo per track) — the sim tempo 
 this.background = Color.parse(FacetTheme.bg); // scene backdrop; re-read on a theme swap (Draw_0)
 
 UINav.color = Color.parse(FacetTheme.accent); // focus ring from kit theme
+UINav.back = GameOverlay.back; // the pause menu backs out on the cancel the UI left
 
 // ─────────────────────────────────────────────────────────────────────────────
 // THE SCENE. Game owns the active Scene outright — there is no scene manager: this pointer IS
