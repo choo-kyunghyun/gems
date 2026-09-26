@@ -30,9 +30,9 @@ Two top-level pillars (project folders), Core reusable without Game:
 
 - `Core` — the engine, and only the engine: the ECS, the `Level`/`Scene`/`World` triad, the
   level-generation frame (a pass runner that ships no stage), the renderer passes, sprite playback,
-  the UI system, input, utilities. Every area references only engine concepts — space, time,
-  presentation, entity lifecycle — and never a gameplay rule. Core never references Game (Game
-  could be deleted and Core still builds).
+  the UI system, input, the app singletons, utilities. Every area references only engine
+  concepts — space, time, presentation, entity lifecycle — and never a gameplay rule. Core never
+  references Game (Game could be deleted and Core still builds).
 - `Game` — the integrated showcase consuming Core: the app shell (`objects/Game/`), the gameplay
   areas, the colony scene that composes them, the item vocabulary in `Game/Item` over the
   capability classes in `Game/Item/Component`, worldgen stages in `Game/Level`, the Facet UI kit in
@@ -48,7 +48,10 @@ Placement rule for new code:
 - References only engine concepts (space/time/presentation/entity lifecycle) → Core. A data
   structure that knows no layer — the id-keyed store (`Table`, `Handle`, `Row`), the
   1-D `Grid`, the def `Registry`, the asset-keyed `AssetMeta` — or the serialization of one
-  (`Json`, `File`, `Snapshot`) → `Core/Data`; a Core check case → `Core/Test`.
+  (`Json`, `Snapshot`) → `Core/Data`. A leaf helper that references nothing else in Core
+  (`Log`, `Time`, `File`) → `Core/Util`, the floor every area may reach; an app singleton over
+  the device or the session (`Settings`, `Display`) → `Core/App`; a Core check case →
+  `Core/Test`.
 - States a gameplay rule — damage, needs, economy, progression — or names specific
   content/scenes/`Colony*` → Game, into the area whose rule it states. Content is authored as JS
   (`content*` — content is code, never a shipped JSON datafile), and a table that several areas

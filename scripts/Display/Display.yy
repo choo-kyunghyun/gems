@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Display",
   "parent":{
-    "name":"Util",
-    "path":"folders/Core/Util.yy",
+    "name":"App",
+    "path":"folders/Core/App.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

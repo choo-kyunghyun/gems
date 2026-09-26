@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"File",
   "parent":{
-    "name":"Data",
-    "path":"folders/Core/Data.yy",
+    "name":"Util",
+    "path":"folders/Core/Util.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

@@ -27,6 +27,18 @@
 - More `testStress` scenarios over the same shape as `stress.pathfind`: a raycast storm (hitscan volleys over the static buckets), a spawn/despawn churn (the free list, the flush cost), a tile-edit storm (`SolidTiles.sync` + `NavGrid.sync` per frame)
 - A `DEV_MODE` section timer around `sceneColony.update`'s phases, logging the colony frame profile (sim, renderer, GUI) as a `[BENCH]` line in place of the hand probe
 
+## Core Structure
+
+The Core folder tree reads as its dependency layers — a move, never a behaviour change.
+
+- A `Puppet` area for the instance bridge (`Instance`, `PuppetSystem`, the `Puppet`/`Solid` objects) out of `Collision`, so `Sprite`, `Render` and `Nav` depend on the bridge, not on collision
+- `EntityPreset` out of `Entity` into an area above `Sprite`/`Render` — it builds looks — ending the Entity↔Render cycle
+- Unwired: `CameraPan` (no installer), `CameraFly` (tests only), `Lifetime` (no Game carrier) — wire, drop, or a clause each
+- `Render` subfolders: passes, debug passes, geometry (`Vox`, `Poly`, `VertexBuffer`, `VertexBatch`, `Chunks`)
+- `UIDraw`'s free globals into one namespace
+- Store mechanisms: whether `derive` folds into `of` behind an option — both have few call sites against the invariants they carry
+- Level cells span nine types in five areas (`Grid`, `LevelGrid`, `TileLayer`, `TileType`, `ZoneMap`, `SolidTiles`, `NavGrid`, `MotionPlanner`, `Chunks`); the edit-log readers (`SolidTiles`, `NavGrid`, `Chunks`) share one cursor shape, a shared reader once they drift
+
 ## Assets
 
 - More hair sprites for `spineHuman`
