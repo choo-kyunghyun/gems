@@ -1,17 +1,27 @@
 /**
  * The dialogue card: the scene's `dialogue` record typed out in a card docked at the bottom of
- * `scene.ui`. While it shows, an advance — Enter, Space, the pad's face button, or a click inside
- * the card — goes to the record, and the card then claims the keyboard and the pad for the frame.
- * A page is wrapped whole before it reveals, so the typing never reflows a line.
+ * `scene.ui`. open() is its one door: the card shows and takes the focus until the record closes,
+ * then hands the focus back. A focused card takes a confirm or a click as an advance and keeps the
+ * moves, so the focus stays on it; a cancel is left to the app. A page is wrapped whole before it
+ * reveals, so the typing never reflows a line.
  */
 const DIALOGUE_LINES = 3; // fixed box height in rows; pages are written to fit
 const DIALOGUE_W = 760;
 
 globalThis.DialogueUI = {
-  /** Once per scene; returns the view update() takes. */
+  /** Once per scene; returns the view the other members take. */
   build(scene) {
-    const d = scene.dialogue;
-    const view = { el: null, body: null, text: "", w: -1, lines: [], starts: [] };
+    const view = {
+      d: scene.dialogue,
+      el: null,
+      card: null,
+      body: null,
+      prev: null, // the focus the card took, handed back on close
+      text: "",
+      w: -1,
+      lines: [],
+      starts: [],
+    };
     const wrap = new UIElement({
       positionType: "absolute",
       left: 0,
@@ -27,47 +37,74 @@ globalThis.DialogueUI = {
       alpha: 1,
     });
     const chevron = facetColor(FacetTheme.accentHi);
+    const trigger = new UITrigger({ onClick: () => DialogueUI._advance(view) });
     card.addComponent({
-      onUpdate: (el, block) => DialogueUI._input(d, el, block),
-      onDraw: (el) => DialogueUI._chevron(d, el, chevron),
+      focusable: true,
+      onUpdate: (el, block) => DialogueUI._update(view, el, block, trigger),
+      onNav: (el, ev) => DialogueUI._nav(view, ev),
+      onDraw: (el) => DialogueUI._chevron(view.d, el, chevron),
     });
     const name = new UIElement({ width: "100%", height: 26 });
     name.insertChild(
-      facetLabel(() => Dialogue.speaker(d), { color: FacetTheme.accentHi, font: "header" }),
+      facetLabel(() => Dialogue.speaker(view.d), { color: FacetTheme.accentHi, font: "header" }),
     );
     const body = new UIElement({ width: "100%", height: DIALOGUE_LINES * string_height("Mg") });
-    body.insertChild(facetLabel(() => DialogueUI._visible(view, d), { color: FacetTheme.text }));
+    body.insertChild(
+      facetLabel(() => DialogueUI._visible(view, view.d), { color: FacetTheme.text }),
+    );
     card.insertChild(name);
     card.insertChild(body);
     wrap.insertChild(card);
     wrap.enabled = false;
     scene.ui.insertChild(wrap);
     view.el = wrap;
+    view.card = card;
     view.body = body;
     return view;
   },
 
-  /** Once per frame: the card shows while the record is open. */
-  update(scene, view) {
-    view.el.enabled = Dialogue.isOpen(scene.dialogue);
+  /** Starts `pages` on the record and shows the card; `pages` and `opts` as Dialogue.start. */
+  open(view, pages, opts = {}) {
+    Dialogue.start(view.d, pages, opts);
+    if (!Dialogue.isOpen(view.d)) return;
+    if (!view.el.enabled) view.prev = UINav.focused;
+    view.el.enabled = true;
+    UINav.focus(view.card);
   },
 
-  _input(d, el, block) {
-    Dialogue.tick(d, Time.raw);
-    const mx = Input.pointer.x;
-    const my = Input.pointer.y;
-    let advance = false;
-    if (Input.keyPressed(vk_enter)) advance = true;
-    if (Input.keyPressed(vk_space)) advance = true;
-    if (Input.padPressed(gp_face1)) advance = true;
-    // only a click inside the card advances, so one on the UI around it never pages
-    if (!block ? Input.pointer.left.pressed : false) {
-      if (el.positionMeeting(mx, my)) advance = true;
+  _hide(view) {
+    if (!view.el.enabled) return;
+    view.el.enabled = false;
+    if (UINav.focused === view.card) {
+      if (view.prev !== null) UINav.focus(view.prev);
+      else UINav.focused = null;
     }
-    if (advance) Dialogue.advance(d);
-    Input.claimKeys();
-    Input.claimPad();
-    return block ? true : el.positionMeeting(mx, my);
+    view.prev = null;
+  },
+
+  /**
+   * A record closed from outside takes the card down with it; a focus dropped while the card was
+   * stood in for comes back to it.
+   */
+  _update(view, el, block, trigger) {
+    if (!Dialogue.isOpen(view.d)) {
+      DialogueUI._hide(view);
+      return block;
+    }
+    if (UINav.focused === null) UINav.focus(el);
+    Dialogue.tick(view.d, Time.raw);
+    return trigger.onUpdate(el, block);
+  },
+
+  _advance(view) {
+    Dialogue.advance(view.d);
+    if (!Dialogue.isOpen(view.d)) DialogueUI._hide(view);
+  },
+
+  _nav(view, ev) {
+    if (ev.kind === "cancel") return false;
+    if (ev.kind === "confirm") DialogueUI._advance(view);
+    return true;
   },
 
   _chevron(d, el, color) {

@@ -158,7 +158,7 @@ class _SceneFacetClass {
       facetButton(
         I18n.textRef("FACET_BTN_SAY"),
         () =>
-          Dialogue.start(this.dialogue, [
+          DialogueUI.open(this.dialogueView, [
             I18n.text("FACET_SAY_1"),
             {
               speaker: I18n.text("FACET_SAY_SPEAKER"),
@@ -721,12 +721,8 @@ class _SceneFacetClass {
     return scrollSec;
   }
 
-  // nothing to simulate but the dialogue card's showing
-  update() {
-    DialogueUI.update(this, this.dialogueView);
-  }
-
-  // declared because every scene is drawn unconditionally
+  // nothing to simulate; declared because every scene is updated and drawn unconditionally
+  update() {}
   draw() {}
 
   destroy() {
