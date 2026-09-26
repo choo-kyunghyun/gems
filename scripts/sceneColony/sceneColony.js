@@ -224,15 +224,28 @@ class _SceneColonyClass {
   }
 
   /**
-   * The frame's order: input, context, the world's time and the world mirrors before the sim, the
-   * sim on Time.step, then presentation and dirty UI rebuilds. What the scene shows of a gameplay
-   * reaction is a named `_on*` member passed in as a hook set, so this body states order alone. A
-   * map swap never runs in here — it lands between frames, so nothing in a frame touches a
-   * swapped-out map.
+   * The frame's order, one phase per line. A map swap never runs in here — it lands between
+   * frames, so nothing in a frame touches a swapped-out map. What the scene shows of a gameplay
+   * reaction is a named `_on*` member passed in as a hook set, so the phases state order alone.
    */
   update() {
     // no pause gate: a paused scene is not updated
+    this._input();
+    // the world first, on sim time so it pauses with the game: every system below reads one
+    // now, and what a due event spawns simulates this frame
+    this.tickWorld(Time.delta);
+    this._simulate();
+    this.level.entities.flush();
+    this._animate();
+    this._ui();
+    this._present();
+    // last, so every write above lands this frame; after the UI update, so a rebuild never
+    // lands inside the click that requested it
+    this.window.update();
+  }
 
+  /** The frame's reads of the player's intent, latched before anything simulates. */
+  _input() {
     // derived each frame, the self-heal after a store swap
     this.playerId = ColonyPlayer.id(this.level.entities);
 
@@ -266,13 +279,19 @@ class _SceneColonyClass {
 
     // after the context, so it is inert under a window or in build mode
     this._useHotbar();
+  }
 
-    // the world first, on sim time so it pauses with the game: every system below reads one
-    // now, and what a due event spawns simulates this frame
-    this.tickWorld(Time.delta);
-
+  /**
+   * The map's processes on world hours, then the bodies' on Time.step, then what the frame's
+   * hits and deaths resolve to — all before the flush, so every structural change commits this
+   * frame.
+   */
+  _simulate() {
     // before the needs read shelter
     RoomSystem.update(this.level);
+    FloraSystem.update(this.level);
+    GrassSystem.update(this.level);
+    TradeSystem.update(this.level);
 
     StatusSystem.update(this.level);
     EncumbranceSystem.update(this.level);
@@ -294,38 +313,50 @@ class _SceneColonyClass {
     ColonyCombat.updateDowned(this.level, this._downRules);
     ColonyCombat.reapCorpses(this.level);
     Progression.reach(this.level);
+  }
 
-    this.level.entities.flush();
-
+  /** The bodies' poses for this frame, which the pick tests against. */
+  _animate() {
     Doll.pace(this.level.entities);
     SpriteSystem.update(this.level);
     AppearanceSystem.update(this.level);
+  }
+
+  /**
+   * The pick and what acts on it, then the HUD that reports both. Ahead of the camera, so the
+   * pick reads the view the cursor was latched through.
+   */
+  _ui() {
     Interactable.update(this, this.interact);
     this._dispatchInteract();
     BuildMode.update(this, this.build);
     BuildMode.reapDestroyed(this);
-    Hud.update(this, this.hud); // after the pick and build mode it reports
-    FloraSystem.update(this.level);
-    GrassSystem.update(this.level);
-    TradeSystem.update(this.level);
+    Hud.update(this, this.hud);
+  }
+
+  /** The frame's sight and sound on the sim clock. */
+  _present() {
     ParticleFx.update();
     // the sim-clock camera policies; the wall-clock one runs from draw() so it keeps moving
     // while the sim is paused
     CameraSystem.update(this.level);
-    // hear from the tracked body, not the view: the view clamps at map edges and a free camera
-    // flies away from it; the view's look-at is the fallback without a tracked body
-    const ep = this.level.entities.get(
-      this.level.entities.first(CameraFocus),
-      Position,
-    );
-    if (ep !== undefined) Audio.listen(ep.x, ep.y);
-    else Audio.listen(view.toX, view.toY);
+    this._listen();
     SoundEmitterSystem.update(this.level);
     ParticleEmitterSystem.update(this.level);
+  }
 
-    // last, so every write above lands this frame; after the UI update, so a rebuild never
-    // lands inside the click that requested it
-    this.window.update();
+  /**
+   * Hear from the tracked body, not the view: the view clamps at map edges and a free camera
+   * flies away from it; the view's look-at is the fallback without a tracked body.
+   */
+  _listen() {
+    const entities = this.level.entities;
+    const ep = entities.get(entities.first(CameraFocus), Position);
+    if (ep !== undefined) Audio.listen(ep.x, ep.y);
+    else {
+      const view = CameraSystem.view(this.level);
+      Audio.listen(view.toX, view.toY);
+    }
   }
 
   /**
