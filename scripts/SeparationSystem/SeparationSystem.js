@@ -19,6 +19,7 @@ globalThis.SeparationSystem = {
     const entities = level.entities;
     const held = entities.column(Instance);
     const mask = Handle.INDEX_MASK;
+    const against = SolidSystem.tiles(level).against;
 
     const hs = SeparationSystem._held;
     const ps = SeparationSystem._pos;
@@ -63,7 +64,7 @@ globalThis.SeparationSystem = {
         pys[n] = py;
         n++;
       });
-      for (let i = 0; i < n; i++) PuppetSystem.move(hs[i], ps[i], pxs[i], pys[i], 1);
+      for (let i = 0; i < n; i++) PuppetSystem.move(hs[i], ps[i], pxs[i], pys[i], 1, against);
     }
   },
 };

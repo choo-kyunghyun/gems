@@ -4,7 +4,7 @@ const ANCHOR_CLEAR = 6; // cells around a site's anchor kept procedural-free —
 /**
  * The colony's level builder: load() turns a world-map site into level data (a LevelData plus
  * `meta`, the generator inputs and whole-map flags), build() generates and paints it into a store
- * + grid, and restore() rebuilds a saved map. The caller owns the returned grid and colliders.
+ * + grid, and restore() rebuilds a saved map. The caller owns the returned grid.
  *
  * Every level is procedural and fully resident: the site's seed and biome drive the generator and
  * its anchor prefab fixes the one hand-built structure, on a build only — a saved map comes back
@@ -102,15 +102,10 @@ globalThis.ColonyLevel = {
   },
 
   /**
-   * Generate and paint a level, meshing each solid layer's colliders; the caller owns
-   * grid.destroy() and the colliders. `entryId` picks the arrival entry, falling back to
-   * `default`. `spawns` are translated but not spawned.
-   *
-   * A solid layer's `<key>Colliders` is its own greedy mesh, remeshed wholesale on edit; geometry
-   * with no tile layer behind it (impassable terrain, the level edge) belongs to no list, so a
-   * remesh never frees it.
+   * Generate and paint a level; the caller owns grid.destroy(). `entryId` picks the arrival entry,
+   * falling back to `default`. `spawns` are translated but not spawned.
    */
-  build(entities, data, entryId = "default") {
+  build(data, entryId = "default") {
     const cell = data.cell ?? CELL;
     const grid = new LevelGrid({
       cellWidth: cell,
@@ -120,17 +115,8 @@ globalThis.ColonyLevel = {
     });
     const h = ColonyLevel._makeLayers(grid);
 
-    const gen = ColonyLevel._generate(entities, grid, h, data);
+    const gen = ColonyLevel._generate(grid, h, data);
     const painted = LevelData.paint(gen.out, { layers: h });
-
-    // one list per solid layer, so an edit remeshes only its own layer
-    for (let i = 0; i < contentTiles.LAYERS.length; i++) {
-      const cfg = contentTiles.LAYERS[i];
-      if (cfg.solid !== true) continue;
-      const colliders = [];
-      h[cfg.key + "Layer"].meshSolid(entities, grid, colliders);
-      h[cfg.key + "Colliders"] = colliders;
-    }
 
     const entries = ColonyLevel._entries(gen.out.spawns);
     const spawn = ColonyLevel._resolveSpawn(grid, entries, entryId);
@@ -145,12 +131,11 @@ globalThis.ColonyLevel = {
   },
 
   /**
-   * Run the generator and lay down everything that is not LevelData: the terrain base as ordinary
-   * per-cell tile data, and collide-only boxes for impassable terrain and the level edge. Returns
-   * `{ out, mats }` — the accumulated LevelData (anchor content merged) and the terrain material
-   * table. A `danger` of 0 marks a safe site: no raider spawns.
+   * Run the generator and lay down what is not LevelData: the terrain base as ordinary per-cell
+   * tile data. Returns `{ out, mats }` — the accumulated LevelData (anchor content merged) and the
+   * terrain material table. A `danger` of 0 marks a safe site: no raider spawns.
    */
-  _generate(entities, grid, h, data) {
+  _generate(grid, h, data) {
     const t0 = current_time;
     const biomeId = data.meta.biome;
     const gen = OverworldGen.create({
@@ -171,8 +156,6 @@ globalThis.ColonyLevel = {
     h.terrainTypes = {};
     for (let i = 0; i < terrain.mats.length; i++)
       h.terrainTypes[terrain.mats[i].material] = terrain.mats[i].type;
-    Colliders.boxes(entities, out.solid, grid.cellWidth, grid.cellHeight, []);
-    ColonyLevel.buildWorldBorder(entities, grid);
     let rects = 0;
     for (let i = 0; i < out.tiles.length; i++)
       rects += out.tiles[i].rects.length;
@@ -241,7 +224,7 @@ globalThis.ColonyLevel = {
 
   /**
    * Rebuild a saved map's grid: the layers come up as build() makes them and the cells fill from
-   * the packed buffer — no seed, no generator, nothing spawned or remeshed. `buf` stays the
+   * the packed buffer — no seed, no generator, nothing spawned. `buf` stays the
    * caller's to free. Returns null when the buffer doesn't fit the layer stack.
    */
   restore(shape, terrainMats, buf) {
@@ -274,21 +257,6 @@ globalThis.ColonyLevel = {
       return null;
     }
     return { grid, terrainMats: mats, ...h };
-  },
-
-  /**
-   * A solid border ringing the level so nothing can leave. Left/right span one cell past
-   * top/bottom to cover the outer corners (no diagonal slip-through).
-   */
-  buildWorldBorder(entities, grid) {
-    const cw = grid.cellWidth;
-    const ch = grid.cellHeight;
-    const W = grid.cols * cw;
-    const H = grid.rows * ch;
-    Colliders.box(entities, 0, -ch, W, ch);
-    Colliders.box(entities, 0, H, W, ch);
-    Colliders.box(entities, -cw, -ch, cw, H + 2 * ch);
-    Colliders.box(entities, W, -ch, cw, H + 2 * ch);
   },
 
   /** The player spawn in world coords, falling back to the `default` entry. */

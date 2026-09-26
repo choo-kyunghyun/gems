@@ -136,17 +136,22 @@ globalThis.CombatAI = {
           const sp = entities.get(id, Position);
           const tp = entities.get(brain.target, Position);
 
-          // Only a wall (kinematic solid) forces a path detour; other bodies don't block. The
-          // decision is cached between throttled casts — occlusion shifts slowly.
+          // Only a wall (a blocking cell or a kinematic solid) forces a path detour; other
+          // bodies don't block. The decision is cached between throttled casts — occlusion
+          // shifts slowly.
           if (brain.losCd > 0) {
             brain.losCd -= Time.step;
           } else {
             brain.losCd = brain.losRate;
-            const hit = Query.cast(entities, sp.x, sp.y, tp.x, tp.y, {
+            const hit = Query.cast(level, sp.x, sp.y, tp.x, tp.y, {
               ignore: id,
             });
             brain.losBlocked =
-              hit !== null && entities.get(hit.id, Collision).kinematic;
+              hit === null
+                ? false
+                : hit.id === level.self
+                  ? true
+                  : entities.get(hit.id, Collision).kinematic;
           }
           const blocked = brain.losBlocked;
           if (!blocked || level.grid === null) {

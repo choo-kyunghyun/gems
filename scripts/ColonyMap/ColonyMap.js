@@ -7,14 +7,13 @@
  * parking and resuming a map cost no rebuild.
  *
  * A Level comes to be one of two ways: build() on a visit to a map not pooled (the only place
- * procedural content is made) and restoreLevel() for a saved map (no seed, spawn or remesh). Both
+ * procedural content is made) and restoreLevel() for a saved map (no seed or spawn). Both
  * pool the Level mounted but not activated. A PERSISTENT map builds once and a revisit resumes
  * it; any other is transient, freed on departure and built afresh from a new seed next visit.
  *
  * @typedef {Object} ColonyMapData
  * @property {{x:number,y:number}} spawn  the point the map was entered at (world) — the respawn point
  * @property {Object<string,{x:number,y:number}>} entries  the named arrival points (world)
- * @property {Object<string,number[]>} colliders  per solid layer key, its greedy-meshed collider ids
  * @property {Array|undefined} terrainMats  the terrain material table as rows; undefined with one fill type
  *
  * The runtime also holds, per layer key, `<key>Layer` (the TileLayer), `<key>Type` (its default
@@ -60,7 +59,6 @@ globalThis.ColonyMap = {
     return {
       spawn: undefined,
       entries: undefined,
-      colliders: {},
       terrainMats: undefined,
     };
   },
@@ -119,7 +117,7 @@ globalThis.ColonyMap = {
   },
 
   /**
-   * Pool a saved map with no seed, spawn or remesh, mounted but not activated. `source(name)`
+   * Pool a saved map with no seed or spawn, mounted but not activated. `source(name)`
    * yields its blobs (the source's to free). Returns the level, or null when the entry is unusable
    * (logged, nothing pooled) — the map's first visit then builds it fresh.
    */
@@ -173,18 +171,13 @@ globalThis.ColonyMap = {
       capacity: Math.max(1024, Math.ceil((data.cols * data.rows) / 4)),
     });
     level.entities.codec(Level.GRID, ColonyMap._gridCodec(level)); // the grid saves as a blob
-    const built = ColonyLevel.build(level.entities, data, entryId);
+    const built = ColonyLevel.build(data, entryId);
     level.grid = built.grid;
     const rec = ColonyMap._data();
     level.entities.add(level.self, ColonyMap.KEY, rec);
     rec.spawn = built.spawn;
     rec.entries = ColonyMap._entryTable(level.grid, built.entries);
     rec.terrainMats = ColonyLevel.terrainRows(built.terrainMats);
-    for (let i = 0; i < contentTiles.LAYERS.length; i++) {
-      const key = contentTiles.LAYERS[i].key;
-      if (built[key + "Colliders"] !== undefined)
-        rec.colliders[key] = built[key + "Colliders"];
-    }
     ColonyMap._mount(level, built);
     Grassland.clearBuilt(level);
     // A trip arrival transfers the existing player instead.

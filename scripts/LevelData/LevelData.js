@@ -101,8 +101,8 @@ globalThis.LevelData = {
   },
 
   /**
-   * Write the tiles into a level at the cell offset; the caller remeshes a solid layer's colliders
-   * once after all its writes. Returns `{ spawns }`, translated but not spawned.
+   * Write the tiles into a level at the cell offset. Returns `{ spawns }`, translated but not
+   * spawned.
    */
   paint(data, opts) {
     const ox = opts.ox ?? 0;

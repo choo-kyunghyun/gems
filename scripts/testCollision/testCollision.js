@@ -1,6 +1,6 @@
 // Collision cases: the solid and separation passes, the collider mirrors and their generation,
-// the rect math, the queries and casts, and perf.builtin, the runtime's collision built-ins
-// against the JS forms. Every case references Core only.
+// the blocking cells' tile map, the rect math, the queries and casts, and perf.builtin, the
+// runtime's collision built-ins against the JS forms. Every case references Core only.
 
 const N = 4000;
 const BENCH_STATICS = 200;
@@ -14,7 +14,7 @@ Test.register(Test.CHECK, [
       ctx.level = new Level({ id: "test", capacity: 8 });
       const s = ctx.level.entities;
       ctx.entities = s;
-      ctx.wall = Colliders.box(s, 100, 0, 32, 64);
+      ctx.wall = Test.box(s, 100, 0, 32, 64);
       ctx.body = s.create();
       s.add(ctx.body, Position, { x: 50, y: 16, z: 0 });
       s.add(ctx.body, BBox, { x: 0, y: 0, width: 16, height: 16 });
@@ -52,7 +52,7 @@ Test.register(Test.CHECK, [
       ctx.level = new Level({ id: "test", capacity: 8 });
       const s = ctx.level.entities;
       ctx.entities = s;
-      ctx.wall = Colliders.box(s, 100, 0, 32, 64);
+      ctx.wall = Test.box(s, 100, 0, 32, 64);
       ctx.body = s.create();
       s.add(ctx.body, Position, { x: 50, y: 16, z: 0 });
       s.add(ctx.body, BBox, { x: 0, y: 0, width: 16, height: 16 });
@@ -95,7 +95,7 @@ Test.register(Test.CHECK, [
       ctx.level = new Level({ id: "test", capacity: 8 });
       const s = ctx.level.entities;
       ctx.entities = s;
-      ctx.wall = Colliders.box(s, 100, 0, 32, 64);
+      ctx.wall = Test.box(s, 100, 0, 32, 64);
       ctx.still = s.create(); // no Velocity: a cast target, not a mover
       s.add(ctx.still, Position, { x: 10, y: 100, z: 0 });
       s.add(ctx.still, BBox, { x: 0, y: 0, width: 16, height: 16 });
@@ -175,7 +175,7 @@ Test.register(Test.CHECK, [
       ctx.level = new Level({ id: "test", capacity: 8 });
       const s = ctx.level.entities;
       ctx.entities = s;
-      ctx.wall = Colliders.box(s, 100, 0, 64, 32);
+      ctx.wall = Test.box(s, 100, 0, 64, 32);
       ctx.body = s.create();
       s.add(ctx.body, Position, { x: 40, y: 40, z: 0 });
       s.add(ctx.body, BBox, { x: -8, y: -8, width: 16, height: 16 });
@@ -240,7 +240,7 @@ Test.register(Test.CHECK, [
       ctx.level = new Level({ id: "test", capacity: 8 });
       const s = ctx.level.entities;
       ctx.entities = s;
-      ctx.wall = Colliders.box(s, 100, 0, 32, 64);
+      ctx.wall = Test.box(s, 100, 0, 32, 64);
       const body = (x, y, solid) => {
         const id = s.create();
         s.add(id, Position, { x, y, z: 0 });
@@ -282,13 +282,13 @@ Test.register(Test.CHECK, [
       ctx.level = new Level({ id: "test", capacity: 8 });
       const s = ctx.level.entities;
       ctx.entities = s;
-      ctx.wall = Colliders.box(s, 100, 0, 32, 64);
-      ctx.far = Colliders.box(s, 150, 0, 32, 64); // a second wall on the same line, for castAll
+      ctx.wall = Test.box(s, 100, 0, 32, 64);
+      ctx.far = Test.box(s, 150, 0, 32, 64); // a second wall on the same line, for castAll
       PuppetSystem.update(ctx.level); // the cast reads the mirrors
     },
     verify(ctx, t) {
       const s = ctx.entities;
-      const hit = Query.cast(s, 0, 16, 200, 16);
+      const hit = Query.cast(ctx.level, 0, 16, 200, 16);
       t.ok(hit !== null, "a segment through the wall hits");
       if (hit !== null) {
         t.eq(hit.id, ctx.wall, "hit id is the wall");
@@ -297,25 +297,131 @@ Test.register(Test.CHECK, [
         t.eq(hit.nx, -1, "normal points back along the ray");
       }
       t.eq(
-        Query.cast(s, 0, 16, 90, 16),
+        Query.cast(ctx.level, 0, 16, 90, 16),
         null,
         "a segment short of the wall misses",
       );
       t.eq(
-        Query.cast(s, 0, 80, 200, 80),
+        Query.cast(ctx.level, 0, 80, 200, 80),
         null,
         "a segment beside the wall misses",
       );
-      const all = Query.castAll(s, 0, 16, 200, 16);
+      const all = Query.castAll(ctx.level, 0, 16, 200, 16);
       t.eq(all.length, 2, "castAll lists every wall the segment crosses");
       if (all.length === 2) {
         t.eq(all[0].id, ctx.wall, "ascending by t: the near wall first");
         t.eq(all[1].id, ctx.far, "then the far wall");
         t.ok(all[0].t < all[1].t, "t ascends");
       }
-      const rest = Query.castAll(s, 0, 16, 200, 16, { ignore: ctx.wall });
+      const rest = Query.castAll(ctx.level, 0, 16, 200, 16, { ignore: ctx.wall });
       t.eq(rest.length, 1, "ignore drops the named entity");
       if (rest.length === 1) t.eq(rest[0].id, ctx.far, "and the far wall remains");
+    },
+    teardown(ctx) {
+      ctx.level.destroy();
+    },
+  },
+  {
+    id: "solid.tiles",
+    // the level's blocking cells as the runtime's tile map: a body stops at a wall cell, a
+    // cleared cell lets it on with no call from the writer, and the ring holds it in the level
+    setup(ctx) {
+      Object.assign(ctx, Test.level(8, 4));
+      Test.types(ctx);
+      for (let y = 0; y < 4; y++) ctx.layer.set(3, y, ctx.rock); // a wall at x 96..128
+      ctx.layer.set(5, 0, ctx.mud);
+      const s = ctx.entities;
+      ctx.body = s.create();
+      s.add(ctx.body, Position, { x: 40, y: 48, z: 0 });
+      s.add(ctx.body, BBox, { x: -8, y: -8, width: 16, height: 16 });
+      s.add(ctx.body, Collision, { solid: true });
+      s.add(ctx.body, Velocity, { x: 0, y: 0, z: 0 });
+      // the step is real frame time: pinned so a tick is 10 px whatever a frame took
+      ctx.step = Time.step;
+      Time.step = 1 / 60;
+    },
+    verify(ctx, t) {
+      const s = ctx.entities;
+      const level = ctx.level;
+      const pos = s.get(ctx.body, Position);
+      const run = () => {
+        for (let k = 0; k < 30; k++) {
+          s.get(ctx.body, Velocity).x = 600; // the solid pass rewrites it to what the body made
+          PuppetSystem.update(level);
+          SolidSystem.update(level);
+        }
+      };
+      const tiles = SolidSystem.tiles(level);
+      t.ok(tiles.at(3, 1), "a blocking type's cell blocks");
+      t.ok(!tiles.at(5, 0), "a costly type's cell does not");
+      t.ok(tiles.at(-1, 0), "the ring blocks left of the grid");
+      t.ok(tiles.at(8, 3), "and right of it");
+      t.ok(tiles.at(-1, -1), "and at its corners");
+      t.ok(!tiles.at(-2, 0), "past the ring nothing does");
+      run();
+      t.ok(pos.x + 8 <= 96.5, "the body never enters the wall cell: " + pos.x);
+      t.ok(pos.x + 8 >= 90, "the body reaches the wall cell: " + pos.x);
+      for (let y = 0; y < 4; y++) ctx.layer.clear(3, y);
+      run();
+      t.ok(!SolidSystem.tiles(level).at(3, 1), "a cleared cell stops blocking");
+      t.ok(pos.x + 8 <= 256.5, "the ring holds the body in the level: " + pos.x);
+      t.ok(pos.x + 8 >= 250, "the body crosses the cleared column: " + pos.x);
+      ctx.layer.ids.data[1 * 8 + 6] = ctx.rock.id; // a bulk write, then its one mark
+      ctx.layer.touchAll();
+      SolidSystem.update(level);
+      t.ok(SolidSystem.tiles(level).at(6, 1), "a bulk paint reaches the map by the next pass");
+      let threw = false;
+      try {
+        new SolidTiles(new LevelGrid({ cellWidth: 16, cellHeight: 16, cols: 2, rows: 2 })).destroy();
+      } catch (e) {
+        threw = true;
+      }
+      t.ok(threw, "a cell other than the tile set's throws");
+    },
+    teardown(ctx) {
+      Time.step = ctx.step;
+      ctx.level.destroy();
+    },
+  },
+  {
+    id: "collision.cast.tiles",
+    // a blocking cell answers a cast as the level's own entity, one hit per run entered
+    setup(ctx) {
+      Object.assign(ctx, Test.level(8, 4));
+      Test.types(ctx);
+      for (let y = 0; y < 4; y++) ctx.layer.set(3, y, ctx.rock); // a wall at x 96..128
+      ctx.wall = Test.box(ctx.entities, 160, 0, 32, 64); // an entity wall past it
+      PuppetSystem.update(ctx.level); // the cast reads the mirrors
+    },
+    verify(ctx, t) {
+      const level = ctx.level;
+      const hit = Query.cast(level, 16, 16, 216, 16);
+      t.ok(hit !== null, "a segment through a wall cell hits");
+      if (hit !== null) {
+        t.eq(hit.id, level.self, "a cell's hit is the level's own entity");
+        t.near(hit.x, 96, 1e-6, "hit lands on the near face");
+        t.near(hit.t, 0.4, 1e-6, "t is the segment parameter");
+        t.eq(hit.nx, -1, "normal points back along the ray");
+        t.eq(hit.ny, 0, "along one axis");
+      }
+      const back = Query.cast(level, 150, 16, 50, 16);
+      t.ok(back !== null, "a segment from the far side hits");
+      if (back !== null) {
+        t.near(back.x, 128, 1e-6, "on the far face");
+        t.eq(back.nx, 1, "its normal points back");
+      }
+      const inside = Query.cast(level, 100, 16, 200, 16);
+      t.ok(inside !== null, "a segment starting inside hits");
+      if (inside !== null) t.eq(inside.t, 0, "at t 0");
+      t.eq(Query.cast(level, 16, 16, 90, 16), null, "a segment short of the cell misses");
+      const all = Query.castAll(level, 16, 16, 300, 16);
+      t.eq(all.length, 3, "castAll: the cell run, the entity wall, the ring");
+      if (all.length === 3) {
+        t.eq(all[0].id, level.self, "ascending by t: the cell first");
+        t.eq(all[1].id, ctx.wall, "then the entity wall");
+        t.eq(all[2].id, level.self, "then the ring");
+        t.near(all[2].x, 256, 1e-6, "the ring starts at the grid's edge");
+      }
     },
     teardown(ctx) {
       ctx.level.destroy();
@@ -351,7 +457,7 @@ Test.register(Test.CHECK, [
         const y = 32 * Math.floor(rand() * 60);
         const w = 32 * (1 + Math.floor(rand() * 4));
         const h = 32 * (1 + Math.floor(rand() * 4));
-        const id = Colliders.box(s, x, y, w, h);
+        const id = Test.box(s, x, y, w, h);
         ctx.staticIds.push(id);
       }
 
@@ -607,12 +713,12 @@ Test.register(Test.CHECK, [
       const ns = segs.length;
       const jsHits = new Array(ns);
       const gmHits = new Array(ns);
-      const targets = Puppet; // a Solid is its child
+      const targets = [Puppet, SolidSystem.tiles(ctx.level).map]; // the mirrors and the cells
       t.measure("query.cast", ns, Test.empty(ns), () => {
         let acc = 0;
         for (let k = 0; k < ns; k++) {
           const g = segs[k];
-          const hit = Query.cast(s, g.x0, g.y0, g.x1, g.y1);
+          const hit = Query.cast(ctx.level, g.x0, g.y0, g.x1, g.y1);
           jsHits[k] = hit;
           if (hit !== null) acc++;
         }
@@ -623,7 +729,8 @@ Test.register(Test.CHECK, [
         for (let k = 0; k < ns; k++) {
           const g = segs[k];
           const r = probe.collision_line(g.x0, g.y0, g.x1, g.y1, targets, false, true);
-          const hit = instance_exists(r);
+          // a miss is the number -4; a tile map hit is a handle no instance test knows (docs/GMRT.md)
+          const hit = typeof r !== "number" ? true : instance_exists(r);
           gmHits[k] = hit;
           if (hit) acc++;
         }
@@ -641,7 +748,7 @@ Test.register(Test.CHECK, [
         for (let k = 0; k < ns; k++) {
           const g = segs[k];
           ds_list_clear(list);
-          const found = probe.collision_line_list(g.x0, g.y0, g.x1, g.y1, targets, false, true, list, true);
+          const found = probe.collision_line_list(g.x0, g.y0, g.x1, g.y1, Puppet, false, true, list, true);
           let bestT = Infinity;
           let bestId = -1;
           const dx = g.x1 - g.x0;
@@ -657,7 +764,8 @@ Test.register(Test.CHECK, [
           }
           if (bestId !== -1) acc++;
           const js = jsHits[k];
-          if (js !== null && bestId !== -1) {
+          // a cell nearer than every mirror is the cast's alone
+          if (js !== null && js.id !== level.self && bestId !== -1) {
             nearestBoth++;
             if (Math.abs(js.t - bestT) < 1e-6) nearestAgree++; // by distance: a shared edge is a tie
           }

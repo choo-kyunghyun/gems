@@ -73,7 +73,6 @@ globalThis.Blueprint = {
   stamp(level, ox, oy, plan) {
     if (plan === null || plan === undefined) return 0;
     let n = 0;
-    const remesh = {}; // solid layer key -> true, remeshed once at the end
     const tiles = plan.tiles ?? [];
     for (let i = 0; i < tiles.length; i++) {
       const t = tiles[i];
@@ -88,10 +87,7 @@ globalThis.Blueprint = {
         const rc = t.rects[r];
         for (let y = rc[1]; y < rc[1] + rc[3]; y++)
           for (let x = rc[0]; x < rc[0] + rc[2]; x++) {
-            const solid = Build.put(level, ox + x, oy + y, item, {
-              deferRemesh: true,
-            });
-            if (solid === true) remesh[item.layer] = true;
+            Build.put(level, ox + x, oy + y, item);
             n++;
           }
       }
@@ -110,7 +106,6 @@ globalThis.Blueprint = {
       });
       n++;
     }
-    Build.remesh(level, remesh);
     return n;
   },
 

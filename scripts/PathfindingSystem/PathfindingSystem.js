@@ -1,8 +1,8 @@
 /**
  * Serves path requests into path responses over the level's nav grid, seeded from the level's
  * grid on first read (a level with no grid throws — a wiring error). Each tick first brings the
- * grid current; when the solid kinematic colliders changed, every held response is dropped, since
- * a new wall may cut one, and the walkers re-request on their own throttle.
+ * grid current; when a tile layer or the solid kinematic colliders changed, every held response
+ * is dropped, since a new wall may cut one, and the walkers re-request on their own throttle.
  *
  * At most `budget` requests are served per tick, round-robin by position in the request walk
  * from where the last tick stopped, so a sustained overload starves no requester. A count bound
@@ -46,12 +46,13 @@ globalThis.PathfindingSystem = {
   update(level) {
     const entities = level.entities;
     const nav = PathfindingSystem.nav(level);
-    nav.sync();
+    let cut = nav.sync();
     const gen = PuppetSystem.colliders(level).gen;
     if (gen !== nav.gen) {
       nav.stamp(PathfindingSystem._statics(entities), gen);
-      PathfindingSystem._invalidate(entities);
+      cut = true;
     }
+    if (cut) PathfindingSystem._invalidate(entities);
     const budget = PathfindingSystem.budget;
     const cursor = nav.cursor;
     let served = 0;

@@ -1,13 +1,13 @@
 const LOG_CAP = 256; // cell writes kept for replay before a reader behind them resamples everything
 
 /**
- * A level layer of TileType cells and the solid colliders meshed from them. `emptyCost` controls
- * empty-cell nav: undefined passes through to lower layers; Infinity makes a blocking base.
+ * A level layer of TileType cells. `emptyCost` controls empty-cell nav: undefined passes through
+ * to lower layers; Infinity makes a blocking base.
  * `edits` counts every cell write and is a reader's cursor: `log` holds the cells of writes
  * `base`+1..`edits` in order, so a reader replays only what it missed and a single paint costs it
  * one resample, not the level's. The log is shared and never drained — any number of readers keep
  * their own cursor — and bounded, so a reader too far behind resamples every cell. A cell write
- * and a remesh are each seen by nav on its own, so no resync call follows.
+ * is seen by every reader on its own, so no resync call follows.
  * An empty cell reads 0, not undefined, so occupancy is a truthy test, never `!== undefined`.
  *
  * A cell holds its TileType's `id`: `ids` is the level-sized id channel (0 = empty) and `types`
@@ -47,7 +47,6 @@ globalThis.TileLayer = class TileLayer {
     return id;
   }
 
-  /** Caller must remesh after editing a solid layer. */
   set(x, y, type) {
     const i = y * this.cols + x;
     this.ids.data[i] = type ? (this.types[type.id] === type ? type.id : this.bind(type)) : 0;
@@ -88,25 +87,5 @@ globalThis.TileLayer = class TileLayer {
   costAt(x, y) {
     const type = this.types[this.ids.data[y * this.cols + x]];
     return type ? type.pathCost : this.emptyCost;
-  }
-
-  /** The solid cells as the fewest [gx,gy,wCells,hCells] rects. */
-  meshRects() {
-    const d = this.ids.data;
-    const cols = this.cols;
-    return Grid.meshRects(cols, this.rows, (x, y) => d[y * cols + x] !== 0);
-  }
-
-  /** One kinematic-solid collider per rect, sized by the level `grid`; ids pushed onto `out`. */
-  meshSolid(entities, grid, out) {
-    Colliders.boxes(entities, this.meshRects(), grid.cellWidth, grid.cellHeight, out);
-  }
-
-  /** Replaces `colliders` in place; flushes first so old ids don't collide. */
-  remesh(entities, grid, colliders) {
-    for (let i = 0; i < colliders.length; i++) entities.remove(colliders[i]);
-    entities.flush();
-    colliders.length = 0;
-    this.meshSolid(entities, grid, colliders);
   }
 };

@@ -44,6 +44,15 @@ globalThis.Test = {
     return { level, grid, layer, entities: level.entities };
   },
 
+  /** A kinematic solid box, Position at its top-left: a wall that is an entity. */
+  box(entities, x, y, w, h) {
+    const id = entities.create();
+    entities.add(id, Position, { x: x, y: y });
+    entities.add(id, BBox, { width: w, height: h });
+    entities.add(id, Collision, { kinematic: true });
+    return id;
+  },
+
   /** Built at setup, never at load (docs/GMRT.md → load order). */
   types(ctx) {
     ctx.rock = new TileType({ id: 1, pathCost: null });

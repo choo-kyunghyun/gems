@@ -76,13 +76,13 @@ globalThis.PuppetSystem = {
   },
 
   /**
-   * Displace a shaped mirror against the Solids and write the result to `pos`. The return of
-   * `move_and_collide` is a GML array (docs/GMRT.md).
+   * Displace a shaped mirror against `against` — `Solid`, or an array of it and tile maps — and
+   * write the result to `pos`. The return of `move_and_collide` is a GML array (docs/GMRT.md).
    */
-  move(h, pos, dx, dy, iters) {
+  move(h, pos, dx, dy, iters, against) {
     const inst = h.inst;
-    if (dx !== 0) inst.move_and_collide(dx, 0, Solid, iters, 0, 0, -1, 0);
-    if (dy !== 0) inst.move_and_collide(0, dy, Solid, iters, 0, 0, 0, -1);
+    if (dx !== 0) inst.move_and_collide(dx, 0, against, iters, 0, 0, -1, 0);
+    if (dy !== 0) inst.move_and_collide(0, dy, against, iters, 0, 0, 0, -1);
     pos.x = inst.x - h.ox;
     pos.y = inst.y - h.oy;
   },

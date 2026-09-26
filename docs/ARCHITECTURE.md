@@ -81,7 +81,7 @@ and are cited from here, never restated):
       (`PuppetSystem.colliders`, `PathfindingSystem.nav`, `CameraSystem.view`). What a caller
       invokes on demand — a verb over a component (`Effects.apply`, `Trade.buy`, `Companions.hire`,
       `Needs.restore`, `Anim.play`, `Flora.harvest`), a pure read (`Shelter.tempAt`), an entity
-      factory (`Cameras.create`, `Colliders.box`), input lifecycle (`ColonyKeymap.bind`) — lives in
+      factory (`Cameras.create`), input lifecycle (`ColonyKeymap.bind`) — lives in
       an affix-less namespace beside the ticker (NAMING.md), never on it: the two share a
       component, not a module, so a component write never needs a system call to be seen.
     - Each `Level` owns its `Table`, one sparse set per token, whose walks run down the LEAD
@@ -218,9 +218,11 @@ and are cited from here, never restated):
   frames (a built entity in `Build`'s build record, a `Window` page's `target`) validates it
   through `entities.isValid` before every use, and no id ever crosses a map — it names a slot in
   one store. Markers are components, not tag strings.
-- Collision is the runtime's, over each collider's mirror instance (`PuppetSystem`): a query, a
-  cast or a move goes through `Puppet`/`Solid`, never a JS sweep. What only needs a box's
-  world-space edges reads them off Position + BBox (the anchor contract at `BBox`).
+- Collision is the runtime's, over each collider's mirror instance (`PuppetSystem`) and the
+  level's blocking cells as a tile map (`SolidTiles`): a query or a move goes through
+  `Puppet`/`Solid` and the tile map, never a JS sweep; a cast walks the cells in JS, since the
+  runtime names a tile map crossed but no cell. What only needs a box's world-space edges reads
+  them off Position + BBox (the anchor contract at `BBox`).
 - Injection idiom: a module stays model-agnostic by exposing a hook its consumer wires at scene
   setup — Core to Game (`RenderLighting`'s `ambient`, `UIQuestTracker`'s `source`) and, inside
   Game, a system to the scene that owns the stat model (`Combat.mitigate`,

@@ -27,7 +27,7 @@ globalThis.ProjectileSystem = {
       const hit =
         proj.lob === true
           ? ProjectileSystem._structure(level, pos.x, pos.y, x1, y1, proj.owner)
-          : Query.cast(entities, pos.x, pos.y, x1, y1, { ignore: proj.owner });
+          : Query.cast(level, pos.x, pos.y, x1, y1, { ignore: proj.owner });
 
       if (hit === null) {
         pos.x = x1;
@@ -75,9 +75,9 @@ globalThis.ProjectileSystem = {
    * lob in flight pays it.
    */
   _structure(level, x0, y0, x1, y1, owner) {
-    const all = Query.castAll(level.entities, x0, y0, x1, y1, { ignore: owner });
+    const all = Query.castAll(level, x0, y0, x1, y1, { ignore: owner });
     for (let i = 0; i < all.length; i++) {
-      if (Combat.isStructure(level.entities, all[i].id)) return all[i];
+      if (Combat.isStructure(level, all[i].id)) return all[i];
     }
     return null;
   },

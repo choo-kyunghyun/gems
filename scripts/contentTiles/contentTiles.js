@@ -69,7 +69,7 @@ globalThis.contentTiles = {
       color: "#707888",
       solid: true,
       pathCost: null,
-      // Wall materials are per-cell tile types within this one solid layer, so colliders and
+      // Wall materials are per-cell tile types within this one solid layer, so collision and
       // nav stay untouched by a material swap. materials[0] is the default.
       materials: [
         {

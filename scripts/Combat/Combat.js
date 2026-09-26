@@ -19,15 +19,15 @@ globalThis.Combat = {
   },
 
   /**
-   * An ally or a Health-less collider blocks; `opts.pierce` caps the targets hit. Returns the
-   * endpoint and the struck ids.
+   * An ally, a Health-less collider or a blocking cell stops it; `opts.pierce` caps the targets
+   * hit. Returns the endpoint and the struck ids.
    */
   hitscan(level, x0, y0, x1, y1, opts) {
     const entities = level.entities;
     const owner = opts.owner;
     const pen = opts.penetration ?? 0;
     let remaining = opts.pierce ?? 1;
-    const all = Query.castAll(entities, x0, y0, x1, y1, { ignore: owner });
+    const all = Query.castAll(level, x0, y0, x1, y1, { ignore: owner });
     const hits = [];
     let endX = x1;
     let endY = y1;
@@ -79,10 +79,13 @@ globalThis.Combat = {
   },
 
   /**
-   * A structure — what a lob lands against and what shadows a blast — is a kinematic collider
-   * that is not a standing person; bodies are flown over and looked through.
+   * A structure — what a lob lands against and what shadows a blast — is a blocking cell (a hit on
+   * the level's own entity) or a kinematic collider that is not a standing person; bodies are
+   * flown over and looked through.
    */
-  isStructure(entities, id) {
+  isStructure(level, id) {
+    if (id === level.self) return true;
+    const entities = level.entities;
     const col = entities.get(id, Collision);
     if (col === undefined || col.kinematic !== true) return false;
     const spr = entities.get(id, Sprite);
@@ -90,9 +93,9 @@ globalThis.Combat = {
   },
 
   _shadowed(level, x0, y0, x1, y1, owner) {
-    const all = Query.castAll(level.entities, x0, y0, x1, y1, { ignore: owner });
+    const all = Query.castAll(level, x0, y0, x1, y1, { ignore: owner });
     for (let i = 0; i < all.length; i++) {
-      if (Combat.isStructure(level.entities, all[i].id)) return true;
+      if (Combat.isStructure(level, all[i].id)) return true;
     }
     return false;
   },

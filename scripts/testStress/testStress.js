@@ -20,23 +20,17 @@ const OVERLAP_EVERY = 60; // frames
  * rest that deep in a face.
  */
 function _stressOverlaps(level) {
-  const statics = PathfindingSystem.nav(level).statics;
+  const tiles = SolidSystem.tiles(level);
   let overlaps = 0;
   level.entities.forEach(["StressAgent", Position, BBox], (id, ag, pos, box) => {
-    const x1 = pos.x + box.x;
-    const y1 = pos.y + box.y;
-    const x2 = x1 + box.width;
-    const y2 = y1 + box.height;
-    for (let k = 0; k < statics.length; k++) {
-      const st = statics[k];
-      if (
-        x2 > st.x1 + 0.5 &&
-        st.x2 > x1 + 0.5 &&
-        y2 > st.y1 + 0.5 &&
-        st.y2 > y1 + 0.5
-      )
-        overlaps += 1;
-    }
+    const x1 = pos.x + box.x + 0.5;
+    const y1 = pos.y + box.y + 0.5;
+    const gx0 = Math.floor(x1 / CELL);
+    const gy0 = Math.floor(y1 / CELL);
+    const gx1 = Math.ceil((x1 + box.width - 1) / CELL) - 1; // a far edge on a cell's face is out of it
+    const gy1 = Math.ceil((y1 + box.height - 1) / CELL) - 1;
+    for (let gy = gy0; gy <= gy1; gy++)
+      for (let gx = gx0; gx <= gx1; gx++) if (tiles.at(gx, gy)) overlaps += 1;
   });
   return overlaps;
 }
@@ -79,8 +73,6 @@ Test.register(Test.STRESS, [
         for (let y = y0; y < y0 + ch; y++)
           for (let x = x0; x < x0 + cw; x++) layer.set(x, y, rock);
       }
-      ctx.colliders = [];
-      layer.remesh(s, grid, ctx.colliders);
       ctx.nav = PathfindingSystem.nav(level);
 
       const free = [];
@@ -231,7 +223,7 @@ Test.register(Test.STRESS, [
       t.eq(ctx.overlaps, 0, "no body inside a wall after any solid pass");
       t.eq(
         s.count(),
-        AGENTS + ctx.colliders.length + 2, // + the camera entity and the level's own
+        AGENTS + 2, // + the camera entity and the level's own
         "no entity leaked or vanished",
       );
     },

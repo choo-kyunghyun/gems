@@ -1,7 +1,7 @@
 // Level, world and nav cases: a level's own entity and its rebuild, the grid and its blob, the
-// world pool, a ticker over a level, the nav grid's sync and restamp, the remesh, the zone map's
-// labeling, the generator's salted seeds, level data's footprint and copies, and perf.plan, what
-// one A* expansion costs. Every case references Core only.
+// world pool, a ticker over a level, the nav grid's sync and restamp, a wall cell's replan, the
+// zone map's labeling, the generator's salted seeds, level data's footprint and copies, and
+// perf.plan, what one A* expansion costs. Every case references Core only.
 
 const PLAN_COLS = 128; // an overworld's side
 
@@ -193,7 +193,7 @@ Test.register(Test.CHECK, [
       const mk = () => {
         const c = Test.level(8, 8);
         const s = c.entities;
-        Colliders.box(s, 96, 0, 32, 224); // a wall down column 3, rows 0..6
+        Test.box(s, 96, 0, 32, 224); // a wall down column 3, rows 0..6
         c.a = s.create();
         s.add(c.a, Position, { x: 40, y: 100, z: 0 });
         s.add(c.a, BBox, { x: -8, y: -8, width: 16, height: 16 });
@@ -230,7 +230,7 @@ Test.register(Test.CHECK, [
         step(ctx.q);
         if (k === 4) {
           const q = ctx.q;
-          const keys = [PuppetSystem.KEY, PathfindingSystem.KEY, CameraSystem.KEY];
+          const keys = [PuppetSystem.KEY, SolidSystem.KEY, PathfindingSystem.KEY, CameraSystem.KEY];
           for (let i = 0; i < keys.length; i++) q.entities.detach(q.level.self, keys[i]);
         }
       }
@@ -402,7 +402,7 @@ Test.register(Test.CHECK, [
     setup(ctx) {
       Object.assign(ctx, Test.level(8, 8));
       const s = ctx.entities;
-      ctx.wall = Colliders.box(s, 96, 0, 32, 224); // column 3, rows 0..6: a detour through row 7
+      ctx.wall = Test.box(s, 96, 0, 32, 224); // column 3, rows 0..6: a detour through row 7
       ctx.walker = s.create();
       s.add(ctx.walker, Position, { x: 16, y: 16, z: 0 });
       s.add(ctx.walker, PathRequest, { startX: 0, startY: 0, goalX: 7, goalY: 0 }, { mint: true });
@@ -460,45 +460,34 @@ Test.register(Test.CHECK, [
     },
   },
   {
-    id: "level.remesh",
+    id: "nav.tiles",
+    // a wall cell painted across a held path drops it, and the replan detours
     setup(ctx) {
-      Object.assign(ctx, Test.level(4, 4));
+      Object.assign(ctx, Test.level(8, 8));
       Test.types(ctx);
-      ctx.colliders = [];
+      const s = ctx.entities;
+      ctx.walker = s.create();
+      s.add(ctx.walker, Position, { x: 16, y: 16, z: 0 });
     },
     verify(ctx, t) {
-      const layer = ctx.layer;
-      layer.set(0, 0, ctx.rock);
-      layer.set(1, 0, ctx.rock);
-      layer.set(0, 1, ctx.rock);
-      layer.set(1, 1, ctx.rock);
-      layer.set(3, 3, ctx.rock);
-      t.eq(layer.occupied(1, 1), true, "occupied reads a set cell");
-      t.eq(
-        layer.occupied(2, 2),
-        false,
-        "occupied reads an empty cell",
-      );
-      const rects = layer.meshRects();
-      t.eq(rects.length, 2, "greedy mesh joins the 2×2 block");
       const s = ctx.entities;
-      layer.remesh(s, ctx.grid, ctx.colliders);
-      t.eq(ctx.colliders.length, 2, "one collider per rect");
-      t.eq(s.count(), 3, "the store holds the colliders and the level's own entity");
-      const col = s.get(ctx.colliders[0], Collision);
-      t.ok(
-        col !== undefined && col.kinematic === true,
-        "a collider is a kinematic solid",
-      );
-      layer.clear(3, 3);
-      layer.remesh(s, ctx.grid, ctx.colliders);
-      t.eq(ctx.colliders.length, 1, "remesh replaces the set");
-      t.eq(s.count(), 2, "old colliders are flushed");
-      const box = s.get(ctx.colliders[0], BBox);
-      t.ok(
-        box.width === 64 && box.height === 64,
-        "the block's collider spans 2×2 cells",
-      );
+      const level = ctx.level;
+      const layer = ctx.layer;
+      const ask = () =>
+        s.add(ctx.walker, PathRequest, { startX: 0, startY: 0, goalX: 7, goalY: 0 }, { mint: true });
+      ask();
+      PuppetSystem.update(level);
+      PathfindingSystem.update(level);
+      t.eq(s.get(ctx.walker, PathResponse).path.length, 8, "an open level plans straight");
+      for (let y = 0; y < 7; y++) layer.set(3, y, ctx.rock); // column 3, rows 0..6
+      t.eq(layer.occupied(3, 1), true, "occupied reads a set cell");
+      t.eq(layer.occupied(2, 2), false, "occupied reads an empty cell");
+      PuppetSystem.update(level);
+      PathfindingSystem.update(level);
+      t.eq(s.get(ctx.walker, PathResponse), undefined, "the edit drops the held path");
+      ask();
+      PathfindingSystem.update(level);
+      t.ok(s.get(ctx.walker, PathResponse).path.length > 8, "the replan detours through row 7");
     },
     teardown(ctx) {
       ctx.level.destroy();

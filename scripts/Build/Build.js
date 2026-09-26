@@ -63,7 +63,7 @@ globalThis.Build = {
 
   /**
    * One build over the `[gx, gy]` cells `item` fits: the whole cost is paid up front or nothing
-   * is placed — half a wall is worse than none — and each solid layer remeshes once. Returns
+   * is placed — half a wall is worse than none. Returns
    * `{ placed, cost, reason }`, `reason` "" or the refusal's i18n key.
    */
   place(level, actorId, item, cells) {
@@ -79,28 +79,19 @@ globalThis.Build = {
         return { placed: 0, cost: cost, reason: "BUILD_NO_WOOD" };
       Bag.remove(inv, Build.RESOURCE, cost);
     }
-    const remesh = {};
-    for (let i = 0; i < todo.length; i++) {
-      const solid = Build.put(level, todo[i][0], todo[i][1], item, {
-        deferRemesh: true,
-      });
-      if (solid === true) remesh[item.layer] = true;
-    }
-    Build.remesh(level, remesh);
+    for (let i = 0; i < todo.length; i++) Build.put(level, todo[i][0], todo[i][1], item);
     Log.info(`built ${todo.length}x ${item.id}`);
     return { placed: todo.length, cost: cost, reason: "" };
   },
 
   /**
-   * Deconstruct what the player built on each `[gx, gy]` cell, refunding the actor; each solid
-   * layer remeshes once. Returns the number of cells cleared.
+   * Deconstruct what the player built on each `[gx, gy]` cell, refunding the actor. Returns the
+   * number of cells cleared.
    */
   remove(level, actorId, cells) {
-    const remesh = {};
     let n = 0;
     for (let i = 0; i < cells.length; i++)
-      if (Build._remove(level, actorId, cells[i][0], cells[i][1], remesh)) n++;
-    Build.remesh(level, remesh);
+      if (Build._remove(level, actorId, cells[i][0], cells[i][1])) n++;
     return n;
   },
 
@@ -121,10 +112,8 @@ globalThis.Build = {
 
   // The placement core: no cost or validity gate, no inventory — the caller decides. Records the
   // cell in the build record.
-  //   opts.record      restore this exact Row instead of a fresh descriptor, moved to the cell.
-  //   opts.deferRemesh skip the solid-collider remesh; the caller remeshes once for a batch.
-  // Returns the entity id for an entity, else whether a solid tile was placed (a deferred
-  // caller's pending remesh).
+  //   opts.record  restore this exact Row instead of a fresh descriptor, moved to the cell.
+  // Returns the entity id for an entity, else undefined.
   put(level, gx, gy, item, opts = {}) {
     const grid = level.grid;
     const key = gx + "," + gy;
@@ -139,19 +128,8 @@ globalThis.Build = {
           : rt[item.layer + "Type"];
       layer.set(gx, gy, type);
       Grassland.cut(level, gx, gy);
-      const solid = contentTiles.get(item.layer).solid === true;
-      // BUG: nested, not `solid && …` — the short-circuit corrupts its left operand, read by
-      // the return below (docs/GMRT.md #15549)
-      if (opts.deferRemesh !== true) {
-        if (solid)
-          layer.remesh(
-            level.entities,
-            grid,
-            ColonyMap.of(level).colliders[item.layer],
-          );
-      }
       rec.built[key] = item.id;
-      return solid;
+      return;
     }
     // a built entity is an ordinary one: it persists like any other
     let id;
@@ -172,20 +150,8 @@ globalThis.Build = {
     return id;
   },
 
-  /** Remesh every solid layer keyed in `layers`: a batch's one remesh. */
-  remesh(level, layers) {
-    const keys = Object.keys(layers);
-    const rt = ColonyMap.runtime(level);
-    const colliders = ColonyMap.of(level).colliders;
-    for (let i = 0; i < keys.length; i++)
-      rt[keys[i] + "Layer"].remesh(level.entities, level.grid, colliders[keys[i]]);
-  },
-
-  /**
-   * Deconstruct what the player built at (gx, gy); returns whether anything was removed. A solid
-   * tile's remesh is recorded in `remesh` for the batch.
-   */
-  _remove(level, actorId, gx, gy, remesh) {
+  /** Deconstruct what the player built at (gx, gy); returns whether anything was removed. */
+  _remove(level, actorId, gx, gy) {
     const key = gx + "," + gy;
     const entities = level.entities;
     const rec = Build.of(level);
@@ -209,9 +175,8 @@ globalThis.Build = {
     const tileId = rec.built[key];
     if (tileId === undefined) return false; // only player-built cells are deconstructable
     const item = contentBuild.item(tileId);
-    const lkey = item !== undefined ? item.layer : "floor"; // a stale id: non-solid, safe
+    const lkey = item !== undefined ? item.layer : "floor"; // a stale id clears the floor
     ColonyMap.runtime(level)[lkey + "Layer"].clear(gx, gy);
-    if (contentTiles.get(lkey).solid === true) remesh[lkey] = true;
     Build._refund(entities, actorId, tileId);
     delete rec.built[key];
     Log.info(`removed ${tileId} at ${gx},${gy}`);

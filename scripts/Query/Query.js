@@ -3,7 +3,8 @@
  * `maskCircle` ask the runtime for the solid colliders whose mask overlaps the shape, so a body
  * whose centre lies outside but whose box reaches in counts; `cast`/`castAll` cast a segment over
  * every collider, each hit's box slab-tested for its entry point, since the runtime's list carries
- * no point. The runtime forms see colliders as of this tick, so every hit id is re-validated
+ * no point, and over the level's blocking cells, whose hit is the level's own entity
+ * (`level.self`). Colliders and cells are seen as of this tick, so every hit id is re-validated
  * against the store. A cast's hit is { id, x, y, nx, ny, t }: nx/ny the surface normal pointing
  * back along the ray, t the segment parameter (clamped to 0 when the start is inside).
  * @typedef {Object} QueryOpts
@@ -15,6 +16,7 @@
 globalThis.Query = {
   _nx: 0, // _slab's entry normal, read right after the hit it returned
   _ny: 0,
+  _cells: [], // SolidTiles.walk's entries, drained by the cast that asked
 
   inRect(entities, x1, y1, x2, y2, opts = {}) {
     const result = [];
@@ -51,7 +53,8 @@ globalThis.Query = {
   },
 
   /** Nearest hit along (x0,y0)->(x1,y1), or null. */
-  cast(entities, x0, y0, x1, y1, opts = {}) {
+  cast(level, x0, y0, x1, y1, opts = {}) {
+    const entities = level.entities;
     const ignore = opts.ignore;
     const dx = x1 - x0;
     const dy = y1 - y0;
@@ -61,6 +64,13 @@ globalThis.Query = {
     let bestId = -1;
     let nx = 0;
     let ny = 0;
+    const cells = Query._cells;
+    if (SolidSystem.tiles(level).walk(x0, y0, x1, y1, true, cells) > 0) {
+      bestT = cells[0];
+      bestId = level.self;
+      nx = cells[1];
+      ny = cells[2];
+    }
     for (let k = 0; k < found; k++) {
       const inst = ds_list_find_value(list, k);
       const id = inst.eid;
@@ -79,7 +89,8 @@ globalThis.Query = {
   },
 
   /** Every hit the segment crosses, ascending by entry distance `t`. */
-  castAll(entities, x0, y0, x1, y1, opts = {}) {
+  castAll(level, x0, y0, x1, y1, opts = {}) {
+    const entities = level.entities;
     const ignore = opts.ignore;
     const dx = x1 - x0;
     const dy = y1 - y0;
@@ -95,6 +106,12 @@ globalThis.Query = {
       if (t < 0) continue;
       if (!entities.isValid(id)) continue;
       hits.push({ id, x: x0 + dx * t, y: y0 + dy * t, nx: Query._nx, ny: Query._ny, t });
+    }
+    const cells = Query._cells;
+    const n = SolidSystem.tiles(level).walk(x0, y0, x1, y1, false, cells);
+    for (let k = 0; k < n; k++) {
+      const t = cells[k * 3];
+      hits.push({ id: level.self, x: x0 + dx * t, y: y0 + dy * t, nx: cells[k * 3 + 1], ny: cells[k * 3 + 2], t });
     }
     // BUG: #15593 — a sign comparator, never `a.t - b.t` (docs/GMRT.md)
     hits.sort((a, b) => (a.t < b.t ? -1 : a.t > b.t ? 1 : 0));

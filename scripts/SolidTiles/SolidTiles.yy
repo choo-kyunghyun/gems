@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"Colliders",
+  "%Name":"SolidTiles",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"Colliders",
+  "name":"SolidTiles",
   "parent":{
     "name":"Collision",
     "path":"folders/Core/Collision.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"Colliders.js",
+  "scriptSource":"SolidTiles.js",
 }

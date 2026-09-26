@@ -68,9 +68,7 @@ globalThis.LevelGen = class LevelGen {
   }
 
   /**
-   * Returns the accumulated LevelData (grid coords) plus `terrain`, the palette index per cell,
-   * and `solid`, the impassable terrain's collide-only rects — not LevelData, since there is no
-   * tile layer to remesh them from, so they outlive a tile edit.
+   * Returns the accumulated LevelData (grid coords) plus `terrain`, the palette index per cell.
    */
   generate(cols, rows) {
     const palette = this.palette;
@@ -165,7 +163,6 @@ globalThis.LevelGen = class LevelGen {
       p.apply(ctx);
     }
     out.terrain = ctx.terrain;
-    out.solid = LevelGen._solid(palette, ctx.terrain, cols, rows);
     return out;
   }
 
@@ -178,24 +175,5 @@ globalThis.LevelGen = class LevelGen {
     for (let y = 0; y < out.rows; y++)
       for (let x = 0; x < cols; x++)
         layer.set(x, y, types[out.terrain[y * cols + x]]);
-  }
-
-  /**
-   * The impassable cells as the fewest [gx,gy,w,h] rects — per-cell seams snag sliding bodies.
-   * Collide-only: the material is drawn as ground.
-   */
-  static _solid(palette, terrain, cols, rows) {
-    let any = false;
-    for (let i = 0; i < terrain.length; i++)
-      if (palette[terrain[i]].pathCost === null) {
-        any = true;
-        break;
-      }
-    if (!any) return [];
-    return Grid.meshRects(
-      cols,
-      rows,
-      (x, y) => palette[terrain[y * cols + x]].pathCost === null,
-    );
   }
 };
