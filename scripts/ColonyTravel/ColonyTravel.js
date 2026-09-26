@@ -8,8 +8,9 @@
  * chart distance.
  *
  * Contract: the scene owns `world`, `level`, `playerId`, `stages` (map id → its ColonyStage),
- * `build`, `nearNpc`, `window` and `tickWorld(dt)`; this engine pools through `world`, spends a
- * crossing's hours through `tickWorld`, writes the rest on arrival and reads nothing else of it.
+ * `tickWorld(dt)` and `arrive()`; this engine pools through `world`, spends a crossing's hours
+ * through `tickWorld`, writes the rest on arrival, then calls `arrive()` for what the scene resets
+ * per map, and reads nothing else of it.
  */
 globalThis.ColonyTravel = {
   // in-game hours per world-map chart unit (corner to corner is ~1.4 units)
@@ -49,12 +50,12 @@ globalThis.ColonyTravel = {
   },
 
   /**
-   * Land the squad at the entry, the player first (re-latching `playerId` to its new id), then
-   * companions staggered beside it. Members arrive whole, with nothing re-derived.
+   * Land the squad at the entry, the player first, then companions staggered beside it. Members
+   * arrive whole, with nothing re-derived.
    */
   _arriveSquad(scene, squad, sp) {
     if (squad === null || squad.length === 0) return;
-    scene.playerId = scene.world.put(scene.level.id, squad[0], {
+    scene.world.put(scene.level.id, squad[0], {
       [Position]: { x: sp.x, y: sp.y, z: 0 },
       [Velocity]: { x: 0, y: 0, z: 0 },
     });
@@ -67,7 +68,7 @@ globalThis.ColonyTravel = {
 
   /** The player is whoever the store holds, however it got there. */
   _latch(scene) {
-    const pid = scene.level.entities.first(Playable);
+    const pid = ColonyPlayer.id(scene.level.entities);
     scene.playerId = pid !== -1 ? pid : undefined;
   },
 
@@ -101,7 +102,7 @@ globalThis.ColonyTravel = {
     ColonyTravel._arriveSquad(scene, squad, ColonyMap.of(level).spawn); // already entry-resolved
     ColonyTravel._latch(scene);
     scene.stages[level.id] = ColonyView.stage(level);
-    ColonyTravel._arrive(scene);
+    scene.arrive();
   },
 
   /**
@@ -131,41 +132,7 @@ globalThis.ColonyTravel = {
     const pp = scene.playerId !== undefined ? entities.get(scene.playerId, Position) : undefined;
     cp.x = pp !== undefined ? pp.x : sp.x;
     cp.y = pp !== undefined ? pp.y : sp.y;
-    ColonyTravel._arrive(scene);
-  },
-
-  /** The map's ambient bed, playing whenever the radio is off. */
-  bed(level) {
-    const indoor = level.entities.get(level.self, ColonyMap.INDOOR) === true;
-    return indoor ? musAmbientCozy : musAmbientTense;
-  },
-
-  /** Cross-fade to the map's bed on arrival, unless a radio station plays through it. */
-  _applyBgm(scene) {
-    if (Radio.on()) return;
-    Music.play(ColonyTravel.bed(scene.level));
-  },
-
-  /** The map's climate, or the open sky when it has none. */
-  _applyClimate(scene) {
-    const level = scene.level;
-    Weather.setClimate(level.entities.get(level.self, ColonyMap.CLIMATE));
-  },
-
-  /**
-   * Every arrival resets the scene's per-map transients — kept off the level so a resume can't
-   * restore a stale one — and drops the previous map's world-space effects (map-local coordinates).
-   */
-  _arrive(scene) {
-    scene.build.armed = false;
-    scene.build.active = false;
-    scene.nearNpc = false;
-    scene.window.dirty = true;
-    ColonyTravel._applyBgm(scene);
-    ColonyTravel._applyClimate(scene);
-    FloatingText.clear();
-    ParticleFx.clear();
-    WorldOverlay.clearTracers();
+    scene.arrive();
   },
 
   /**

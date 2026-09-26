@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Talk",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Talk",
+  "parent":{
+    "name":"Social",
+    "path":"folders/Game/Social.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Talk.js",
+}

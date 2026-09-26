@@ -8,6 +8,7 @@
  */
 globalThis.Radio = {
   KEY: "radio", // a data key: a save holds it
+  BEAT: 60, // the BPM a timed track runs the sim at 1x (120 BPM = 2x)
 
   /**
    * Injected: () => the bed to resume when the dial goes off. null until wired; off() then just
@@ -57,6 +58,12 @@ globalThis.Radio = {
     Music.play(sound);
     Audio.play({ sound: sndRadioOpen });
     return true;
+  },
+
+  /** The sim tempo a track sets while it plays: 1 for an untimed track or none. */
+  tempo(sound) {
+    const bpm = AssetMeta.bpm(sound);
+    return bpm > 0 ? bpm / Radio.BEAT : 1;
   },
 
   /** The map's bed resumes through the `ambient` hook. A no-op when already off. */

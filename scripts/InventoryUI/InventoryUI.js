@@ -424,15 +424,14 @@ globalThis.InventoryUI = {
     card.insertChild(
       facetButton(
         I18n.textRef("FOLLOWER_DISMISS"),
-        () => scene.kickFollower(fid),
+        () => {
+          if (!Companions.kick(scene.level.entities, scene.playerId, fid)) return;
+          scene.window.dirty = true;
+          Toast.push(I18n.text("SQUAD_KICKED"), { type: "info" });
+        },
         {
           height: 30,
-          disabled: () => {
-            return (
-              !scene.level.entities.has(fid, Squad) ||
-              scene.level.entities.has(fid, Downed)
-            );
-          },
+          disabled: () => !Companions.kickable(scene.level.entities, fid),
         },
       ),
     );

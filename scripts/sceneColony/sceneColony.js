@@ -1,5 +1,3 @@
-const TEMPO_BPM = 60; // the BPM a timed BGM runs the sim at 1x (120 BPM = 2x)
-
 globalThis.sceneColony = () => new _SceneColonyClass();
 Scene.register(sceneColony, {
   label: I18n.textRef("COLONY_NAME"),
@@ -19,25 +17,9 @@ class _SceneColonyClass {
     Tracker.rules = contentAchievements;
 
     // static hooks: they survive map reloads
-    Combat.mitigate = function (entities, targetId, amount, penetration = 0) {
-      const s = entities.get(targetId, Stats);
-      const defense = s !== undefined ? s.defense : 0;
-      // clamp so penetration never adds damage; min-1 floor so every hit registers
-      const effDef = Math.max(0, defense - penetration);
-      return Math.max(1, amount - effDef);
-    };
-    // false refuses the use, so the consumable is not wasted
-    Consumption.grantAttr = function (entities, id, attr, amount) {
-      const a = entities.get(id, Attributes);
-      if (a === undefined || a[attr] === undefined) return false;
-      a[attr] += amount;
-      StatModel.recompute(entities, id);
-      return true;
-    };
-    // status mods fold into the stats on apply and expire
-    Effects.onStatsChanged = function (entities, id) {
-      StatModel.recompute(entities, id);
-    };
+    Combat.mitigate = StatModel.mitigate;
+    Consumption.grantAttr = StatModel.grant;
+    Effects.onStatsChanged = StatModel.recompute;
     // progress shows as toasts, a reward as a refreshed bag
     Progression.onUnlock = (achId) => {
       const a = Achievement.get(achId);
@@ -51,13 +33,9 @@ class _SceneColonyClass {
     World.active = this.world;
     // the BGM fallback is the active map's bed, read live so one hook serves every map
     Radio.reset();
-    Radio.ambient = () => ColonyTravel.bed(this.level);
+    Radio.ambient = () => ColonyMap.bed(this.level);
 
     this.sleep = Sleep.make(); // resting in a bed, time fast-forwarded
-    this.nearNpc = false;
-    this.dialogueName = "";
-    this.dialogueLine = "";
-    this.dialogueAction = "";
 
     // marks a gameplay scene, which suspends menu navigation while playing
     this.gameplay = true;
@@ -98,7 +76,7 @@ class _SceneColonyClass {
     }
     // the restored station, else the map's bed; it carries across map changes
     const station = Radio.station();
-    Music.play(station !== -1 ? station : ColonyTravel.bed(this.level));
+    Music.play(station !== -1 ? station : ColonyMap.bed(this.level));
 
     if (!loaded) this._seed();
 
@@ -264,7 +242,7 @@ class _SceneColonyClass {
     else Sleep.ramp(this.sleep, this.level.entities);
 
     // a timed track runs the whole world at its beat, from the next frame on
-    Time.tempo = this.tempo(Music.track());
+    Time.tempo = Radio.tempo(Music.track());
 
     // latched once per frame, as the mouse is sampled live; on the ground plane, since cells
     // and footprints are what it names
@@ -323,7 +301,6 @@ class _SceneColonyClass {
     SpriteSystem.update(this.level);
     AppearanceSystem.update(this.level);
     Interactable.update(this, this.interact);
-    this._updateNpc();
     this._dispatchInteract();
     BuildMode.update(this, this.build);
     BuildMode.reapDestroyed(this);
@@ -361,6 +338,22 @@ class _SceneColonyClass {
     WorldEvents.update(WorldClock.absHours());
   }
 
+  /**
+   * A map arrival: the scene's per-map transients reset, kept off the level so a resume can't
+   * restore a stale one; the previous map's world-space effects drop, as their coordinates are
+   * map-local; and the new map's bed, unless the radio plays through it, and its climate take over.
+   */
+  arrive() {
+    this.build.armed = false;
+    this.build.active = false;
+    this.window.dirty = true;
+    if (!Radio.on()) Music.play(ColonyMap.bed(this.level));
+    Weather.setClimate(this.level.entities.get(this.level.self, ColonyMap.CLIMATE));
+    FloatingText.clear();
+    ParticleFx.clear();
+    WorldOverlay.clearTracers();
+  }
+
   _useHotbar() {
     const hb = this.level.entities.require(this.playerId, Hotbar);
     for (let i = 0; i < hb.size; i++) {
@@ -368,39 +361,14 @@ class _SceneColonyClass {
       this.showHotbar(); // even an empty slot reveals the bar
       const itemId = hb.slots[i];
       if (itemId === "") continue;
-      InventoryUI.useItem(this, itemId, this._itemWorn(itemId));
+      const worn = Loadout.worn(this.level.entities, this.playerId, itemId);
+      InventoryUI.useItem(this, itemId, worn);
     }
   }
 
   /** Reveal the hotbar HUD and restart its auto-hide countdown. */
   showHotbar() {
     Hud.showHotbar(this.hud);
-  }
-
-  /** Whether an instance of itemId is equipped. */
-  _itemWorn(itemId) {
-    const it = Item.get(itemId);
-    if (it === undefined || !it.hasComponent(Equippable)) return false;
-    const eq = this.level.entities.require(this.playerId, Equipment);
-    const uid = eq.slots[it.getComponent(Equippable).slot];
-    if (uid === undefined || uid === "") return false;
-    const inst = Bag.findByUid(
-      this.level.entities.require(this.playerId, Inventory),
-      uid,
-    );
-    return inst !== undefined && inst.itemId === itemId;
-  }
-
-  /**
-   * Kick a companion out of the squad permanently; it stays a resident of this map and can be
-   * re-hired. A downed member is not kicked.
-   */
-  kickFollower(fid) {
-    if (!this.level.entities.has(fid, Squad)) return;
-    if (this.level.entities.has(fid, Downed)) return;
-    Companions.kick(this.level.entities, this.playerId, fid);
-    this.window.dirty = true;
-    Toast.push(I18n.text("SQUAD_KICKED"), { type: "info" });
   }
 
   _followerName(id) {
@@ -418,45 +386,6 @@ class _SceneColonyClass {
     Toast.push(I18n.text("FOLLOWER_RECOVERED", this._followerName(id)), {
       type: "success",
     });
-  }
-
-  /**
-   * The dialogue panel's text when the frame's pick is an NPC. It reads the pick, never a
-   * proximity query of its own, so the panel only describes the entity E activates.
-   */
-  _updateNpc() {
-    this.nearNpc = false;
-    const id = this.interact.target;
-    const npc = id !== -1 ? this.level.entities.get(id, NPC) : undefined;
-    if (npc === undefined) return;
-    this.nearNpc = true;
-
-    this.dialogueName = npc.name;
-    if (this.level.entities.has(id, Merchant)) {
-      this.dialogueLine = "TRADE_GREET";
-      this.dialogueAction = "TRADE_ACTION";
-      return;
-    }
-    const qid = npc.questId;
-    if (Tracker.isDone(qid)) {
-      this.dialogueLine = "NPC_ELDER_THANKS";
-      this.dialogueAction = "";
-    } else if (Tracker.isReady(qid)) {
-      this.dialogueLine = "NPC_ELDER_DONE";
-      this.dialogueAction = "QUEST_TURNIN";
-    } else if (Tracker.isActive(qid)) {
-      this.dialogueLine = "NPC_ELDER_WIP";
-      this.dialogueAction = "";
-    } else {
-      this.dialogueLine = "NPC_ELDER_OFFER";
-      this.dialogueAction = "QUEST_ACCEPT";
-    }
-  }
-
-  /** The sim tempo a track sets while it plays: 1 for an untimed track or none. */
-  tempo(sound) {
-    const bpm = AssetMeta.bpm(sound);
-    return bpm > 0 ? bpm / TEMPO_BPM : 1;
   }
 
   /** A window outranks build mode, which it pauses. */

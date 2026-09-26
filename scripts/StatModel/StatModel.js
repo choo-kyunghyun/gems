@@ -55,6 +55,22 @@ globalThis.StatModel = {
       stam.value = stats.maxStamina;
   },
 
+  /** A hit after the target's defense, which penetration lowers but never below 0; at least 1. */
+  mitigate(entities, targetId, amount, penetration = 0) {
+    const s = entities.get(targetId, Stats);
+    const defense = s !== undefined ? s.defense : 0;
+    return Math.max(1, amount - Math.max(0, defense - penetration));
+  },
+
+  /** Raise an attribute and re-derive; false, changing nothing, when the entity lacks it. */
+  grant(entities, id, attr, amount) {
+    const a = entities.get(id, Attributes);
+    if (a === undefined || a[attr] === undefined) return false;
+    a[attr] += amount;
+    StatModel.recompute(entities, id);
+    return true;
+  },
+
   _foldEquipment(entities, id, d) {
     const eq = entities.get(id, Equipment);
     if (eq === undefined) return;

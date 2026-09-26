@@ -45,6 +45,12 @@ globalThis.ColonyMap = {
     level.entities.add(level.self, ColonyMap.PERSISTENT, true);
   },
 
+  /** The map's ambient bed, playing whenever the radio is off. */
+  bed(level) {
+    const indoor = level.entities.get(level.self, ColonyMap.INDOOR) === true;
+    return indoor ? musAmbientCozy : musAmbientTense;
+  },
+
   /** `{ mapId -> builds so far }` */
   visits(world) {
     return world.of(ColonyMap.VISITS, () => ({}));

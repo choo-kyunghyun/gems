@@ -19,10 +19,12 @@ globalThis.Hud = {
       sleep: null,
       timer: HOTBAR_HUD_SECS, // wall clock; the bar shows while > 0
       slide: 0, // 0 = tucked below the screen, 1 = fully up
+      speaker: "", // the picked NPC's name key
+      talk: null, // its Talk row; null hides the dialogue card
     };
     hud.card = Hud._hud(scene);
     hud.bar = Hud._hotbar(scene);
-    hud.dialogue = Hud._dialogue(scene);
+    hud.dialogue = Hud._dialogue(scene, hud);
     hud.sleep = Hud._sleepOverlay(scene);
     return hud;
   },
@@ -41,7 +43,13 @@ globalThis.Hud = {
     hud.slide = approach(hud.slide, show ? 1 : 0, HOTBAR_SLIDE_SPD);
     hud.bar.dragY = (1 - hud.slide) * HOTBAR_SLIDE; // an offset, leaving the layout alone
     hud.bar.enabled = !open && hud.slide > 0.001;
-    hud.dialogue.enabled = !open && scene.nearNpc;
+    // the frame's pick, never a proximity query, so the card only describes what E activates
+    const entities = scene.level.entities;
+    const target = scene.interact.target;
+    const npc = target !== -1 ? entities.get(target, NPC) : undefined;
+    hud.speaker = npc !== undefined ? npc.name : "";
+    hud.talk = npc !== undefined ? Talk.line(entities, target) : null;
+    hud.dialogue.enabled = !open && hud.talk !== null;
     hud.sleep.enabled = scene.sleep.on;
   },
 
@@ -275,7 +283,7 @@ globalThis.Hud = {
     return hud;
   },
 
-  _dialogue(scene) {
+  _dialogue(scene, hud) {
     const wrap = new UIElement({
       positionType: "absolute",
       left: 0,
@@ -286,21 +294,23 @@ globalThis.Hud = {
     const card = facetCard({ width: 640, padding: FacetTheme.pad });
     const name = new UIElement({ width: "100%", height: 26 });
     name.insertChild(
-      facetLabel(() => I18n.text(scene.dialogueName), {
+      facetLabel(() => I18n.text(hud.speaker), {
         color: FacetTheme.warn,
         font: "header",
       }),
     );
     const line = new UIElement({ width: "100%", height: 26 });
     line.insertChild(
-      facetLabel(() => I18n.text(scene.dialogueLine), { color: FacetTheme.text }),
+      facetLabel(() => (hud.talk !== null ? I18n.text(hud.talk.line) : ""), {
+        color: FacetTheme.text,
+      }),
     );
     const action = new UIElement({ width: "100%", height: 22 });
     action.insertChild(
       facetLabel(
         () =>
-          scene.dialogueAction !== ""
-            ? "[E] " + I18n.text(scene.dialogueAction)
+          hud.talk !== null && hud.talk.action !== ""
+            ? "[E] " + I18n.text(hud.talk.action)
             : "",
         { color: FacetTheme.good },
       ),

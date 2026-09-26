@@ -54,11 +54,21 @@ globalThis.Companions = {
     entities.add(fid, Interaction, { kind: "companion" });
   },
 
-  /** The member stays where it stands and can be re-hired. */
+  /** A downed member stays in the squad until it recovers. */
+  kickable(entities, fid) {
+    return entities.has(fid, Squad) && !entities.has(fid, Downed);
+  },
+
+  /**
+   * The member stays where it stands and can be re-hired. Returns false, changing nothing, when
+   * it is not kickable.
+   */
   kick(entities, playerId, fid) {
+    if (!Companions.kickable(entities, fid)) return false;
     Companions.setState(entities, playerId, fid, "wait");
     entities.detach(fid, Squad);
     entities.add(fid, Interaction, { kind: "rehire" });
+    return true;
   },
 
   /** A balanced delta (`sign` ±1), so nothing ever recomputes the capacity from base. */

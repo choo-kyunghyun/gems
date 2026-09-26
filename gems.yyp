@@ -445,6 +445,7 @@
     {"id":{"name":"StatusSystem","path":"scripts/StatusSystem/StatusSystem.yy",},},
     {"id":{"name":"StorageUI","path":"scripts/StorageUI/StorageUI.yy",},},
     {"id":{"name":"Table","path":"scripts/Table/Table.yy",},},
+    {"id":{"name":"Talk","path":"scripts/Talk/Talk.yy",},},
     {"id":{"name":"Temperature","path":"scripts/Temperature/Temperature.yy",},},
     {"id":{"name":"Test","path":"scripts/Test/Test.yy",},},
     {"id":{"name":"testCollision","path":"scripts/testCollision/testCollision.yy",},},

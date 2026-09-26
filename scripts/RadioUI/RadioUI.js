@@ -19,7 +19,7 @@ globalThis.RadioUI = {
     );
     page.insertChild(
       facetKeyValueRow(I18n.textRef("RADIO_TEMPO"), () =>
-        RadioUI._tempo(scene, Music.track()),
+        RadioUI._tempo(Music.track()),
       ),
     );
     page.insertChild(facetDivider());
@@ -85,10 +85,10 @@ globalThis.RadioUI = {
     return Radio.on() ? name : name + "  " + I18n.text("RADIO_BED");
   },
 
-  /** The scene's tempo rule for a track, previewed. */
-  _tempo(scene, sound) {
+  /** A track's tempo, previewed. */
+  _tempo(sound) {
     const bpm = AssetMeta.bpm(sound);
-    const t = Math.round(scene.tempo(sound) * 100) / 100;
+    const t = Math.round(Radio.tempo(sound) * 100) / 100;
     return (
       (bpm > 0 ? I18n.text("RADIO_BPM", bpm) : I18n.text("RADIO_UNTIMED")) +
       "   ·   x" +

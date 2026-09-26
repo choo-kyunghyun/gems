@@ -39,6 +39,18 @@ globalThis.Loadout = {
     return "INV_NOT_OWNED";
   },
 
+  /** Whether an instance of `itemId` sits in its equip slot. */
+  worn(entities, id, itemId) {
+    const item = Item.get(itemId);
+    if (item === undefined) return false;
+    const eqp = item.getComponent(Equippable);
+    if (eqp === undefined) return false;
+    const uid = entities.require(id, Equipment).slots[eqp.slot];
+    if (uid === undefined || uid === "") return false;
+    const s = Bag.findByUid(entities.require(id, Inventory), uid);
+    return s !== undefined && s.itemId === itemId;
+  },
+
   /** Returns the unequipped uid, or "" if the slot was empty. */
   unequip(entities, id, slot) {
     const eq = entities.require(id, Equipment);
