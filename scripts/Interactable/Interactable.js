@@ -93,10 +93,7 @@ globalThis.Interactable = {
 
     // hidden under build mode too: E is not bound there, and its HUD stands where the prompt does.
     pick.text = Interactable._promptText(scene, pick);
-    pick.el.enabled =
-      pick.text !== "" &&
-      !scene.window.isOpen() &&
-      !scene.build.active;
+    pick.el.enabled = pick.text !== "" && !scene.build.active;
   },
 
   /** A no-op with nothing picked. */

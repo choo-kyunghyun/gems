@@ -14,7 +14,6 @@ globalThis.Hud = {
   /** Once per scene. Every panel goes into `scene.ui` but the sleep card, the scene's to place. */
   build(scene) {
     const hud = {
-      card: null,
       bar: null,
       cells: null, // the bar's slot grid
       dialogue: null,
@@ -24,7 +23,7 @@ globalThis.Hud = {
       speaker: "", // the picked NPC's name key
       talk: null, // its Talk row; null hides the dialogue card
     };
-    hud.card = Hud._hud(scene);
+    Hud._hud(scene);
     hud.bar = Hud._hotbar(scene, hud);
     hud.dialogue = Hud._dialogue(scene, hud);
     hud.sleep = Hud._sleep(scene);
@@ -37,13 +36,11 @@ globalThis.Hud = {
    */
   update(scene, hud) {
     if (hud.timer > 0) hud.timer -= Time.raw;
-    const open = scene.window.isOpen();
-    hud.card.enabled = !open;
     // build mode owns the bottom-center HUD, so the bar tucks away for it whatever the timer says
     const show = !scene.build.armed && hud.timer > 0;
     hud.slide = approach(hud.slide, show ? 1 : 0, HOTBAR_SLIDE_SPD);
     hud.bar.dragY = (1 - hud.slide) * HOTBAR_SLIDE; // an offset, leaving the layout alone
-    hud.bar.enabled = !open && hud.slide > 0.001;
+    hud.bar.enabled = hud.slide > 0.001;
     if (hud.bar.enabled && scene.playerId !== undefined)
       hud.cells.items = InvTable.beltCells(scene.level.entities, scene.playerId);
     // the frame's pick, never a proximity query, so the card only describes what E activates
@@ -52,7 +49,7 @@ globalThis.Hud = {
     const npc = target !== -1 ? entities.get(target, NPC) : undefined;
     hud.speaker = npc !== undefined ? npc.name : "";
     hud.talk = npc !== undefined ? Talk.line(entities, target) : null;
-    hud.dialogue.enabled = !open && hud.talk !== null;
+    hud.dialogue.enabled = hud.talk !== null;
     hud.sleep.enabled = scene.sleep.on;
   },
 
@@ -246,7 +243,6 @@ globalThis.Hud = {
     );
     hud.insertChild(card);
     scene.ui.insertChild(hud);
-    return hud;
   },
 
   _dialogue(scene, hud) {
