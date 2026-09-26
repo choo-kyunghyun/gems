@@ -51,20 +51,7 @@ class _SceneColonyClass {
     // marks a gameplay scene, which suspends menu navigation while playing
     this.gameplay = true;
 
-    // radar blip colors, first match wins; built here, not at top level, so Color is loaded.
-    // An entity matching none gets no arrow.
-    this._radarRules = [
-      { has: Raider, color: Color.parse("#e0584f") },
-      { has: Rat, color: Color.parse("#e0584f") },
-      { has: NPC, color: facetColor("warn") },
-      // the travel beacon
-      {
-        has: Interaction,
-        where: (c) => c.kind === "travel",
-        color: Color.parse("#9b8cff"),
-      },
-      { has: Follower, color: Color.parse("#6fd0a0") },
-    ];
+    this._radarRules = contentHud.radar();
 
     this._buildUI();
 
@@ -120,58 +107,7 @@ class _SceneColonyClass {
   _buildUI() {
     this.ui = facetRoot();
     UI.insert(this.ui);
-    this.ui.body.insertChild(
-      facetKeyHints(
-        [
-          {
-            actions: ["moveUp", "moveLeft", "moveDown", "moveRight"],
-            label: "HINT_MOVE",
-            contexts: ["play", "build", "window"],
-          },
-          {
-            actions: ["sprint"],
-            label: "HINT_SPRINT",
-            contexts: ["play", "build"],
-          },
-          { actions: ["fire"], label: "HINT_ATTACK", contexts: ["play"] },
-          {
-            actions: ["grenade"],
-            label: "HINT_GRENADE",
-            contexts: ["play"],
-          },
-          {
-            actions: ["buildPlace"],
-            label: "HINT_PLACE",
-            contexts: ["build"],
-          },
-          {
-            actions: ["buildRemove"],
-            label: "HINT_REMOVE",
-            contexts: ["build"],
-          },
-          {
-            actions: ["inventory"],
-            label: "HINT_BAG",
-            contexts: ["play", "build"],
-          },
-          { text: "1-5", label: "HINT_HOTBAR", contexts: ["play"] },
-          { actions: ["interact"], label: "HINT_TALK", contexts: ["play"] },
-          { actions: ["build"], label: "HINT_BUILD", contexts: ["play"] },
-          {
-            actions: ["build"],
-            label: "HINT_EXIT_BUILD",
-            contexts: ["build"],
-          },
-          {
-            actions: ["follow"],
-            label: "HINT_COMPANION",
-            contexts: ["play", "build"],
-          },
-          { text: "Esc", label: "COMMON_CLOSE", contexts: ["window"] },
-        ],
-        { color: "#888888" },
-      ),
-    );
+    this.ui.body.insertChild(facetKeyHints(contentHud.HINTS, { color: "#888888" }));
     this.hud = Hud.build(this);
     // one window after the HUD, whose veil covers it, holding every page under the id that opens it
     this.window = new Window(this.ui);

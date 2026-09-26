@@ -247,6 +247,7 @@
     {"id":{"name":"contentBiomes","path":"scripts/contentBiomes/contentBiomes.yy",},},
     {"id":{"name":"contentBuild","path":"scripts/contentBuild/contentBuild.yy",},},
     {"id":{"name":"contentFlora","path":"scripts/contentFlora/contentFlora.yy",},},
+    {"id":{"name":"contentHud","path":"scripts/contentHud/contentHud.yy",},},
     {"id":{"name":"contentInteractions","path":"scripts/contentInteractions/contentInteractions.yy",},},
     {"id":{"name":"contentItems","path":"scripts/contentItems/contentItems.yy",},},
     {"id":{"name":"contentNeeds","path":"scripts/contentNeeds/contentNeeds.yy",},},

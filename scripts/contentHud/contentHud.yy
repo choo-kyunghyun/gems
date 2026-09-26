@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"contentHud",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"contentHud",
+  "parent":{
+    "name":"Colony",
+    "path":"folders/Game/Colony.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"contentHud.js",
+}
