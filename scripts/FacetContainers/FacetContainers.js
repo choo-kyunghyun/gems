@@ -80,29 +80,6 @@ globalThis.facetCard = function facetCard(opts = {}) {
 };
 
 /**
- * Sprite-skinned panel: a content box over a nine-slice sprite frame instead of a drawn
- * roundrect. The corner-safe stretch comes from the sprite's IDE nine-slice data. `color` tints
- * the frame (theme key / hex / int); `speed` (frames/sec) overrides the sprite's playback speed.
- */
-globalThis.facetNineSlice = function facetNineSlice(opts = {}) {
-  const el = new UIElement({
-    width: opts.width ?? "100%",
-    padding: opts.padding ?? FacetTheme.pad,
-    gap: opts.gap ?? FacetTheme.gapSm,
-  });
-  el.addComponent(
-    new UIImage({
-      sprite: opts.sprite ?? pixUiBox,
-      subimg: opts.subimg ?? 0,
-      color: opts.color != null ? facetColor(opts.color) : c_white,
-      alpha: opts.alpha ?? 1,
-      speed: opts.speed,
-    }),
-  );
-  return el;
-};
-
-/**
  * Scroll viewport. Items go into `.scrollBody`. Scrolls by draw-time offset, never flex mutation.
  * `opts.height` fixes the viewport; `opts.grow` flex-fills between siblings.
  */
