@@ -223,10 +223,7 @@ globalThis.StorageUI = {
     return (s) => {
       if (fav !== undefined && Star.has(fav, s.itemId)) return true;
       if (hb !== undefined && Belt.has(hb, s.itemId)) return true;
-      if (eq !== undefined && s.uid !== undefined) {
-        for (const slot in eq.slots) if (eq.slots[slot] === s.uid) return true;
-      }
-      return false;
+      return eq !== undefined ? Loadout.wears(eq, s.uid) : false;
     };
   },
 

@@ -643,17 +643,10 @@ globalThis.InventoryUI = {
     const rows = [];
     for (let i = 0; i < inv.slots.length; i++) {
       const slot = inv.slots[i];
-      const it = Item.get(slot.itemId);
-      let worn = false;
-      if (it !== undefined && it.hasComponent(Equippable)) {
-        const eqp = it.getComponent(Equippable);
-        if (slot.uid !== undefined && eq.slots[eqp.slot] === slot.uid)
-          worn = true;
-      }
       const favd = fav !== undefined && Star.has(fav, slot.itemId);
       rows.push({
         ...InvTable.rowModel(slot.itemId, slot.qty, slot.uid, slot.mods),
-        worn,
+        worn: Loadout.wears(eq, slot.uid),
         fav: favd,
       });
     }

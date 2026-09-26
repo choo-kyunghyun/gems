@@ -294,16 +294,7 @@ globalThis.TradeUI = {
           : Trade.sellPrice(m, r.itemId);
       // "-" for infinite stock: the fonts are Latin-1, with no ∞ glyph
       r.qtyText = side === "buy" && m.infinite ? "-" : string(r.qty);
-      r.worn = false;
-      if (eq !== undefined && r.uid !== undefined) {
-        const it = Item.get(r.itemId);
-        if (
-          it !== undefined &&
-          it.hasComponent(Equippable) &&
-          eq.slots[it.getComponent(Equippable).slot] === r.uid
-        )
-          r.worn = true;
-      }
+      r.worn = eq !== undefined ? Loadout.wears(eq, r.uid) : false;
       rows.push(r);
     }
     return rows;

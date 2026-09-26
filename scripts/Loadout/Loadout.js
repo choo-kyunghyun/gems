@@ -51,6 +51,13 @@ globalThis.Loadout = {
     return s !== undefined && s.itemId === itemId;
   },
 
+  /** Whether instance `uid` sits in any slot of `eq`; a fungible slot's absent uid never does. */
+  wears(eq, uid) {
+    if (uid === undefined || uid === "") return false;
+    for (const slot in eq.slots) if (eq.slots[slot] === uid) return true;
+    return false;
+  },
+
   /** Returns the unequipped uid, or "" if the slot was empty. */
   unequip(entities, id, slot) {
     const eq = entities.require(id, Equipment);
