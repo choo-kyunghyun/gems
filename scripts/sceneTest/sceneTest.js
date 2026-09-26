@@ -14,7 +14,9 @@ Scene.register(sceneTest, {
 });
 
 class _SceneTestClass {
-  label = "Test";
+  constructor() {
+    this.label = "Test"; // in the constructor, never a class field (docs/GMRT.md)
+  }
 
   create(openScene) {
     this._openScene = openScene; // for retheme() to rebuild the button callbacks

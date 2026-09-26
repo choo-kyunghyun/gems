@@ -9,7 +9,9 @@ Scene.register(sceneColony, {
  * persistent UI, and states the order of every system in a frame.
  */
 class _SceneColonyClass {
-  label = "Colony";
+  constructor() {
+    this.label = "Colony"; // in the constructor, never a class field (docs/GMRT.md)
+  }
 
   create(openScene) {
     contentQuests.register();

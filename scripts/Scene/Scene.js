@@ -23,7 +23,9 @@
  *    category order.
  */
 globalThis.Scene = class Scene {
-  label = "";
+  constructor() {
+    this.label = ""; // in the constructor, never a class field (docs/GMRT.md)
+  }
 
   /** `openScene` queues a navigation to another scene. */
   create(openScene) {}

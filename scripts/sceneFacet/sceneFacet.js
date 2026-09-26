@@ -10,7 +10,9 @@ Scene.register(sceneFacet, {
 });
 
 class _SceneFacetClass {
-  label = "Facet";
+  constructor() {
+    this.label = "Facet"; // in the constructor, never a class field (docs/GMRT.md)
+  }
 
   create(openScene) {
     this.typed = "";
