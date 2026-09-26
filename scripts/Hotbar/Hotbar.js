@@ -4,6 +4,7 @@
  *
  * @typedef {Object} Hotbar
  * @property {string[]} slots  itemId per slot, "" = empty; HOTBAR_SIZE long
+ * @property {string[]} uids   per slot, the one instance it pins, "" = whichever copy
  */
 globalThis.Hotbar = "Hotbar";
 
@@ -11,4 +12,5 @@ globalThis.HOTBAR_SIZE = 5;
 // any script may load first (docs/GMRT.md)
 (globalThis.Blank ??= {})[Hotbar] = {
   slots: new Array(HOTBAR_SIZE).fill(""),
+  uids: new Array(HOTBAR_SIZE).fill(""),
 };

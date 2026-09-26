@@ -329,12 +329,13 @@ class _SceneColonyClass {
 
   _useHotbar() {
     const hb = this.level.entities.require(this.playerId, Hotbar);
+    const inv = this.level.entities.require(this.playerId, Inventory);
     for (let i = 0; i < hb.slots.length; i++) {
       if (!Input.get("hotbar" + (i + 1)).pressed()) continue;
       this.showHotbar(); // even an empty slot reveals the bar
       const itemId = hb.slots[i];
       if (itemId === "") continue;
-      InventoryUI.use(this, itemId);
+      InventoryUI.use(this, itemId, Belt.instance(hb, inv, i));
     }
   }
 
