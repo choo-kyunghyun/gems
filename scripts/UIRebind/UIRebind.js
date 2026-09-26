@@ -32,11 +32,10 @@ globalThis.UIRebind = class UIRebind {
       if (Input.pointer.left.pressed) {
         this._capturing = false;
       } else {
-        // BUG: scan for the live pressed edge, not keyboard_lastkey, which lags vk_anykey by a
-        // frame and would rebind the stale key
         const code = this._scanKey();
         if (code > 0) {
-          this._rebind(code);
+          Input.rebind(this.actionKey, code);
+          this.onRebind(code);
           Input.consumeKey(code); // spent here: the action it now binds must not fire on the same press
           this._capturing = false;
         }
@@ -114,10 +113,5 @@ globalThis.UIRebind = class UIRebind {
       code++;
     }
     return 0;
-  }
-
-  _rebind(code) {
-    Input.rebind(this.actionKey, code);
-    this.onRebind(code);
   }
 };

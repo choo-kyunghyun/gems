@@ -1,6 +1,5 @@
 /**
- * @implements {UIComponent}
- * UITable — sortable/filterable data table with row selection, sticky header, row-based
+ * Sortable/filterable data table with row selection, sticky header, row-based
  * scroll, and keyboard/gamepad browse mode. Drawn entirely in onDraw over ONE element, so
  * re-sort/filter never reflows the layout; the element should be sized to a whole row count.
  *
@@ -17,6 +16,7 @@
  * pointer move or click hands control back, and a focus that leaves the table ends it.
  *
  * BUG: [#15549] hit-test/hover state lives in instance fields (docs/GMRT.md).
+ * @implements {UIComponent}
  */
 globalThis.UITable = class UITable {
   constructor(t = {}) {
@@ -208,7 +208,7 @@ globalThis.UITable = class UITable {
       headerTop: pos.top + this.pad,
       bodyTop: pos.top + this.pad + this.headerH,
       bodyRows,
-      maxTop: this._maxTop(pos),
+      maxTop: Math.max(0, this._view.length - bodyRows),
       barOn,
     };
   }
@@ -242,13 +242,9 @@ globalThis.UITable = class UITable {
     const pos = element.getLayoutPosition();
     const g = this._geometry(pos);
     const cols = g.cols;
-    const headerTop = g.headerTop;
     const bodyTop = g.bodyTop;
-    const bodyRows = g.bodyRows;
-    const maxTop = g.maxTop;
-    const barOn = g.barOn;
     // positive test: maxTop can be NaN for a subtree inserted mid layout pass
-    this._top = maxTop > 0 ? clamp(this._top, 0, maxTop) : 0;
+    this._top = g.maxTop > 0 ? clamp(this._top, 0, g.maxTop) : 0;
 
     const mx = Input.pointer.x;
     const my = Input.pointer.y;
@@ -272,7 +268,7 @@ globalThis.UITable = class UITable {
     this._bar.over = false;
     if (!this._inside && !this._bar.dragging) return block;
 
-    if (my >= headerTop && my < bodyTop) {
+    if (my >= g.headerTop && my < bodyTop) {
       for (let i = 0; i < cols.length; i++) {
         if (mx >= cols[i].x && mx < cols[i].x + cols[i].w) {
           this._hoverCol = i;
@@ -282,10 +278,10 @@ globalThis.UITable = class UITable {
       if (this._hoverCol >= 0 && Input.pointer.left.pressed) this.sortBy(this._hoverCol);
     }
 
-    const bodyH = bodyRows * this.rowH;
+    const bodyH = g.bodyRows * this.rowH;
     if (this._inside) {
       const wheel = Input.pointer.wheel;
-      if (wheel !== 0) this._top = clamp(this._top + wheel, 0, maxTop);
+      if (wheel !== 0) this._top = clamp(this._top + wheel, 0, g.maxTop);
     }
     if (my >= bodyTop && my < bodyTop + bodyH && this._inside) {
       const r = this._top + Math.floor((my - bodyTop) / this.rowH);
@@ -299,28 +295,22 @@ globalThis.UITable = class UITable {
       }
     }
 
-    if (barOn) this._barInput(pos, mx, my, bodyTop, bodyH, maxTop);
+    if (g.barOn) {
+      const t = this._bar.input(this._barMetrics(pos, g), mx, my, true);
+      if (t >= 0) this._top = Math.round(t * g.maxTop); // row-quantized
+    }
 
     return this._inside || this._bar.dragging || block;
   }
 
-  _barInput(pos, mx, my, bodyTop, bodyH, maxTop) {
-    const m = this._barMetrics(pos, bodyTop, bodyH, maxTop);
-    const t = this._bar.input(m, mx, my, true);
-    if (t >= 0) this._top = Math.round(t * maxTop); // row-quantized
-  }
-
-  _barMetrics(pos, bodyTop, bodyH, maxTop) {
-    const x = pos.left + pos.width - this.pad - this._bar.barW;
-    const rowsVis = this._bodyRows(pos);
-    const total = Math.max(1, this._view.length);
+  _barMetrics(pos, g) {
     return this._bar.metrics(
-      x,
-      bodyTop,
-      bodyH,
-      rowsVis,
-      total,
-      maxTop > 0 ? this._top / maxTop : 0,
+      pos.left + pos.width - this.pad - this._bar.barW,
+      g.bodyTop,
+      g.bodyRows * this.rowH,
+      g.bodyRows,
+      Math.max(1, this._view.length),
+      g.maxTop > 0 ? this._top / g.maxTop : 0,
     );
   }
 
@@ -359,7 +349,7 @@ globalThis.UITable = class UITable {
 
     this._drawBody(pos, g);
     this._drawHeader(pos, g);
-    if (g.barOn) this._drawBar(pos, g);
+    if (g.barOn) this._bar.draw(this._barMetrics(pos, g));
 
     UIDraw.restore(st);
   }
@@ -431,7 +421,6 @@ globalThis.UITable = class UITable {
     if (this._view.length === 0 && this.emptyText !== "") {
       draw_set_color(this.colorMuted);
       draw_set_halign(fa_center);
-      draw_set_valign(fa_middle);
       draw_text(x0 + w * 0.5, g.bodyTop + bodyH * 0.5, this.emptyText);
       return;
     }
@@ -524,11 +513,6 @@ globalThis.UITable = class UITable {
         );
       }
     }
-  }
-
-  _drawBar(pos, g) {
-    const bodyH = g.bodyRows * this.rowH;
-    this._bar.draw(this._barMetrics(pos, g.bodyTop, bodyH, g.maxTop));
   }
 
   /** Hard-truncates to `maxW` — the default font has no ellipsis glyph. */

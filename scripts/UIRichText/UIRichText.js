@@ -1,5 +1,4 @@
 /**
- * @implements {UIComponent}
  * Multi-run text: colored spans and inline icons from one markup string.
  *
  * Markup:
@@ -10,6 +9,7 @@
  * Spans nest; unknown tags are dropped. Self-sizes to the parsed content and never reads the
  * element width; halign resolves against the widest line. The parse is rebuilt only on a
  * source-string or font change.
+ * @implements {UIComponent}
  */
 globalThis.UIRichText = class UIRichText {
   /** s: { textRef: () => string, color, alpha, halign, font, iconSize, palette } */

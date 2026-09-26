@@ -8,7 +8,7 @@ const _INPUT_DBLCLICK = 300; // ms
  * the nav focus: a nav confirm or a click starts it, and a field that loses the focus stops.
  * While editing, the field claims the keyboard each frame and takes every nav event, so no later
  * reader acts on what it typed; a nav confirm or cancel ends it as Enter or Escape does.
- * BUG: a cached primitive bool can be clobbered mid-call — read modifier state live.
+ * BUG: [#15549] modifier state is read live, never cached in a bool (docs/GMRT.md).
  * @implements {UIComponent}
  */
 globalThis.UIInput = class UIInput {
@@ -70,14 +70,16 @@ globalThis.UIInput = class UIInput {
       this.focus(element);
       return true;
     }
-    if (ev.kind === "confirm") {
-      this.onConfirm(this.value);
-      this.blur();
-    } else if (ev.kind === "cancel") {
-      this.onCancel(this.value);
-      this.blur();
-    }
+    if (ev.kind === "confirm") this._end(true);
+    else if (ev.kind === "cancel") this._end(false);
     return true;
+  }
+
+  /** Ends editing as Enter (`confirm`) or Escape does. */
+  _end(confirm) {
+    if (confirm) this.onConfirm(this.value);
+    else this.onCancel(this.value);
+    this.blur();
   }
 
   /** Coerced to string. */
@@ -117,15 +119,13 @@ globalThis.UIInput = class UIInput {
 
   _wordLeft(i) {
     while (i > 0 && this._isSpace(this.value[i - 1])) i--;
-    while (i > 0 && !this._isSpace(this.value[i - 1])) i--;
-    return i;
+    return this._wordStart(i);
   }
 
   _wordRight(i) {
     const n = this.value.length;
     while (i < n && this._isSpace(this.value[i])) i++;
-    while (i < n && !this._isSpace(this.value[i])) i++;
-    return i;
+    return this._wordEnd(i);
   }
 
   /** The caret's neighbour one step in `dir`: a word with ctrl held, else a character. */
@@ -156,13 +156,15 @@ globalThis.UIInput = class UIInput {
     return true;
   }
 
-  _deleteSelection() {
-    const lo = this._selLow();
-    const hi = this._selHigh();
+  _remove(lo, hi) {
     if (lo === hi) return false;
     this.value = this.value.slice(0, lo) + this.value.slice(hi);
     this._setCursor(lo, false);
     return true;
+  }
+
+  _deleteSelection() {
+    return this._remove(this._selLow(), this._selHigh());
   }
 
   _insert(text) {
@@ -196,8 +198,6 @@ globalThis.UIInput = class UIInput {
 
   _paste() {
     if (this.readOnly) return;
-    // BUG: clipboard_has_text() falsely reports false, so "" means empty; and regex .replace()
-    // faults, so control chars are dropped per char on insert.
     const text = clipboard_get_text();
     if (text === "" || text === undefined) return;
     this._insert(text);
@@ -329,16 +329,11 @@ globalThis.UIInput = class UIInput {
       }
     }
 
-    if (this._repeat(vk_left)) {
-      if (Input.keyDown(vk_shift)) this._setCursor(this._step(-1), true);
-      else if (this._hasSel()) this._setCursor(this._selLow(), false);
-      else this._setCursor(this._step(-1), false);
-      return;
-    }
-    if (this._repeat(vk_right)) {
-      if (Input.keyDown(vk_shift)) this._setCursor(this._step(1), true);
-      else if (this._hasSel()) this._setCursor(this._selHigh(), false);
-      else this._setCursor(this._step(1), false);
+    const dir = this._repeat(vk_left) ? -1 : this._repeat(vk_right) ? 1 : 0;
+    if (dir !== 0) {
+      if (Input.keyDown(vk_shift)) this._setCursor(this._step(dir), true);
+      else if (this._hasSel()) this._setCursor(dir < 0 ? this._selLow() : this._selHigh(), false);
+      else this._setCursor(this._step(dir), false);
       return;
     }
     if (this._repeat(vk_home)) {
@@ -350,36 +345,28 @@ globalThis.UIInput = class UIInput {
       return;
     }
 
-    if (!this.readOnly && this._repeat(vk_backspace)) {
-      if (this._deleteSelection()) this.onChange(this.value);
-      else if (this._cursor > 0) {
-        const to = this._step(-1);
-        this.value = this.value.slice(0, to) + this.value.slice(this._cursor);
-        this._setCursor(to, false);
+    // a selection is what either key erases; without one, the step toward `del`
+    const del = this.readOnly
+      ? 0
+      : this._repeat(vk_backspace)
+        ? -1
+        : this._repeat(vk_delete)
+          ? 1
+          : 0;
+    if (del !== 0) {
+      const to = this._hasSel() ? this._anchor : clamp(this._step(del), 0, len);
+      if (this._remove(Math.min(to, this._cursor), Math.max(to, this._cursor)))
         this.onChange(this.value);
-      }
-      return;
-    }
-    if (!this.readOnly && this._repeat(vk_delete)) {
-      if (this._deleteSelection()) this.onChange(this.value);
-      else if (this._cursor < len) {
-        const to = this._step(1);
-        this.value = this.value.slice(0, this._cursor) + this.value.slice(to);
-        this._setCursor(this._cursor, false);
-        this.onChange(this.value);
-      }
       return;
     }
 
     if (Input.keyPressed(vk_enter)) {
-      this.onConfirm(this.value);
-      this.blur();
+      this._end(true);
       return;
     }
     if (Input.keyPressed(vk_escape)) {
-      this.onCancel(this.value);
-      this.blur();
       // a blur is not a dismiss: the keyboard claim keeps this Esc from later readers.
+      this._end(false);
       return;
     }
 

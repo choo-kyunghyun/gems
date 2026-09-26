@@ -1,5 +1,4 @@
 /**
- * @implements {UIComponent}
  * Slot grid with hover and single selection, drawn immediate-mode across one element so a large
  * inventory stays cheap. `items` is a flat array of { sprite, subimg, count, color, borderColor?,
  * badge?, badgeColor? } or null; `borderColor` overrides the grid border per cell and `badge` is a
@@ -12,8 +11,7 @@
  * A nav confirm enters browse mode, where the grid takes the nav's moves as a 2D slot cursor, its
  * confirm as `onActivate` on the cursor slot and its cancel as the way out; a pointer move or click
  * hands control back, and a focus that leaves the grid ends it.
- *
- * Hover and selection are read live each frame, never cached in a boolean (docs/GMRT.md).
+ * @implements {UIComponent}
  */
 globalThis.UISlots = class UISlots {
   constructor(s = {}) {
@@ -39,17 +37,17 @@ globalThis.UISlots = class UISlots {
     this.countColor = s.countColor ?? c_white;
 
     this._hover = -1;
-    this._inside = false; // a field, not a local boolean (docs/GMRT.md)
+    this._inside = false;
     this._browsing = false;
     this._cursor = 0;
   }
 
-  _slotXY(pos, i) {
-    const step = this.cellSize + this.gap;
-    return {
-      x: pos.left + (i % this.cols) * step,
-      y: pos.top + floor(i / this.cols) * step,
-    };
+  _slotX(pos, i) {
+    return pos.left + (i % this.cols) * (this.cellSize + this.gap);
+  }
+
+  _slotY(pos, i) {
+    return pos.top + floor(i / this.cols) * (this.cellSize + this.gap);
   }
 
   /** The cell under the pointer this frame, -1 for none. */
@@ -63,7 +61,7 @@ globalThis.UISlots = class UISlots {
     const mx = Input.pointer.x;
     const my = Input.pointer.y;
 
-    // an instance field, not a boolean local (docs/GMRT.md)
+    // BUG: [#15549] an instance field, never a boolean local (docs/GMRT.md)
     this._inside = !block && element.positionMeeting(mx, my);
 
     // browse mode holds the pointer until a move or a click takes over, or the focus leaves
@@ -82,22 +80,22 @@ globalThis.UISlots = class UISlots {
 
     this._hover = -1;
     if (this._inside) {
-      for (let i = 0; i < this.items.length; i++) {
-        const p = this._slotXY(pos, i);
-        if (
-          point_in_rectangle(
-            mx,
-            my,
-            p.x,
-            p.y,
-            p.x + this.cellSize,
-            p.y + this.cellSize,
-          )
-        ) {
-          this._hover = i;
-          break;
-        }
-      }
+      // the cell under the pointer by division; the gap between cells hovers none
+      const step = this.cellSize + this.gap;
+      const lx = mx - pos.left;
+      const ly = my - pos.top;
+      const c = floor(lx / step);
+      const r = floor(ly / step);
+      const i = r * this.cols + c;
+      if (
+        c >= 0 &&
+        c < this.cols &&
+        r >= 0 &&
+        i < this.items.length &&
+        lx - c * step <= this.cellSize &&
+        ly - r * step <= this.cellSize
+      )
+        this._hover = i;
     }
 
     if (this.draggable) {
@@ -162,17 +160,18 @@ globalThis.UISlots = class UISlots {
 
     const sz = this.cellSize;
     for (let i = 0; i < this.items.length; i++) {
-      const p = this._slotXY(pos, i);
-      const x1 = p.x + sz;
-      const y1 = p.y + sz;
+      const x0 = this._slotX(pos, i);
+      const y0 = this._slotY(pos, i);
+      const x1 = x0 + sz;
+      const y1 = y0 + sz;
 
       const bg =
         i === this._hover || (this._browsing && i === this._cursor)
           ? this.slotHover
           : this.slotColor;
       draw_roundrect_color_ext(
-        p.x,
-        p.y,
+        x0,
+        y0,
         x1,
         y1,
         this.rad,
@@ -190,8 +189,8 @@ globalThis.UISlots = class UISlots {
         const fit = UIDraw.contain(
           sprite_get_width(it.sprite),
           sprite_get_height(it.sprite),
-          p.x + this.pad,
-          p.y + this.pad,
+          x0 + this.pad,
+          y0 + this.pad,
           box,
           box,
         );
@@ -208,15 +207,15 @@ globalThis.UISlots = class UISlots {
       }
 
       if (i === this.selected) {
-        UIDraw.outline(p.x, p.y, x1, y1, this.rad, this.selectColor, 2);
+        UIDraw.outline(x0, y0, x1, y1, this.rad, this.selectColor, 2);
       } else {
         const bc =
           it != null && it.borderColor != null
             ? it.borderColor
             : this.borderColor;
         draw_roundrect_color_ext(
-          p.x,
-          p.y,
+          x0,
+          y0,
           x1,
           y1,
           this.rad,
@@ -237,8 +236,7 @@ globalThis.UISlots = class UISlots {
     for (let i = 0; i < this.items.length; i++) {
       const it = this.items[i];
       if (it != null && it.count != null && it.count > 1) {
-        const p = this._slotXY(pos, i);
-        draw_text(p.x + sz - 4, p.y + sz - 3, string(it.count));
+        draw_text(this._slotX(pos, i) + sz - 4, this._slotY(pos, i) + sz - 3, string(it.count));
       }
     }
     draw_set_halign(fa_left);
@@ -246,9 +244,8 @@ globalThis.UISlots = class UISlots {
     for (let i = 0; i < this.items.length; i++) {
       const it = this.items[i];
       if (it != null && it.badge != null && it.badge !== "") {
-        const p = this._slotXY(pos, i);
         draw_set_color(it.badgeColor ?? this.countColor);
-        draw_text(p.x + 4, p.y + 2, it.badge);
+        draw_text(this._slotX(pos, i) + 4, this._slotY(pos, i) + 2, it.badge);
       }
     }
 

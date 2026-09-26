@@ -41,56 +41,28 @@ globalThis.UICheckbox = class UICheckbox {
     draw_set_alpha(1);
     const bg = merge_color(this.colorOff, this.colorOn, t);
 
-    if (this.style === "switch") {
-      const h = Math.max(16, pos.height * 0.58);
-      const w = h * 1.85;
-      const x2 = right;
-      const x1 = x2 - w;
-      const ty1 = cy - h * 0.5;
-      const ty2 = cy + h * 0.5;
-      const rad = h * 0.5;
-      draw_roundrect_color_ext(x1, ty1, x2, ty2, rad, rad, bg, bg, false);
-      draw_roundrect_color_ext(
-        x1,
-        ty1,
-        x2,
-        ty2,
-        rad,
-        rad,
-        this.colorBorder,
-        this.colorBorder,
-        true,
-      );
-      const margin = Math.max(2, h * 0.14);
-      const kr = rad - margin;
+    // a switch is a capsule track, a check a rounded square; both sit at the right edge
+    const sw = this.style === "switch";
+    const h = sw ? Math.max(16, pos.height * 0.58) : Math.max(14, pos.height * 0.7);
+    const w = sw ? h * 1.85 : h;
+    const rad = sw ? h * 0.5 : Math.max(2, h * 0.18);
+    const x1 = right - w;
+    const y1 = cy - h * 0.5;
+    const y2 = cy + h * 0.5;
+    const bc = this.colorBorder;
+    draw_roundrect_color_ext(x1, y1, right, y2, rad, rad, bg, bg, false);
+    draw_roundrect_color_ext(x1, y1, right, y2, rad, rad, bc, bc, true);
+
+    if (sw) {
+      const kr = rad - Math.max(2, h * 0.14);
       const kx = x1 + rad + t * (w - 2 * rad); // between the cap centers, so roundness matches
       const knobCol = element.state.hover
         ? merge_color(this.colorKnob, c_white, 0.35)
         : this.colorKnob;
       draw_circle_color(kx, cy, kr, knobCol, knobCol, false);
-    } else {
-      const s = Math.max(14, pos.height * 0.7);
-      const bx2 = right;
-      const bx1 = bx2 - s;
-      const by1 = cy - s * 0.5;
-      const by2 = cy + s * 0.5;
-      const rad = Math.max(2, s * 0.18);
-      draw_roundrect_color_ext(bx1, by1, bx2, by2, rad, rad, bg, bg, false);
-      draw_roundrect_color_ext(
-        bx1,
-        by1,
-        bx2,
-        by2,
-        rad,
-        rad,
-        this.colorBorder,
-        this.colorBorder,
-        true,
-      );
-      if (t > 0.01) {
-        const cx = (bx1 + bx2) * 0.5;
-        UIDraw.check(cx, cy, s * t, this.colorKnob, Math.max(2, s * 0.12));
-      }
+    } else if (t > 0.01) {
+      // the stroke keeps the full box's width while the tick grows
+      UIDraw.check(x1 + w * 0.5, cy, h * t, this.colorKnob, Math.max(2, h * 0.12));
     }
 
     draw_set_alpha(a0);

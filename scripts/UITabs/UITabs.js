@@ -1,5 +1,4 @@
 /**
- * @implements {UIComponent}
  * Tab strip — N segments drawn immediate-mode. Horizontal (default): equal-width segments
  * across the strip, the active one filled + underlined. Vertical: fixed `segment`-px segments
  * stacked from the top, the active one filled + an accent bar on its left edge. Selecting swaps
@@ -7,6 +6,7 @@
  * `tabs[i].label` is a string or () => string; `tabs[i].short` (optional, same forms) is drawn
  * INSTEAD of the label, which then shows as the hover tooltip after `tipDelay`.
  * BUG: hover/active are read live each frame, never cached as a bool (docs/GMRT.md #15549).
+ * @implements {UIComponent}
  */
 globalThis.UITabs = class UITabs {
   constructor(tabs = {}) {
@@ -133,53 +133,16 @@ globalThis.UITabs = class UITabs {
       const active = i === this.index;
 
       if (active) {
-        if (this.vertical) {
-          draw_roundrect_color_ext(
-            r.x0,
-            r.y0 + inset,
-            r.x1 - inset,
-            r.y1 - inset,
-            6,
-            6,
-            this.activeBg,
-            this.activeBg,
-            false,
-          );
-          draw_rectangle_color(
-            r.x0,
-            r.y0 + inset,
-            r.x0 + barH,
-            r.y1 - inset,
-            this.accent,
-            this.accent,
-            this.accent,
-            this.accent,
-            false,
-          );
-        } else {
-          draw_roundrect_color_ext(
-            r.x0 + inset,
-            r.y0,
-            r.x1 - inset,
-            r.y1,
-            6,
-            6,
-            this.activeBg,
-            this.activeBg,
-            false,
-          );
-          draw_rectangle_color(
-            r.x0 + inset,
-            r.y1 - barH,
-            r.x1 - inset,
-            r.y1,
-            this.accent,
-            this.accent,
-            this.accent,
-            this.accent,
-            false,
-          );
-        }
+        const v = this.vertical;
+        const fx0 = v ? r.x0 : r.x0 + inset;
+        const fy0 = v ? r.y0 + inset : r.y0;
+        const fx1 = r.x1 - inset;
+        const fy1 = v ? r.y1 - inset : r.y1;
+        const bg = this.activeBg;
+        const a = this.accent;
+        draw_roundrect_color_ext(fx0, fy0, fx1, fy1, 6, 6, bg, bg, false);
+        if (v) draw_rectangle_color(fx0, fy0, fx0 + barH, fy1, a, a, a, a, false);
+        else draw_rectangle_color(fx0, fy1 - barH, fx1, fy1, a, a, a, a, false);
       }
 
       draw_set_color(

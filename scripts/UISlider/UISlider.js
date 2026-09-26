@@ -124,7 +124,7 @@ globalThis.UISlider = class UISlider {
     const ty1 = m.cy - m.trackH * 0.5;
     const ty2 = m.cy + m.trackH * 0.5;
     const rad = m.trackH * 0.5;
-    const a0 = draw_get_alpha();
+    const st = UIDraw.save();
     draw_set_alpha(1);
 
     // the border strokes under the fill, which covers its left span
@@ -166,30 +166,15 @@ globalThis.UISlider = class UISlider {
     );
 
     if (this.showValue) {
-      const ph = draw_get_halign();
-      const pv = draw_get_valign();
-      const pf = draw_get_font();
       const vf = UIDraw.font(this.valueFont);
       if (vf !== -1) draw_set_font(vf);
       draw_set_halign(fa_right);
       draw_set_valign(fa_middle);
-      const c = this.valueColor;
-      draw_text_color(
-        pos.left + pos.width,
-        m.cy,
-        this._valueText(),
-        c,
-        c,
-        c,
-        c,
-        1,
-      );
-      draw_set_halign(ph);
-      draw_set_valign(pv);
-      if (vf !== -1) draw_set_font(pf);
+      draw_set_color(this.valueColor);
+      draw_text(pos.left + pos.width, m.cy, this._valueText());
     }
 
-    draw_set_alpha(a0);
+    UIDraw.restore(st);
   }
 
   /** A horizontal move nudges the value instead of moving focus. */

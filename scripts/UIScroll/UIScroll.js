@@ -1,8 +1,8 @@
 /**
- * @implements {UIComponent}
  * Vertical scroll controller for a clip viewport: scrolls by draw-time offset, never by layout
  * mutation. The scrollbar sits in a right gutter outside the clipped content, collapsed when
  * nothing overflows.
+ * @implements {UIComponent}
  */
 globalThis.UIScroll = class UIScroll {
   /** scroll: { content: UIElement, barW, barPad, minThumb, wheelStep, trackColor, trackAlpha, thumbColor, thumbHover } */

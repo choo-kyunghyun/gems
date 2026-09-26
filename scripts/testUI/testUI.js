@@ -57,6 +57,35 @@ Test.register(Test.CHECK, [
     },
   },
   {
+    // the hovered slot is the cell under the pointer, edges included; a gap or a spot past the
+    // last item hovers none
+    id: "ui.slotHover",
+    setup(ctx) {
+      Test.ui(ctx);
+      ctx.slots = new UISlots({ items: [null, null, null], cols: 2, cellSize: 10, gap: 4 });
+      ctx.el = new UIElement({ width: 24, height: 24 }).addComponent(ctx.slots);
+      UI.insert(new UIElement().insertChild(ctx.el));
+      Test.uiFrame(ctx, []);
+    },
+    verify(ctx, t) {
+      const pos = ctx.el.getLayoutPosition();
+      const at = (x, y) => {
+        Input.pointer.x = pos.left + x;
+        Input.pointer.y = pos.top + y;
+        Test.uiFrame(ctx, []);
+        return ctx.slots.hovered();
+      };
+      t.eq(at(0, 0), 0, "the first cell's corner");
+      t.eq(at(24, 10), 1, "the second cell's far edge");
+      t.eq(at(5, 19), 2, "a cell on the second row");
+      t.eq(at(12, 5), -1, "the gap between cells");
+      t.eq(at(19, 19), -1, "past the last item");
+    },
+    teardown(ctx) {
+      Test.uiRestore(ctx);
+    },
+  },
+  {
     // a built-in setter handed over as a value styles the node, arguments intact, and reflows it
     id: "ui.style",
     setup(ctx) {
@@ -700,6 +729,48 @@ Test.register(Test.CHECK, [
       t.eq(ctx.field.value, "", "the selection is gone");
       t.eq(ctx.changes.length, 1, "the edit is reported once");
       t.eq(ctx.changes[0], "", "with the value it left");
+    },
+    teardown(ctx) {
+      Test.uiRestore(ctx);
+    },
+  },
+  {
+    // the erase keys take a selection when there is one, else a character, or a word with ctrl
+    id: "ui.inputEdit",
+    setup(ctx) {
+      Test.ui(ctx);
+      ctx.changes = 0;
+      ctx.field = new UIInput({
+        value: "ab cd ef",
+        onChange: () => {
+          ctx.changes += 1;
+        },
+      });
+      ctx.fieldEl = new UIElement({ width: 200, height: 40 }).addComponent(ctx.field);
+      const root = new UIElement();
+      root.insertChild(ctx.fieldEl);
+      UI.insert(root);
+      UINav.focused = ctx.fieldEl;
+      UINav.engaged = true;
+    },
+    verify(ctx, t) {
+      Test.uiFrame(ctx, [vk_enter]);
+      Test.uiFrame(ctx, [vk_backspace]);
+      t.eq(ctx.field.value, "ab cd e", "backspace erases behind the caret");
+      Test.uiFrame(ctx, [vk_left]);
+      Test.uiFrame(ctx, [vk_delete]);
+      t.eq(ctx.field.value, "ab cd ", "delete erases ahead of it");
+      Test.uiFrame(ctx, [vk_control, vk_backspace]);
+      t.eq(ctx.field.value, "ab ", "ctrl erases a word and the space after it");
+      Test.uiFrame(ctx, [vk_home]);
+      Test.uiFrame(ctx, [vk_shift, vk_right]);
+      Test.uiFrame(ctx, [vk_delete]);
+      t.eq(ctx.field.value, "b ", "a selection is erased whole");
+      Test.uiFrame(ctx, [vk_control, vk_delete]);
+      t.eq(ctx.field.value, " ", "ctrl-delete erases the word ahead");
+      Test.uiFrame(ctx, [vk_backspace]);
+      t.eq(ctx.field.value, " ", "nothing behind the caret, nothing erased");
+      t.eq(ctx.changes, 5, "each erase is reported once");
     },
     teardown(ctx) {
       Test.uiRestore(ctx);
