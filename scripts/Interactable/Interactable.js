@@ -26,7 +26,7 @@ globalThis.Interactable = {
       positionType: "absolute",
       left: 0,
       right: 0,
-      bottom: 84,
+      bottom: 140,
       alignItems: "center",
     });
     const pill = new UIElement({

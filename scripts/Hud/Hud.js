@@ -8,6 +8,7 @@
 const HOTBAR_HUD_SECS = 3; // wall-clock seconds the hotbar stays up after a hotbar keypress
 const HOTBAR_SLIDE = 150; // GUI px the hotbar slides down off the bottom edge when hidden
 const HOTBAR_SLIDE_SPD = 16; // higher = snappier
+const HOTBAR_CELL = 56; // GUI px per hotbar slot
 
 globalThis.Hud = {
   /** Once per scene. */
@@ -15,6 +16,7 @@ globalThis.Hud = {
     const hud = {
       card: null,
       bar: null,
+      cells: null, // the bar's slot grid
       dialogue: null,
       sleep: null,
       timer: HOTBAR_HUD_SECS, // wall clock; the bar shows while > 0
@@ -23,7 +25,7 @@ globalThis.Hud = {
       talk: null, // its Talk row; null hides the dialogue card
     };
     hud.card = Hud._hud(scene);
-    hud.bar = Hud._hotbar(scene);
+    hud.bar = Hud._hotbar(scene, hud);
     hud.dialogue = Hud._dialogue(scene, hud);
     hud.sleep = Hud._sleepOverlay(scene);
     return hud;
@@ -43,6 +45,8 @@ globalThis.Hud = {
     hud.slide = approach(hud.slide, show ? 1 : 0, HOTBAR_SLIDE_SPD);
     hud.bar.dragY = (1 - hud.slide) * HOTBAR_SLIDE; // an offset, leaving the layout alone
     hud.bar.enabled = !open && hud.slide > 0.001;
+    if (hud.bar.enabled && scene.playerId !== undefined)
+      hud.cells.items = InvTable.beltCells(scene.level.entities, scene.playerId);
     // the frame's pick, never a proximity query, so the card only describes what E activates
     const entities = scene.level.entities;
     const target = scene.interact.target;
@@ -58,61 +62,25 @@ globalThis.Hud = {
     hud.timer = HOTBAR_HUD_SECS;
   },
 
-  /** Display-only: one card per hotbar slot, read live off the player. */
-  _hotbar(scene) {
+  /** Display-only: the belt's cells, which update() refreshes while the bar shows. */
+  _hotbar(scene, hud) {
     const wrap = new UIElement({
       positionType: "absolute",
       left: 0,
       right: 0,
-      bottom: 64, // clear of the dialogue card and above the key-hint footer
+      bottom: 76, // above the bottom-edge toasts
       flexDirection: "row",
       justifyContent: "center",
-      gap: FacetTheme.gapSm,
     });
-    for (let i = 0; i < HOTBAR_SIZE; i++)
-      wrap.insertChild(Hud._hotbarSlot(scene, i));
+    const grid = facetSlots(new Array(HOTBAR_SIZE).fill(null), {
+      cols: HOTBAR_SIZE,
+      cellSize: HOTBAR_CELL,
+      passive: true, // the bar never eats a shot aimed past it
+    });
+    hud.cells = grid.getComponent(UISlots);
+    wrap.insertChild(grid);
     scene.ui.insertChild(wrap);
     return wrap;
-  },
-
-  _hotbarSlot(scene, i) {
-    const card = facetCard({ width: 140, padding: FacetTheme.padSm });
-    const row = new UIElement({
-      width: "100%",
-      flexDirection: "row",
-      alignItems: "center",
-    });
-    // an empty slot's "" takes no width
-    row.insertChild(
-      facetRichText(
-        () => {
-          if (scene.playerId === undefined) return "";
-          const hb = scene.level.entities.require(scene.playerId, Hotbar);
-          const itemId = hb.slots[i];
-          return itemId ? WorldOverlay.iconTag(itemId) : "";
-        },
-        { font: "description" },
-      ),
-    );
-    row.insertChild(
-      facetLabel(
-        () => {
-          const key = i + 1;
-          if (scene.playerId === undefined) return "[" + key + "]";
-          const hb = scene.level.entities.require(scene.playerId, Hotbar);
-          const itemId = hb.slots[i];
-          if (itemId === "" || itemId === undefined) return "[" + key + "]  —";
-          const it = Item.get(itemId);
-          const name = it !== undefined ? I18n.text(it.name) : itemId;
-          const inv = scene.level.entities.require(scene.playerId, Inventory);
-          const n = Bag.count(inv, itemId);
-          return "[" + key + "]  " + name + " (" + n + ")";
-        },
-        { color: FacetTheme.text, font: "description" },
-      ),
-    );
-    card.insertChild(row);
-    return card;
   },
 
   /** A need as a reserve bar — full is satiated — tinted like its critical debuff. */
