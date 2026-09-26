@@ -8,16 +8,4 @@ globalThis.TileType = class TileType {
     this.name = def.name ?? "";
     this.pathCost = def.pathCost === null ? Infinity : (def.pathCost ?? 1);
   }
-
-  static import(data) {
-    return new TileType(data);
-  }
-
-  export() {
-    return {
-      id: this.id,
-      name: this.name,
-      pathCost: this.pathCost,
-    };
-  }
 };

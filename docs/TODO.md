@@ -27,16 +27,6 @@
 - More `testStress` scenarios over the same shape as `stress.pathfind`: a raycast storm (hitscan volleys over the static buckets), a spawn/despawn churn (the free list, the flush cost), a tile-edit storm (`SolidTiles.sync` + `NavGrid.sync` per frame)
 - A `DEV_MODE` section timer around `sceneColony.update`'s phases, logging the colony frame profile (sim, renderer, GUI) as a `[BENCH]` line in place of the hand probe
 
-## Core Structure
-
-The Core folder tree reads as its dependency layers — a move, never a behaviour change.
-
-- Unwired: `CameraPan` (no installer), `CameraFly` (tests only), `Lifetime` (no Game carrier) — wire, drop, or a clause each
-- Store mechanisms: whether `derive` folds into `of` behind an option — both have few call sites against the invariants they carry
-- Level cells as data apart from logic, as the entity store is
-    - Tile types as plain rows on the layer instead of bound `TileType` instances, so the grid's codec is Core's own and a save rebuilds no type table (bumps `SaveGame.VERSION`)
-    - `LevelGrid`/`TileLayer` as a plain record under `Level.GRID` with stateless namespaces over it — a component is data
-
 ## Assets
 
 - More hair sprites for `spineHuman`
