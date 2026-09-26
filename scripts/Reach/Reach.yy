@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Reach",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Reach",
+  "parent":{
+    "name":"Progress",
+    "path":"folders/Game/Progress.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Reach.js",
+}

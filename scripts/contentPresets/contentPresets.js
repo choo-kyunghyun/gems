@@ -3,7 +3,7 @@
  *
  * A def is component data + design scale + two hooks: `adapt` turns the descriptor's own fields
  * into per-spawn overrides, `post` wires what data can't express once the id exists. Descriptors
- * place on grid coords gx/gy; `reach` and `entry` are markers, not entities.
+ * place on grid coords gx/gy; `entry` is a marker, not an entity.
  */
 globalThis.contentPresets = {
   registered: false,
@@ -370,6 +370,24 @@ globalThis.contentPresets = {
           if (s.bonusCapacity !== undefined) fol.bonusCapacity = s.bonusCapacity;
           if (s.bonusWeight !== undefined) fol.bonusWeight = s.bonusWeight;
           if (Object.keys(fol).length > 0) over.Follower = fol;
+        },
+      },
+      {
+        // a walk-through region; `half` is its half-extent in world px
+        id: "reach",
+        components: {
+          BBox: { x: -44, y: -44, width: 88, height: 88 },
+          Reach: { target: "" },
+        },
+        adapt(s, over) {
+          if (s.target !== undefined) over.Reach = { target: s.target };
+          if (s.half !== undefined)
+            over.BBox = {
+              x: -s.half,
+              y: -s.half,
+              width: s.half * 2,
+              height: s.half * 2,
+            };
         },
       },
     ]);

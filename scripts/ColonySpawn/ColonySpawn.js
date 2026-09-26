@@ -33,13 +33,6 @@ globalThis.ColonySpawn = {
     };
   },
 
-  /** World rect for a "reach" spawn — a region, not an entity. */
-  reachZone(grid, s) {
-    const w = grid.gridToWorld(s.gx, s.gy);
-    const half = s.half ?? 44;
-    return { x1: w.x - half, y1: w.y - half, x2: w.x + half, y2: w.y + half };
-  },
-
   /** Returns the entity id, or -1 for a marker preset, which is no entity. Off-grid cells work. */
   spawnEntity(entities, grid, s) {
     if (!EntityPreset.has(s.preset)) return -1;

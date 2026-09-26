@@ -16,8 +16,6 @@
  * @property {Object<string,{x:number,y:number}>} entries  the named arrival points (world)
  * @property {Object<string,number[]>} colliders  per solid layer key, its greedy-meshed collider ids
  * @property {Array|undefined} terrainMats  the terrain material table as rows; undefined with one fill type
- * @property {AABBRect|undefined} reachZone  the reach quest's region; undefined on a map without the marker
- * @property {boolean} reachDone
  *
  * The runtime also holds, per layer key, `<key>Layer` (the TileLayer), `<key>Type` (its default
  * TileType) and, on a materials-bearing layer, `<key>Types` (material key → TileType).
@@ -64,8 +62,6 @@ globalThis.ColonyMap = {
       entries: undefined,
       colliders: {},
       terrainMats: undefined,
-      reachZone: undefined,
-      reachDone: false,
     };
   },
 
@@ -225,16 +221,5 @@ globalThis.ColonyMap = {
     const grid = level.grid;
     for (let i = 0; i < spawns.length; i++)
       ColonySpawn.spawnEntity(entities, grid, spawns[i]);
-    const rec = ColonyMap.of(level);
-    rec.reachZone = ColonyMap._reach(grid, spawns);
-    rec.reachDone = rec.reachZone === undefined; // nothing to reach on this map
-  },
-
-  /** A region, not an entity, so it is resolved from the "reach" descriptor rather than spawned. */
-  _reach(grid, spawns) {
-    for (let i = 0; i < spawns.length; i++)
-      if (spawns[i].preset === "reach")
-        return ColonySpawn.reachZone(grid, spawns[i]);
-    return undefined;
   },
 };

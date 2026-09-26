@@ -1,10 +1,11 @@
 /**
  * World-space gameplay overlay for the colony scene: drops, projectiles, fading hitscan tracers
- * and the reach-quest zone. Drawn after the world, whose ground passes paint an opaque fill that
+ * and the Reach regions. Drawn after the world, whose ground passes paint an opaque fill that
  * would hide it.
  */
 globalThis.WorldOverlay = {
   _tracers: [], // aged on real time
+  _zone: AABB.rect(), // scratch
 
   pushTracer(x0, y0, x1, y1) {
     WorldOverlay._tracers.push({ x0, y0, x1, y1, age: 0, life: 0.07 });
@@ -76,14 +77,14 @@ globalThis.WorldOverlay = {
       gpu_set_ztestenable(true);
     }
 
-    const map = ColonyMap.of(scene.level);
-    if (map.reachZone !== undefined && !map.reachDone) {
-      const z = map.reachZone;
-      draw_set_alpha(0.35);
-      draw_set_color(make_colour_rgb(120, 200, 255));
+    draw_set_alpha(0.35);
+    draw_set_color(make_colour_rgb(120, 200, 255));
+    const z = WorldOverlay._zone;
+    entities.forEach([Reach, Position, BBox], (_id, _r, pos, box) => {
+      AABB.at(pos, box, z);
       draw_rectangle(z.x1, z.y1, z.x2, z.y2, false);
-      draw_set_alpha(1);
-    }
+    });
+    draw_set_alpha(1);
     draw_set_color(c_white);
   },
 };

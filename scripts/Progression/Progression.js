@@ -56,18 +56,21 @@ globalThis.Progression = {
     Log.info(`quest complete: ${qid} — questsCompleted=${Tracker.count("questsCompleted")}`);
   },
 
-  /** Per frame: the reach objective, reported the first time the player enters the map's zone. */
+  _zone: AABB.rect(), // scratch
+
+  /** Per frame: a Reach region the player enters reports its target once and is removed. */
   reach(level) {
-    const map = ColonyMap.of(level);
-    if (map.reachDone) return;
-    if (map.reachZone === undefined) return;
     const entities = level.entities;
     const pid = ColonyPlayer.id(entities);
     if (pid === -1) return;
-    if (!AABB.overlap(AABB.of(entities, pid), map.reachZone)) return;
-    map.reachDone = true;
-    Progression.report(entities, "reach", "ruins", 1);
-    Log.info("reached the ruins");
+    const p = AABB.of(entities, pid);
+    const zone = Progression._zone;
+    entities.forEach([Reach, Position, BBox], (id, r, pos, box) => {
+      if (!AABB.overlap(p, AABB.at(pos, box, zone))) return;
+      entities.remove(id);
+      Progression.report(entities, "reach", r.target, 1);
+      Log.info(`reached ${r.target}`);
+    });
   },
 
   /** Reward items count toward the collect rules like any other pickup. */

@@ -69,7 +69,7 @@ globalThis.contentPrefabs = {
             color: "#6a5a86",
             settlement: "hub",
           },
-          { preset: "reach", gx: 17, gy: 2, half: 88 },
+          { preset: "reach", gx: 17, gy: 2, half: 88, target: "ruins" },
           { preset: "radio", gx: 2, gy: 5 },
           { preset: "prop", gx: 2, gy: 3, kind: "travel", label: "Beacon" },
           // walls left and right, so the leaf lies flat
