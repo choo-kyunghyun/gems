@@ -1,8 +1,9 @@
 /**
  * The dialogue card: the scene's `dialogue` record typed out in a card docked at the bottom of
  * `scene.ui`. open() is its one door: the card shows and takes the focus until the record closes,
- * then hands the focus back. A focused card takes a confirm or a click as an advance and keeps the
- * moves, so the focus stays on it; a cancel is left to the app. A page is wrapped whole before it
+ * then hands the focus back. A focused card takes a confirm or a click as an advance, as advance()
+ * does for an input of the scene's own, and keeps the moves, so the focus stays on it; a cancel is
+ * left to the app. A page is wrapped whole before it
  * reveals, so the typing never reflows a line.
  */
 const DIALOGUE_LINES = 3; // fixed box height in rows; pages are written to fit
@@ -37,7 +38,7 @@ globalThis.DialogueUI = {
       alpha: 1,
     });
     const chevron = facetColor(FacetTheme.accentHi);
-    const trigger = new UITrigger({ onClick: () => DialogueUI._advance(view) });
+    const trigger = new UITrigger({ onClick: () => DialogueUI.advance(view) });
     card.addComponent({
       focusable: true,
       onUpdate: (el, block) => DialogueUI._update(view, el, block, trigger),
@@ -96,14 +97,14 @@ globalThis.DialogueUI = {
     return trigger.onUpdate(el, block);
   },
 
-  _advance(view) {
+  advance(view) {
     Dialogue.advance(view.d);
     if (!Dialogue.isOpen(view.d)) DialogueUI._hide(view);
   },
 
   _nav(view, ev) {
     if (ev.kind === "cancel") return false;
-    if (ev.kind === "confirm") DialogueUI._advance(view);
+    if (ev.kind === "confirm") DialogueUI.advance(view);
     return true;
   },
 

@@ -3,7 +3,7 @@
  *
  * Window actions open a page over the target, so leaving range or pressing again closes it;
  * instant actions act once per press. The survival stations act on the player, not the station.
- * An NPC def carries an empty prompt, since its dialogue prompts instead; a prompt may be a
+ * An NPC speaks its line in the scene's dialogue before its action runs. A prompt may be a
  * function of the run ctx when the action depends on the target's state.
  */
 globalThis.contentInteractions = {
@@ -24,6 +24,14 @@ globalThis.contentInteractions = {
       I18n.text("FLORA_HARVESTED", r.qty, I18n.text(Item.get(r.itemId).name)),
       { type: "success" },
     );
+  },
+
+  /** The NPC's line in the scene's dialogue, then `then` once it is read. */
+  _talk(ctx, then) {
+    const npc = ctx.entities.get(ctx.id, NPC);
+    if (npc === undefined) return;
+    const page = { speaker: I18n.text(npc.name), text: I18n.text(Talk.line(ctx.entities, ctx.id)) };
+    DialogueUI.open(ctx.scene.dialogueView, [page], { onComplete: then });
   },
 
   register() {
@@ -65,28 +73,30 @@ globalThis.contentInteractions = {
         },
       },
       {
-        // a merchant NPC: the shop over its own stock
+        // a merchant NPC: its greeting, then the shop over its own stock
         id: "trade",
-        prompt: "",
+        prompt: "TRADE_PROMPT",
         run(ctx) {
-          ctx.scene.window.open("trade", { target: ctx.id });
+          contentInteractions._talk(ctx, () => ctx.scene.window.open("trade", { target: ctx.id }));
         },
       },
 
       {
-        // a quest NPC: accept its quest, or turn it in once ready; inert in between
+        // a quest NPC: its line, then its quest accepted, or turned in once ready; inert in between
         id: "talk",
-        prompt: "",
+        prompt: "NPC_TALK_PROMPT",
         run(ctx) {
-          const npc = ctx.entities.get(ctx.id, NPC);
-          if (npc === undefined) return;
-          const qid = npc.questId;
-          if (Tracker.isReady(qid)) {
-            Progression.complete(ctx.entities, qid);
-          } else if (!Tracker.isActive(qid) && !Tracker.isDone(qid)) {
-            Tracker.accept(qid);
-            Log.info(`accepted ${qid}`);
-          }
+          contentInteractions._talk(ctx, () => {
+            const npc = ctx.entities.get(ctx.id, NPC);
+            if (npc === undefined) return;
+            const qid = npc.questId;
+            if (Tracker.isReady(qid)) {
+              Progression.complete(ctx.entities, qid);
+            } else if (!Tracker.isActive(qid) && !Tracker.isDone(qid)) {
+              Tracker.accept(qid);
+              Log.info(`accepted ${qid}`);
+            }
+          });
         },
       },
       {

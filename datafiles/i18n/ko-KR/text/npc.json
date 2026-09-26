@@ -4,6 +4,7 @@
   "NPC_ELDER_WIP": "아직 약탈자가 남아 있네. 부탁하네.",
   "NPC_ELDER_DONE": "고맙네, 생존자여! 이건 작은 보답일세.",
   "NPC_ELDER_THANKS": "정착지가 다시 평온을 찾았네. 정말 고맙네.",
+  "NPC_TALK_PROMPT": "[E] 대화",
 
   "NPC_TRADER_NAME": "상인",
   "NPC_QUARTERMASTER_NAME": "보급관",

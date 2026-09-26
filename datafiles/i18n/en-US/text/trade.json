@@ -22,5 +22,5 @@
   "TRADE_FAVORITED": "Favorited (won't sell)",
 
   "TRADE_GREET": "Buy or sell?",
-  "TRADE_ACTION": "Trade"
+  "TRADE_PROMPT": "[E] Trade"
 }

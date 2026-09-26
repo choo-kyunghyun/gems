@@ -5,8 +5,8 @@
 globalThis.ColonyKeymap = {
   /**
    * Idempotent. Context tags split actions sharing a key — fire and the build brush share the
-   * mouse buttons — and mute play actions while building or in a window, so no action needs a
-   * per-frame mode check.
+   * mouse buttons — and mute play actions while building, in a window or in a dialogue, so no
+   * action needs a per-frame mode check. Interact alone stays live in a dialogue, which it pages.
    */
   bind() {
     const ANYWHERE = ["play", "build", "window"];
@@ -20,7 +20,7 @@ globalThis.ColonyKeymap = {
       buildPlace: [INPUT_SOURCE.MOUSE, mb_left, ["build"]],
       buildRemove: [INPUT_SOURCE.MOUSE, mb_right, ["build"]],
       inventory: [INPUT_SOURCE.KEYBOARD, ord("I"), ANYWHERE],
-      interact: [INPUT_SOURCE.KEYBOARD, ord("E"), ["play", "window"]],
+      interact: [INPUT_SOURCE.KEYBOARD, ord("E"), ["play", "window", "dialogue"]],
       build: [INPUT_SOURCE.KEYBOARD, ord("B"), ["play", "build"]],
       reload: [INPUT_SOURCE.KEYBOARD, ord("R"), ["play"]],
       grenade: [INPUT_SOURCE.KEYBOARD, ord("G"), ["play"]],

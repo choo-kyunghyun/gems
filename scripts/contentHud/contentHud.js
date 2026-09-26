@@ -17,6 +17,7 @@ globalThis.contentHud = {
     { actions: ["inventory"], label: "HINT_BAG", contexts: ["play", "build"] },
     { text: "1-5", label: "HINT_HOTBAR", contexts: ["play"] },
     { actions: ["interact"], label: "HINT_TALK", contexts: ["play"] },
+    { actions: ["interact"], label: "HINT_NEXT", contexts: ["dialogue"] },
     { actions: ["build"], label: "HINT_BUILD", contexts: ["play"] },
     { actions: ["build"], label: "HINT_EXIT_BUILD", contexts: ["build"] },
     { actions: ["follow"], label: "HINT_COMPANION", contexts: ["play", "build"] },

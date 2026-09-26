@@ -6,7 +6,5 @@
   "QUEST_REACH_NAME": "Explore Ruins",
   "QUEST_REACH_OBJ": "Reach ruins {0}/{1}",
 
-  "QUEST_ACCEPT": "Accept",
-  "QUEST_TURNIN": "Turn In",
   "QUEST_NONE": "No active quests"
 }

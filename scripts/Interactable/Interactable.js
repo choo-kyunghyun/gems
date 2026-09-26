@@ -57,7 +57,7 @@ globalThis.Interactable = {
     return pick;
   },
 
-  /** "" for no pick, or a def that prompts through its own UI. */
+  /** "" for no pick, or a def that shows no prompt. */
   _promptText(scene, pick) {
     const def = InteractAction.get(pick.kind);
     if (def === undefined) return "";

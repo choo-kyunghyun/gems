@@ -4,6 +4,7 @@
   "NPC_ELDER_WIP": "There are still raiders out there. I'm counting on you.",
   "NPC_ELDER_DONE": "Thank you, survivor! Here is a small reward.",
   "NPC_ELDER_THANKS": "The settlement can rest easy again. Truly grateful.",
+  "NPC_TALK_PROMPT": "[E] Talk",
 
   "NPC_TRADER_NAME": "Trader",
   "NPC_QUARTERMASTER_NAME": "Quartermaster",

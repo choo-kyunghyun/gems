@@ -49,6 +49,7 @@ class _SceneColonyClass {
     Radio.ambient = () => ColonyMap.bed(this.level);
 
     this.sleep = Sleep.make(); // resting in a bed, time fast-forwarded
+    this.dialogue = Dialogue.make(); // what an NPC is saying
 
     // marks a gameplay scene, which suspends menu navigation while playing
     this.gameplay = true;
@@ -152,7 +153,7 @@ class _SceneColonyClass {
     this.window.add("workbench", CraftingUI.build(this));
     this.window.add("travel", WorldMapUI.build(this));
     this.window.add("trade", TradeUI.build(this));
-    // after the window, so both stay over it
+    // after the window, so these stay over it
     const hints = new UIElement({
       positionType: "absolute",
       left: pad,
@@ -163,6 +164,7 @@ class _SceneColonyClass {
     hints.insertChild(facetKeyHints(contentHud.HINTS, { color: "#888888" }));
     this.ui.insertChild(hints);
     this.ui.insertChild(this.hud.sleep);
+    this.dialogueView = DialogueUI.build(this);
   }
 
   /**
@@ -171,6 +173,7 @@ class _SceneColonyClass {
    */
   retheme() {
     Sleep.wake(this.sleep);
+    Dialogue.clear(this.dialogue);
     this.window.close();
     if (this.ui) {
       UI.remove(this.ui);
@@ -366,22 +369,24 @@ class _SceneColonyClass {
     return nm !== undefined ? nm.name : I18n.text("FOLLOWER_DEFAULT");
   }
 
-  /** A window outranks build mode, which it pauses. */
+  /** A dialogue outranks a window, which outranks build mode, which it pauses. */
   _resolveContext() {
     let ctx = "play";
-    if (this.window.isOpen()) ctx = "window";
+    if (Dialogue.isOpen(this.dialogue)) ctx = "dialogue";
+    else if (this.window.isOpen()) ctx = "window";
     else if (this.build.armed) ctx = "build";
     InputContext.set(ctx);
   }
 
   /**
-   * One E press closes a page standing over a target, else activates the frame's pick, so E only
-   * acts on what is highlighted. The bag stands over nothing, so E under it opens the pick's page
-   * in its place. Interact is muted in build mode.
+   * One E press pages an open dialogue, else closes a page standing over a target, else activates
+   * the frame's pick, so E only acts on what is highlighted. The bag stands over nothing, so E
+   * under it opens the pick's page in its place. Interact is muted in build mode.
    */
   _dispatchInteract() {
     if (!Input.get("interact").pressed()) return;
-    if (this.window.target !== -1) this.window.close();
+    if (Dialogue.isOpen(this.dialogue)) DialogueUI.advance(this.dialogueView);
+    else if (this.window.target !== -1) this.window.close();
     else Interactable.activate(this, this.interact);
   }
 
