@@ -208,7 +208,7 @@ globalThis.WorldMapUI = {
     );
     col.insertChild(
       facetKeyValueRow(I18n.textRef("WORLDMAP_SIZE"), () =>
-        WorldMapUI._sizeText(page),
+        WorldMapUI._sizeText(scene, page),
       ),
     );
     col.insertChild(
@@ -248,10 +248,10 @@ globalThis.WorldMapUI = {
   },
 
   /** A resident site's grid, else its def size. */
-  _sizeText(page) {
+  _sizeText(scene, page) {
     const s = contentSites.get(page.sel);
     if (s === undefined) return "";
-    const lv = World.get(s.id);
+    const lv = scene.world.get(s.id);
     if (lv !== null && lv.grid !== null)
       return I18n.text("WORLDMAP_SIZE_VAL", lv.grid.cols, lv.grid.rows);
     return I18n.text("WORLDMAP_SIZE_VAL", s.cols, s.rows);

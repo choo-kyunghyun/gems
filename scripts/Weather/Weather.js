@@ -33,7 +33,7 @@ globalThis.Weather = {
    * cumulative sim seconds. Seeded settled; a loaded record re-syncs on the next update().
    */
   state() {
-    return World.table.of(World.self, Weather.KEY, () => {
+    return World.active.of(Weather.KEY, () => {
       const first = Registry.ids(Weather)[0];
       return {
         ambient: first,

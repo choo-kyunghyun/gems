@@ -16,7 +16,7 @@ globalThis.WorldEvents = {
 
   /** The queue record — `{ q: [{ at, kind, data }] }`, kept sorted ascending by `at` (soonest first). */
   state() {
-    return World.table.of(World.self, WorldEvents.KEY, () => ({ q: [] }));
+    return World.active.of(WorldEvents.KEY, () => ({ q: [] }));
   },
 
   /**

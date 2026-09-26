@@ -1,6 +1,6 @@
 /**
- * The Facet kit's widget showcase — pure UI, no world. Each tab page grows with its host so it
- * reflows at any GUI size.
+ * The Facet kit's widget showcase — pure UI, its world holding only the quest demo's progress.
+ * Each tab page grows with its host so it reflows at any GUI size.
  */
 
 globalThis.sceneFacet = () => new _SceneFacetClass();
@@ -308,7 +308,9 @@ class _SceneFacetClass {
     ]);
     // no achievement content here: drop any rules hook a prior scene left
     Tracker.rules = null;
-    World.reset(); // the demo progression starts blank
+    // the demo progression starts blank
+    this.world = new World();
+    World.active = this.world;
     Tracker.accept("uikit_q1");
     Tracker.accept("uikit_q2");
     Tracker.accept("uikit_q3");
@@ -751,7 +753,7 @@ class _SceneFacetClass {
     return scrollSec;
   }
 
-  // no world; declared because every scene is updated and drawn unconditionally
+  // nothing to simulate; declared because every scene is updated and drawn unconditionally
   update() {}
   draw() {}
 
@@ -759,5 +761,7 @@ class _SceneFacetClass {
     Input.unbindAll(["uikit_jump", "uikit_fire"]);
     UI.remove(this.ui);
     this.ui.destroy();
+    World.active = null;
+    this.world.destroy();
   }
 }

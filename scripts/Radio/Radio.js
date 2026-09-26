@@ -17,7 +17,7 @@ globalThis.Radio = {
 
   /** The dial record — `{ station }`, the tuned track's asset name or "" for off. */
   state() {
-    return World.table.of(World.self, Radio.KEY, () => ({ station: "" }));
+    return World.active.of(Radio.KEY, () => ({ station: "" }));
   },
 
   /** Every declared track with a name, in declaration order. */

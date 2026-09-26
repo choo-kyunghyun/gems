@@ -15,7 +15,7 @@
  *
  * 2. The blank screen: a menu or one-shot instantiates it bare and assigns what it needs; the
  *    no-op stubs below cover the rest. A screen composes its optional sub-modules:
- *      level · renderer · camera · ui
+ *      world · level · renderer · camera · ui
  *
  * 3. The catalogue (the statics): a scene script registers its factory from its top-level code,
  *    so the catalogue is complete by boot. It lives here because top-level code runs in resource

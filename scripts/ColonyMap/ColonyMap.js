@@ -46,8 +46,8 @@ globalThis.ColonyMap = {
   },
 
   /** `{ mapId -> builds so far }` */
-  visits() {
-    return World.table.of(World.self, ColonyMap.VISITS, () => ({}));
+  visits(world) {
+    return world.of(ColonyMap.VISITS, () => ({}));
   },
 
   /** Undefined before the level is mounted. */
@@ -76,17 +76,17 @@ globalThis.ColonyMap = {
   },
 
   /**
-   * Build a map fresh from its site, at a seed of this build's own. Returns the Level, pooled and
-   * populated but not activated; its id is the site's, or START's when the site failed to load.
-   * `player` true spawns a fresh player at the entry (boot only).
+   * Build a map fresh from its site, at a seed of this build's own. Returns the Level, pooled in
+   * `world` and populated but not activated; its id is the site's, or START's when the site failed
+   * to load. `player` true spawns a fresh player at the entry (boot only).
    */
-  build(mapId, entryId, player) {
-    const loaded = ColonyMap._loadData(mapId, entryId);
+  build(world, mapId, entryId, player) {
+    const loaded = ColonyMap._loadData(world, mapId, entryId);
     Log.info(
       `colony map: ${loaded.mapId} (entry ${loaded.entryId}, seed ${loaded.data.meta.seed})`,
     );
     const r = ColonyMap._buildLevel(loaded.data, loaded.mapId, loaded.entryId, player);
-    World.add(loaded.mapId, r.level); // pooled before populate so arrivals can land through the pool
+    world.add(loaded.mapId, r.level); // pooled before populate so arrivals can land through the pool
     ColonyMap.populate(r.level, r.built.spawns);
     return r.level;
   },
@@ -117,18 +117,18 @@ globalThis.ColonyMap = {
   },
 
   /**
-   * Pool a saved map with no seed or spawn, mounted but not activated. `source(name)`
+   * Pool a saved map in `world` with no seed or spawn, mounted but not activated. `source(name)`
    * yields its blobs (the source's to free). Returns the level, or null when the entry is unusable
    * (logged, nothing pooled) — the map's first visit then builds it fresh.
    */
-  restoreLevel(m, source) {
+  restoreLevel(world, m, source) {
     const level = new Level({ id: m.id, capacity: m.capacity });
     level.entities.codec(Level.GRID, ColonyMap._gridCodec(level));
     level.entities.import(m.level, source);
     if (ColonyMap.of(level) === undefined)
       Log.error(`map "${m.id}": save entry carries no map record`);
     else if (level.grid !== null) {
-      World.add(m.id, level);
+      world.add(m.id, level);
       Log.info(`colony map: ${m.id} [restored]`);
       return level;
     }
@@ -148,8 +148,8 @@ globalThis.ColonyMap = {
   },
 
   /** Counts the build against the map it lands on. */
-  _loadData(mapId, entryId) {
-    const visits = ColonyMap.visits();
+  _loadData(world, mapId, entryId) {
+    const visits = ColonyMap.visits(world);
     let data = ColonyLevel.load(mapId, visits[mapId] ?? 0);
     if (data === null) {
       Log.error(`map "${mapId}" failed — falling back to ${ColonyLevel.START}`);

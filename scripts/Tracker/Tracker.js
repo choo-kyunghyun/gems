@@ -20,7 +20,7 @@ globalThis.Tracker = {
    * true, `quests` quest id -> { progress: number[], ready, done }.
    */
   state() {
-    return World.table.of(World.self, Tracker.KEY, () => ({
+    return World.active.of(Tracker.KEY, () => ({
       counters: {},
       unlocked: {},
       quests: {},

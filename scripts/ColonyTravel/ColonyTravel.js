@@ -7,8 +7,9 @@
  * together, and kicked/unhired companions stay as map residents. A crossing costs in-game hours by
  * chart distance.
  *
- * Contract: the scene owns `level`, `playerId`, `stages` (map id → its ColonyStage), `build`,
- * `nearNpc` and `window`; this engine writes them on arrival and reads nothing else of it.
+ * Contract: the scene owns `world`, `level`, `playerId`, `stages` (map id → its ColonyStage),
+ * `build`, `nearNpc` and `window`; this engine pools through `world`, writes the rest on arrival
+ * and reads nothing else of it.
  */
 globalThis.ColonyTravel = {
   // in-game hours per world-map chart unit (corner to corner is ~1.4 units)
@@ -37,13 +38,13 @@ globalThis.ColonyTravel = {
             members[i],
             "follow",
           );
-        squad.push(World.take(scene.level.id, members[i]));
+        squad.push(scene.world.take(scene.level.id, members[i]));
       }
       scene.level.entities.flush(); // commit the taken members' removals before parking
       if (ColonyMap.persistent(scene.level)) ColonyTravel.suspend(scene);
       else ColonyTravel._free(scene);
     }
-    if (World.get(mapId) !== null) ColonyTravel.resume(scene, mapId, entryId, squad);
+    if (scene.world.get(mapId) !== null) ColonyTravel.resume(scene, mapId, entryId, squad);
     else ColonyTravel.build(scene, mapId, entryId, squad);
   },
 
@@ -53,12 +54,12 @@ globalThis.ColonyTravel = {
    */
   _arriveSquad(scene, squad, sp) {
     if (squad === null || squad.length === 0) return;
-    scene.playerId = World.put(scene.level.id, squad[0], {
+    scene.playerId = scene.world.put(scene.level.id, squad[0], {
       [Position]: { x: sp.x, y: sp.y, z: 0 },
       [Velocity]: { x: 0, y: 0, z: 0 },
     });
     for (let i = 1; i < squad.length; i++)
-      World.put(scene.level.id, squad[i], {
+      scene.world.put(scene.level.id, squad[i], {
         [Position]: { x: sp.x - 24 - i * 22, y: sp.y + 24, z: 0 },
         [Velocity]: { x: 0, y: 0, z: 0 },
       });
@@ -89,13 +90,13 @@ globalThis.ColonyTravel = {
     CameraSystem.view(level).release();
     scene.stages[level.id].renderer.destroy();
     delete scene.stages[level.id];
-    World.remove(level.id);
+    scene.world.remove(level.id);
     Log.info(`colony map: ${level.id} [freed]`);
   },
 
   /** Enter a map not pooled; a null `squad` (boot) spawns the player with it. */
   build(scene, mapId, entryId, squad) {
-    const level = ColonyMap.build(mapId, entryId, squad === null);
+    const level = ColonyMap.build(scene.world, mapId, entryId, squad === null);
     scene.level = level; // its id may have fallen back from the one asked for
     ColonyTravel._arriveSquad(scene, squad, ColonyMap.of(level).spawn); // already entry-resolved
     ColonyTravel._latch(scene);
@@ -108,12 +109,12 @@ globalThis.ColonyTravel = {
    * case its stage is built here as on a first visit.
    */
   resume(scene, mapId, entryId, squad) {
-    const level = World.get(mapId);
+    const level = scene.world.get(mapId);
     scene.level = level;
     PuppetSystem.thaw(level); // activates every mirror in the room, so the other pooled maps park again
-    const pooled = World.ids();
+    const pooled = scene.world.ids();
     for (let i = 0; i < pooled.length; i++) {
-      if (pooled[i] !== mapId) PuppetSystem.park(World.get(pooled[i]));
+      if (pooled[i] !== mapId) PuppetSystem.park(scene.world.get(pooled[i]));
     }
     const data = ColonyMap.of(level);
     const sp = data.entries[entryId] ?? data.spawn;

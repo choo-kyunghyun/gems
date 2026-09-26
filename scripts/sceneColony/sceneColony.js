@@ -47,7 +47,8 @@ class _SceneColonyClass {
       this.window.dirty = true;
     };
     // a fresh session starts from a blank world; a load imports its records below
-    World.reset();
+    this.world = new World();
+    World.active = this.world;
     // the BGM fallback is the active map's bed, read live so one hook serves every map
     Radio.reset();
     Radio.ambient = () => ColonyTravel.bed(this.level);
@@ -514,7 +515,8 @@ class _SceneColonyClass {
     WorldEvents.reset();
     ColonyTravel.suspend(this); // release the view before its camera is freed with the level
     for (const id in this.stages) this.stages[id].renderer.destroy();
-    World.reset();
+    World.active = null;
+    this.world.destroy();
     if (this.ui) {
       UI.remove(this.ui);
       this.ui.destroy();

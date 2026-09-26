@@ -188,14 +188,14 @@ globalThis.SaveGame = {
   _worldPass: {
     id: "world",
     capture(ctx) {
-      ctx.manifest.world = World.table.export();
+      ctx.manifest.world = ctx.scene.world.table.export();
     },
     restore(ctx) {
       const world = ctx.manifest.world;
       if (world === undefined) return;
       // a load is not a merge: nothing the previous slot left in memory survives. Records that
       // name a map's entity re-link by id once that map is up.
-      World.table.import(world);
+      ctx.scene.world.table.import(world);
     },
   },
 
@@ -207,11 +207,11 @@ globalThis.SaveGame = {
   _mapsPass: {
     id: "maps",
     capture(ctx) {
-      const ids = World.ids();
+      const ids = ctx.scene.world.ids();
       const maps = [];
       for (let m = 0; m < ids.length; m++) {
         const mapId = ids[m];
-        const level = World.get(mapId);
+        const level = ctx.scene.world.get(mapId);
         const entities = level.entities;
         const exp = entities.export((token, index, buffer) => {
           const name = mapId + "." + token + "." + index;
@@ -230,8 +230,9 @@ globalThis.SaveGame = {
       const manifest = ctx.manifest;
       const activeMap = manifest.activeMap;
       const maps = manifest.maps !== undefined ? manifest.maps : [];
-      for (let i = 0; i < maps.length; i++) ColonyMap.restoreLevel(maps[i], ctx.getBlob);
-      if (World.get(activeMap) === null)
+      const world = ctx.scene.world;
+      for (let i = 0; i < maps.length; i++) ColonyMap.restoreLevel(world, maps[i], ctx.getBlob);
+      if (world.get(activeMap) === null)
         Log.error(
           "SaveGame: active map '" +
             activeMap +

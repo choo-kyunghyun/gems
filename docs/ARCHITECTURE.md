@@ -95,7 +95,7 @@ and are cited from here, never restated):
   places, each keyed by the consumer that owns its shape, and logic — a system, a namespace, a UI
   module — holds none.
     - ENTITY data is a component in a store. A LEVEL is an entity of its own store (`Level.self`,
-      index 0, never removed) and the WORLD one of its own (`World.self` in `World.table`), so
+      index 0, never removed) and the WORLD one of its own (a `World`'s `self`), so
       what is the map's or the world's as a whole is a component of that entity under the owner's
       `KEY` — `Settlement.KEY`, `RoomSystem.KEY`, `ColonyMap.KEY` on a level; `WorldClock.KEY`,
       `Weather.KEY`, `Tracker.KEY` on the world — read through the owner's accessor
@@ -115,7 +115,7 @@ and are cited from here, never restated):
       over every scene (`GameOverlay`, `Toast`, `Tooltip`, `Dialogue`, `VirtualKeyboard`,
       `SlotDrag`); a scene may push into it but never owns it, so the switch (`Game._apply`,
       Create_0) sweeps every app member a scene can touch in ONE list — a scene's `destroy` drops
-      only what that scene itself wired (its UI root, its injected hooks, the colony's `World`), and
+      only what that scene itself wired (its UI root, its injected hooks, its `World`), and
       a new app member a scene can dirty gets its line in the sweep, not in a scene.
         - Anything DERIVED from a level's data and kept between frames — a collider generation, a nav
       grid, a room mirror, a broadphase, a camera's view record — is a DERIVED entry:
@@ -144,32 +144,34 @@ and are cited from here, never restated):
   draws. `World` is the store one layer up: its records on `self`, and each pooled map an entity
   carrying its id and its Level. An entity that belongs to no level is a whole-entity record in a
   queued world event's payload until it is moved into a level. A `Scene` is the behaviour: it
-  owns which level is active and a renderer per map it has shown, composes systems, camera
-  policy and UI, and runs them over the level and the world from `update()`/`draw()`, the world's
-  own tickers (`WorldClock`, `WorldEvents`) included. A pooled map keeps its derived entries and
-  the scene keeps its renderer, so a park is a camera unassign and a resume a pointer swap; which
-  map stays pooled is the scene's policy, `World.remove` frees one, and `World.reset` blanks the
-  store, the pool with it. There is no scene manager: the `Game` object holds the one
+  owns its world, which level is active and a renderer per map it has shown, composes systems,
+  camera policy and UI, and runs them over the level and the world from `update()`/`draw()`, the
+  world's own tickers (`WorldClock`, `WorldEvents`) included. A scene makes its world and installs
+  it as `World.active`, the one a world record's accessor reads (a read with none installed
+  throws), and clears and frees it with itself, so no world outlives its scene; what holds the
+  scene reaches the pool through `scene.world`. A pooled map keeps its derived entries and the
+  scene keeps its renderer, so a park is a camera unassign and a resume a pointer swap; which map
+  stays pooled is the scene's policy, the world's `remove` frees one, and its `destroy` frees the
+  pool with it. There is no scene manager: the `Game` object holds the one
   active scene pointer and drives it from its own events (its Create_0 owns the switch/pause
   contract). Exactly one scene is live and a switch destroys it — a scene is never frozen, so it
   carries no state across a swap.
 - Composition over inheritance — GMRT breaks subclassing (#15067, GMRT.md): "kinds of X" are a flat
   class plus a `components: []` queried by `instanceof` (`Item`, `UIElement`); scene screens are
   standalone classes satisfying the duck-typed `Scene` contract, never `extends Scene`.
-- Singleton shape: a global with one live instance is a plain object (`globalThis.World = { … }`),
+- Singleton shape: a global with one live instance is a plain object (`globalThis.Log = { … }`),
   its properties config, hooks and scratch (its DATA lives in one of the four homes above) and
-  self-reference through the global name (`World.get` inside `World`), never `this`, so a method
-  handed out as a hook or callback keeps its owner — the form the systems and namespaces already use
-  (`World`, `Log`, `Combat`, every `*System`).
+  self-reference through the global name (`WorldClock.state` inside `WorldClock`), never `this`, so
+  a method handed out as a hook or callback keeps its owner — the form the systems and namespaces
+  already use (`Log`, `Combat`, `WorldClock`, every `*System`).
     - A static-only class buys nothing here (no instances, no `instanceof`, inheritance broken
       regardless) and takes on two class-only GMRT defects (#15065 and the `static` initializer
       trap, GMRT.md): write no new ones. A class with one live instance that owns a lifecycle is
       NOT a singleton — `LevelGen` is an instance class, shaped and named as such.
     - A family of singletons stays FLAT, grouped by a name prefix and composed by its head at
-      boot/reset (`Audio`/`Music`, `World`/`WorldClock`/`WorldEvents`,
-      `Render*`), and callers reach the leaf directly; a member mirroring a singleton
-      (`X.sub = Sub`) is a second name for one object plus a boot-wiring dependency, so a member
-      only ever holds data (`World.table`, the world's store).
+      boot/reset (`Audio`/`Music`, `Render*`), and callers reach the leaf directly; a member
+      mirroring a singleton (`X.sub = Sub`) is a second name for one object plus a boot-wiring
+      dependency, so a member only ever holds data.
 - The clock split (pause/dilation rule): `Time.delta` is `Time.raw` scaled by `Time.scale` and
   `Time.tempo`, both the active scene's to set (`Time` owns the contract; what drives the colony's
   tempo is `Radio`'s), so anything on it freezes/slows with the sim — gameplay motion wants exactly
