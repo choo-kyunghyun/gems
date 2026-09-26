@@ -18,6 +18,8 @@ globalThis.StorageUI = {
       }),
       bagTable: null,
       boxTable: null,
+      amount: null, // the UIStepper a stack's transfer reads
+      picked: "", // the stack the amount was set for
       click: { key: "", time: 0 }, // the re-click latch
       onTake: undefined, // never outlives the open
       refresh: () => StorageUI.refresh(scene, page),
@@ -60,6 +62,7 @@ globalThis.StorageUI = {
       ),
     );
     page.el.insertChild(cols);
+    page.el.insertChild(StorageUI._amountRow(page));
 
     const hint = new UIElement({ width: "100%", height: 20 });
     hint.insertChild(
@@ -124,15 +127,50 @@ globalThis.StorageUI = {
     page.boxTable.setRows(InvTable.rows(boxInv, fav));
   },
 
-  /** A click selects; a re-click transfers. */
+  /** The amount a stack moves: a stepper over the selected stack, with quick picks. */
+  _amountRow(page) {
+    const row = new UIElement({
+      width: "100%",
+      height: FacetTheme.rowH,
+      flexShrink: 0,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: FacetTheme.gapSm,
+    });
+    const label = new UIElement({ flexGrow: 1, flexBasis: 0 });
+    label.insertChild(
+      facetLabel(I18n.textRef("STORAGE_QTY_PROMPT"), { color: FacetTheme.textMuted }),
+    );
+    row.insertChild(label);
+    const stepEl = facetStepper(1, noop, { min: 1, max: 1, step: 1, width: 160 });
+    const stepper = stepEl.getComponent(UIStepper);
+    page.amount = stepper;
+    row.insertChild(stepEl);
+    const quick = (text, value) =>
+      facetButton(text, () => stepper.setValue(value()), { width: 90, height: FacetTheme.rowHSm });
+    row.insertChild(quick("1", () => 1));
+    row.insertChild(
+      quick(I18n.textRef("STORAGE_QTY_HALF"), () => Math.max(1, Math.floor(stepper.max / 2))),
+    );
+    row.insertChild(quick(I18n.textRef("STORAGE_QTY_ALL"), () => stepper.max));
+    return row;
+  },
+
+  /** A newly selected stack sets the amount to all of it; a re-click transfers. */
   _click(scene, page, side, row) {
     if (row === null || row === undefined) return;
+    const key = side + "|" + InvTable.rowId(row) + "|" + row.idx;
+    if (key !== page.picked) {
+      page.picked = key;
+      page.amount.max = Math.max(1, row.qty);
+      page.amount.setValue(page.amount.max);
+    }
     if (InvTable.reclick(page.click, row, side))
       StorageUI._move(scene, page, side, row);
   },
 
   /**
-   * A fungible stack asks for an amount; a single unit or an instance moves whole. Storing a
+   * A fungible stack moves the chosen amount; a single unit or an instance moves whole. Storing a
    * favorite is refused; taking is never protected.
    */
   _move(scene, page, side, row) {
@@ -147,28 +185,9 @@ globalThis.StorageUI = {
     if (s === undefined) return;
     if (side === "bag" && StorageUI._kept(scene, false)(s)) return;
     const def = Item.get(s.itemId);
-    if ((def === undefined || !def.isInstanced()) && s.qty > 1) {
-      StorageUI._promptAmount(scene, page, side, row, s.qty);
-      return;
-    }
-    StorageUI._doMove(scene, page, side, row, s.qty);
-  },
-
-  /** Held by the window as a prompt, so Esc cancels the picker before the page. */
-  _promptAmount(scene, page, side, row, maxQty) {
-    scene.window.prompt(
-      facetAmountPicker({
-        title: row.name,
-        max: maxQty,
-        prompt: I18n.text("STORAGE_QTY_PROMPT"),
-        half: I18n.text("STORAGE_QTY_HALF"),
-        all: I18n.text("STORAGE_QTY_ALL"),
-        cancelLabel: I18n.text("COMMON_CANCEL"),
-        confirmLabel: I18n.text("STORAGE_TRANSFER"),
-        onConfirm: (amount) =>
-          StorageUI._doMove(scene, page, side, row, amount),
-      }),
-    );
+    const fungible = def === undefined ? true : !def.isInstanced();
+    const amount = fungible ? clamp(page.amount.value, 1, s.qty) : s.qty;
+    StorageUI._doMove(scene, page, side, row, amount);
   },
 
   /** Move `amount` to the other side, then what the direction drags along. */
@@ -188,6 +207,7 @@ globalThis.StorageUI = {
         page.onTake(row.itemId, moved);
     }
     if (moved <= 0) return;
+    page.picked = ""; // the stack changed, so the next selection re-reads it
     scene.window.dirty = true;
     Log.info(`transferred ${moved}x ${row.itemId}`);
   },

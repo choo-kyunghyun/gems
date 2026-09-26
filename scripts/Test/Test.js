@@ -112,7 +112,7 @@ globalThis.Test = {
    * parked off-screen, a keyboard and a pad whose only buttons down are `ctx.keys` and `ctx.pads`,
    * the sticks at rest, a silent `Audio.play` that counts its cues in `ctx.sounds`, a nav
    * `back` that counts its calls in `ctx.backs` and takes the cancel while `ctx.backTakes`, and
-   * an overlay that holds the GUI while `ctx.overlayHolds`.
+   * no menu driver.
    */
   ui(ctx) {
     ctx.keys = [];
@@ -120,7 +120,6 @@ globalThis.Test = {
     ctx.sounds = 0;
     ctx.backs = 0;
     ctx.backTakes = false;
-    ctx.overlayHolds = false;
     const saved = {
       roots: UI.roots,
       focused: UINav.focused,
@@ -129,7 +128,7 @@ globalThis.Test = {
       stickX: UINav._stickX,
       stickY: UINav._stickY,
       back: UINav.back,
-      overlay: UI.overlay,
+      menu: UI.menu,
       raw: Time.raw,
       pointer: Input.pointer,
       typed: Input.typed,
@@ -151,7 +150,7 @@ globalThis.Test = {
       ctx.backs += 1;
       return ctx.backTakes;
     };
-    UI.overlay = () => ctx.overlayHolds;
+    UI.menu = noop;
     const button = () => ({ pressed: false, released: false, down: false, owner: "" });
     Input.pointer = {
       x: -100000,
@@ -221,7 +220,7 @@ globalThis.Test = {
     UINav._stickX = saved.stickX;
     UINav._stickY = saved.stickY;
     UINav.back = saved.back;
-    UI.overlay = saved.overlay;
+    UI.menu = saved.menu;
     Time.raw = saved.raw;
     Input.pointer = saved.pointer;
     Input.typed = saved.typed;

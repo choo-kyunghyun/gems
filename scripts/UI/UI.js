@@ -8,8 +8,8 @@ globalThis.UI = {
     tick: -1, // a nav focus step
   },
 
-  // () => bool: the app's overlay driver, injected; true while its modal holds the GUI
-  overlay: () => false,
+  // the app's menu driver, injected
+  menu: () => {},
 
   // GUI is sized to this ÷ uiScale, so layout is monitor-independent
   designW: 1920,
@@ -63,20 +63,20 @@ globalThis.UI = {
   },
 
   /**
-   * The GUI's one input pass, in priority order: the tree, the drag it feeds, the overlay, whose
-   * modal is then nav-reachable the same frame, the dialogue, which yields while that modal holds
-   * the GUI, and last the nav, which acts only on what they left.
+   * The GUI's one input pass, in priority order: the tree, the drag it feeds, the menu driver,
+   * whose page is then nav-reachable the same frame, and last the nav, which acts only on what
+   * they left.
    */
   step() {
     UI.update();
     SlotDrag.update();
-    if (!UI.overlay()) Dialogue.update();
+    UI.menu();
     UINav.update();
   },
 
   /**
-   * Later roots block earlier from the pointer; a tree that took it — a hovered or held widget,
-   * an exclusive modal — then CLAIMS it, so no consumer after the UI sees the press.
+   * Later roots block earlier from the pointer; a tree that took it — a hovered or held widget —
+   * then CLAIMS it, so no consumer after the UI sees the press.
    */
   update() {
     let block = false;

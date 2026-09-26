@@ -96,11 +96,8 @@ this.background = Color.parse(FacetTheme.bg); // scene backdrop; re-read on a th
 
 UINav.color = Color.parse(FacetTheme.accent); // focus ring from kit theme
 UINav.back = GameOverlay.back; // the pause menu backs out on the cancel the UI left
-// the global F1 pause overlay, driven inside the GUI pass
-UI.overlay = () => {
-  GameOverlay.update(this);
-  return GameOverlay.isOpen();
-};
+// the global F1 pause menu, driven inside the GUI pass
+UI.menu = () => GameOverlay.update(this);
 UI.sounds.click = sndButtonClick; // widget cues from the game's own SFX
 UI.sounds.tick = sndButtonMuted;
 
@@ -158,9 +155,7 @@ this._apply = (factory) => {
   // input + GUI
   UINav.reset(); // drop focus held on the outgoing scene's UI
   InputContext.reset(); // back to the "default" base context
-  GameOverlay.reset(); // close the pause overlay + restore time scale
-  VirtualKeyboard.reset();
-  Dialogue.clear();
+  GameOverlay.close(); // close the pause menu + restore time scale
   Toast.clear();
   Tooltip.clear();
   // clocks: a scene starts at full speed
@@ -192,7 +187,7 @@ GameOverlay.keymap = ColonyKeymap.rows(); // the Settings tab's key-binding list
 this._apply(TEST_AUTORUN !== "" ? sceneTest : sceneLobby);
 SceneTransition.reveal();
 
-// Inject the Save/Load tab into the Core GameOverlay (the injection seam keeps GameOverlay free of
+// Inject the Save/Load tab into the GameOverlay (the injection seam keeps GameOverlay free of
 // SaveGame/sceneColony). Save is gated on a saveable scene; Load boots a fresh colony.
 GameOverlay.addTab(
   I18n.textRef("SYS_TAB_SAVELOAD"),

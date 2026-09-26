@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"Dialogue",
   "parent":{
-    "name":"Overlay",
-    "path":"folders/Core/UI/Overlay.yy",
+    "name":"Social",
+    "path":"folders/Game/Social.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

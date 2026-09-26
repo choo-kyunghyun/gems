@@ -1,5 +1,6 @@
 /**
- * The gameplay window shell — one overlay showing one page at a time.
+ * The gameplay window shell — one page at a time in the scene root's body, standing in for the
+ * HUD, which hides while a page is open.
  *
  * A page is a plain object built once per scene and added under an id:
  *   el            UIElement — the content column, stacked absolute in the card, so a switch is an
@@ -9,28 +10,56 @@
  *   onOpen(opts)  optional — the per-open parameters
  *   onClose()     optional
  *   titleExtra    optional UIElement mounted in the title row while the page shows
- * A page's own state lives on the page object, never on the scene; the shell's four fields are
+ * A page's own state lives on the page object, never on the scene; the shell's three fields are
  * the whole window state:
  *   page    the open page, else null              target  the entity the page stands over, else -1
- *   dirty   the open page refreshes next update()  modal   the page's amount picker, else null
+ *   dirty   the open page refreshes next update()
  * Opening over an open page replaces it. Refreshing whatever page shows is idempotent, so a writer
  * sets `dirty` without asking which. update() runs outside the UI traversal, so a refresh never
  * destroys the widget whose click requested it.
  */
 globalThis.Window = class Window {
-  /** Insert after the HUD, so the veil covers it. */
+  /** `root` is a facetRoot; the window fills what its body leaves. */
   constructor(root) {
     this.page = null;
     this.target = -1;
     this.dirty = false;
-    this.modal = null;
     this._pages = {}; // id -> page
-    this._host = facetOverlay(() => this._title(), {
-      onClose: () => this.close(),
+    this._host = facetCard({
+      width: "100%",
+      flexGrow: 1,
+      flexBasis: 0,
+      padding: FacetTheme.pad,
+      gap: FacetTheme.gapSm,
     });
+    this._host.addComponent(new UITrigger({})); // a click on the page never reaches the world
+    // the title cell grows so a page's extra items and the close button sit right
+    this._titleRow = new UIElement({
+      width: "100%",
+      height: 40,
+      flexShrink: 0,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: FacetTheme.gapSm,
+    });
+    const titleCell = new UIElement({ flexGrow: 1, flexBasis: 0 });
+    titleCell.insertChild(
+      facetLabel(() => this._title(), { font: "header", color: FacetTheme.text }),
+    );
+    this._titleRow.insertChild(titleCell);
+    this._titleRow.insertChild(
+      facetButton("x", () => this.close(), {
+        width: 32,
+        height: 32,
+        rad: FacetTheme.radiusSm,
+      }),
+    );
+    this._host.insertChild(this._titleRow);
+    this._host.insertChild(facetDivider());
     this._stack = new UIElement({ width: "100%", flexGrow: 1, flexBasis: 0 });
-    this._host.body.insertChild(this._stack);
-    root.insertChild(this._host);
+    this._host.insertChild(this._stack);
+    this._host.enabled = false;
+    root.body.insertChild(this._host);
   }
 
   /** Stamps `id` and `_slot` on the page; returns it. */
@@ -71,7 +100,7 @@ globalThis.Window = class Window {
     this.target = opts.target ?? -1;
     page._slot.enabled = true;
     if (page.titleExtra !== undefined) {
-      const row = this._host.titleRow;
+      const row = this._titleRow;
       row.insertChild(page.titleExtra, row.children.length - 1); // before the close "x"
     }
     this._host.enabled = true;
@@ -81,43 +110,22 @@ globalThis.Window = class Window {
 
   /** A no-op with nothing open. */
   close() {
-    this._dismiss();
     const page = this.page;
     if (page === null) return;
     this.page = null;
     this.target = -1;
     this.dirty = false;
     page._slot.enabled = false;
-    if (page.titleExtra !== undefined)
-      this._host.titleRow.removeChild(page.titleExtra);
+    if (page.titleExtra !== undefined) this._titleRow.removeChild(page.titleExtra);
     this._host.enabled = false;
     if (page.onClose !== undefined) page.onClose();
   }
 
-  /** The Esc step: the modal, else the page; false when nothing was open. */
+  /** The Esc step: closes the page; false when nothing was open. */
   back() {
-    if (this.modal !== null) {
-      this._dismiss();
-      return true;
-    }
     if (this.page === null) return false;
     this.close();
     return true;
-  }
-
-  /**
-   * Hold a modal over the open page so back()/close() dismiss it first; returns it. The field
-   * clears with the modal whichever side closes it.
-   */
-  prompt(modal) {
-    this._dismiss();
-    this.modal = modal;
-    const inner = modal.onClose;
-    modal.onClose = () => {
-      inner();
-      if (this.modal === modal) this.modal = null;
-    };
-    return modal;
   }
 
   /** Once per frame, after the scene's own update. */
@@ -126,14 +134,6 @@ globalThis.Window = class Window {
     if (!this.dirty) return;
     this.dirty = false; // before the refresh, so an edit it makes is a new signal
     this.page.refresh();
-  }
-
-  /** Clears the field at once: the modal's own onClose lands after its exit. */
-  _dismiss() {
-    const m = this.modal;
-    if (m === null) return;
-    this.modal = null;
-    m.close();
   }
 
   _title() {

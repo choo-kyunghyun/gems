@@ -58,7 +58,6 @@ class _SceneFacetClass {
     values.scrollBody.insertChild(this._fieldsSection());
     values.scrollBody.insertChild(this._controlsSection());
     values.scrollBody.insertChild(this._rebindSection());
-    values.scrollBody.insertChild(this._vkSection());
 
     // the left column scrolls so accordion sections can't overflow
     const left = facetScroll({ grow: true });
@@ -93,6 +92,10 @@ class _SceneFacetClass {
         tooltip: I18n.textRef("FACET_TIP_BACK"),
       }),
     );
+
+    // last, so its card sits over the page
+    this.dialogue = Dialogue.make();
+    this.dialogueView = DialogueUI.build(this);
   }
 
   /** Two equal columns; the row grows so scroll children fill the host. */
@@ -137,25 +140,6 @@ class _SceneFacetClass {
         tooltip: I18n.textRef("FACET_TIP_PRIMARY"),
       }),
     );
-    bar.insertChild(
-      facetButton(
-        I18n.textRef("FACET_BTN_DIALOG"),
-        () =>
-          facetModal({
-            title: I18n.text("FACET_DIALOG_TITLE"),
-            body: I18n.text("FACET_DIALOG_BODY"),
-            buttons: [
-              { label: I18n.text("COMMON_CANCEL") },
-              {
-                label: I18n.text("FACET_DIALOG_OK"),
-                primary: true,
-                onClick: () => this.clicks++,
-              },
-            ],
-          }),
-        { width: 150, tooltip: I18n.textRef("FACET_TIP_DIALOG") },
-      ),
-    );
     const toastTypes = ["info", "success", "warn", "error"];
     bar.insertChild(
       facetButton(
@@ -174,7 +158,7 @@ class _SceneFacetClass {
       facetButton(
         I18n.textRef("FACET_BTN_SAY"),
         () =>
-          Dialogue.start([
+          Dialogue.start(this.dialogue, [
             I18n.text("FACET_SAY_1"),
             {
               speaker: I18n.text("FACET_SAY_SPEAKER"),
@@ -382,24 +366,6 @@ class _SceneFacetClass {
       ),
     );
     return fields;
-  }
-
-  _vkSection() {
-    const sec = facetSection(I18n.textRef("FACET_VK"));
-    const field = facetInput({
-      placeholder: I18n.text("FACET_VK_FIELD"),
-      maxLength: 24,
-    });
-    const input = field.getComponent(UIInput);
-    sec.insertChild(facetRow(I18n.textRef("FACET_VK_FIELD"), field));
-    sec.insertChild(
-      facetButton(
-        I18n.textRef("FACET_VK_OPEN"),
-        () => VirtualKeyboard.open(input),
-        { tooltip: I18n.textRef("FACET_TIP_VK") },
-      ),
-    );
-    return sec;
   }
 
   _rebindSection() {
@@ -755,8 +721,12 @@ class _SceneFacetClass {
     return scrollSec;
   }
 
-  // nothing to simulate; declared because every scene is updated and drawn unconditionally
-  update() {}
+  // nothing to simulate but the dialogue card's showing
+  update() {
+    DialogueUI.update(this, this.dialogueView);
+  }
+
+  // declared because every scene is drawn unconditionally
   draw() {}
 
   destroy() {

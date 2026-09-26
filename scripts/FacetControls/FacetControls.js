@@ -255,94 +255,64 @@ globalThis.facetSelect = function facetSelect(items, opts = {}) {
 };
 
 /**
- * Dropdown whose field opens a popup list, the fit for many options; lists past
+ * Dropdown whose field opens its list inline below it, the fit for many options; lists past
  * `opts.maxVisible` scroll. `items` are { name, value }; `opts.key` binds the choice to Settings.
  */
 globalThis.facetDropdown = function facetDropdown(items, opts = {}) {
   const bind = facetBindChoice(items, opts);
-  const el = facetFieldPanel({ height: opts.height, width: opts.width });
-  el.addComponent(
-    new UIDropdown({
-      items,
-      index: bind.index,
-      onChange: bind.onChange,
-      placeholder: opts.placeholder ?? "",
-      color: facetColor(FacetTheme.text),
-      placeholderColor: facetColor(FacetTheme.textDim),
-      chevronColor: facetColor(FacetTheme.textMuted),
-      onOpen: (dropdown, field) => facetDropdownPopup(dropdown, field, opts),
-    }),
-  );
-  return facetAttachTooltip(el, opts);
-};
-
-/** Shows the modal popup list of an open dropdown. */
-globalThis.facetDropdownPopup = function facetDropdownPopup(
-  dropdown,
-  field,
-  opts,
-) {
-  const pos = field.getLayoutPosition();
   const rowH = opts.rowH ?? FacetTheme.rowH;
   const gap = FacetTheme.gapSm;
-  const pad = FacetTheme.padSm;
-  const n = dropdown.items.length;
+  const n = items.length;
   const maxVisible = opts.maxVisible ?? 6;
   const visible = Math.min(n, maxVisible);
-  const listH = visible * rowH + Math.max(0, visible - 1) * gap;
-  const cardH = listH + pad * 2;
 
-  // flip above the field when below would run off the screen
-  let top = pos.top + pos.height + 4;
-  if (top + cardH > display_get_gui_height()) top = pos.top - 4 - cardH;
-
-  // a full-screen modal root blocks the UI behind and closes on an outside click or Esc
-  const root = new UIElement({ width: "100%", height: "100%" });
-  root.addComponent(
-    new UIPanel({ color: facetColor("#000000"), alpha: opts.dim ?? 0 }),
-  );
-  const modal = new UIModal({
-    root,
-    slide: 8,
-    duration: 0.12,
-    onClose: () => dropdown.notifyClosed(),
+  const list = facetPanel({
+    padding: FacetTheme.padSm,
+    gap,
+    color: FacetTheme.panelLo,
+    rad: FacetTheme.radiusSm,
+    border: 1,
   });
-  root.addComponent(modal);
+  const scroll =
+    n > maxVisible ? facetScroll({ height: visible * rowH + (visible - 1) * gap }) : null;
+  if (scroll !== null) list.insertChild(scroll);
+  const host = scroll !== null ? scroll.scrollBody : list;
 
-  const wrap = new UIElement({
-    positionType: "absolute",
-    left: pos.left,
-    top,
-    width: pos.width,
+  const dropdown = new UIDropdown({
+    items,
+    index: bind.index,
+    onChange: bind.onChange,
+    list,
+    placeholder: opts.placeholder ?? "",
+    color: facetColor(FacetTheme.text),
+    placeholderColor: facetColor(FacetTheme.textDim),
+    chevronColor: facetColor(FacetTheme.textMuted),
   });
-  const card = facetCard({ width: "100%", padding: pad, gap, alpha: 1 }); // floats over other UI
-  const scroll = n > maxVisible ? facetScroll({ height: listH }) : null;
-  const host = scroll !== null ? scroll.scrollBody : card;
-  if (scroll !== null) card.insertChild(scroll);
-  const sel = dropdown.getIndex();
   for (let i = 0; i < n; i++) {
-    const item = dropdown.items[i];
-    const selected = i === sel;
     const pick = i;
     host.insertChild(
       facetButton(
-        item.name,
+        items[i].name,
         () => {
           dropdown.setIndex(pick);
-          modal.close();
+          dropdown.close();
         },
         {
           height: rowH,
           width: "100%",
           border: 0,
-          primary: selected,
+          selected: () => dropdown.getIndex() === pick,
         },
       ),
     );
   }
-  wrap.insertChild(card);
-  root.insertChild(wrap);
-  UI.insert(root);
+
+  const wrap = new UIElement({ width: opts.width ?? "100%", gap: 4 });
+  const field = facetFieldPanel({ height: opts.height, width: "100%" });
+  field.addComponent(dropdown);
+  wrap.insertChild(facetAttachTooltip(field, opts));
+  wrap.anchorH = opts.height ?? FacetTheme.fieldH; // the field's band, which a row label keeps to
+  return wrap;
 };
 
 /** Numeric stepper (`< n >`) holding its own value; `onChange(value)` fires on each step. */
@@ -519,62 +489,4 @@ globalThis.facetTable = function facetTable(columns, opts = {}) {
     }),
   );
   return facetAttachTooltip(el, opts);
-};
-
-/**
- * "How many?" modal starting at the full `max`; confirm fires onConfirm(amount), cancel just
- * closes. Every label is an option so the kit stays content-agnostic. Esc is off by default so
- * the caller decides what it cancels first. Returns the UIModal.
- */
-globalThis.facetAmountPicker = function facetAmountPicker(opts = {}) {
-  const max = opts.max ?? 1;
-  let amount = max;
-  const body = new UIElement({ width: "100%", gap: FacetTheme.gapSm });
-  body.insertChild(
-    facetLabel((opts.prompt ?? "How many?") + " (" + max + ")", {
-      color: FacetTheme.textMuted,
-    }),
-  );
-  const stepEl = facetStepper(amount, (v) => (amount = v), {
-    min: 1,
-    max,
-    step: 1,
-  });
-  const stepper = stepEl.getComponent(UIStepper);
-  body.insertChild(stepEl);
-
-  const quickBtn = (label, onClick) => {
-    const cell = new UIElement({ flexGrow: 1, flexBasis: 0 });
-    cell.insertChild(
-      facetButton(label, onClick, { height: FacetTheme.rowHSm }),
-    );
-    return cell;
-  };
-  const quick = new UIElement({
-    width: "100%",
-    flexDirection: "row",
-    gap: FacetTheme.gapSm,
-  });
-  quick.insertChild(quickBtn("1", () => stepper.setValue(1)));
-  quick.insertChild(
-    quickBtn(opts.half ?? "Half", () => stepper.setValue(Math.floor(max / 2))),
-  );
-  quick.insertChild(quickBtn(opts.all ?? "All", () => stepper.setValue(max)));
-  body.insertChild(quick);
-
-  return facetModal({
-    title: opts.title,
-    width: opts.width ?? 360,
-    body,
-    closeOnEscape: opts.closeOnEscape ?? false,
-    buttons: [
-      { label: opts.cancelLabel ?? "Cancel" },
-      {
-        label: opts.confirmLabel ?? "OK",
-        primary: true,
-        onClick: () => opts.onConfirm(amount),
-      },
-    ],
-    onClose: opts.onClose ?? noop,
-  });
 };

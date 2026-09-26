@@ -1,14 +1,14 @@
 {
   "$GMScript":"v1",
-  "%Name":"UIModal",
+  "%Name":"DialogueUI",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"UIModal",
+  "name":"DialogueUI",
   "parent":{
-    "name":"Element",
-    "path":"folders/Core/UI/Element.yy",
+    "name":"Social",
+    "path":"folders/Game/Social.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
-  "scriptSource":"UIModal.js",
+  "scriptSource":"DialogueUI.js",
 }

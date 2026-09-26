@@ -7,9 +7,8 @@
  */
 
 /**
- * Keyboard/gamepad menu navigation over the focusable widgets of the UI roots, stopping at an
- * exclusive (modal) root. The first nav input only engages the focus ring; pointer movement
- * disengages it. While live it claims the gamepad, so gameplay pad bindings read idle.
+ * Keyboard/gamepad menu navigation over the focusable widgets of the enabled UI roots. The first
+ * nav input only engages the focus ring; pointer movement disengages it. While live it claims the gamepad, so gameplay pad bindings read idle.
  *
  * A frame's input is one {UINavEvent}, offered to the focused element and then up its ancestors
  * until a component's `onNav(element, event)` returns true; only an unhandled event falls to the
@@ -17,9 +16,8 @@
  * clicks, a focus move ticks — so a handler plays nothing. A component with `focusable: true`
  * makes its element a focus stop.
  *
- * A cancel reaches its owner even with the ring down: from the focus, or with none, through the
- * roots' own components from the top down to the first exclusive one. An untaken cancel drops
- * the ring and falls to the injected `back`, the app's back-out, which alone still hears a cancel
+ * A cancel reaches its owner from the focus even with the ring down. An untaken cancel drops the
+ * ring and falls to the injected `back`, the app's back-out, which alone still hears a cancel
  * while the nav is suspended. What the UI or `back` acts on is spent, so a later reader sees only
  * the input they left.
  */
@@ -88,7 +86,7 @@ globalThis.UINav = {
     if (ev === null) return;
 
     if (ev.kind === "cancel") {
-      const taken = UINav.focused !== null ? UINav._dispatch(ev) : UINav._dispatchRoots(ev);
+      const taken = UINav.focused !== null ? UINav._dispatch(ev) : false;
       if (!taken) UINav.engaged = false;
       if (taken ? true : UINav.back()) UINav._spend(ev);
       return;
@@ -146,17 +144,6 @@ globalThis.UINav = {
       if (typeof comps[i].onNav === "function") {
         if (comps[i].onNav(el, ev) === true) return true;
       }
-    }
-    return false;
-  },
-
-  /** Offers `ev` to each enabled root's own components, top-down to the first exclusive root. */
-  _dispatchRoots(ev) {
-    for (let i = UI.roots.length - 1; i >= 0; i--) {
-      const r = UI.roots[i];
-      if (!r.enabled) continue;
-      if (UINav._offer(r, ev)) return true;
-      if (UINav._exclusive(r)) return false;
     }
     return false;
   },
@@ -261,14 +248,12 @@ globalThis.UINav = {
     draw_line_width_color(x1, y1, x2, y2, 2, col, col);
   },
 
-  /** Walk roots top-down, stopping at an exclusive (modal) root so nav can't reach behind it. */
+  /** Walk the enabled roots top-down. */
   _collect() {
     const out = [];
     for (let i = UI.roots.length - 1; i >= 0; i--) {
       const r = UI.roots[i];
-      if (!r.enabled) continue;
-      UINav._walk(r, out);
-      if (UINav._exclusive(r)) break;
+      if (r.enabled) UINav._walk(r, out);
     }
     return out;
   },
@@ -283,20 +268,7 @@ globalThis.UINav = {
       root = root.parent;
     }
     if (!root.enabled) return false;
-    for (let i = UI.roots.length - 1; i >= 0; i--) {
-      const r = UI.roots[i];
-      if (r === root) return true;
-      if (r.enabled ? UINav._exclusive(r) : false) return false;
-    }
-    return false;
-  },
-
-  _exclusive(el) {
-    for (let i = 0; i < el.components.length; i++) {
-      const c = el.components[i];
-      if (typeof c.navExclusive === "function" && c.navExclusive()) return true;
-    }
-    return false;
+    return UI.roots.indexOf(root) !== -1;
   },
 
   _walk(el, out) {

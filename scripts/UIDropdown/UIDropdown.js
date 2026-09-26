@@ -1,16 +1,17 @@
 /**
- * A dropdown field. The popup is built by an injected onOpen(dropdown, field), so this Core widget
- * stays theme-agnostic; the popup must call notifyClosed() on dismiss.
+ * A dropdown field whose list opens inline: while open, the caller-built `list` sits right after
+ * the field in the field's parent, so it pushes what follows down. A click or a confirm on the
+ * field toggles it; a press outside field and list, or a cancel from either, closes it. A pick is
+ * the list's own: `setIndex`, then `close()`.
  * @implements {UIComponent}
  */
 globalThis.UIDropdown = class UIDropdown {
-  /** dd: { items: {name,value}[], index, onChange, onOpen, color, placeholder, placeholderColor, chevronColor, font, halign, padX } */
+  /** dd: { items: {name,value}[], index, onChange, list: UIElement, color, placeholder, placeholderColor, chevronColor, font, halign, padX } */
   constructor(dd = {}) {
     this.items = dd.items ?? [];
     this._index = dd.index ?? 0;
     this.onChange = dd.onChange ?? noop;
-    // (dropdown, fieldElement) => void
-    this.onOpen = dd.onOpen ?? noop;
+    this.list = dd.list ?? null;
 
     this.color = dd.color ?? c_white;
     this.placeholder = dd.placeholder ?? "";
@@ -24,8 +25,10 @@ globalThis.UIDropdown = class UIDropdown {
     this._open = false;
     this._el = null; // stashed each onUpdate for the onClick closure
     this._fsm = new UITrigger({
-      onClick: () => this._toggle(this._el),
+      onClick: () => this._toggle(),
     });
+    // the list is no descendant of the field, so a cancel from its rows is caught on the list
+    if (this.list !== null) this.list.addComponent({ onNav: (el, ev) => this._cancel(ev) });
   }
 
   getIndex() {
@@ -49,20 +52,59 @@ globalThis.UIDropdown = class UIDropdown {
     return this;
   }
 
-  /** The popup calls this on dismiss, re-allowing opening. */
-  notifyClosed() {
-    this._open = false;
+  isOpen() {
+    return this._open;
   }
 
-  _toggle(element) {
-    if (this._open || this.items.length === 0) return;
+  /** Focuses the field, so a cancel finds the list even with the ring down. */
+  open() {
+    const field = this._el;
+    if (this._open || this.list === null || field === null) return;
+    if (field.parent === null || this.items.length === 0) return;
     this._open = true;
-    this.onOpen(this, element);
+    field.parent.insertChild(this.list, field.parent.children.indexOf(field) + 1);
+    UINav.focus(field);
+  }
+
+  /** Idempotent; a focus inside the list returns to the field. */
+  close() {
+    if (!this._open) return;
+    this._open = false;
+    let el = UINav.focused;
+    while (el !== null) {
+      if (el === this.list) {
+        UINav.focus(this._el);
+        break;
+      }
+      el = el.parent;
+    }
+    if (this.list.parent !== null) this.list.parent.removeChild(this.list);
+  }
+
+  _toggle() {
+    if (this._open) this.close();
+    else this.open();
+  }
+
+  _cancel(ev) {
+    if (ev.kind !== "cancel" || !this._open) return false;
+    this.close();
+    return true;
   }
 
   onUpdate(element, block) {
     this._el = element;
+    if (this._open ? Input.pointer.left.pressed : false) {
+      const mx = Input.pointer.x;
+      const my = Input.pointer.y;
+      if (!element.positionMeeting(mx, my) ? !this.list.positionMeeting(mx, my) : false) this.close();
+    }
     return this._fsm.onUpdate(element, block);
+  }
+
+  /** A closed list is out of the tree, so the field frees it. */
+  onDestroy(element) {
+    if (this.list !== null ? this.list.parent === null : false) this.list.destroy();
   }
 
   onDraw(element) {
@@ -98,10 +140,10 @@ globalThis.UIDropdown = class UIDropdown {
     UIDraw.restore(st);
   }
 
-  /** A confirm opens the popup. */
   onNav(element, ev) {
-    if (ev.kind !== "confirm") return false;
-    this._toggle(element);
+    this._el = element;
+    if (ev.kind !== "confirm") return this._cancel(ev);
+    this._toggle();
     return true;
   }
 };

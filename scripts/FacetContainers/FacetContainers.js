@@ -1,6 +1,6 @@
 /**
  * Full-screen scene root. Flow content goes into `.body` — a full-bleed column inside the screen
- * padding, or a centered capped column with `opts.maxWidth`. An absolute overlay that anchors to
+ * padding, or a centered capped column with `opts.maxWidth`. An absolute panel that anchors to
  * the whole screen is inserted into the root itself, where the padding does not reach it.
  */
 globalThis.facetRoot = function facetRoot(opts = {}) {
@@ -63,7 +63,7 @@ globalThis.facetPanel = function facetPanel(opts = {}) {
 
 /**
  * Card: the bordered, translucent pane that fronts the world. Never nest one in another;
- * `opts.alpha: 1` for a card that floats over other UI (a popup).
+ * `opts.alpha: 1` makes it opaque.
  */
 globalThis.facetCard = function facetCard(opts = {}) {
   return facetPanel({
@@ -140,149 +140,6 @@ globalThis.facetScroll = function facetScroll(opts = {}) {
   );
   viewport.scrollBody = body;
   return viewport;
-};
-
-/**
- * Modal dialog: a dimmed full-screen root over a centered card. Each button runs its onClick
- * then closes unless `keepOpen`. Returns the {UIModal} handle.
- */
-globalThis.facetModal = function facetModal(opts = {}) {
-  const root = new UIElement({
-    width: "100%",
-    height: "100%",
-    justifyContent: "center",
-    alignItems: "center",
-  });
-  root.addComponent(
-    new UIPanel({
-      color: facetColor(opts.dimColor ?? "#000000"),
-      alpha: opts.dim ?? 0.6,
-    }),
-  );
-  const modal = new UIModal({
-    root,
-    onClose: opts.onClose,
-    closeOnBackdrop: opts.closeOnBackdrop,
-    closeOnEscape: opts.closeOnEscape,
-  });
-  root.addComponent(modal);
-
-  const card = facetCard({ width: opts.width ?? 440 });
-  // swallow card clicks so they don't read as a backdrop dismiss
-  card.addComponent(new UITrigger({}));
-
-  if (opts.title != null) {
-    card.insertChild(
-      facetLabel(opts.title, {
-        font: "header",
-        color: FacetTheme.text,
-      }),
-    );
-    card.insertChild(facetDivider());
-  }
-  if (opts.body != null) {
-    if (opts.body instanceof UIElement) {
-      card.insertChild(opts.body);
-    } else {
-      card.insertChild(facetLabel(opts.body, { color: FacetTheme.textMuted }));
-    }
-  }
-
-  const buttons = opts.buttons ?? [{ label: "OK", primary: true }];
-  const row = new UIElement({
-    width: "100%",
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    gap: FacetTheme.gapSm,
-  });
-  for (const b of buttons) {
-    row.insertChild(
-      facetButton(
-        b.label,
-        () => {
-          if (b.onClick) b.onClick(modal);
-          if (!b.keepOpen) modal.close();
-        },
-        { primary: b.primary, width: b.width ?? 120 },
-      ),
-    );
-  }
-  card.insertChild(row);
-
-  root.insertChild(card);
-  UI.insert(root); // top of the stack, so it blocks lower roots
-  return modal;
-};
-
-/**
- * Non-modal near-fullscreen window: a dim host over a centered 16:9 card under a title row.
- * Built once and toggled via `.enabled` (starts hidden) so its content keeps its state; the
- * caller inserts it into its scene root. Content goes into `.body`; extra title-row items go
- * into `.titleRow`, before the close button.
- */
-globalThis.facetOverlay = function facetOverlay(title, opts = {}) {
-  // absolute, so it fills the screen past the scene root's padding
-  const host = new UIElement({
-    positionType: "absolute",
-    left: 0,
-    top: 0,
-    right: 0,
-    bottom: 0,
-    paddingLeft: 96,
-    paddingRight: 96,
-    justifyContent: "center",
-    alignItems: "center",
-  });
-  // a light veil: the card is translucent, so the world stays legible behind the window
-  host.addComponent(new UIPanel({ color: facetColor("#000000"), alpha: 0.45 }));
-  host.addComponent(new UITrigger({})); // backdrop clicks never reach the world
-  host.enabled = false;
-
-  // width leads and height derives from it: flexpanel clamps a max without re-deriving the
-  // other side, and the GUI's own 16:9 keeps the card within the max
-  const inner = new UIElement({
-    width: "100%",
-    aspectRatio: 16 / 9,
-    maxHeight: "100%",
-  });
-  const card = facetCard({
-    width: "100%",
-    flexGrow: 1,
-    padding: FacetTheme.pad,
-    gap: FacetTheme.gapSm,
-  });
-
-  // the title cell grows so extra items and the close button sit right
-  const titleRow = new UIElement({
-    width: "100%",
-    height: 40,
-    flexShrink: 0,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: FacetTheme.gapSm,
-  });
-  const titleCell = new UIElement({ flexGrow: 1, flexBasis: 0 });
-  titleCell.insertChild(
-    facetLabel(title, { font: "header", color: FacetTheme.text }),
-  );
-  titleRow.insertChild(titleCell);
-  if (opts.onClose != null) {
-    titleRow.insertChild(
-      facetButton("x", opts.onClose, {
-        width: 32,
-        height: 32,
-        rad: FacetTheme.radiusSm,
-      }),
-    );
-  }
-  card.insertChild(titleRow);
-  card.insertChild(facetDivider());
-
-  inner.insertChild(card);
-  host.insertChild(inner);
-  host.body = card;
-  host.titleRow = titleRow;
-  return host;
 };
 
 /**
@@ -661,10 +518,14 @@ globalThis.facetRow = function facetRow(label, control, opts = {}) {
     alignItems: "center",
     gap: opts.gap ?? FacetTheme.gap,
   });
-  const labelCell = new UIElement({
-    width: opts.labelWidth ?? FacetTheme.rowLabelW,
-    flexShrink: 0,
-  });
+  const labelStyle = { width: opts.labelWidth ?? FacetTheme.rowLabelW, flexShrink: 0 };
+  // a control that grows downward keeps its label on the band it opened from
+  if (control.anchorH !== undefined) {
+    labelStyle.alignSelf = "flex-start";
+    labelStyle.height = control.anchorH;
+    labelStyle.justifyContent = "center";
+  }
+  const labelCell = new UIElement(labelStyle);
   labelCell.insertChild(
     facetLabel(facetSettingsRef(label, opts.key), {
       color: opts.labelColor ?? FacetTheme.textMuted,

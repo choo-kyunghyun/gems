@@ -115,12 +115,12 @@ and are cited from here, never restated):
     - APP data is the run's own — the device, the session, the settings — held by the app
       singletons the `Game` object drives from its events (`Input`'s keymap, claims and rebinds,
       `InputContext`'s stack, `UI.roots`, `Music`'s handle, `Time`, `Settings`,
-      `SaveGame`'s index and the load bundle a scene hands the next) plus the GUI overlays that draw
-      over every scene (`GameOverlay`, `Toast`, `Tooltip`, `Dialogue`, `VirtualKeyboard`,
-      `SlotDrag`); a scene may push into it but never owns it, so the switch (`Game._apply`,
-      Create_0) sweeps every app member a scene can touch in ONE list — a scene's `destroy` drops
-      only what that scene itself wired (its UI root, its injected hooks, its `World`), and
-      a new app member a scene can dirty gets its line in the sweep, not in a scene.
+      `SaveGame`'s index and the load bundle a scene hands the next) plus the GUI singletons that
+      span every scene (`GameOverlay`, `Toast`, `Tooltip`, `SlotDrag`); a scene may push into it
+      but never owns it, so the switch (`Game._apply`, Create_0) sweeps every app member a scene
+      can touch in ONE list — a scene's `destroy` drops only what that scene itself wired (its UI
+      root, its injected hooks, its `World`), and a new app member a scene can dirty gets its line
+      in the sweep, not in a scene.
         - Anything DERIVED from a level's data and kept between frames — a collider generation, a nav
       grid, a room mirror, a broadphase, a camera's view record — is a DERIVED entry:
       a component of the level's own entity that its owner alone reaches through
@@ -181,7 +181,7 @@ and are cited from here, never restated):
   tempo is `Radio`'s), so anything on it freezes/slows with the sim — gameplay motion wants exactly
   that, but UI timers/easing must use `Time.raw` (hover/press fades, caret blink, key-repeat, toggle
   easing — `UIButton`/`UIInput`/`UICheckbox`; likewise the GUI singletons
-  `Toast`/`SceneTransition`/`Dialogue`), else menus freeze while the game is paused. World-space
+  `Toast`/`SceneTransition` and `DialogueUI`'s reveal), else menus freeze while the game is paused. World-space
   effects deliberately stay on `Time.delta` so slow-mo slows them too (`FloatingText`, `Weather`).
   The entity sim integrates `Time.step` — `delta` capped at `Time.maxStep` — once per frame: a
   system takes one step whatever the refresh rate, a cooldown or fuse is seconds it decrements

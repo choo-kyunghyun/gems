@@ -13,7 +13,7 @@ if (this._pending !== null && !SceneTransition.isBusy()) {
 }
 SceneTransition.update();
 
-// THE sim tick, held while the GameOverlay sheet is open.
+// THE sim tick, held while the pause menu is open.
 if (!GameOverlay.isOpen()) this.scene.update();
 
 Log.flush();

@@ -116,7 +116,6 @@ globalThis.FacetTheme = {
       globalThis.Color === undefined ||
       globalThis.Tooltip === undefined ||
       globalThis.Toast === undefined ||
-      globalThis.Dialogue === undefined ||
       globalThis.FloatingText === undefined
     )
       return;
@@ -136,15 +135,6 @@ globalThis.FacetTheme = {
     Toast.accents.success = facetColor("good");
     Toast.accents.warn = facetColor("warn");
     Toast.accents.error = facetColor("bad");
-
-    Dialogue.panelColor = panel;
-    Dialogue.panelAlpha = FacetTheme.cardAlpha; // over the world, unlike the opaque overlays over UI
-    Dialogue.borderColor = border;
-    Dialogue.textColor = text;
-    Dialogue.plateColor = facetColor("panel");
-    Dialogue.plateBorder = accent;
-    Dialogue.speakerColor = facetColor("accentHi");
-    Dialogue.chevronColor = facetColor("accentHi");
 
     FloatingText.colors.damage = text;
     FloatingText.colors.hurt = facetColor("bad");

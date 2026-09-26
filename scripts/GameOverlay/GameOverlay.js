@@ -1,15 +1,16 @@
 /**
- * The app's pause overlay: a side sheet over the right half of a dimmed, still-visible scene.
- * Pause is global: while it is open the scene does not update and the time scale is forced to 0
- * each frame. F1 opens it anywhere; during gameplay (a scene's `gameplay` flag) gamepad Start
- * does too, and an Esc the UI left opens it only when the scene's `handleEscape` declines it.
+ * The app's pause menu: a page that stands in for every other UI root while it is open, as a side
+ * sheet over the right half of the still-visible scene. Pause is global: while it is open the
+ * scene does not update and the time scale is forced to 0 each frame. F1 opens it anywhere;
+ * during gameplay (a scene's `gameplay` flag) gamepad Start does too, and an Esc the UI left opens
+ * it only when the scene's `handleEscape` declines it. A cancel the page leaves closes it.
  */
 globalThis.GameOverlay = {
-  _modal: null,
   _root: null,
+  _hidden: [], // the roots the page stands in for, shown again on close
   _game: null, // re-latched each update()
   _scale: 1, // the time scale to restore on resume
-  // extra tabs { label, short, build } injected at boot, keeping the overlay free of scene/save
+  // extra tabs { label, short, build } injected at boot, keeping the page free of scene/save
   // concerns
   _extraTabs: [],
   // boot-wired quit-target scene factory; null hides the Quit button
@@ -32,11 +33,12 @@ globalThis.GameOverlay = {
     GameOverlay._game = game;
     const scene = game.scene;
 
-    if (GameOverlay._modal !== null) {
+    if (GameOverlay._root !== null) {
       if (Input.keyPressed(vk_f1) || Input.padPressed(gp_start)) {
         GameOverlay.close();
+        return;
       }
-      UINav.suspended = false; // overlay must stay nav-reachable over any scene
+      UINav.suspended = false; // the page must stay nav-reachable over any scene
       Time.scale = 0;
       Time.delta = 0;
       Time.step = 0;
@@ -61,11 +63,15 @@ globalThis.GameOverlay = {
   },
 
   /**
-   * The cancel the UI left, during gameplay: the scene gets first refusal of Esc or B, and an Esc
-   * it declines opens the overlay, which B never does. True when it took the press.
+   * The cancel the UI left: it closes an open page; during gameplay the scene gets first refusal
+   * of Esc or B, and an Esc it declines opens the page, which B never does. True when it took the
+   * press.
    */
   back() {
-    if (GameOverlay._modal !== null) return false;
+    if (GameOverlay._root !== null) {
+      GameOverlay.close();
+      return true;
+    }
     const scene = GameOverlay._game !== null ? GameOverlay._game.scene : null;
     if (scene === null || scene.gameplay !== true) return false;
     const handled = scene.handleEscape !== undefined ? scene.handleEscape() : false;
@@ -76,12 +82,12 @@ globalThis.GameOverlay = {
   },
 
   isOpen() {
-    return GameOverlay._modal !== null;
+    return GameOverlay._root !== null;
   },
 
   /** Open + pause (idempotent). tabIndex: 0 System, 1 Settings, 2 About. */
   open(tabIndex = 0) {
-    if (GameOverlay._modal !== null) return;
+    if (GameOverlay._root !== null) return;
     GameOverlay._scale = Time.scale;
     Time.scale = 0;
     Time.delta = 0;
@@ -94,22 +100,8 @@ globalThis.GameOverlay = {
       flexDirection: "row",
       justifyContent: "flex-end",
     });
-    root.addComponent(
-      new UIPanel({ color: facetColor("#000000"), alpha: 0.4 }),
-    );
-    const modal = new UIModal({
-      root,
-      slide: 0,
-      slideX: 48, // enters from the right edge
-      onClose: () => {
-        GameOverlay._modal = null;
-        Time.scale = GameOverlay._scale;
-      },
-    });
-    root.addComponent(modal);
 
-    // square, as it meets three screen edges; opaque, as the scene's own UI text would ghost
-    // through a translucent card
+    // square, as it meets three screen edges; opaque, so the paused scene never reads through it
     const card = facetCard({
       width: "50%",
       padding: FacetTheme.pad,
@@ -117,7 +109,6 @@ globalThis.GameOverlay = {
       rad: 0,
       alpha: 1,
     });
-    card.addComponent(new UITrigger({})); // swallow clicks so they're not a backdrop dismiss
 
     const titleRow = new UIElement({
       width: "100%",
@@ -180,51 +171,55 @@ globalThis.GameOverlay = {
       }),
     );
     card.insertChild(footer);
-
     root.insertChild(card);
-    UI.insert(root); // top of the stack, so it blocks lower roots
-    GameOverlay._modal = modal;
+
+    const hidden = [];
+    const roots = UI.roots;
+    for (let i = 0; i < roots.length; i++) {
+      if (!roots[i].enabled) continue;
+      roots[i].enabled = false;
+      hidden.push(roots[i]);
+    }
+    GameOverlay._hidden = hidden;
+    UI.insert(root);
     GameOverlay._root = root;
     UINav.suspended = false;
     if (tabIndex > 0) tabsRoot.tabs.select(tabIndex);
   },
 
-  /** Animates out, restoring the time scale once closed. */
+  /** Close + resume (idempotent). */
   close() {
-    if (GameOverlay._modal !== null) GameOverlay._modal.close();
+    if (GameOverlay._root === null) return;
+    GameOverlay._drop();
+    Time.scale = GameOverlay._scale;
   },
 
-  /**
-   * Drop the open sheet and restore the time scale on a scene swap. Synchronous, not the animated
-   * close, whose deferred callback would restore the outgoing scene's scale onto the next scene.
-   */
-  reset() {
-    if (GameOverlay._modal !== null) {
-      GameOverlay._modal.remove();
-      Time.scale = GameOverlay._scale;
-    }
-    GameOverlay._modal = null;
-    GameOverlay._root = null;
-  },
-
-  // Rebuild in place, staying paused, so the overlay bakes a new palette. The removal is
-  // synchronous: the animated close's deferred callback would null the fresh modal.
+  /** Rebuild in place, staying paused, so the page bakes a new palette. */
   reopen(tabIndex = 0) {
-    if (GameOverlay._modal === null) {
+    if (GameOverlay._root === null) {
       GameOverlay.open(tabIndex);
       return;
     }
     const resume = GameOverlay._scale;
-    GameOverlay._modal.remove();
-    GameOverlay._modal = null;
-    GameOverlay._root = null;
+    GameOverlay._drop();
     GameOverlay.open(tabIndex); // captures the frozen scale
     GameOverlay._scale = resume;
   },
 
+  /** Removes the page and shows again what it stood in for. */
+  _drop() {
+    const root = GameOverlay._root;
+    GameOverlay._root = null;
+    UI.remove(root);
+    root.destroy();
+    const hidden = GameOverlay._hidden;
+    GameOverlay._hidden = [];
+    for (let i = 0; i < hidden.length; i++) hidden[i].enabled = true;
+  },
+
   /**
    * Live theme swap under a full-cover fade: colors bake at build time, so the scene UI and this
-   * overlay are rebuilt. No-op when the mode is unchanged.
+   * page are rebuilt. No-op when the mode is unchanged.
    */
   _applyTheme(mode) {
     if (mode === FacetTheme.mode) return;

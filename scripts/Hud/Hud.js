@@ -1,9 +1,9 @@
 /**
- * HUD and overlay panels for the colony scene.
+ * HUD panels for the colony scene.
  *
  * build() returns the HUD handle — the panels this module toggles and the hotbar's timing — which
  * the scene hands back to update(). update() is the panels' whole frame job, so no scene field
- * mirrors what a panel shows; an open window hides all but the sleep veil.
+ * mirrors what a panel shows; an open window stands in for all but the sleep card.
  */
 const HOTBAR_HUD_SECS = 3; // wall-clock seconds the hotbar stays up after a hotbar keypress
 const HOTBAR_SLIDE = 150; // GUI px the hotbar slides down off the bottom edge when hidden
@@ -27,7 +27,7 @@ globalThis.Hud = {
     hud.card = Hud._hud(scene);
     hud.bar = Hud._hotbar(scene, hud);
     hud.dialogue = Hud._dialogue(scene, hud);
-    hud.sleep = Hud._sleepOverlay(scene);
+    hud.sleep = Hud._sleep(scene);
     return hud;
   },
 
@@ -37,7 +37,6 @@ globalThis.Hud = {
    */
   update(scene, hud) {
     if (hud.timer > 0) hud.timer -= Time.raw;
-    // the window's translucent card would show the panels through it
     const open = scene.window.isOpen();
     hud.card.enabled = !open;
     // build mode owns the bottom-center HUD, so the bar tucks away for it whatever the timer says
@@ -103,7 +102,7 @@ globalThis.Hud = {
     return row;
   },
 
-  _sleepOverlay(scene) {
+  _sleep(scene) {
     const wrap = new UIElement({
       positionType: "absolute",
       left: 0,

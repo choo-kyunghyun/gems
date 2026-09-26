@@ -111,7 +111,7 @@ class _SceneColonyClass {
     UI.insert(this.ui);
     this.ui.body.insertChild(facetKeyHints(contentHud.HINTS, { color: "#888888" }));
     this.hud = Hud.build(this);
-    // one window after the HUD, whose veil covers it, holding every page under the id that opens it
+    // one window standing in for the HUD, holding every page under the id that opens it
     this.window = new Window(this.ui);
     this.window.add(
       "bag",

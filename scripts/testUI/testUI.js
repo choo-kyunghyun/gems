@@ -169,7 +169,7 @@ Test.register(Test.CHECK, [
   },
   {
     // an idle frame drops a focus the walk would no longer gather — hidden, under a hidden
-    // parent or root, behind an exclusive root, unregistered or destroyed — and keeps one it would
+    // parent or root, unregistered or destroyed — and keeps one it would
     id: "ui.navReach",
     setup(ctx) {
       Test.ui(ctx);
@@ -178,10 +178,7 @@ Test.register(Test.CHECK, [
       ctx.group.insertChild(ctx.btn);
       ctx.root = new UIElement({ flexDirection: "column" });
       ctx.root.insertChild(ctx.group);
-      ctx.cover = new UIElement({ width: 10, height: 10 });
-      ctx.cover.addComponent({ navExclusive: () => true });
       UI.insert(ctx.root);
-      UI.insert(ctx.cover, UI.roots.length, false);
     },
     verify(ctx, t) {
       const btn = ctx.btn;
@@ -202,10 +199,7 @@ Test.register(Test.CHECK, [
       UI.setEnabled(ctx.root, false);
       check(true, "a hidden root");
       UI.setEnabled(ctx.root, true);
-      UI.setEnabled(ctx.cover, true);
-      check(true, "an exclusive root above");
-      UI.setEnabled(ctx.cover, false);
-      check(false, "an exclusive root hidden");
+      check(false, "a shown root");
       UI.remove(ctx.root);
       check(true, "an unregistered root");
       UI.insert(ctx.root, 0);
@@ -259,39 +253,11 @@ Test.register(Test.CHECK, [
     },
   },
   {
-    // an exclusive root hides every root beneath it from the nav until it is removed
-    id: "ui.navModal",
-    setup(ctx) {
-      Test.ui(ctx);
-      ctx.base = new UIElement({ width: 200, height: 40 }).addComponent(new UIButton());
-      UI.insert(ctx.base);
-      ctx.card = new UIElement({ width: 200, height: 40 }).addComponent(new UIButton());
-      ctx.overlay = new UIElement({ width: "100%", height: "100%" });
-      ctx.overlay.insertChild(ctx.card);
-      ctx.modal = new UIModal({ root: ctx.overlay });
-      ctx.overlay.addComponent(ctx.modal);
-      UI.insert(ctx.overlay);
-    },
-    verify(ctx, t) {
-      let items = UINav._collect();
-      t.ok(items.length === 1 ? items[0].el === ctx.card : false, "only the modal is reachable");
-      ctx.modal.remove();
-      items = UINav._collect();
-      t.ok(items.length === 1 ? items[0].el === ctx.base : false, "a removal hands the nav back");
-    },
-    teardown(ctx) {
-      Test.uiRestore(ctx);
-    },
-  },
-  {
-    // Esc goes to its innermost owner, which spends it: a focused field blurs, then the modal
-    // closes, and only then does the nav let go of its ring
+    // Esc goes to its innermost owner, which spends it: a focused field blurs, and only then does
+    // the nav let go of its ring
     id: "ui.navCancel",
     setup(ctx) {
       Test.ui(ctx);
-      Time.raw = 1; // longer than any fade, so a modal enters or exits within one frame
-      ctx.base = new UIElement({ width: 200, height: 40 }).addComponent(new UIButton());
-      UI.insert(ctx.base);
       ctx.cancelled = 0;
       ctx.field = new UIInput({
         onCancel: () => {
@@ -299,17 +265,7 @@ Test.register(Test.CHECK, [
         },
       });
       const fieldEl = new UIElement({ width: 200, height: 40 }).addComponent(ctx.field);
-      ctx.overlay = new UIElement({ width: "100%", height: "100%" });
-      ctx.overlay.insertChild(fieldEl);
-      ctx.closed = 0;
-      ctx.modal = new UIModal({
-        root: ctx.overlay,
-        onClose: () => {
-          ctx.closed += 1;
-        },
-      });
-      ctx.overlay.addComponent(ctx.modal);
-      UI.insert(ctx.overlay);
+      UI.insert(fieldEl);
       ctx.field.focus(fieldEl);
       UINav.engaged = true;
     },
@@ -317,17 +273,11 @@ Test.register(Test.CHECK, [
       Test.uiFrame(ctx, [vk_escape]);
       t.eq(ctx.cancelled, 1, "the first Esc ends the field's editing");
       t.ok(UINav.engaged, "the field's Esc never reaches the nav");
-      Test.uiFrame(ctx, []);
-      t.eq(ctx.closed, 0, "the field's Esc never reaches the modal");
+      t.eq(ctx.backs, 0, "nor back");
 
       Test.uiFrame(ctx, [vk_escape]);
-      t.ok(UINav.engaged, "the modal's Esc never reaches the nav");
-      Test.uiFrame(ctx, []);
-      t.eq(ctx.closed, 1, "the next Esc closes the modal");
-      t.ok(UI.roots.indexOf(ctx.overlay) === -1, "a closed modal leaves the roots");
-
-      Test.uiFrame(ctx, [vk_escape]);
-      t.ok(!UINav.engaged, "the last Esc lets go of the ring");
+      t.ok(!UINav.engaged, "the next Esc lets go of the ring");
+      t.eq(ctx.backs, 1, "and falls to back");
     },
     teardown(ctx) {
       Test.uiRestore(ctx);
@@ -522,51 +472,21 @@ Test.register(Test.CHECK, [
     },
   },
   {
-    // a cancel finds its modal with no focus to start from; one the UI leaves falls to `back`,
-    // which alone hears it while the nav is suspended, and only a taken cancel is spent
+    // a cancel the UI leaves falls to `back`, which alone hears it while the nav is suspended, and
+    // only a taken cancel is spent
     id: "ui.navBack",
     setup(ctx) {
       Test.ui(ctx);
-      Time.raw = 1; // longer than any fade, so a modal enters or exits within one frame
-      ctx.closed = 0;
-      ctx.openModal = () => {
-        const overlay = new UIElement({ width: "100%", height: "100%" });
-        ctx.card = new UIElement({ width: 200, height: 40 }).addComponent(new UIButton());
-        overlay.insertChild(ctx.card);
-        overlay.addComponent(
-          new UIModal({
-            root: overlay,
-            onClose: () => {
-              ctx.closed += 1;
-            },
-          }),
-        );
-        UI.insert(overlay);
-      };
       UI.insert(new UIElement({ width: 200, height: 40 }).addComponent(new UIButton()));
     },
     verify(ctx, t) {
-      ctx.openModal();
       Test.uiFrame(ctx, [vk_escape]);
-      t.ok(!Input.keyPressed(vk_escape), "a cancel the UI takes is spent");
-      Test.uiFrame(ctx, []);
-      t.eq(ctx.closed, 1, "with no focus an Esc still closes the modal");
-      t.eq(ctx.backs, 0, "and never reaches back");
-
-      Test.uiFrame(ctx, [vk_escape]);
-      t.eq(ctx.backs, 1, "a cancel the UI leaves falls to back");
+      t.eq(ctx.backs, 1, "with no focus a cancel falls to back");
       t.ok(Input.keyPressed(vk_escape), "and stays for later readers while back declines it");
       ctx.backTakes = true;
       Test.uiFrame(ctx, [vk_escape]);
       t.ok(!Input.keyPressed(vk_escape), "a cancel back takes is spent");
       ctx.backTakes = false;
-
-      ctx.openModal();
-      UINav.focused = ctx.card;
-      UINav.engaged = true;
-      Test.uiFrame(ctx, [], [gp_face2]);
-      Test.uiFrame(ctx, []);
-      t.eq(ctx.closed, 2, "a pad cancel closes the modal too");
 
       UINav.suspended = true;
       ctx.backs = 0;
@@ -581,62 +501,72 @@ Test.register(Test.CHECK, [
     },
   },
   {
-    // an armed rebind row takes the Esc that disarms it before its modal can, and an open
-    // dialogue shuts the nav out
+    // an armed rebind row takes the Esc that disarms it before back can
     id: "ui.navCapture",
     setup(ctx) {
       Test.ui(ctx);
-      Time.raw = 1; // longer than any fade, so a modal enters or exits within one frame
-      ctx.closed = 0;
       ctx.row = new UIElement({ width: 200, height: 40 }).addComponent(
         new UIRebind({ actionKey: "test_absent" }),
       );
-      ctx.overlay = new UIElement({ width: "100%", height: "100%" });
-      ctx.overlay.insertChild(ctx.row);
-      ctx.overlay.addComponent(
-        new UIModal({
-          root: ctx.overlay,
-          onClose: () => {
-            ctx.closed += 1;
-          },
-        }),
-      );
-      UI.insert(ctx.overlay);
+      UI.insert(ctx.row);
       UINav.focused = ctx.row;
       UINav.engaged = true;
     },
     verify(ctx, t) {
       Test.uiFrame(ctx, [vk_enter]);
       Test.uiFrame(ctx, [vk_escape]);
-      Test.uiFrame(ctx, []);
-      t.eq(ctx.closed, 0, "an armed row takes the Esc that disarms it");
+      t.eq(ctx.backs, 0, "an armed row takes the Esc that disarms it");
       Test.uiFrame(ctx, [vk_escape]);
-      Test.uiFrame(ctx, []);
-      t.eq(ctx.closed, 1, "a disarmed row leaves the next Esc to its modal");
-
-      const a = new UIElement({ width: 200, height: 40 }).addComponent(new UIButton());
-      const b = new UIElement({ width: 200, height: 40 }).addComponent(new UIButton());
-      const col = new UIElement({ flexDirection: "column", gap: 20 });
-      col.insertChild(a).insertChild(b);
-      UI.insert(col);
-      UINav.focused = a;
-      UINav.engaged = true;
-      Dialogue.start(["TEST_ABSENT"]);
-      Test.uiFrame(ctx, [vk_down]);
-      t.ok(UINav.focused === a, "an open dialogue keeps the moves from the nav");
-      Test.uiFrame(ctx, [vk_escape]);
-      t.ok(UINav.engaged ? ctx.backs === 0 : false, "and the cancel");
-      ctx.overlayHolds = true;
-      Test.uiFrame(ctx, [vk_down]);
-      t.ok(UINav.focused === b, "a held overlay leaves the moves to the nav");
-      ctx.overlayHolds = false;
-      UINav.focused = a;
-      Dialogue.clear();
-      Test.uiFrame(ctx, [vk_down]);
-      t.ok(UINav.focused === b, "a closed one hands them back");
+      t.eq(ctx.backs, 1, "a disarmed row leaves the next Esc to back");
     },
     teardown(ctx) {
-      Dialogue.clear();
+      Test.uiRestore(ctx);
+    },
+  },
+  {
+    // an inline list opens after its field and leaves on a pick, a cancel from inside it, or a
+    // press outside both, handing a focus inside it back to the field
+    id: "ui.dropdown",
+    setup(ctx) {
+      Test.ui(ctx);
+      ctx.host = new UIElement({ width: 200 });
+      ctx.field = new UIElement({ width: 200, height: 40 });
+      ctx.list = new UIElement({ width: 200 });
+      ctx.row = new UIElement({ width: 200, height: 40 }).addComponent(new UIButton());
+      ctx.list.insertChild(ctx.row);
+      ctx.dd = new UIDropdown({
+        items: [
+          { name: "a", value: 1 },
+          { name: "b", value: 2 },
+        ],
+        list: ctx.list,
+      });
+      ctx.field.addComponent(ctx.dd);
+      ctx.host.insertChild(ctx.field);
+      ctx.host.insertChild(new UIElement({ width: 200, height: 40 }));
+      UI.insert(ctx.host);
+    },
+    verify(ctx, t) {
+      const confirm = { kind: "confirm", dx: 0, dy: 0 };
+      t.ok(ctx.dd.onNav(ctx.field, confirm), "a confirm on the field is taken");
+      t.ok(ctx.host.children[1] === ctx.list, "and opens the list right after the field");
+      t.ok(ctx.dd.onNav(ctx.field, confirm) ? ctx.list.parent === null : false, "a second closes it");
+
+      ctx.dd.onNav(ctx.field, confirm);
+      UINav.focused = ctx.row;
+      UINav.engaged = true;
+      Test.uiFrame(ctx, [vk_escape]);
+      t.ok(ctx.list.parent === null, "a cancel from inside the list closes it");
+      t.ok(UINav.focused === ctx.field, "and hands the focus back to the field");
+      t.ok(ctx.backs === 0 ? !Input.keyPressed(vk_escape) : false, "a cancel it takes is spent");
+
+      ctx.dd.onNav(ctx.field, confirm);
+      Input.pointer.left.pressed = true;
+      Test.uiFrame(ctx, []);
+      Input.pointer.left.pressed = false;
+      t.ok(ctx.list.parent === null, "a press outside field and list closes it");
+    },
+    teardown(ctx) {
       Test.uiRestore(ctx);
     },
   },
@@ -646,7 +576,6 @@ Test.register(Test.CHECK, [
     setup(ctx) {
       ctx.clicks = 0;
       ctx.toggles = 0;
-      ctx.opened = 0;
       ctx.els = [];
       ctx.el = () => {
         const e = new UIElement({ width: 100, height: 40 });
@@ -701,14 +630,6 @@ Test.register(Test.CHECK, [
       ctx.el().insertChild(header);
       const acc = new UIAccordion({ body: ctx.el() });
       t.ok(acc.onNav(header, confirm) ? acc.expanded : false, "an accordion's confirm toggles it");
-
-      const dd = new UIDropdown({
-        items: [{ name: "x", value: 1 }],
-        onOpen: () => {
-          ctx.opened += 1;
-        },
-      });
-      t.ok(dd.onNav(el, confirm) ? ctx.opened === 1 : false, "a dropdown's confirm opens it");
     },
     teardown(ctx) {
       for (let i = ctx.els.length - 1; i >= 0; i--) ctx.els[i].destroy();
