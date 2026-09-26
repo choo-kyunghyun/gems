@@ -9,7 +9,7 @@ module's contract lives in JSDoc at its owning declaration, and the project fold
 Routing rule: the code is the primary reference. Before designing or modifying an area, read its
 owning files' JSDoc contracts, the invariants here, the quirks in GMRT.md, and — for anything on a
 per-tick or per-entity path — the hot-path idioms below and the costs the `perf.*` cases
-measure (`testRuntime`, `testData`, `testCollision`, `testLevel`, `testRender`). An area is located through the folder tree and the `globalThis.X =` declaration that owns
+measure (`testRuntime`, `testData`, `testCollision`, `testLevel`, `testUI`). An area is located through the folder tree and the `globalThis.X =` declaration that owns
 a name, never through a list here; a new contract goes to its owner.
 
 Doc laws — what this file may contain:
