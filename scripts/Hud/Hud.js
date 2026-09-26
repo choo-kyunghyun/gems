@@ -11,7 +11,7 @@ const HOTBAR_SLIDE_SPD = 16; // higher = snappier
 const HOTBAR_CELL = 56; // GUI px per hotbar slot
 
 globalThis.Hud = {
-  /** Once per scene. */
+  /** Once per scene. Every panel goes into `scene.ui` but the sleep card, the scene's to place. */
   build(scene) {
     const hud = {
       card: null,
@@ -122,7 +122,6 @@ globalThis.Hud = {
     );
     wrap.insertChild(card);
     wrap.enabled = false;
-    scene.ui.insertChild(wrap);
     return wrap;
   },
 

@@ -7,8 +7,9 @@
  */
 
 /**
- * Keyboard/gamepad menu navigation over the focusable widgets of the enabled UI roots. The first
- * nav input only engages the focus ring; pointer movement disengages it. While live it claims the gamepad, so gameplay pad bindings read idle.
+ * Keyboard/gamepad menu navigation over the focusable widgets that show: enabled, and not stood
+ * in for by a page. The first nav input only engages the focus ring; pointer movement disengages
+ * it. While live it claims the gamepad, so gameplay pad bindings read idle.
  *
  * A frame's input is one {UINavEvent}, offered to the focused element and then up its ancestors
  * until a component's `onNav(element, event)` returns true; only an unhandled event falls to the
@@ -248,10 +249,11 @@ globalThis.UINav = {
     draw_line_width_color(x1, y1, x2, y2, 2, col, col);
   },
 
-  /** Walk the enabled roots top-down. */
+  /** Walk the roots that show, top-down. */
   _collect() {
     const out = [];
-    for (let i = UI.roots.length - 1; i >= 0; i--) {
+    const front = UI.front();
+    for (let i = UI.roots.length - 1; i >= front; i--) {
       const r = UI.roots[i];
       if (r.enabled) UINav._walk(r, out);
     }
@@ -265,10 +267,13 @@ globalThis.UINav = {
     let root = el;
     while (root.parent !== null) {
       if (!root.enabled) return false;
-      root = root.parent;
+      const p = root.parent;
+      if (p._pages > 0 ? p.children.indexOf(root) < p.front() : false) return false;
+      root = p;
     }
     if (!root.enabled) return false;
-    return UI.roots.indexOf(root) !== -1;
+    const i = UI.roots.indexOf(root);
+    return i !== -1 ? i >= UI.front() : false;
   },
 
   _walk(el, out) {
@@ -285,7 +290,7 @@ globalThis.UINav = {
         cy: pos.top + pos.height * 0.5,
       });
     }
-    for (let i = 0; i < el.children.length; i++) {
+    for (let i = el._pages > 0 ? el.front() : 0; i < el.children.length; i++) {
       if (el.children[i].enabled) UINav._walk(el.children[i], out);
     }
   },

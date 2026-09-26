@@ -22,12 +22,16 @@
  * flexpanel-backed UI tree node, and the rule for how a layout change reaches the screen:
  * layout props are set once at construction; runtime movement (scroll, drag) is draw-time offset
  * math through getLayoutPosition, applied at draw and hit-test with no reflow; show/hide is
- * `enabled`, never `display`; a size change is a structural insert/remove, which reflows.
+ * `enabled`, never `display`; a size change is a structural insert/remove, which reflows. A
+ * `page`, marked before it is inserted, stands in for every sibling before it while it is
+ * enabled: they keep their layout but neither update, draw nor take the focus.
  * Measure-callback self-sizing is unsupported (docs/GMRT.md).
  */
 globalThis.UIElement = class UIElement {
   constructor(style = {}) {
     this.enabled = true;
+    this.page = false;
+    this._pages = 0; // page children: a parent with none skips the scan for the front
     this.flexpanel = flexpanel_create_node(style);
     this.direction = flexpanel_direction.LTR;
     this.parent = null;
@@ -98,7 +102,8 @@ globalThis.UIElement = class UIElement {
       if (!insideClip) childBlock = true;
     }
     const kids = this.children;
-    for (let i = kids.length - 1; i >= 0; i--) {
+    const front = this._pages > 0 ? this.front() : 0;
+    for (let i = kids.length - 1; i >= front; i--) {
       const child = kids[i];
       if (child.enabled) childBlock = child.update(childBlock) || childBlock;
     }
@@ -125,10 +130,25 @@ globalThis.UIElement = class UIElement {
     if (this.clip) {
       this._drawClipped();
     } else {
-      for (const child of this.children) {
-        if (child.enabled) child.draw();
-      }
+      this._drawChildren();
     }
+  }
+
+  _drawChildren() {
+    const kids = this.children;
+    for (let i = this._pages > 0 ? this.front() : 0; i < kids.length; i++) {
+      if (kids[i].enabled) kids[i].draw();
+    }
+  }
+
+  /** The index of the last enabled page child, the first child that shows; 0 with none. */
+  front() {
+    if (this._pages === 0) return 0;
+    const kids = this.children;
+    for (let i = kids.length - 1; i > 0; i--) {
+      if (kids[i].page ? kids[i].enabled : false) return i;
+    }
+    return 0;
   }
 
   /**
@@ -170,9 +190,7 @@ globalThis.UIElement = class UIElement {
     }
 
     gpu_set_scissor(x1, y1, Math.max(0, x2 - x1), Math.max(0, y2 - y1));
-    for (const child of this.children) {
-      if (child.enabled) child.draw();
-    }
+    this._drawChildren();
     // BUG: [#6523] the scissor does not flush the batch: flush, then re-arm with an untextured
     // draw, both still inside this clip (docs/GMRT.md).
     draw_flush();
@@ -191,6 +209,7 @@ globalThis.UIElement = class UIElement {
     const kids = this.children.slice();
     kids.splice(index, 0, element);
     this.children = kids;
+    if (element.page) this._pages++;
     flexpanel_node_insert_child(this.flexpanel, element.flexpanel, index);
     this.markDirty();
     return this;
@@ -202,6 +221,7 @@ globalThis.UIElement = class UIElement {
       const kids = this.children.slice();
       kids.splice(index, 1);
       this.children = kids;
+      if (element.page) this._pages--;
       flexpanel_node_remove_child(this.flexpanel, element.flexpanel);
       element.parent = null;
       this.markDirty();

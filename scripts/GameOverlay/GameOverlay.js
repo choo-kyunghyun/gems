@@ -1,13 +1,12 @@
 /**
- * The app's pause menu: a page that stands in for every other UI root while it is open, as a side
- * sheet over the right half of the still-visible scene. Pause is global: while it is open the
+ * The app's pause menu: a page root that stands in for every root beneath it while it is open,
+ * as a side sheet over the right half of the still-visible scene. Pause is global: while it is open the
  * scene does not update and the time scale is forced to 0 each frame. F1 opens it anywhere;
  * during gameplay (a scene's `gameplay` flag) gamepad Start does too, and an Esc the UI left opens
  * it only when the scene's `handleEscape` declines it. A cancel the page leaves closes it.
  */
 globalThis.GameOverlay = {
   _root: null,
-  _hidden: [], // the roots the page stands in for, shown again on close
   _game: null, // re-latched each update()
   _scale: 1, // the time scale to restore on resume
   // extra tabs { label, short, build } injected at boot, keeping the page free of scene/save
@@ -100,6 +99,7 @@ globalThis.GameOverlay = {
       flexDirection: "row",
       justifyContent: "flex-end",
     });
+    root.page = true;
 
     // square, as it meets three screen edges; opaque, so the paused scene never reads through it
     const card = facetCard({
@@ -173,14 +173,6 @@ globalThis.GameOverlay = {
     card.insertChild(footer);
     root.insertChild(card);
 
-    const hidden = [];
-    const roots = UI.roots;
-    for (let i = 0; i < roots.length; i++) {
-      if (!roots[i].enabled) continue;
-      roots[i].enabled = false;
-      hidden.push(roots[i]);
-    }
-    GameOverlay._hidden = hidden;
     UI.insert(root);
     GameOverlay._root = root;
     UINav.suspended = false;
@@ -206,15 +198,11 @@ globalThis.GameOverlay = {
     GameOverlay._scale = resume;
   },
 
-  /** Removes the page and shows again what it stood in for. */
   _drop() {
     const root = GameOverlay._root;
     GameOverlay._root = null;
     UI.remove(root);
     root.destroy();
-    const hidden = GameOverlay._hidden;
-    GameOverlay._hidden = [];
-    for (let i = 0; i < hidden.length; i++) hidden[i].enabled = true;
   },
 
   /**

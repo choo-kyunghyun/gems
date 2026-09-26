@@ -1,6 +1,6 @@
 /**
- * The gameplay window shell — one page at a time in the scene root's body, standing in for the
- * HUD, which hides while a page is open.
+ * The gameplay window shell — one page at a time, on a UI page that stands in for every panel
+ * inserted into the scene root before it.
  *
  * A page is a plain object built once per scene and added under an id:
  *   el            UIElement — the content column, stacked absolute in the card, so a switch is an
@@ -19,20 +19,29 @@
  * destroys the widget whose click requested it.
  */
 globalThis.Window = class Window {
-  /** `root` is a facetRoot; the window fills what its body leaves. */
-  constructor(root) {
+  /** `root` is a facetRoot; the window fills its padding, `opts.top` down from the top edge. */
+  constructor(root, opts = {}) {
     this.page = null;
     this.target = -1;
     this.dirty = false;
     this._pages = {}; // id -> page
-    this._host = facetCard({
+    const pad = FacetTheme.pad;
+    this._host = new UIElement({
+      positionType: "absolute",
+      left: pad,
+      right: pad,
+      bottom: pad,
+      top: opts.top ?? pad,
+    });
+    this._host.page = true;
+    const card = facetCard({
       width: "100%",
       flexGrow: 1,
       flexBasis: 0,
-      padding: FacetTheme.pad,
+      padding: pad,
       gap: FacetTheme.gapSm,
     });
-    this._host.addComponent(new UITrigger({})); // a click on the page never reaches the world
+    card.addComponent(new UITrigger({})); // a click on the page never reaches the world
     // the title cell grows so a page's extra items and the close button sit right
     this._titleRow = new UIElement({
       width: "100%",
@@ -54,12 +63,13 @@ globalThis.Window = class Window {
         rad: FacetTheme.radiusSm,
       }),
     );
-    this._host.insertChild(this._titleRow);
-    this._host.insertChild(facetDivider());
+    card.insertChild(this._titleRow);
+    card.insertChild(facetDivider());
     this._stack = new UIElement({ width: "100%", flexGrow: 1, flexBasis: 0 });
-    this._host.insertChild(this._stack);
+    card.insertChild(this._stack);
+    this._host.insertChild(card);
     this._host.enabled = false;
-    root.body.insertChild(this._host);
+    root.insertChild(this._host);
   }
 
   /** Stamps `id` and `_slot` on the page; returns it. */

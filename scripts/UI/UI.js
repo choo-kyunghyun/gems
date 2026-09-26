@@ -1,4 +1,5 @@
-// The root registry: update() runs topmost-first (a later root blocks earlier), draw() in order.
+// The root registry: update() runs topmost-first (a later root blocks earlier), draw() in order,
+// and an enabled page root stands in for every root before it.
 globalThis.UI = {
   roots: [], // replaced on every insert/remove, never mutated, as a walk reads the one it began with
 
@@ -53,6 +54,15 @@ globalThis.UI = {
     return false;
   },
 
+  /** The index of the last enabled page root, the first root that shows; 0 with none. */
+  front() {
+    const roots = UI.roots;
+    for (let i = roots.length - 1; i > 0; i--) {
+      if (roots[i].page ? roots[i].enabled : false) return i;
+    }
+    return 0;
+  },
+
   setEnabled(root, enabled) {
     const index = UI.roots.indexOf(root);
     if (index > -1) {
@@ -81,7 +91,8 @@ globalThis.UI = {
   update() {
     let block = false;
     const roots = UI.roots;
-    for (let i = roots.length - 1; i >= 0; i--) {
+    const front = UI.front();
+    for (let i = roots.length - 1; i >= front; i--) {
       const root = roots[i];
       if (root.enabled) block = root.update(block) || block;
     }
@@ -94,7 +105,9 @@ globalThis.UI = {
     if (Display.renderW > 0) {
       gpu_set_scissor(0, 0, Display.clipW(), Display.clipH());
     }
-    for (const root of UI.roots) {
+    const roots = UI.roots;
+    for (let i = UI.front(); i < roots.length; i++) {
+      const root = roots[i];
       if (root.enabled) {
         // a root can still be dirty here: children built after insert, or mutations after the
         // end-of-update refresh

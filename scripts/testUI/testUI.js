@@ -253,6 +253,49 @@ Test.register(Test.CHECK, [
     },
   },
   {
+    // an enabled page stands in for the siblings and the roots before it — they neither update nor
+    // take the focus — and a closed one hands them back
+    id: "ui.page",
+    setup(ctx) {
+      Test.ui(ctx);
+      ctx.updates = 0;
+      const button = () => new UIElement({ width: 200, height: 40 }).addComponent(new UIButton());
+      ctx.base = button().addComponent({
+        onUpdate: (el, block) => {
+          ctx.updates += 1;
+          return block;
+        },
+      });
+      ctx.under = button();
+      ctx.page = button();
+      ctx.page.page = true;
+      const parent = new UIElement({ width: 200 });
+      parent.insertChild(ctx.under);
+      parent.insertChild(ctx.page);
+      UI.insert(ctx.base);
+      UI.insert(parent);
+      ctx.top = button();
+      ctx.top.page = true;
+    },
+    verify(ctx, t) {
+      const has = (el) => UINav._indexOf(UINav._collect(), el) !== -1;
+      t.ok(!has(ctx.under) ? has(ctx.page) : false, "a page hides the siblings before it from the walk");
+      t.ok(!UINav._reachable(ctx.under), "and from the focus");
+      ctx.page.enabled = false;
+      t.ok(has(ctx.under) ? UINav._reachable(ctx.under) : false, "a closed page hands them back");
+
+      UI.insert(ctx.top);
+      UI.update();
+      t.ok(ctx.updates === 0 ? !has(ctx.base) : false, "a page root stands in for every root before it");
+      ctx.top.enabled = false;
+      UI.update();
+      t.ok(ctx.updates === 1 ? has(ctx.base) : false, "and a closed one hands them back");
+    },
+    teardown(ctx) {
+      Test.uiRestore(ctx);
+    },
+  },
+  {
     // Esc goes to its innermost owner, which spends it: a focused field blurs, and only then does
     // the nav let go of its ring
     id: "ui.navCancel",

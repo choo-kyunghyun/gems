@@ -109,10 +109,13 @@ class _SceneColonyClass {
   _buildUI() {
     this.ui = facetRoot();
     UI.insert(this.ui);
-    this.ui.body.insertChild(facetKeyHints(contentHud.HINTS, { color: "#888888" }));
     this.hud = Hud.build(this);
-    // one window standing in for the HUD, holding every page under the id that opens it
-    this.window = new Window(this.ui);
+    this.interact = Interactable.build(this);
+    this.build = BuildMode.build(this);
+    // one window standing in for every panel above, holding every page under the id that opens
+    // it; it opens below the key hints
+    const pad = FacetTheme.pad;
+    this.window = new Window(this.ui, { top: pad + FacetTheme.lineH + FacetTheme.gap });
     this.window.add(
       "bag",
       InventoryUI.build(this, {
@@ -149,8 +152,17 @@ class _SceneColonyClass {
     this.window.add("workbench", CraftingUI.build(this));
     this.window.add("travel", WorldMapUI.build(this));
     this.window.add("trade", TradeUI.build(this));
-    this.interact = Interactable.build(this);
-    this.build = BuildMode.build(this);
+    // after the window, so both stay over it
+    const hints = new UIElement({
+      positionType: "absolute",
+      left: pad,
+      right: pad,
+      top: pad,
+      height: FacetTheme.lineH,
+    });
+    hints.insertChild(facetKeyHints(contentHud.HINTS, { color: "#888888" }));
+    this.ui.insertChild(hints);
+    this.ui.insertChild(this.hud.sleep);
   }
 
   /**
