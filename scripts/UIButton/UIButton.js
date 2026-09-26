@@ -38,7 +38,7 @@ globalThis.UIButton = class UIButton {
       onDown: () => this.onDown(),
       onUp: () => this.onUp(),
       onClick: () => {
-        Audio.play({ sound: sndButtonClick }); // before onClick, which may swap the level
+        Audio.play({ sound: UI.sounds.click }); // before onClick, which may swap the level
         this.onClick();
       },
     });

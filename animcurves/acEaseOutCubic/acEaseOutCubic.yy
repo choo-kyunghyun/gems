@@ -11,7 +11,7 @@
   "name":"acEaseOutCubic",
   "parent":{
     "name":"Curves",
-    "path":"folders/Game/Media/Curves.yy",
+    "path":"folders/Core/Media/Curves.yy",
   },
   "resourceType":"GMAnimCurve",
   "resourceVersion":"2.0",

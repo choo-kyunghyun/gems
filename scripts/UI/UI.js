@@ -2,6 +2,12 @@
 globalThis.UI = {
   roots: [],
 
+  // the app's widget cues, injected; -1 stays silent
+  sounds: {
+    click: -1, // a press, pointer or nav
+    tick: -1, // a nav focus step
+  },
+
   // GUI is sized to this ÷ uiScale, so layout is monitor-independent
   designW: 1920,
   designH: 1080,
