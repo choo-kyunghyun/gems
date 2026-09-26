@@ -8,21 +8,24 @@ globalThis.Consumption = {
     return false;
   },
 
-  /** Refuses, rather than waste the item, when its effect would do nothing now. */
+  /**
+   * Refuses, rather than waste the item, when its effect would do nothing now. Returns "" when
+   * used, else the i18n key of why not.
+   */
   use(entities, id, itemId) {
     const item = Item.get(itemId);
-    if (item === undefined) return false;
+    if (item === undefined) return "INV_UNKNOWN_ITEM";
     const con = item.getComponent(Consumable);
-    if (con === undefined) return false;
+    if (con === undefined) return "INV_NOT_USABLE";
 
     const inv = entities.require(id, Inventory);
-    if (!Bag.has(inv, itemId, 1)) return false;
+    if (!Bag.has(inv, itemId, 1)) return "INV_NOT_OWNED";
 
-    if (!Consumption._apply(entities, id, con)) return false;
+    if (!Consumption._apply(entities, id, con)) return "INV_NO_EFFECT";
     Bag.remove(inv, itemId, 1);
     // a leftover container is best-effort: a full bag just loses the trash.
     if (con.yields !== "") Bag.add(inv, con.yields, 1);
-    return true;
+    return "";
   },
 
   /** Returns true if anything changed. */

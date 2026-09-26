@@ -903,7 +903,7 @@ globalThis.InventoryUI = {
 
   _activate(scene, row) {
     if (row === null || row === undefined) return;
-    InventoryUI.useItem(scene, row.itemId, row.worn, row.uid);
+    InventoryUI.use(scene, row.itemId, row.uid);
   },
 
   _actionLabel(page) {
@@ -956,41 +956,20 @@ globalThis.InventoryUI = {
     return row;
   },
 
-  /**
-   * Equippables toggle, consumables use one unit. `wasWorn` is the row's shown state, so of two
-   * identical equippables only the shown-worn one unequips. Without `uid` the first owned
-   * instance equips.
-   */
-  useItem(scene, itemId, wasWorn, uid) {
-    const item = Item.get(itemId);
-    if (item === undefined) return;
-    if (item.hasComponent(Equippable)) {
-      const eqp = item.getComponent(Equippable);
-      if (wasWorn) {
-        Loadout.unequip(scene.level.entities, scene.playerId, eqp.slot);
-        Log.info(`unequipped ${itemId}`);
-      } else {
-        const why =
-          uid !== undefined
-            ? Loadout.equip(scene.level.entities, scene.playerId, uid)
-            : Loadout.equipFirst(
-                scene.level.entities,
-                scene.playerId,
-                itemId,
-              );
-        if (why === "") Log.info(`equipped ${itemId}`);
-        else Toast.push(I18n.text(why), { type: "warn" });
-      }
-    } else if (item.hasComponent(Consumable)) {
-      if (Consumption.use(scene.level.entities, scene.playerId, itemId)) {
-        const c = item.getComponent(Consumable);
-        if ((c.thirst ?? 0) > 0 || (c.hunger ?? 0) > 0)
-          Audio.play({ sound: sndDrink });
-        else if ((c.heal ?? 0) > 0) Audio.play({ sound: sndBandage });
-        else Audio.play({ sound: sndMagic });
-        Log.info(`used ${itemId}`);
-      }
-    }
+  /** The use gesture's view: one call into Use, then its refusal or its sound. */
+  use(scene, itemId, uid) {
+    const why = Use.item(scene.level.entities, scene.playerId, itemId, uid);
     scene.window.dirty = true;
+    if (why !== "") {
+      Toast.push(I18n.text(why), { type: "warn" });
+      return;
+    }
+    Log.info(`used ${itemId}`);
+    const c = Item.get(itemId).getComponent(Consumable);
+    if (c === undefined) return;
+    if ((c.thirst ?? 0) > 0 || (c.hunger ?? 0) > 0)
+      Audio.play({ sound: sndDrink });
+    else if ((c.heal ?? 0) > 0) Audio.play({ sound: sndBandage });
+    else Audio.play({ sound: sndMagic });
   },
 };

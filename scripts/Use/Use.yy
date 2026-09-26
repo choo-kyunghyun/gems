@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Use",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Use",
+  "parent":{
+    "name":"Inventory",
+    "path":"folders/Game/Inventory.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Use.js",
+}

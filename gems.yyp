@@ -499,6 +499,7 @@
     {"id":{"name":"UIText","path":"scripts/UIText/UIText.yy",},},
     {"id":{"name":"UITooltip","path":"scripts/UITooltip/UITooltip.yy",},},
     {"id":{"name":"UITrigger","path":"scripts/UITrigger/UITrigger.yy",},},
+    {"id":{"name":"Use","path":"scripts/Use/Use.yy",},},
     {"id":{"name":"Utils","path":"scripts/Utils/Utils.yy",},},
     {"id":{"name":"Velocity","path":"scripts/Velocity/Velocity.yy",},},
     {"id":{"name":"VertexBatch","path":"scripts/VertexBatch/VertexBatch.yy",},},

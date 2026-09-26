@@ -63,5 +63,7 @@
   "INV_NOT_EQUIPPABLE": "That item cannot be equipped",
   "INV_ALREADY_WORN": "Already equipped",
   "INV_UNKNOWN_ITEM": "Unknown item",
+  "INV_NOT_USABLE": "That item cannot be used",
+  "INV_NO_EFFECT": "It would have no effect now",
   "INV_NOACTION": "-"
 }

@@ -334,8 +334,7 @@ class _SceneColonyClass {
       this.showHotbar(); // even an empty slot reveals the bar
       const itemId = hb.slots[i];
       if (itemId === "") continue;
-      const worn = Loadout.worn(this.level.entities, this.playerId, itemId);
-      InventoryUI.useItem(this, itemId, worn);
+      InventoryUI.use(this, itemId);
     }
   }
 

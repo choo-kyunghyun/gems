@@ -1,6 +1,6 @@
 /**
- * Quick-use bar of bound item ids. A slot need not hold an owned item; using one the bag lacks
- * is a no-op.
+ * Quick-use bar of bound item ids. A slot need not hold an owned item, so a binding outlives the
+ * stock it names; using one the bag lacks is refused.
  *
  * @typedef {Object} Hotbar
  * @property {string[]} slots  itemId per slot, "" = empty; HOTBAR_SIZE long
