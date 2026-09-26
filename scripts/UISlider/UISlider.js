@@ -26,9 +26,8 @@ globalThis.UISlider = class UISlider {
     this._fillStyle = slider.fill ?? {};
     this._thumbStyle = slider.thumb ?? {};
 
-    // the drag reads the delegate's hold flag; read-only never latches it, so this.readOnly
-    // only gates the nav path
-    this._fsm = new UITrigger({ readOnly: this.readOnly });
+    // the drag reads the delegate's hold flag, which a read-only trigger never latches
+    this._fsm = new UITrigger();
   }
 
   _snap(value) {
@@ -103,6 +102,7 @@ globalThis.UISlider = class UISlider {
 
   onUpdate(element, block) {
     const pos = element.getLayoutPosition();
+    this._fsm.readOnly = this.readOnly;
     const result = this._fsm.onUpdate(element, block);
 
     // hold latches on the press frame, so the value jumps at once, and clears on release

@@ -167,13 +167,16 @@ globalThis.UIInput = class UIInput {
 
   _insert(text) {
     if (this.readOnly) return;
-    this._deleteSelection();
+    const cut = this._deleteSelection();
     let out = "";
     for (const ch of text) {
       if (this.value.length + out.length >= this.maxLength) break;
       if (this._accept(ch)) out += ch;
     }
-    if (out === "") return;
+    if (out === "") {
+      if (cut) this.onChange(this.value);
+      return;
+    }
     const at = this._cursor;
     this.value = this.value.slice(0, at) + out + this.value.slice(at);
     this._setCursor(at + out.length, false);

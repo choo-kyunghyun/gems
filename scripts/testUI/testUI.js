@@ -1,5 +1,5 @@
 // Core/UI cases: the live text refs, the style door, the scroll, the slot drag, the menu
-// navigation and the GUI frame's costs. Every case references Core only.
+// navigation, the widgets' edge states and the GUI frame's costs. Every case references Core only.
 
 Test.register(Test.CHECK, [
   {
@@ -673,6 +673,136 @@ Test.register(Test.CHECK, [
     },
     teardown(ctx) {
       for (let i = ctx.els.length - 1; i >= 0; i--) ctx.els[i].destroy();
+    },
+  },
+  {
+    // a typed run the filter refuses still overwrites the selection, and reports the edit
+    id: "ui.inputFilter",
+    setup(ctx) {
+      Test.ui(ctx);
+      ctx.changes = [];
+      ctx.field = new UIInput({
+        value: "abc",
+        filter: (ch) => ch >= "0" && ch <= "9",
+        onChange: (v) => ctx.changes.push(v),
+      });
+      ctx.fieldEl = new UIElement({ width: 200, height: 40 }).addComponent(ctx.field);
+      const root = new UIElement();
+      root.insertChild(ctx.fieldEl);
+      UI.insert(root);
+      UINav.focused = ctx.fieldEl;
+      UINav.engaged = true;
+    },
+    verify(ctx, t) {
+      Test.uiFrame(ctx, [vk_enter]);
+      Test.uiFrame(ctx, [vk_control, ord("A")]);
+      Test.uiFrame(ctx, [], [], "x");
+      t.eq(ctx.field.value, "", "the selection is gone");
+      t.eq(ctx.changes.length, 1, "the edit is reported once");
+      t.eq(ctx.changes[0], "", "with the value it left");
+    },
+    teardown(ctx) {
+      Test.uiRestore(ctx);
+    },
+  },
+  {
+    // read-only is live: set after construction, it stops the pointer as it stops the nav
+    id: "ui.readOnly",
+    setup(ctx) {
+      Test.ui(ctx);
+      ctx.toggles = 0;
+      ctx.slider = new UISlider({ min: 0, max: 1, value: 0, showValue: false });
+      ctx.box = new UICheckbox({
+        onToggle: () => {
+          ctx.toggles += 1;
+        },
+      });
+      ctx.sliderEl = new UIElement({ width: 200, height: 24 }).addComponent(ctx.slider);
+      ctx.boxEl = new UIElement({ width: 200, height: 24 }).addComponent(ctx.box);
+      const root = new UIElement({ flexDirection: "column", gap: 20 });
+      root.insertChild(ctx.sliderEl).insertChild(ctx.boxEl);
+      UI.insert(root);
+      Test.uiFrame(ctx, []);
+    },
+    verify(ctx, t) {
+      const left = Input.pointer.left;
+      const press = (el) => {
+        const pos = el.getLayoutPosition();
+        Input.pointer.x = pos.left + pos.width - 2;
+        Input.pointer.y = pos.top + pos.height * 0.5;
+        left.pressed = true;
+        left.down = true;
+        Test.uiFrame(ctx, []);
+        left.pressed = false;
+        left.down = false;
+        left.released = true;
+        Test.uiFrame(ctx, []);
+        left.released = false;
+      };
+
+      ctx.slider.readOnly = true;
+      ctx.box.readOnly = true;
+      press(ctx.sliderEl);
+      press(ctx.boxEl);
+      t.eq(ctx.slider.value, 0, "a read-only slider ignores a press");
+      t.eq(ctx.toggles, 0, "a read-only checkbox ignores a click");
+
+      ctx.slider.readOnly = false;
+      ctx.box.readOnly = false;
+      press(ctx.sliderEl);
+      press(ctx.boxEl);
+      t.ok(ctx.slider.value > 0, "cleared, the slider takes the press");
+      t.eq(ctx.toggles, 1, "cleared, the checkbox takes the click");
+    },
+    teardown(ctx) {
+      Test.uiRestore(ctx);
+    },
+  },
+  {
+    // a font swap under an unchanged string re-measures, as a locale switch needs
+    id: "ui.richTextFont",
+    setup(ctx) {
+      ctx.el = new UIElement();
+      ctx.ref = new UIElement();
+      ctx.rich = new UIRichText({ textRef: () => "Mg", font: "default" });
+    },
+    verify(ctx, t) {
+      ctx.rich.onUpdate(ctx.el, false);
+      const before = ctx.el.getWidth().value;
+      ctx.rich.font = "header";
+      ctx.rich.onUpdate(ctx.el, false);
+      new UIText({ textRef: () => "Mg", font: "header" }).onUpdate(ctx.ref, false);
+      t.ok(ctx.el.getWidth().value !== before, "the width follows the font");
+      t.eq(ctx.el.getWidth().value, ctx.ref.getWidth().value, "as a label measures it");
+    },
+    teardown(ctx) {
+      ctx.el.destroy();
+      ctx.ref.destroy();
+    },
+  },
+  {
+    // a labelled bar hands the draw state back as it found it
+    id: "ui.progressDraw",
+    frames: 2, // the bar draws in the first frame's draw event
+    setup(ctx) {
+      ctx.el = new UIElement({ width: 200, height: 16 });
+      ctx.el.addComponent(new UIProgress({ value: 0.5, label: "half", color: c_lime }));
+      ctx.el.refresh();
+      ctx.color = undefined;
+    },
+    draw(ctx) {
+      if (ctx.color !== undefined) return;
+      const c0 = draw_get_color();
+      draw_set_color(c_red);
+      ctx.el.draw();
+      ctx.color = draw_get_color();
+      draw_set_color(c0);
+    },
+    verify(ctx, t) {
+      t.eq(ctx.color, c_red, "the draw color is restored");
+    },
+    teardown(ctx) {
+      ctx.el.destroy();
     },
   },
   // perf.ui: a GUI frame's fixed costs over a tree of labelled buttons, gross — `ui.update` per

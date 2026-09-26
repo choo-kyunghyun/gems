@@ -16,15 +16,12 @@ globalThis.UICheckbox = class UICheckbox {
     this.colorKnob = box.colorKnob ?? c_white; // knob / tick
     this.colorBorder = box.colorBorder ?? c_black;
 
-    // The trigger enforces readOnly for pointer input; this field only gates nav activation.
-    this._fsm = new UITrigger({
-      readOnly: this.readOnly,
-      onClick: () => this.onToggle(),
-    });
+    this._fsm = new UITrigger({ onClick: () => this.onToggle() });
     this._t = undefined; // eased 0..1 toward the on/off state
   }
 
   onUpdate(element, block) {
+    this._fsm.readOnly = this.readOnly;
     return this._fsm.onUpdate(element, block);
   }
 

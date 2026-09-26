@@ -9,7 +9,7 @@
  *   \n                 hard line break.
  * Spans nest; unknown tags are dropped. Self-sizes to the parsed content and never reads the
  * element width; halign resolves against the widest line. The parse is rebuilt only on a
- * source-string change.
+ * source-string or font change.
  */
 globalThis.UIRichText = class UIRichText {
   /** s: { textRef: () => string, color, alpha, halign, font, iconSize, palette } */
@@ -23,6 +23,7 @@ globalThis.UIRichText = class UIRichText {
     this.palette = s.palette ?? {}; // name → colorInt for [c=name]
 
     this.cache = null; // null forces the first parse even when text is ""
+    this.cacheFont = -1; // resolved handle the parse was measured under
     this._items = []; // { kind:"text", s, c } | { kind:"icon", spr, sub, c } | { kind:"br" }
     this._lineWidths = [0];
     this._lineHeight = 0;
@@ -33,10 +34,12 @@ globalThis.UIRichText = class UIRichText {
 
   onUpdate(element, block) {
     const str = this.textRef();
-    if (this.cache !== str) {
+    const fnt = UIDraw.font(this.font);
+    // a locale switch swaps the font handle, and its metrics with it
+    if (this.cache !== str || this.cacheFont !== fnt) {
       this.cache = str;
+      this.cacheFont = fnt;
 
-      const fnt = UIDraw.font(this.font);
       const font0 = draw_get_font();
       if (fnt !== -1) draw_set_font(fnt);
 
