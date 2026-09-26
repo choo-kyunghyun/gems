@@ -843,6 +843,11 @@ Test.register(Test.CHECK, [
       t.ok(UINav.focused === a, "an open dialogue keeps the moves from the nav");
       Test.uiFrame(ctx, [vk_escape]);
       t.ok(UINav.engaged ? ctx.backs === 0 : false, "and the cancel");
+      ctx.overlayHolds = true;
+      Test.uiFrame(ctx, [vk_down]);
+      t.ok(UINav.focused === b, "a held overlay leaves the moves to the nav");
+      ctx.overlayHolds = false;
+      UINav.focused = a;
       Dialogue.clear();
       Test.uiFrame(ctx, [vk_down]);
       t.ok(UINav.focused === b, "a closed one hands them back");

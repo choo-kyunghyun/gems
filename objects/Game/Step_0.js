@@ -1,11 +1,7 @@
 Time.update();
 Input.poll(); // THE frame poll: latch every device once + clear last frame's claims, before any consumer reads (Input)
 Music.update(); // reap a finished BGM cross-fade (wall clock — runs even while the sim is paused)
-UI.update();
-SlotDrag.update();
-GameOverlay.update(this); // global F1 system overlay; before UINav so it's same-frame nav-reachable
-UINav.update();
-Dialogue.update(); // typewriter timing + advance input (Enter/Space/A/click-on-box)
+UI.step();
 // dev-only: F2 returns to lobby without a restart
 if (DEV_MODE && Input.keyPressed(vk_f2)) this.switchTo(sceneLobby);
 

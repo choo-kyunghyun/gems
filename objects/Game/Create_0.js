@@ -96,6 +96,11 @@ this.background = Color.parse(FacetTheme.bg); // scene backdrop; re-read on a th
 
 UINav.color = Color.parse(FacetTheme.accent); // focus ring from kit theme
 UINav.back = GameOverlay.back; // the pause menu backs out on the cancel the UI left
+// the global F1 pause overlay, driven inside the GUI pass
+UI.overlay = () => {
+  GameOverlay.update(this);
+  return GameOverlay.isOpen();
+};
 UI.sounds.click = sndButtonClick; // widget cues from the game's own SFX
 UI.sounds.tick = sndButtonMuted;
 

@@ -110,8 +110,9 @@ globalThis.Test = {
   /**
    * Sandboxes the UI's app state, handed back by `uiRestore`: no roots, an idle nav, the pointer
    * parked off-screen, a keyboard and a pad whose only buttons down are `ctx.keys` and `ctx.pads`,
-   * the sticks at rest, a silent `Audio.play` that counts its cues in `ctx.sounds`, and a nav
-   * `back` that counts its calls in `ctx.backs` and takes the cancel while `ctx.backTakes`.
+   * the sticks at rest, a silent `Audio.play` that counts its cues in `ctx.sounds`, a nav
+   * `back` that counts its calls in `ctx.backs` and takes the cancel while `ctx.backTakes`, and
+   * an overlay that holds the GUI while `ctx.overlayHolds`.
    */
   ui(ctx) {
     ctx.keys = [];
@@ -119,6 +120,7 @@ globalThis.Test = {
     ctx.sounds = 0;
     ctx.backs = 0;
     ctx.backTakes = false;
+    ctx.overlayHolds = false;
     const saved = {
       roots: UI.roots,
       focused: UINav.focused,
@@ -127,6 +129,7 @@ globalThis.Test = {
       stickX: UINav._stickX,
       stickY: UINav._stickY,
       back: UINav.back,
+      overlay: UI.overlay,
       raw: Time.raw,
       pointer: Input.pointer,
       typed: Input.typed,
@@ -148,6 +151,7 @@ globalThis.Test = {
       ctx.backs += 1;
       return ctx.backTakes;
     };
+    UI.overlay = () => ctx.overlayHolds;
     const button = () => ({ pressed: false, released: false, down: false, owner: "" });
     Input.pointer = {
       x: -100000,
@@ -191,7 +195,7 @@ globalThis.Test = {
 
   /**
    * One sandboxed frame: the claims clear, `keys` and `pads` go down and `typed` is the frame's
-   * text, then the tree, the dialogue and the nav run in the app's order.
+   * text, then the app's GUI pass runs.
    */
   uiFrame(ctx, keys, pads = [], typed = "") {
     Input._pointerClaimed = false;
@@ -202,9 +206,7 @@ globalThis.Test = {
     ctx.keys = keys;
     ctx.pads = pads;
     Input.typed = typed;
-    UI.update();
-    Dialogue.update();
-    UINav.update();
+    UI.step();
   },
 
   /** Frees every root left in the sandbox and hands the UI's app state back. */
@@ -219,6 +221,7 @@ globalThis.Test = {
     UINav._stickX = saved.stickX;
     UINav._stickY = saved.stickY;
     UINav.back = saved.back;
+    UI.overlay = saved.overlay;
     Time.raw = saved.raw;
     Input.pointer = saved.pointer;
     Input.typed = saved.typed;
