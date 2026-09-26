@@ -69,9 +69,20 @@ globalThis.Trade = {
   },
 
   /**
+   * Why the seller's bag slot `idx` is off the market whatever the merchant, as an i18n key; ""
+   * when it is not. A worn instance stays on its wearer.
+   */
+  withheld(entities, sellerId, idx) {
+    const slot = entities.require(sellerId, Inventory).slots[idx];
+    if (slot === undefined) return "";
+    const eq = entities.get(sellerId, Equipment);
+    return eq !== undefined && Loadout.wears(eq, slot.uid) ? "TRADE_WORN" : "";
+  },
+
+  /**
    * Sell up to `qty` of bag slot `idx` (an instance is always 1). A finite merchant must afford it
-   * and have room for the buyback; an infinite one always pays and discards. Equip/favorite
-   * protection is the caller's. The currency itself is never sellable.
+   * and have room for the buyback; an infinite one always pays and discards. A withheld slot is
+   * refused; favorite protection is the caller's. The currency itself is never sellable.
    */
   sell(entities, sellerId, merchantId, idx, qty) {
     const m = entities.require(merchantId, Merchant);
@@ -79,6 +90,8 @@ globalThis.Trade = {
     const sInv = entities.require(sellerId, Inventory);
     const slot = sInv.slots[idx];
     if (slot === undefined) return { amount: 0, reason: "" };
+    const held = Trade.withheld(entities, sellerId, idx);
+    if (held !== "") return { amount: 0, reason: held };
     const itemId = slot.itemId;
     if (itemId === m.currencyId) return { amount: 0, reason: "" };
     const def = Item.get(itemId);

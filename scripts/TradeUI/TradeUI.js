@@ -1,10 +1,11 @@
 /**
  * Merchant trade page of the scene's Window, for the merchant at `scene.window.target`.
  *
- * Owns presentation, the deal gesture and the sell-side guard against selling a worn or favorited
- * item. One row is selected across both tables, and a click only selects; the deal column prices
- * it and a single button commits it as a buy or a sell. Economic refusals are not decided here:
- * they come back from the transaction as a reason key and are toasted.
+ * Owns presentation, the deal gesture and the sell-side guard against selling a favorited item;
+ * what the transaction withholds it only shows. One row is selected across both tables, and a
+ * click only selects; the deal column prices it and a single button commits it as a buy or a
+ * sell. Economic refusals are not decided here: they come back from the transaction as a reason
+ * key and are toasted.
  */
 globalThis.TradeUI = {
   DEAL_W: 280, // px; the two tables split what is left
@@ -154,7 +155,7 @@ globalThis.TradeUI = {
     well.insertChild(
       facetLabel(
         () => {
-          const key = TradeUI._blocked(page);
+          const key = TradeUI._blocked(scene, page);
           return key === "" ? "" : I18n.text(key);
         },
         { color: "warn", wrap: TradeUI.WRAP },
@@ -170,7 +171,8 @@ globalThis.TradeUI = {
         () => TradeUI._act(scene, page),
         {
           primary: true,
-          disabled: () => page.sel === null || TradeUI._blocked(page) !== "",
+          disabled: () =>
+            page.sel === null || TradeUI._blocked(scene, page) !== "",
         },
       ),
     );
@@ -370,13 +372,14 @@ globalThis.TradeUI = {
   },
 
   /**
-   * i18n key for why the selection cannot be sold, "" when it can. The buy side is never blocked
-   * here; its refusals come from the transaction.
+   * i18n key for why the selection cannot be sold, "" when it can: what the transaction withholds,
+   * then a favorite. The buy side is never blocked here; its refusals come from the transaction.
    */
-  _blocked(page) {
+  _blocked(scene, page) {
     const row = page.sel;
     if (row === null || page.side !== "sell") return "";
-    if (row.worn) return "TRADE_WORN";
+    const held = Trade.withheld(scene.level.entities, scene.playerId, row.idx);
+    if (held !== "") return held;
     if (row.fav) return "TRADE_FAVORITED";
     return "";
   },
