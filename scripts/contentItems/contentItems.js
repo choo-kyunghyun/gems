@@ -227,10 +227,10 @@ globalThis.contentItems = {
         value: 8,
         rarity: "common",
         components: [
-          // no `worn`: drawn as its own icon at the doll's hand
           new Equippable({
             slot: "weapon",
             mods: { attack: 1 },
+            worn: pixPrimaryPipe,
           }),
           new Weapon({
             damage: 3,
@@ -650,7 +650,11 @@ globalThis.contentItems = {
         rarity: "rare",
         maker: "aeon",
         components: [
-          new Equippable({ slot: "weapon", mods: { attack: 1 } }),
+          new Equippable({
+            slot: "weapon",
+            mods: { attack: 1 },
+            worn: pixPrimaryKnife,
+          }),
           new Weapon({
             damage: 3,
             fireCd: 0.2,
@@ -673,7 +677,11 @@ globalThis.contentItems = {
         rarity: "rare",
         maker: "vekt",
         components: [
-          new Equippable({ slot: "weapon", mods: { attack: 2 } }),
+          new Equippable({
+            slot: "weapon",
+            mods: { attack: 2 },
+            worn: pixPrimaryWrench,
+          }),
           new Weapon({
             damage: 5,
             fireCd: 0.4,
