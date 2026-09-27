@@ -291,7 +291,7 @@ globalThis.contentItems = {
       {
         id: "backpack",
         name: "ITEM_BACKPACK",
-        sprite: pixItemBackpack,
+        sprite: pixBackpack,
         weight: 3,
         value: 30,
         rarity: "uncommon",
