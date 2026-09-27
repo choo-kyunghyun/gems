@@ -109,8 +109,8 @@ Test.register(Test.GAME, [
       ctx.ref = make(DOLL_X - 150);
       ctx.doll = make(DOLL_X + 150);
       ctx.doll.mask_index = pixMaskUnit;
-      ctx.doll.image_xscale = 0.5; // a 16 px mask
-      ctx.doll.image_yscale = 0.5;
+      ctx.doll.image_xscale = 0.125; // a 16 px mask
+      ctx.doll.image_yscale = 0.125;
     },
     frame(ctx, i) {},
     draw(ctx) {
