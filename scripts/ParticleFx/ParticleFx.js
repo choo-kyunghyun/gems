@@ -15,7 +15,7 @@
  * @property {number} y
  * @property {number} [angle]          GM angle to aim at; omitted = no rotation
  * @property {number} [base=90]        the asset's authored emission angle, rotated out of `angle`
- * @property {number} [scale=1]        world px per asset px
+ * @property {number} [scale=1]        design scale; the asset's declared density divides it
  */
 globalThis.ParticleFx = {
   _active: [],
@@ -28,7 +28,8 @@ globalThis.ParticleFx = {
     if (params.angle !== undefined)
       part_system_angle(s, params.angle - (params.base ?? 90));
     // a baked burst fires on the first update, in asset space; the draw places and scales it
-    ParticleFx._active.push({ sys: s, x: params.x, y: params.y, scale: params.scale ?? 1 });
+    const scale = AssetMeta.fit(params.asset, params.scale ?? 1);
+    ParticleFx._active.push({ sys: s, x: params.x, y: params.y, scale: scale });
   },
 
   update() {

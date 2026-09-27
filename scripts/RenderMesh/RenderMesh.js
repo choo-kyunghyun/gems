@@ -12,7 +12,6 @@
 globalThis.RenderMesh = class RenderMesh {
   static MAX_LIGHTS = 8; // must match shMeshlit.fsh MAX_LIGHTS
   static LIGHT_Z = -80; // point-light height off the ground plane (torch flame)
-  static MODEL_UNIT = 4; // world px per model unit (a voxel)
   // BUG: a literal, since a static initializer can't reference its own class (docs/GMRT.md)
   static SUN_DEFAULT = {
     x: 0,
@@ -34,7 +33,7 @@ globalThis.RenderMesh = class RenderMesh {
     vertex_format_add_colour();
     vertex_format_add_texcoord();
     this._format = vertex_format_end();
-    this._models = new Map(); // name -> { vb }
+    this._models = new Map(); // name -> { vb, unit }
     this._vbs = []; // BUG: parallel cleanup list, Map iterators hang (docs/GMRT.md)
     // without the shader, models draw flat unlit albedo
     this._lit = shMeshlit;
@@ -92,12 +91,12 @@ globalThis.RenderMesh = class RenderMesh {
 
   /**
    * A `.mesh` bake wins over a `.vox`; a name missing both caches vb -1 so the warning fires
-   * once, not per frame.
+   * once, not per frame. `unit` is the world px per model unit, off the name's declared density.
    */
   _model(name) {
     let m = this._models.get(name);
     if (m !== undefined) return m;
-    m = { vb: Poly.mesh(name, this._format) };
+    m = { vb: Poly.mesh(name, this._format), unit: AssetMeta.fit(name, 1) };
     if (m.vb === -1) m.vb = Vox.mesh(name, this._format);
     if (m.vb !== -1) {
       vertex_freeze(m.vb);
@@ -229,7 +228,7 @@ globalThis.RenderMesh = class RenderMesh {
       // scale and rotation are visual only, per world axis (zscale is height, a negative xscale
       // mirrors); rotation pivots on the footprint center and the lighting follows it
       const s = mesh.scale;
-      const u = RenderMesh.MODEL_UNIT;
+      const u = m.unit;
       matrix_set(
         matrix_world,
         matrix_build(

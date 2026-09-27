@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"contentMeshes",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"contentMeshes",
+  "parent":{
+    "name":"Content",
+    "path":"folders/Game/Content.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"contentMeshes.js",
+}

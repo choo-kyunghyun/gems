@@ -17,7 +17,6 @@ globalThis.FuseSystem = {
         asset: psExplosion,
         x: pos.x,
         y: pos.y,
-        scale: 4, // the asset is authored at a quarter of the cell
       });
       Audio.play({
         sound: sndExplosionLarge,

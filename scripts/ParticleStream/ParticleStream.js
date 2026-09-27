@@ -6,5 +6,6 @@
  *
  * @typedef {Object} ParticleStream
  * @property {Id<"ParticleSystem">} sys  the live part_system
+ * @property {number} unit  world px per asset px, off the asset's declared density
  */
 globalThis.ParticleStream = "ParticleStream";

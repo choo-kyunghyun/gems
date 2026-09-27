@@ -824,8 +824,9 @@ Test.register(Test.CHECK, [
     },
   },
   {
-    // the asset-keyed registry: refs are found by identity, a re-registered asset replaces in
-    // place, and each field reads its default off an undeclared or unset asset
+    // the asset-keyed registry: refs are found by identity and a model's name by value, a
+    // re-registered asset replaces in place, and each field reads its default off an undeclared
+    // or unset asset
     id: "assetmeta.lookup",
     setup(ctx) {
       ctx.before = AssetMeta.all().length;
@@ -835,11 +836,12 @@ Test.register(Test.CHECK, [
       AssetMeta.register([
         { asset: ctx.sheet, kind: "test", density: 2 },
         { asset: ctx.track, kind: "test", bpm: 90, name: "TEST_TRACK" },
+        { asset: "testModel", kind: "test", density: 0.25 },
       ]);
       AssetMeta.register([{ asset: ctx.sheet, kind: "test", density: 4 }]);
     },
     verify(ctx, t) {
-      t.eq(AssetMeta.all().length - ctx.before, 2, "a re-registered asset adds no entry");
+      t.eq(AssetMeta.all().length - ctx.before, 3, "a re-registered asset adds no entry");
       t.eq(AssetMeta.get(ctx.sheet).density, 4, "a re-registered asset replaces its def");
       t.eq(AssetMeta.all()[ctx.before].asset, ctx.sheet, "a replaced def keeps its position");
       t.eq(AssetMeta.get(ctx.plain), undefined, "an undeclared asset has no def");
@@ -847,6 +849,7 @@ Test.register(Test.CHECK, [
       t.eq(AssetMeta.density(ctx.plain), 1, "density defaults to 1 undeclared");
       t.eq(AssetMeta.density(ctx.track), 1, "density defaults to 1 when unset");
       t.eq(AssetMeta.fit(ctx.sheet, 2), 0.5, "fit divides the design scale by density");
+      t.eq(AssetMeta.fit("testModel", 1), 4, "a model's name keys its def");
       t.eq(AssetMeta.bpm(ctx.track), 90, "bpm reads the declared value");
       t.eq(AssetMeta.bpm(ctx.sheet), 0, "bpm defaults to 0 when unset");
     },

@@ -200,7 +200,6 @@ globalThis.PlayerSystem = {
       x: pos.x + nx * 72,
       y: pos.y + ny * 72,
       angle: point_direction(0, 0, nx, ny),
-      scale: 4, // the asset is authored at a quarter of the cell
     });
     Audio.play({ sound: sndGunFire, position: { x: pos.x, y: pos.y } });
 

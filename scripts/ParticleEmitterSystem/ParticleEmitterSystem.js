@@ -1,5 +1,3 @@
-const RISE = 4; // world px per asset px of a pitched stream's rise
-
 /**
  * Owner of every ParticleEmitter's live stream. A stream is a transient component with a release
  * hook, so it is destroyed whenever the component goes and nothing holds an id across frames to
@@ -27,7 +25,8 @@ globalThis.ParticleEmitterSystem = {
         entities.detach(id, ParticleEmitter);
         return;
       }
-      const s = part_system_create(asset_get_index(em.asset));
+      const asset = asset_get_index(em.asset);
+      const s = part_system_create(asset);
       part_system_automatic_draw(s, false);
       part_system_automatic_update(s, false);
       // a persistent blend, set once, not per draw
@@ -35,7 +34,7 @@ globalThis.ParticleEmitterSystem = {
       entities.add(
         id,
         ParticleStream,
-        { sys: s },
+        { sys: s, unit: AssetMeta.fit(asset, 1) },
         { mint: true, destroy: ParticleEmitterSystem._release },
       );
     });
@@ -57,10 +56,10 @@ globalThis.ParticleEmitterSystem = {
     entities.forEach(
       [ParticleStream, ParticleEmitter, Position],
       (id, st, em, p) => {
-        const s = em.scale;
+        const s = em.scale * st.unit;
         // the tilt turns the rise into z before the scale applies, so `scale` never reaches it:
-        // the rise keeps a fixed world px per asset px
-        matrix_set(matrix_world, matrix_build(p.x, p.y, 0, tilt, 0, 0, s, s, RISE));
+        // the rise takes the asset's unit alone
+        matrix_set(matrix_world, matrix_build(p.x, p.y, 0, tilt, 0, 0, s, s, st.unit));
         part_system_drawit(st.sys);
       },
     );

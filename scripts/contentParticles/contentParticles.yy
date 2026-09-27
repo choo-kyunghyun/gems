@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"contentParticles",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"contentParticles",
+  "parent":{
+    "name":"Content",
+    "path":"folders/Game/Content.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"contentParticles.js",
+}

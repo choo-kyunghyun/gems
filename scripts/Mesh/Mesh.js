@@ -6,8 +6,9 @@
  *
  * @typedef {Object} Mesh
  * @property {string} [model]     vox model name; when set, the box fields are ignored for drawing
- * @property {number} scale       uniform model scale; visual-only, the BBox stays
- *                                authored. Voxels read style-visible past ~1.5×
+ * @property {number} scale       uniform design scale; the model's declared density divides it.
+ *                                Visual-only, the BBox stays authored. Voxels read style-visible
+ *                                past ~1.5×
  * @property {number} [xscale]    per-axis override (world x); negative mirrors
  * @property {number} [yscale]    per-axis override (world y)
  * @property {number} [zscale]    per-axis override (world z)

@@ -27,7 +27,7 @@ globalThis.ColonySpawn = {
       if (m !== undefined) content = m.content;
     }
     if (content === undefined) return undefined;
-    const u = RenderMesh.MODEL_UNIT;
+    const u = AssetMeta.fit(model, 1); // world px per model unit
     return {
       w: Math.max(32, content[0] * u - 8),
       h: Math.max(32, content[1] * u - 8),

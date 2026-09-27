@@ -8,12 +8,13 @@
  *
  * Def shape:
  *   { asset, kind, density?, bpm?, name? }
- *   asset    the asset (a bare identifier, so a resource that is gone fails at load)
+ *   asset    the asset (a bare identifier, so a resource that is gone fails at load), or the name
+ *            of a model, which is a file, not a resource
  *   kind     "entity" | "overlay" | "tileset" | "music" | "cue" | ... — descriptive only; readers
  *            read specific FIELDS, never switch on kind.
- *   density  a sprite's source px per world px, default 1. Declared, never inferred: a 32px sprite
- *            can mean a coarser subject OR a smaller one — only the art's author knows. Divides the
- *            draw scale only, never the collider.
+ *   density  an asset's authored units (sprite or particle px, model units) per world px, default
+ *            1. Declared, never inferred: a 32px sprite can mean a coarser subject OR a smaller one
+ *            — only the art's author knows. Divides the draw scale only, never the collider.
  *   bpm      a sound's tempo, default 0 = untimed. Declared, never measured: the runtime exposes
  *            no PCM to detect it from.
  *   name     a track's display name, an i18n key; default "" = unlisted.
@@ -58,15 +59,15 @@ globalThis.AssetMeta = {
     return undefined;
   },
 
-  density(sprite) {
-    const def = AssetMeta.get(sprite);
+  density(asset) {
+    const def = AssetMeta.get(asset);
     if (def === undefined) return 1;
     return def.density > 0 ? def.density : 1;
   },
 
-  /** The draw scale for a design scale on a sheet. */
-  fit(sprite, scale) {
-    return scale / AssetMeta.density(sprite);
+  /** The draw scale for a design scale on an asset. */
+  fit(asset, scale) {
+    return scale / AssetMeta.density(asset);
   },
 
   bpm(sound) {

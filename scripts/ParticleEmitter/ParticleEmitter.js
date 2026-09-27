@@ -10,7 +10,7 @@
  *
  * @typedef {Object} ParticleEmitter
  * @property {string} asset    particle system asset name ("ps*")
- * @property {number} scale    world scale of the stream
+ * @property {number} scale    design scale of the stream; the asset's declared density divides it
  * @property {number} [color]  color blend over the asset's own colors (omitted = untinted)
  */
 globalThis.ParticleEmitter = "ParticleEmitter";
