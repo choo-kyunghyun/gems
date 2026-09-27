@@ -20,7 +20,7 @@ The gaps GMRT's changelog itself declares — upstream-known, listed so nobody r
 
 - Prefabs
 - Video playback (other platforms)
-- SVG Assets — TODO the `vec` sprites ship as 128 px rasters of `art/icons/`; re-import the SVGs once supported.
+- SVG Assets — TODO the `pixIcon` sprites are 128 px rasters of `art/icons/`; re-import them as `vecIcon` SVGs once supported.
 - flexpanel_node_get_measure() / flexpanel_node_set_measure()
 - vertex_buffer_exists() / vertex_format_exists()
 - application_surface_is_draw_enabled()

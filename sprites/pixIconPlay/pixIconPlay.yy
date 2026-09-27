@@ -1,6 +1,6 @@
 {
   "$GMSprite":"v2",
-  "%Name":"vecIconPlay",
+  "%Name":"pixIconPlay",
   "bboxMode":0,
   "bbox_bottom":111,
   "bbox_left":16,
@@ -21,12 +21,12 @@
   "layers":[
     {"$GMImageLayer":"","%Name":"d979af46-5aff-4d49-ba43-4e355d8cf826","blendMode":0,"displayName":"default","isLocked":false,"name":"d979af46-5aff-4d49-ba43-4e355d8cf826","opacity":100.0,"resourceType":"GMImageLayer","resourceVersion":"2.0","visible":true,},
   ],
-  "name":"vecIconPlay",
+  "name":"pixIconPlay",
   "nineSlice":null,
   "origin":0,
   "parent":{
-    "name":"Vector Sprites",
-    "path":"folders/Game/Media/Vector Sprites.yy",
+    "name":"Icons",
+    "path":"folders/Game/Media/Sprites/Icons.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",
@@ -69,7 +69,7 @@
     "tracks":[
       {"$GMSpriteFramesTrack":"","builtinName":0,"events":[],"inheritsTrackColour":true,"interpolation":1,"isCreationTrack":false,"keyframes":{"$KeyframeStore<SpriteFrameKeyframe>":"","Keyframes":[
             {"$Keyframe<SpriteFrameKeyframe>":"","Channels":{
-                "0":{"$SpriteFrameKeyframe":"","Id":{"name":"be6fd5ac-73b7-4d77-a71d-793f541439ba","path":"sprites/vecIconPlay/vecIconPlay.yy",},"resourceType":"SpriteFrameKeyframe","resourceVersion":"2.0",},
+                "0":{"$SpriteFrameKeyframe":"","Id":{"name":"be6fd5ac-73b7-4d77-a71d-793f541439ba","path":"sprites/pixIconPlay/pixIconPlay.yy",},"resourceType":"SpriteFrameKeyframe","resourceVersion":"2.0",},
               },"Disabled":false,"id":"52f3ace9-b653-448a-8dbb-7cc9e63dbf6f","IsCreationKey":false,"Key":0.0,"Length":1.0,"resourceType":"Keyframe<SpriteFrameKeyframe>","resourceVersion":"2.0","Stretch":false,},
           ],"resourceType":"KeyframeStore<SpriteFrameKeyframe>","resourceVersion":"2.0",},"modifiers":[],"name":"frames","resourceType":"GMSpriteFramesTrack","resourceVersion":"2.0","spriteId":null,"trackColour":0,"tracks":[],"traits":0,},
     ],
