@@ -25,8 +25,8 @@
   "nineSlice":null,
   "origin":0,
   "parent":{
-    "name":"Basics",
-    "path":"folders/Game/Media/Sprites/Basics.yy",
+    "name":"Sprites",
+    "path":"folders/Game/Media/Sprites.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",
