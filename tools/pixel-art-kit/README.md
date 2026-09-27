@@ -8,7 +8,7 @@ is in `tools/palette`.
 
 | | |
 |---|---|
-| Cell | A 128 px world cell is drawn at 32 px. The sprite is declared `density: 0.25`, and its frame sizes are multiples of the 16 px half-unit (16 32 48 64 80 96 128). To size a frame, take the silhouette's bounding box plus 2 px on each side and round up to that list. A terrain tile set's tile is the 128 px cell itself. |
+| Cell | The world cell is 128 px, and a sprite is authored at that scale: one sprite px per world px. Art authored at another scale declares its `density` (sprite px per world px), e.g. `0.25` for 32 px per cell. A terrain tile set's tile is the 128 px cell itself. |
 | Alpha | Binary. Entities are alpha-tested billboards, so every pixel is either fully opaque or fully clear. |
 | Palette | AAP-64 only. Snap anything foreign as `tools/palette` describes. |
 | Anchor | Set in the IDE on import: entities at the foot (bottom-center), items at the center, tiles at the top-left. |
@@ -43,5 +43,6 @@ Import the PNG as a `GMSprite` through the IDE or `gm-cli resourcetool` (`docs/G
 editing the yyp. Set the origin, collision mask and playback speed there. A tile set also needs its
 `output_tileset.png` saved once in the IDE (`docs/GMCLI.md`).
 
-World art drawn at 32 px per cell is declared `density: 0.25` in `contentSprites`; an undeclared
-sprite draws at a quarter of its size. `pixItem*` icons are picked up by name and need no line.
+A sprite authored at 128 px per cell needs no declaration. One authored at another scale declares
+its `density` in `contentSprites`, or it draws at the wrong size. `pixItem*` icons are 32 px, and
+they are declared `density: 0.25` by name, with no line needed.
