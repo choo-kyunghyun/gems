@@ -240,32 +240,32 @@ Test.register(Test.CHECK, [
       ctx.level = new Level({ id: "test", capacity: 8 });
       const s = ctx.level.entities;
       ctx.entities = s;
-      ctx.wall = Test.box(s, 100, 0, 32, 64);
+      ctx.wall = Test.box(s, 400, 0, 128, 256);
       const body = (x, y, solid) => {
         const id = s.create();
         s.add(id, Position, { x, y, z: 0 });
-        s.add(id, BBox, { x: -8, y: -8, width: 16, height: 16 });
+        s.add(id, BBox, { x: -32, y: -32, width: 64, height: 64 });
         s.add(id, Collision, { solid });
         return id;
       };
-      ctx.near = body(40, 40, true); // box 32..48: its centre outside a rect to 36, its box inside
-      ctx.marked = body(200, 40, true);
+      ctx.near = body(160, 160, true); // box 128..192: its centre outside a rect to 144, its box inside
+      ctx.marked = body(800, 160, true);
       s.add(ctx.marked, "TestMarker", { on: true });
-      ctx.corpse = body(40, 100, false);
+      ctx.corpse = body(160, 400, false);
       PuppetSystem.update(ctx.level);
     },
     verify(ctx, t) {
       const s = ctx.entities;
-      const rect = Query.maskRect(s, 0, 0, 36, 60);
+      const rect = Query.maskRect(s, 0, 0, 144, 240);
       t.eq(rect.length, 1, "a box reaching into the rect counts, its centre outside");
       t.eq(rect[0], ctx.near, "and it is the body");
-      t.eq(Query.inRect(s, 0, 0, 36, 60).length, 0, "where the point form counts the centre only");
-      t.eq(Query.maskRect(s, 90, 10, 110, 20).length, 1, "a static's mask answers a rect");
-      t.eq(Query.maskCircle(s, 60, 40, 20).length, 1, "a circle reaches a box");
-      t.eq(Query.maskCircle(s, 0, 0, 1000, { has: "TestMarker" }).length, 1, "has: narrows to the marker's carrier");
-      t.eq(Query.maskCircle(s, 40, 100, 4).length, 0, "a solid-off body wears no mask");
-      t.eq(Query.maskRect(s, 0, 0, 36, 60, { ignore: ctx.near }).length, 0, "ignore: drops the asker's mask");
-      const order = Query.maskCircle(s, 0, 40, 1000, { ordered: true });
+      t.eq(Query.inRect(s, 0, 0, 144, 240).length, 0, "where the point form counts the centre only");
+      t.eq(Query.maskRect(s, 360, 40, 440, 80).length, 1, "a static's mask answers a rect");
+      t.eq(Query.maskCircle(s, 240, 160, 80).length, 1, "a circle reaches a box");
+      t.eq(Query.maskCircle(s, 0, 0, 4000, { has: "TestMarker" }).length, 1, "has: narrows to the marker's carrier");
+      t.eq(Query.maskCircle(s, 160, 400, 16).length, 0, "a solid-off body wears no mask");
+      t.eq(Query.maskRect(s, 0, 0, 144, 240, { ignore: ctx.near }).length, 0, "ignore: drops the asker's mask");
+      const order = Query.maskCircle(s, 0, 160, 4000, { ordered: true });
       t.eq(order.length, 3, "ordered: every solid mask in reach");
       t.ok(
         order[0] === ctx.near && order[1] === ctx.wall && order[2] === ctx.marked,
