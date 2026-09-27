@@ -55,6 +55,7 @@
   "INV_USE": "Use",
   "INV_EQUIP": "Equip",
   "INV_UNEQUIP": "Unequip",
+  "INV_DROP": "Drop",
   "INV_FAVORITE": "Favorite",
   "INV_UNFAVORITE": "Unfavorite",
   "INV_HOTBAR": "Hotbar",

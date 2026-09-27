@@ -55,6 +55,7 @@
   "INV_USE": "사용",
   "INV_EQUIP": "장착",
   "INV_UNEQUIP": "해제",
+  "INV_DROP": "버리기",
   "INV_FAVORITE": "즐겨찾기",
   "INV_UNFAVORITE": "즐겨찾기 해제",
   "INV_HOTBAR": "단축바",

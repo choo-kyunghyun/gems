@@ -43,6 +43,28 @@ globalThis.Loot = {
   },
 
   /**
+   * Lays one of a body's bag slots on the ground at its feet: the instance `uid`, else the stack of
+   * `itemId` at slot `idx`. Worn gear leaves its equip slot first, so its effects are undone while
+   * the bag still holds it. "" when dropped, else the i18n key of why.
+   */
+  discard(entities, id, itemId, uid, idx) {
+    const inv = entities.require(id, Inventory);
+    let i = -1;
+    if (uid !== undefined) {
+      for (let k = 0; k < inv.slots.length; k++) if (inv.slots[k].uid === uid) i = k;
+    } else if (idx >= 0 && idx < inv.slots.length && inv.slots[idx].itemId === itemId) i = idx;
+    if (i < 0) return "INV_NOT_OWNED";
+    const eq = entities.get(id, Equipment);
+    if (eq !== undefined && uid !== undefined)
+      for (const slot in eq.slots) if (eq.slots[slot] === uid) Loadout.unequip(entities, id, slot);
+    const s = inv.slots[i];
+    inv.slots.splice(i, 1);
+    const pos = entities.require(id, Position);
+    Loot.drop(entities, s.itemId, s.qty, pos.x, pos.y, s);
+    return "";
+  },
+
+  /**
    * Move a drop's payload into the player's bag, leaving any remainder on the ground; the drop
    * is removed (deferred) once emptied. Returns `{ itemId, qty, reason }`: `qty` taken, 0 with
    * `reason` "INV_FULL" for a refused bag.

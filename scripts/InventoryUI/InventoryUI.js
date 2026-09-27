@@ -240,6 +240,13 @@ globalThis.InventoryUI = {
         { width: 120, height: 28 },
       ),
     );
+    action.insertChild(
+      facetButton(I18n.textRef("INV_DROP"), () => InventoryUI._drop(scene, page), {
+        width: 90,
+        height: 28,
+        disabled: () => page.sel === null,
+      }),
+    );
     tab.insertChild(action);
     return tab;
   },
@@ -325,6 +332,20 @@ globalThis.InventoryUI = {
     const fav = scene.level.entities.require(scene.playerId, Favorites);
     Star.toggle(fav, page.sel.itemId);
     scene.window.dirty = true;
+  },
+
+  /** The selected slot onto the ground at the player's feet. */
+  _drop(scene, page) {
+    const row = page.sel;
+    if (row === null) return;
+    const why = Loot.discard(scene.level.entities, scene.playerId, row.itemId, row.uid, row.idx);
+    scene.window.dirty = true;
+    if (why !== "") {
+      Toast.push(I18n.text(why), { type: "warn" });
+      return;
+    }
+    Log.info(`dropped ${row.itemId} x${row.qty}`);
+    Audio.play({ sound: sndDrop });
   },
 
   _buildEquipTab(page) {
@@ -673,6 +694,7 @@ globalThis.InventoryUI = {
       const favd = fav !== undefined && Star.has(fav, slot.itemId);
       rows.push({
         ...InvTable.rowModel(slot.itemId, slot.qty, slot.uid, slot.mods),
+        idx: i, // the bag slot, so a stack is told from its twins
         worn: Loadout.wears(eq, slot.uid),
         fav: favd,
       });
