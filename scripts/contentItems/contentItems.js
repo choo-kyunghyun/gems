@@ -256,6 +256,7 @@ globalThis.contentItems = {
           new Equippable({
             slot: "weapon",
             mods: { attack: 2 },
+            worn: pixPrimaryPistol,
           }),
           // neutral base: the attachments do the shaping
           new Weapon({
@@ -591,7 +592,11 @@ globalThis.contentItems = {
         rarity: "rare",
         maker: "aeon",
         components: [
-          new Equippable({ slot: "weapon", mods: { attack: 2 } }),
+          new Equippable({
+            slot: "weapon",
+            mods: { attack: 2 },
+            worn: pixPrimaryPistol,
+          }),
           new Weapon({
             fireCd: 0.13,
             slots: [
@@ -616,7 +621,11 @@ globalThis.contentItems = {
         rarity: "rare",
         maker: "vekt",
         components: [
-          new Equippable({ slot: "weapon", mods: { attack: 3 } }),
+          new Equippable({
+            slot: "weapon",
+            mods: { attack: 3 },
+            worn: pixPrimaryPistol,
+          }),
           new Weapon({
             fireCd: 0.15,
             slots: [
