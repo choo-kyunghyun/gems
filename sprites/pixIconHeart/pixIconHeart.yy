@@ -2,7 +2,7 @@
   "$GMSprite":"v2",
   "%Name":"pixIconHeart",
   "bboxMode":0,
-  "bbox_bottom":106,
+  "bbox_bottom":105,
   "bbox_left":16,
   "bbox_right":111,
   "bbox_top":21,
