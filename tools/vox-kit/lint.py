@@ -7,7 +7,7 @@ What scripts/Vox demands of a shipped file, and what the style demands of its lo
   error  no RGBA palette                 same — re-save from MagicaVoxel or write through voxlib
   error  color outside AAP-64            the style rule; `quantize.py` fixes it
   warn   more than one model             the runtime uses the FIRST only
-  warn   lowest voxel above z = 0        the model floats that many px off the ground
+  warn   lowest voxel above z = 0        the model floats that many voxels off the ground
   warn   content off the canvas center   the runtime centers the CANVAS on the footprint, so the
                                          prop draws that far off its collider
   warn   detached parts                  voxel groups not connected (6-way) to the grounded one
@@ -70,11 +70,11 @@ def check(path):
     w, d, h = m.content()
     sx, sy, sz = m.size
     if z0 > 0:
-        warns.append(f"lowest voxel at z = {z0}: the model floats {z0} px above the ground")
+        warns.append(f"lowest voxel at z = {z0}: the model floats {z0} voxels above the ground")
     offx = (x0 + x1 + 1) / 2 - sx / 2
     offy = (y0 + y1 + 1) / 2 - sy / 2
     if abs(offx) > 1 or abs(offy) > 1:
-        warns.append(f"content center is ({offx:+.1f}, {offy:+.1f}) px off the canvas center")
+        warns.append(f"content center is ({offx:+.1f}, {offy:+.1f}) voxels off the canvas center")
     groups = components(m.vox)
     grounded = [g for g in groups if any(p[2] == z0 for p in g)]
     loose = len(groups) - len(grounded)

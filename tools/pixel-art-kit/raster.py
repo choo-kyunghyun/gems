@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """raster — drawing primitives for prototype sprite scripts (pure Python stdlib).
 
-The project's pixel art is hard: a 32 px world cell, every pixel fully opaque or fully clear
+The project's pixel art is hard: 32 px per 128 px world cell, every pixel fully opaque or fully clear
 (entities are alpha-tested billboards), colors from AAP-64 (`palette`), and a 1 px ink outline
 around each silhouette. Two buffers get there:
 
   Canvas  hard-alpha, 1 unit = 1 pixel. Draw in palette tones, `shade` a rim along the ramps,
-          `outline` last. The native idiom for 16-32 px cells.
+          `outline` last. The native idiom for 16-32 px frames.
   Soft    shapes composited at `ss`x and box-downsampled, for curves and rotated quads that are
           a pain to place by hand. It never leaves the kit soft: `harden` thresholds the alpha,
           snaps every color to the palette and returns a Canvas, which is then shaded and

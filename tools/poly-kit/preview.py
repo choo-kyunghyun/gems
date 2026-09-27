@@ -1,5 +1,5 @@
 """Render `.mesh` files (or in-memory polylib.Mesh) under the game camera + shMeshlit's
-default sun, over a checker of 32 px cells — the vox-kit preview's twin for triangles.
+default sun, over a checker of world cells — the vox-kit preview's twin for triangles.
 
   python preview.py [file | dir ...] [--scale 4] [--pitch 50] [--yaw 0] [--out preview]
 """
@@ -13,7 +13,7 @@ import polylib as P
 SUN = (0.0, 0.33, -0.94)  # RenderMesh.SUN_DEFAULT: toward the sun, up = -z
 STRENGTH = 0.5
 AMBIENT = 1 - 0.9 * STRENGTH  # RenderMesh.setupLights: the sun's complement
-CELL = 32
+CELL = 32  # units per world cell
 MARGIN = CELL
 GROUND = ((90, 90, 100, 255), (60, 60, 70, 255))
 BACK = (30, 30, 36, 255)

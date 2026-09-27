@@ -34,7 +34,7 @@ What `scripts/Poly` reads and how `RenderMesh` places it; `lint` checks all of i
 | | |
 |---|---|
 | **File** | `PMSH` v1: 24 B header (magic, version, vertex count, content w/d/h) + count × 24 B vertices (f32 x,y,z + u8 r,g,b,255 + f32 packed normal). Little-endian. |
-| **Axes** | AUTHOR space in the kit: x = east, y = south, z = UP, feet at z = 0, footprint centered on the origin. The bake flips to game space (up = -z), like Vox. 1 unit = 1 world px. |
+| **Axes** | AUTHOR space in the kit: x = east, y = south, z = UP, feet at z = 0, footprint centered on the origin. The bake flips to game space (up = -z), like Vox. 1 unit = 1 model unit; a 128 px world cell is 32 units, as `contentMeshes` declares every model `density: 0.25`. |
 | **Normals** | Per FACE off the CCW-from-outside winding, packed as shMeshlit.vsh's (nx, ny) — the decode has no downward hemisphere, so an UNDERSIDE normal clamps to horizontal (the camera never sees one) and a straight-down face is an error. No bottom faces, like Vox. |
 | **Palette** | AAP-64, nothing outside it — the bake refuses a foreign color. |
 | **Facets** | Deliberately LOW `n` (default 8): the flat-shaded facet is the style, not an approximation error. `lathe`'s default phase centers one flat face due south — the face the camera reads — and an even `n` keeps the ring symmetric for the engine's mirror flip. |
@@ -62,7 +62,8 @@ m.write(os.path.join(P.MESHES, "steelDrum.mesh"))
 that point's color, else the call's default; r may close to 0 at either end (an apex), and a
 final r > 0 gets a top cap. `box` emits five faces (never a bottom). New included files are
 registered in `gems.yyp`'s `IncludedFiles` (a hand-added sibling line — resourcetool has no
-included-file command).
+included-file command), and a new name is declared `density: 0.25` in `contentMeshes` (an
+undeclared model draws at a quarter of its size).
 
 ## Checking
 
@@ -75,5 +76,5 @@ python preview.py [file | dir ...] [--scale 4] [--pitch 50] [--yaw 0] [--out pre
 AAP-64, a packed normal off the unit disc, the triangle budget) and warnings for what draws
 wrong (degenerate triangles, feet off the ground, content off the footprint center, a header
 that disagrees with the geometry). `preview` renders under the colony camera's pitch with
-shMeshlit's default sun over a checker of 32 px cells — size, grounding and facet shading read
+shMeshlit's default sun over a checker of world cells (32 units each) — size, grounding and facet shading read
 at a glance.

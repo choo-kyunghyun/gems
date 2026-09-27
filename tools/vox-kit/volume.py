@@ -2,7 +2,7 @@
 """volume — a 3D canvas of palette tones for prototype voxel props (pure Python stdlib).
 
 The voxel analog of pixel-art-kit's Canvas: place solids in AAP-64 tones on an sx x sy x sz grid
-(x east, y south = the front, z up from the ground at z = 0; 1 voxel = 1 world px), then `model()`
+(x east, y south = the front, z up from the ground at z = 0; 32 voxels = 1 world cell), then `model()`
 snaps every color onto the palette and hands back a voxlib.Model to write. Shading is NOT authored:
 shMeshlit lights the flat albedo live (tops a step brighter than the south face, the north side in
 ambient — what `preview` shows), so a voxel carries only its base tone. `speckle` is the one

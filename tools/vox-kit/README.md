@@ -35,9 +35,9 @@ What `scripts/Vox` reads and how `RenderMesh` places it; `lint` checks all of it
 | | |
 |---|---|
 | **File** | The FIRST `SIZE` + `XYZI` model and the `RGBA` palette; every other chunk is ignored. No palette → the runtime logs an error and draws nothing. |
-| **Axes** | MagicaVoxel's: x = east (width), y = south (+y is the face toward the camera), z = UP, z = 0 the ground. 1 voxel = 1 world px; a 32 px cell is a 32-voxel span. |
+| **Axes** | MagicaVoxel's: x = east (width), y = south (+y is the face toward the camera), z = UP, z = 0 the ground. 1 voxel = 1 model unit; a 128 px world cell is a 32-voxel span, as `contentMeshes` declares every model `density: 0.25`. |
 | **Placement** | The CANVAS is centered on the footprint, feet at z = 0 — content off the canvas center draws off its collider, content above z = 0 floats. |
-| **Collider** | `ColonySpawn.footprint`: `max(8, w - 2)` × `max(8, d - 2)` of the tight voxel extent. |
+| **Collider** | `ColonySpawn.footprint`: `max(8, w - 2)` × `max(8, d - 2)` voxels of the tight voxel extent. |
 | **Faces** | Top + four sides; never a bottom. The fixed-yaw camera sees the top and the south face. |
 | **Palette** | AAP-64, nothing outside it. The kit writes slots 1..64 = entries 0..63 (`palette.magica` exports the same order for MagicaVoxel); `quantize` snaps anything foreign. |
 | **Shading** | Live, never authored: `shMeshlit` lights the flat albedo per frame (sun + torches). A voxel carries its base tone; `speckle` is the one surface treatment. |
@@ -79,7 +79,7 @@ outside AAP-64) and warnings for what draws wrong (a second model, floating voxe
 canvas center, detached parts), plus the size / content / footprint line.
 
 `preview` renders the two faces the camera sees at the pitch the colony camera runs (42°–58°),
-lit as `shMeshlit` lights them under `RenderMesh`'s default sun, over a checker of 32 px cells
+lit as `shMeshlit` lights them under `RenderMesh`'s default sun, over a checker of world cells (32 voxels each)
 centered on the footprint — size and grounding read at a glance. `--yaw` turns the model a quarter
 at a time, the way a runtime `Mesh.yaw` does. A folder run also writes `sheet.png`.
 
@@ -88,7 +88,8 @@ chunks on the way — nothing the runtime reads. MagicaVoxel opens the result.
 
 ## Registration
 
-A `.vox` is an included file, not a GM resource: drop it in `datafiles/meshes/` and name it in a
-preset's `Mesh.model`. A NEW file is registered once in `gems.yyp`'s `IncludedFiles` (the IDE does it
+A `.vox` is an included file, not a GM resource: drop it in `datafiles/meshes/`, declare its name
+`density: 0.25` in `contentMeshes` (an undeclared model draws at a quarter of its size) and name it
+in a preset's `Mesh.model`. A NEW file is registered once in `gems.yyp`'s `IncludedFiles` (the IDE does it
 on Add Existing; by hand, keep the array's order as the other entries). Editing an existing model
 needs nothing.

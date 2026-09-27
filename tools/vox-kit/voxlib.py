@@ -7,7 +7,7 @@ palette. So does `read`; `write` emits those three chunks and nothing else (Magi
 result; its scene / material chunks are not carried, and a multi-model file collapses to its first).
 
 Coordinates are MagicaVoxel's, which the game maps 1:1: x = east (width), y = south (+y is the face
-toward the camera), z = UP with z = 0 the ground; 1 voxel = 1 world px. The runtime centers the
+toward the camera), z = UP with z = 0 the ground; 32 voxels = 1 world cell. The runtime centers the
 CANVAS (not the content) on the footprint, so a model sits where its canvas puts it. Palette indices
 are 1-based in the file (0 = empty) and a Model keeps them so: `pal[i - 1]` is the color of index i.
 `AAP` is the 256-slot palette the kit writes (slots 1..64 = AAP-64 entries 0..63, the order

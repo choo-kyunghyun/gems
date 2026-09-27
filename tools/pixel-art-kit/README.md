@@ -33,7 +33,7 @@ rules are here so a script knows what it is aiming at.
 
 | | |
 |---|---|
-| **Cell** | 32 world px. Terrain and textures author 1:1 at 32 px; frames are multiples of the 16 px half-unit. |
+| **Cell** | 128 world px, drawn at 32 px: a sprite authors one cell as 32 px and is declared `density: 0.25` (`contentSprites`); frames are multiples of the 16 px half-unit. A terrain tile set's tile is the 128 px cell itself; a wall or floor texture stretches over its face at any size. |
 | **Alpha** | Binary. Entities are alpha-tested billboards, so every pixel is fully opaque or fully clear — no soft edges, no partial alpha. |
 | **Outline** | 1 px, `palette.INK` (AAP-64 `#141013`), around every silhouette. Not on a side flush with the frame edge. |
 | **Palette** | AAP-64, nothing outside it. Reach for tones by ramp (below); `quantize` snaps anything foreign. |
@@ -76,7 +76,7 @@ Draw frames, write them out as PNGs under `out/`. The kit has no engine binding.
 ### Two drawing idioms
 
 `Canvas`: hard alpha, 1 unit = 1 pixel. `rect` / `hline` / `vline` / `disc` / `paste` in palette
-tones, then `shade`, then `outline`. The native idiom for 16–32 px cells.
+tones, then `shade`, then `outline`. The native idiom for 16–32 px frames.
 
 `Soft`: shapes composited at 4× and box-downsampled — for curves, ellipses and rotated quads
 (`rrect`, `ellipse`, `tri`, `thickline`) that are a pain to place by hand. It never leaves the
@@ -156,5 +156,7 @@ dark red does not land on a dark green the way a nearest-RGB match would.
 ## Registration
 
 None. The kit writes PNGs and stops; importing them as a `GMSprite` is a manual step in the IDE, which
-is also where the origin, the collision mask, and the playback speed are set. Never register a
+is also where the origin, the collision mask, and the playback speed are set. A sheet drawn at 32 px
+per cell is then declared `density: 0.25` in `contentSprites`; an undeclared one draws at a quarter
+of its size. Never register a
 resource by hand-editing the yyp's Resources list; use `gm-cli` (see `docs/GMCLI.md`).

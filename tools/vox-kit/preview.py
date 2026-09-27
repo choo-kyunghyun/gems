@@ -5,7 +5,7 @@ The colony camera is a fixed-yaw ortho view from the south, pitched 42° (zoomed
 (zoomed in) off the ground plane, so of a model's faces only the TOP and the SOUTH ever show — the
 same two the runtime's analytic box has. Each is lit as shMeshlit lights it under RenderMesh's
 default sun (ambient = the sun's complement): tops read a step brighter than the front. The model
-stands on a checker of 32 px cells centered on its footprint, one cell of margin around the canvas,
+stands on a checker of world cells centered on its footprint, one cell of margin around the canvas,
 so its size and grounding read at a glance. `--yaw` turns the model a quarter at a time (what a
 runtime `Mesh.yaw` shows: doors, oblong furniture).
 
@@ -25,7 +25,7 @@ MESHES = os.path.join(os.path.dirname(os.path.dirname(V.KIT)), "datafiles", "mes
 SUN = (0.0, 0.33, -0.94)          # RenderMesh.SUN_DEFAULT: toward the sun, up = -z
 STRENGTH = 0.5
 AMBIENT = 1 - 0.9 * STRENGTH      # RenderMesh.setupLights: the sun's complement
-CELL = 32
+CELL = 32  # voxels per world cell
 MARGIN = CELL
 GROUND = ((90, 90, 100, 255), (60, 60, 70, 255))
 BACK = (30, 30, 36, 255)

@@ -7,7 +7,7 @@ size MENU (multiples of the 16px half-unit) with a little margin so the outline 
 the smallest grid-friendly W x H that contains the subject — which naturally yields 1:2 for a standing
 biped, ~1.5:1 for a pistol, ~3:1 for a long rifle, etc.
 
-The menu is the project's: the world cell is 32 px, so frames are multiples of its 16 px half-unit — a
+The menu is the project's: art draws the 128 px world cell at 32 px, so frames are multiples of its 16 px half-unit — a
 32x32 icon or prop, a 32x64 standing pawn, 48x32 / 64x32 / 96x32 for sidearm / long gun / rifle icons.
 
   python spritesize.py <image.png> [foot|center]   # prints the measured bbox + recommended W x H
