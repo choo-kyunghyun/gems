@@ -53,4 +53,4 @@ head -40 scripts/<Name>/<Name>.js                             # the area's contr
 
 ## Tools
 
-`tools/` holds standalone tools independent of GameMaker; when the user asks for one, read its `README` first.
+`tools/` holds the asset guides (`palette`, `pixel-art-kit`, `mesh-kit`, `audio-kit`) and standalone tools independent of GameMaker; read the matching `README` before authoring that kind of asset or using a tool.
