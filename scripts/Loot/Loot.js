@@ -35,11 +35,7 @@ globalThis.Loot = {
       if (src.rounds !== undefined) drop.rounds = src.rounds;
     }
     entities.add(id, ItemDrop, drop);
-    entities.add(id, ParticleEmitter, {
-      asset: "psDrop",
-      color: InvTable.rarityColor(itemId),
-      scale: 4, // the asset is authored at a quarter of the cell
-    });
+    // TODO: a stream particle marks the drop again once stream particles are authorable
   },
 
   /**

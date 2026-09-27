@@ -180,9 +180,8 @@ globalThis.contentPresets = {
               s.kind === "door"
                 ? { kind: "door", open: 0 } // toggle state rides the component, so it saves
                 : { kind: s.kind };
-          // The emitter region is authored over a 128 px frame and the beacon is one 128 px
-          // cell, so it draws 1:1: the mesh carries no sprite scale to read.
-          if (s.kind === "travel") over.ParticleEmitter = { asset: "psPortal", scale: 1 };
+          // TODO: a stream particle marks a travel beacon again once stream particles are
+          // authorable
         },
       },
       {
