@@ -11,6 +11,7 @@ globalThis.contentParticles = {
       // authored for a 32 px cell under the 128 px one
       { asset: psDrop, kind: "particle", density: 0.25 },
       { asset: psExplosion, kind: "particle", density: 0.25 },
+      { asset: psGone, kind: "particle", density: 0.25 },
       { asset: psMuzzle, kind: "particle", density: 0.25 },
     ]);
   },
