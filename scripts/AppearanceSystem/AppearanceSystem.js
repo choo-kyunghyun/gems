@@ -32,8 +32,9 @@ globalThis.AppearanceSystem = {
     const inv = entities.get(id, Inventory);
     if (eq === undefined || inv === undefined) return;
     ap.gear = {};
+    ap.tints = {};
     for (const gear in AppearanceSystem.SLOT) {
-      AppearanceSystem._claims(inv, eq.slots[gear], gear, ap.gear);
+      AppearanceSystem._claims(inv, eq.slots[gear], gear, ap.gear, ap.tints);
     }
     ap.dirty = true;
   },
@@ -55,15 +56,20 @@ globalThis.AppearanceSystem = {
     if (ap === undefined) return;
     const rig = AppearanceSystem._rig(inst.sprite_index);
     const gear = ap.gear ?? {}; // an authored doll carries no overlay
+    const tints = ap.tints ?? {};
     for (let i = 0; i < rig.length; i++) {
       const slot = rig[i];
       let spr = gear[slot.name];
-      if (spr === undefined) spr = ap.slots[slot.name]; // unclaimed: the base layer shows
+      let tint = tints[slot.name] ?? c_white;
+      if (spr === undefined) {
+        spr = ap.slots[slot.name]; // unclaimed: the base layer shows, as authored
+        tint = c_white;
+      }
       if (spr === undefined || !sprite_exists(spr)) {
         inst.skeleton_attachment_set(slot.name, -1); // the manual's clear; "" is not one
         continue;
       }
-      AppearanceSystem._attach(inst, slot, spr);
+      AppearanceSystem._attach(inst, slot, spr, tint);
     }
     ap.dirty = false;
   },
@@ -113,9 +119,9 @@ globalThis.AppearanceSystem = {
    * that centre onto the sprite origin; the doll shows the art's authored framing, trimmed or
    * not.
    */
-  _attach(inst, slot, spr) {
-    // one name per (slot, sprite): its definition never changes, so a repeat is skipped
-    const name = "a_" + slot.name + "_" + sprite_get_name(spr);
+  _attach(inst, slot, spr, tint) {
+    // one name per (slot, sprite, tint): its definition never changes, so a repeat is skipped
+    const name = "a_" + slot.name + "_" + sprite_get_name(spr) + "_" + tint;
     if (inst.skeleton_attachment_get(slot.name) === name) return;
     // attachment scale is rig-pixel space, so the density RATIO keeps the art's world size:
     // a denser rig would otherwise shrink every worn piece with it
@@ -127,7 +133,7 @@ globalThis.AppearanceSystem = {
     const s = Math.sin((slot.rot * Math.PI) / 180);
     // a standing definition is identical, so it is only pointed at; re-creating it would throw
     if (!inst.skeleton_attachment_exists(name))
-      inst.skeleton_attachment_create(
+      inst.skeleton_attachment_create_colour(
         name,
         spr,
         0,
@@ -136,15 +142,18 @@ globalThis.AppearanceSystem = {
         k,
         k,
         slot.rot,
+        tint,
+        1,
       );
     inst.skeleton_attachment_set(slot.name, name);
   },
 
   /**
-   * Merges one equipped uid's claims into `out` (dress slot -> sprite, -1 = occupied bare).
-   * Claiming a slot the rig lacks is harmless: apply reads back only the rig's own slots.
+   * Merges one equipped uid's claims into `out` (dress slot -> sprite, -1 = occupied bare) and
+   * their blends into `tints`. Claiming a slot the rig lacks is harmless: apply reads back only
+   * the rig's own slots.
    */
-  _claims(inv, uid, gear, out) {
+  _claims(inv, uid, gear, out, tints) {
     if (uid === undefined || uid === "") return;
     const s = Bag.findByUid(inv, uid);
     if (s === undefined) return;
@@ -155,15 +164,23 @@ globalThis.AppearanceSystem = {
     const worn = eqp.worn;
     // a slot map, not a sprite — an asset ref is typeof "object" too (docs/GMRT.md)
     if (worn !== undefined && worn.constructor === Object) {
-      for (const slot in worn) out[slot] = AppearanceSystem._sprite(worn[slot]);
+      for (const slot in worn) {
+        out[slot] = AppearanceSystem._sprite(worn[slot]);
+        delete tints[slot];
+      }
       return;
     }
+    const slot = AppearanceSystem.SLOT[gear];
     if (worn !== undefined) {
-      out[AppearanceSystem.SLOT[gear]] = worn;
+      out[slot] = worn;
+      delete tints[slot];
       return;
     }
-    if (gear === "weapon" && sprite_exists(item.sprite))
-      out[AppearanceSystem.SLOT[gear]] = item.sprite;
+    // held gear shows its bag icon, in the icon's tint
+    if (gear === "weapon" && sprite_exists(item.sprite)) {
+      out[slot] = item.sprite;
+      tints[slot] = item.tint;
+    }
   },
 
   /** null in a slot map means occupied bare (-1). */

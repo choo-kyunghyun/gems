@@ -1,6 +1,6 @@
 /** Themed controls: factories for elements that edit a value or fire an action. */
 
-/** `opts.primary` paints the accent call-to-action look. */
+/** `opts.primary` paints the accent call-to-action look; `opts.iconColor` blends the icon. */
 globalThis.facetButton = function facetButton(label, onClick, opts = {}) {
   const primary = opts.primary ?? false;
   const base = opts.color ?? (primary ? FacetTheme.accent : FacetTheme.btn);
@@ -68,7 +68,7 @@ globalThis.facetButton = function facetButton(label, onClick, opts = {}) {
       new UIImage({
         sprite: opts.icon,
         fit: OBJECT_FIT.CONTAIN,
-        color: c_white,
+        color: opts.iconColor ?? c_white,
       }),
     );
     btn.insertChild(iconEl);

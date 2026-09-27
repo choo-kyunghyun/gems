@@ -156,7 +156,7 @@ globalThis.facetClear = function facetClear(host) {
 
 /**
  * One selectable button per entry, or a dim empty notice. `entries` is
- * [{ label, onPick, selected: () => bool, textColor?, icon? }].
+ * [{ label, onPick, selected: () => bool, textColor?, icon?, iconColor? }].
  */
 globalThis.facetFillList = function facetFillList(host, entries, emptyLabel) {
   facetClear(host);
@@ -172,6 +172,7 @@ globalThis.facetFillList = function facetFillList(host, entries, emptyLabel) {
         selected: e.selected,
         textColor: e.textColor,
         icon: e.icon,
+        iconColor: e.iconColor,
       }),
     );
   }

@@ -2,14 +2,15 @@
 // compose via `components[]`, queried by `instanceof`.
 globalThis.Item = class Item {
   /**
-   * name/description are i18n keys; sprite is the bag icon (-1 = none); value is the base, before
-   * rarity scaling; maker "" = unbranded.
+   * name/description are i18n keys; sprite is the bag icon (-1 = none) and tint its blend (colour
+   * int or "#rrggbb"); value is the base, before rarity scaling; maker "" = unbranded.
    */
   constructor(def) {
     this.id = def.id;
     this.name = def.name ?? "";
     this.description = def.description ?? "";
     this.sprite = def.sprite ?? -1;
+    this.tint = typeof def.tint === "string" ? Color.parse(def.tint) : (def.tint ?? c_white);
     this.stack = def.stack ?? 99;
     this.weight = def.weight ?? 1;
     this.value = def.value ?? 0;

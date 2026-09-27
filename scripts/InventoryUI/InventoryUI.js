@@ -724,6 +724,7 @@ globalThis.InventoryUI = {
       const it = Item.get(r.itemId);
       items.push({
         sprite: it !== undefined ? it.sprite : -1,
+        color: it !== undefined ? it.tint : c_white,
         count: r.qty > 1 ? r.qty : null,
         borderColor: r.color,
         badge: r.worn ? "E" : r.fav ? "*" : null,
@@ -811,7 +812,7 @@ globalThis.InventoryUI = {
     if (it !== undefined && sprite_exists(it.sprite)) {
       const ic = new UIElement({ width: 48, height: 48, flexShrink: 0 });
       ic.addComponent(
-        new UIImage({ sprite: it.sprite, fit: OBJECT_FIT.CONTAIN }),
+        new UIImage({ sprite: it.sprite, color: it.tint, fit: OBJECT_FIT.CONTAIN }),
       );
       head.insertChild(ic);
     }
@@ -993,6 +994,7 @@ globalThis.InventoryUI = {
           height: 30,
           textColor: InvTable.rarityColor(itemId),
           icon: it !== undefined ? it.sprite : -1,
+          iconColor: it !== undefined ? it.tint : c_white,
         },
       );
     }

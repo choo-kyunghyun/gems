@@ -15,13 +15,17 @@ globalThis.WorldOverlay = {
   },
 
   /**
-   * Rich-text icon prefix, or "" for an item without an icon. The def's sprite by name, never one
-   * derived from the item id: ids share icons, and an unknown name silently draws nothing.
+   * Rich-text icon prefix in the def's tint, or "" for an item without an icon. The def's sprite
+   * by name, never one derived from the item id: ids share icons, and an unknown name silently
+   * draws nothing.
    */
   iconTag(itemId) {
     const it = Item.get(itemId);
     if (it === undefined || !sprite_exists(it.sprite)) return "";
-    return "[spr=" + sprite_get_name(it.sprite) + "] ";
+    const hex = (v) => v.toString(16).padStart(2, "0");
+    const c = it.tint;
+    const tint = "#" + hex(color_get_red(c)) + hex(color_get_green(c)) + hex(color_get_blue(c));
+    return "[c=" + tint + "][spr=" + sprite_get_name(it.sprite) + "][/c] ";
   },
 
   drawWorld(scene) {
@@ -35,7 +39,7 @@ globalThis.WorldOverlay = {
       const color = InvTable.rarityColor(d.itemId);
       if (sprite_exists(spr)) {
         const f = AssetMeta.fit(spr, 1);
-        draw_sprite_ext(spr, 0, p.x, p.y, f, f, 0, c_white, 1);
+        draw_sprite_ext(spr, 0, p.x, p.y, f, f, 0, it.tint, 1);
       } else {
         draw_set_color(color);
         draw_rectangle(p.x - 32, p.y - 32, p.x + 32, p.y + 32, false);

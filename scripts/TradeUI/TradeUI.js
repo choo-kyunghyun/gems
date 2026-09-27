@@ -243,7 +243,7 @@ globalThis.TradeUI = {
         flex: 3,
         sprite: (r) => {
           const it = Item.get(r.itemId);
-          return it !== undefined ? it.sprite : -1;
+          return it !== undefined ? { sprite: it.sprite, color: it.tint } : -1;
         },
         text: (r) => r.name,
         color: (r) => r.color,

@@ -59,7 +59,7 @@ globalThis.InvTable = {
       flex: 3,
       sprite: (r) => {
         const it = Item.get(r.itemId);
-        return it !== undefined ? it.sprite : -1;
+        return it !== undefined ? { sprite: it.sprite, color: it.tint } : -1;
       },
       text: (r) => r.name,
       color: (r) => r.color,
@@ -208,7 +208,7 @@ globalThis.InvTable = {
       cells.push({
         sprite: it !== undefined ? it.sprite : -1,
         count: n,
-        color: n > 0 ? c_white : c_dkgray,
+        color: n === 0 ? c_dkgray : it !== undefined ? it.tint : c_white,
         borderColor: worn
           ? accent
           : it !== undefined

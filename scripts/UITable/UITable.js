@@ -5,7 +5,7 @@
  *
  * Columns are declarative:
  *   { key?, label, width?, flex?, align?, text(row)->string, color?(row)->int,
- *     sprite?(row)->{sprite,subimg}|spriteAsset, sortable?, sortValue?(row)->num|str }
+ *     sprite?(row)->{sprite,subimg?,color?}|spriteAsset, sortable?, sortValue?(row)->num|str }
  * `width` is a column's base/min px; `flex` shares the surplus (default 0 with `width`, else 1).
  *
  * Sorting is a multi-key stack up to `sortDepth`: a clicked header becomes primary, re-clicking
@@ -447,6 +447,7 @@ globalThis.UITable = class UITable {
           const spr = ic != null && ic.sprite != null ? ic.sprite : ic;
           if (spr != null && sprite_exists(spr)) {
             const sub = (ic != null && ic.subimg) || 0;
+            const tint = ic != null && ic.color != null ? ic.color : c_white;
             const s = this.rowH - this.iconPad * 2;
             draw_sprite_stretched_ext(
               spr,
@@ -455,7 +456,7 @@ globalThis.UITable = class UITable {
               ry + this.iconPad,
               s,
               s,
-              c_white,
+              tint,
               1,
             );
           }
