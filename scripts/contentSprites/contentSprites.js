@@ -16,7 +16,7 @@ globalThis.contentSprites = {
       { asset: pixRock, kind: "entity", density: 0.25 },
       { asset: pixBerryBush, kind: "entity", density: 0.25 },
       { asset: pixWheat, kind: "entity", density: 0.25 },
-      { asset: pixMissing, kind: "entity", density: 0.25 },
+      { asset: pixMissing, kind: "entity" },
     ]);
     // the Item family: 32 px icons, one cell wide in the world. BUG: the id list reaches JS
     // opaque, so it is walked with array_length/array_get (docs/GMRT.md)
