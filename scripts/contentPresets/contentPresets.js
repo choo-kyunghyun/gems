@@ -40,6 +40,9 @@ globalThis.contentPresets = {
   register() {
     if (contentPresets.registered) return;
     contentPresets.registered = true;
+    // the authored base outfits; a spawn grooms its own hair onto one
+    const raiderOutfit = Looks.outfit(pixShirtRedwine, pixShoeDarkBrown, pixHatRedBandana);
+    const plainOutfit = Looks.outfit(pixShirtWhite, pixShoeBrown);
     EntityPreset.register([
       {
         id: "raider",
@@ -65,16 +68,13 @@ globalThis.contentPresets = {
             anim: Doll.rest(spineHuman),
           },
           // the authored base layer; no Equipment, so no gear overlay
-          Appearance: Looks.outfit(
-            pixShirtRedwine,
-            pixShoeDarkBrown,
-            pixHatRedBandana,
-          ),
+          Appearance: raiderOutfit,
         },
         adapt(s, over) {
           ColonySpawn.adaptMob(s, over);
           // skin as body-slot tints, so garments keep their authored colours
           over.Sprite = { tints: Looks.skinTints(Looks.skin(s)) };
+          over.Appearance = Looks.groom(raiderOutfit, s);
           over.Persona = ColonySpawn.persona(s, 18, 45); // fighters — no children, no elders
         },
         post(entities, id, ctx) {
@@ -118,13 +118,14 @@ globalThis.contentPresets = {
             sprite: spineHuman,
             anim: Doll.rest(spineHuman),
           },
-          Appearance: Looks.outfit(pixShirtWhite, pixShoeBrown),
+          Appearance: plainOutfit,
         },
         adapt(s, over) {
           over.NPC = { name: s.nameKey, questId: s.questId };
           // the E action: a merchant trades, any other NPC talks
           over.Interaction = { kind: s.merchant !== undefined ? "trade" : "talk" };
           over.Sprite = { tints: Looks.skinTints(Looks.skin(s)) };
+          over.Appearance = Looks.groom(plainOutfit, s);
           over.Persona = ColonySpawn.persona(s, 18, 64); // the full working-age span
           // TODO: the descriptor's `color` doesn't reach the outfit — route it through
           // Sprite.tints on the garment slots.
@@ -346,7 +347,7 @@ globalThis.contentPresets = {
             anim: Doll.rest(spineHuman),
             tints: Looks.skinTints(Color.parse(Looks.SKINS[0])),
           },
-          Appearance: {},
+          Appearance: { slots: { hair: pixHairShort } },
           // the lantern, revealing night
           Light: { radius: 180, color: make_colour_rgb(255, 226, 168), intensity: 0.85 },
           // the camera's target marker, resolved live so no stored id dangles across a map transfer
@@ -382,7 +383,7 @@ globalThis.contentPresets = {
             sprite: spineHuman,
             anim: Doll.rest(spineHuman),
           },
-          Appearance: Looks.outfit(pixShirtWhite, pixShoeBrown),
+          Appearance: plainOutfit,
           Follower: {
             state: "wait", // unhired residents hold still
             // TODO: slower than the player's derived walk, so a lagging follower never catches up
@@ -396,6 +397,7 @@ globalThis.contentPresets = {
         adapt(s, over) {
           // skin on the body slots alone — garments keep their authored colours
           over.Sprite = { tints: Looks.skinTints(Looks.skin(s)) };
+          over.Appearance = Looks.groom(plainOutfit, s);
           over.Persona = ColonySpawn.persona(s, 20, 45); // able-bodied party members
           if (s.hp !== undefined) {
             over.Health = { hp: s.hp };

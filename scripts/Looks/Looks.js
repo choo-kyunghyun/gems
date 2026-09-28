@@ -1,7 +1,7 @@
 /**
  * How a spawned body is coloured and dressed: the skin and coat palettes over the white body art,
- * the rig slots each one tints, and outfits as slot maps. A pick is hashed from the spawn cell, so
- * a regenerated level's body keeps its look.
+ * the rig slots each one tints, the hair styles, and outfits as slot maps. A pick is hashed from
+ * the spawn cell, so a regenerated level's body keeps its look.
  */
 globalThis.Looks = {
   // tints over the white body art
@@ -15,6 +15,9 @@ globalThis.Looks = {
   COATS: ["#ffffff", "#b4b4b4", "#a06a3c", "#585858"],
   // the furred parts only
   COAT_SLOTS: ["torso", "head", "legF", "legB"],
+
+  // hair styles, each in its own authored colours
+  HAIRS: [pixHairShort, pixHairSpiky, pixHairLong, pixHairPonytail, pixHairBun],
 
   /** The slot -> colour tint map. */
   skinTints(color) {
@@ -42,6 +45,20 @@ globalThis.Looks = {
     for (let j = 0; j < Looks.COAT_SLOTS.length; j++)
       tints[Looks.COAT_SLOTS[j]] = color;
     return tints;
+  },
+
+  /** The descriptor's hair style. */
+  hair(s) {
+    const gx = s.gx ?? 0;
+    const gy = s.gy ?? 0;
+    const i = Math.abs(gx * 5 + gy * 19) % Looks.HAIRS.length;
+    return Looks.HAIRS[i];
+  },
+
+  /** A copy of the outfit with the descriptor's hair style added. */
+  groom(outfit, s) {
+    const slots = { ...outfit.slots, hair: Looks.hair(s) };
+    return { slots: slots, dirty: true };
   },
 
   /**
