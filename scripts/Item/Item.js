@@ -3,8 +3,7 @@
 globalThis.Item = class Item {
   /**
    * name/description are i18n keys; sprite is the item's art in the world and in hand (-1 = none)
-   * and tint its blend (colour int or "#rrggbb"); value is the base, before rarity scaling; maker
-   * "" = unbranded.
+   * and tint its blend (colour int or "#rrggbb"); value is the base, before rarity scaling.
    */
   constructor(def) {
     this.id = def.id;
@@ -16,7 +15,6 @@ globalThis.Item = class Item {
     this.weight = def.weight ?? 1;
     this.value = def.value ?? 0;
     this.rarity = def.rarity ?? "common";
-    this.maker = def.maker ?? "";
     this.components = def.components ?? [];
   }
 

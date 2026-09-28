@@ -195,12 +195,8 @@ globalThis.Loadout = {
     return "";
   },
 
-  /** The maker's signature ops compose like an attachment. */
   _modLayers(slot) {
     const layers = [];
-    const item = Item.get(slot.itemId);
-    const maker = item !== undefined ? Manufacturer.get(item.maker) : undefined;
-    if (maker !== undefined && maker.ops !== undefined) layers.push(maker.ops);
     const mods = slot.mods;
     if (mods === undefined) return layers;
     for (const slotId in mods) {

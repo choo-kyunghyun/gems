@@ -259,7 +259,7 @@ and are cited from here, never restated):
     - Its own state is the page or handle it returns (SCENE data, above), and a mutation signals
       through the shell's `dirty`, never by reaching into another page.
 - Registry pattern: content is data registered into flat registries keyed by string id
-  (`Item`/`Rarity`/`Manufacturer`/`Status`/`Recipe`/`Prefab`/`InteractAction`/`EntityPreset`/
+  (`Item`/`Rarity`/`Status`/`Recipe`/`Prefab`/`InteractAction`/`EntityPreset`/
   `StateSystem`) — adding content is a data entry, not an engine edit. Registration runs from
   `create()`-time calls (`content.register()`), never at script top level (top-level code runs in
   resource order — GMRT.md). The id-keyed, insertion-ordered ones are thin facades over the shared

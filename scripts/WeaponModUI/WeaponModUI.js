@@ -115,14 +115,6 @@ globalThis.WeaponModUI = {
         },
       ),
     );
-    const maker = it !== undefined ? Manufacturer.get(it.maker) : undefined;
-    if (maker !== undefined)
-      host.insertChild(
-        facetLabel(I18n.textRef(maker.name), {
-          font: "description",
-          color: maker.color,
-        }),
-      );
     host.insertChild(facetDivider());
 
     if (gun !== undefined) {

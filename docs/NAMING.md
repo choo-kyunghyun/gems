@@ -23,7 +23,7 @@ Naming rules for API members, GameMaker assets, and the data keys they meet.
     - `Family` names the consumer that reads the asset — an open set, so an existing family is reused wherever it fits and a new one is coined only where a consumer reads a group of assets as one: `Item` (bag icons), `Tex` (wall/floor textures), `Terrain` (dual-grid sets), `Tile` (autotile sets), `Grass` (ground sheets), `Ui` (widget chrome), `Icon` (standalone glyphs), `Fx` (particle art). A bare subject with no family is reserved for entity art and the garments its doll wears; a garment's kind leads, naming the slot it dresses.
     - `Subject` is what a stranger would call the thing, in one to three words. Material leads when it splits same-object variants; on themed items and furniture the material or design is the subject, not a variant. A size or style qualifier comes last.
     - An item icon names the art, not an item id: a def names its sprite explicitly, several ids may share one, and a sprite is never derived from an id.
-    - Game-data metadata (manufacturer, rarity, stats, tier) never enters a name; it lives on the def. A brand appears only when the art itself is branded.
+    - Game-data metadata (rarity, stats, tier) never enters a name; it lives on the def. A brand appears only when the art itself is branded.
 - A sound is `snd<Subject>[<Event>]` for SFX and `mus<Track>` for music.
 - A media name cases acronyms as words, following word boundaries.
 

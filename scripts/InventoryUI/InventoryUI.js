@@ -604,7 +604,6 @@ globalThis.InventoryUI = {
         { style: "switch", key: settingKey },
       );
     tab.insertChild(toggle("INV_COL_RARITY", "invColRarity"));
-    tab.insertChild(toggle("INV_COL_MAKER", "invColMaker"));
     tab.insertChild(toggle("INV_COL_TYPE", "invColType"));
     tab.insertChild(toggle("INV_COL_WT", "invColWeight"));
     tab.insertChild(toggle("INV_COL_VAL", "invColValue"));
@@ -794,19 +793,6 @@ globalThis.InventoryUI = {
     host.insertChild(head);
     if (it !== undefined && sprite_exists(it.sprite))
       host.insertChild(InventoryUI._preview(it));
-
-    const mk = it !== undefined ? Manufacturer.get(it.maker) : undefined;
-    if (mk !== undefined) {
-      host.insertChild(facetLabel(I18n.textRef(mk.name), { color: mk.color }));
-      if (mk.lore !== "")
-        host.insertChild(
-          facetLabel(I18n.textRef(mk.lore), {
-            font: "description",
-            color: FacetTheme.textDim,
-            wrap: InventoryUI.DETAIL_WRAP,
-          }),
-        );
-    }
 
     if (it !== undefined && it.description !== "")
       host.insertChild(
