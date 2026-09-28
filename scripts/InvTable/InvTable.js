@@ -57,10 +57,7 @@ globalThis.InvTable = {
       label: I18n.text("INV_COL_NAME"),
       width: 100,
       flex: 3,
-      sprite: (r) => {
-        const it = Item.get(r.itemId);
-        return it !== undefined ? { sprite: it.sprite, color: it.tint } : -1;
-      },
+      sprite: (r) => ({ sprite: Bag.icon(Item.get(r.itemId)), color: r.color }),
       text: (r) => r.name,
       color: (r) => r.color,
       sortValue: (r) => r.name,
@@ -206,9 +203,9 @@ globalThis.InvTable = {
           ? Loadout.wears(eq, uid)
           : Loadout.worn(entities, id, itemId);
       cells.push({
-        sprite: it !== undefined ? it.sprite : -1,
+        sprite: it !== undefined ? Bag.icon(it) : -1,
         count: n,
-        color: n === 0 ? c_dkgray : it !== undefined ? it.tint : c_white,
+        color: n === 0 ? c_dkgray : InvTable.rarityColor(itemId),
         borderColor: worn
           ? accent
           : it !== undefined

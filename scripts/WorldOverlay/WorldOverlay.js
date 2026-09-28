@@ -15,17 +15,16 @@ globalThis.WorldOverlay = {
   },
 
   /**
-   * Rich-text icon prefix in the def's tint, or "" for an item without an icon. The def's sprite
-   * by name, never one derived from the item id: ids share icons, and an unknown name silently
-   * draws nothing.
+   * Rich-text icon prefix: the item's bag icon in its rarity color, or "" for an unknown id. The
+   * icon goes by name, and an unknown name silently draws nothing.
    */
   iconTag(itemId) {
     const it = Item.get(itemId);
-    if (it === undefined || !sprite_exists(it.sprite)) return "";
+    if (it === undefined) return "";
     const hex = (v) => v.toString(16).padStart(2, "0");
-    const c = it.tint;
+    const c = InvTable.rarityColor(itemId);
     const tint = "#" + hex(color_get_red(c)) + hex(color_get_green(c)) + hex(color_get_blue(c));
-    return "[c=" + tint + "][spr=" + sprite_get_name(it.sprite) + "][/c] ";
+    return "[c=" + tint + "][spr=" + sprite_get_name(Bag.icon(it)) + "][/c] ";
   },
 
   drawWorld(scene) {

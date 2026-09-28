@@ -81,6 +81,10 @@ globalThis.UITable = class UITable {
   getSelected() {
     return this._selRow;
   }
+  /** The row under the pointer this frame, null for none. */
+  hovered() {
+    return this._hoverRow >= 0 ? this._view[this._hoverRow] : null;
+  }
   setFilter(fn) {
     this._filter = fn ?? null;
     this._recompute();

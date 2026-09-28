@@ -352,16 +352,16 @@ class _SceneColonyClass {
         if (this.window.is("bag")) InventoryUI.bindKey(this, this.window.page, i);
         continue;
       }
-      this.showHotbar(); // even an empty slot reveals the bar
+      this.showHotbar(i); // even an empty slot reveals the bar
       const itemId = hb.slots[i];
       if (itemId === "") continue;
       InventoryUI.use(this, itemId, Belt.instance(hb, inv, i));
     }
   }
 
-  /** Reveal the hotbar HUD and restart its auto-hide countdown. */
-  showHotbar() {
-    Hud.showHotbar(this.hud);
+  /** Reveal the hotbar HUD and restart its auto-hide countdown; a pressed `slot` is named. */
+  showHotbar(slot = -1) {
+    Hud.showHotbar(this.hud, slot);
   }
 
   _followerName(entities, id) {

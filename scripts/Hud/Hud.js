@@ -16,6 +16,7 @@ globalThis.Hud = {
     const hud = {
       bar: null,
       cells: null, // the bar's slot grid
+      slot: -1, // the slot last pressed, named beside the bar; -1 = none
       sleep: null,
       timer: HOTBAR_HUD_SECS, // wall clock; the bar shows while > 0
       slide: 0, // 0 = tucked below the screen, 1 = fully up
@@ -37,17 +38,23 @@ globalThis.Hud = {
     hud.slide = approach(hud.slide, show ? 1 : 0, HOTBAR_SLIDE_SPD);
     hud.bar.dragY = (1 - hud.slide) * HOTBAR_SLIDE; // an offset, leaving the layout alone
     hud.bar.enabled = hud.slide > 0.001;
-    if (hud.bar.enabled && scene.playerId !== undefined)
+    if (hud.bar.enabled && scene.playerId !== undefined) {
       hud.cells.items = InvTable.beltCells(scene.level.entities, scene.playerId);
+      hud.cells.selected = hud.slot;
+    }
     hud.sleep.enabled = scene.sleep.on;
   },
 
-  /** Reveal the hotbar and restart its auto-hide countdown. */
-  showHotbar(hud) {
+  /** Reveal the hotbar and restart its auto-hide countdown; a pressed `slot` is named. */
+  showHotbar(hud, slot = -1) {
     hud.timer = HOTBAR_HUD_SECS;
+    hud.slot = slot;
   },
 
-  /** Display-only: the belt's cells, which update() refreshes while the bar shows. */
+  /**
+   * Display-only: the belt's cells, which update() refreshes while the bar shows. Its icons are
+   * categories, so the pressed slot's item is named beside it; equal flanks keep the bar centred.
+   */
   _hotbar(scene, hud) {
     const wrap = new UIElement({
       positionType: "absolute",
@@ -55,8 +62,10 @@ globalThis.Hud = {
       right: 0,
       bottom: 76, // above the bottom-edge toasts
       flexDirection: "row",
-      justifyContent: "center",
+      alignItems: "center",
+      gap: FacetTheme.gap,
     });
+    wrap.insertChild(new UIElement({ flexGrow: 1, flexBasis: 0 }));
     const grid = facetSlots(new Array(HOTBAR_SIZE).fill(null), {
       cols: HOTBAR_SIZE,
       cellSize: HOTBAR_CELL,
@@ -64,8 +73,18 @@ globalThis.Hud = {
     });
     hud.cells = grid.getComponent(UISlots);
     wrap.insertChild(grid);
+    const nameCell = new UIElement({ flexGrow: 1, flexBasis: 0 });
+    nameCell.insertChild(facetLabel(() => Hud._slotName(scene, hud)));
+    wrap.insertChild(nameCell);
     scene.ui.insertChild(wrap);
     return wrap;
+  },
+
+  _slotName(scene, hud) {
+    if (hud.slot < 0 || scene.playerId === undefined) return "";
+    const hb = scene.level.entities.require(scene.playerId, Hotbar);
+    const it = Item.get(hb.slots[hud.slot]);
+    return it !== undefined ? I18n.text(it.name) : "";
   },
 
   /** A need as a reserve bar — full is satiated — tinted like its critical debuff. */

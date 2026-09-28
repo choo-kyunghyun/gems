@@ -75,8 +75,8 @@ globalThis.WeaponModUI = {
         },
         selected: () => panel.sel === uid,
         textColor: InvTable.rarityColor(slot.itemId),
-        icon: it !== undefined ? it.sprite : -1,
-        iconColor: it !== undefined ? it.tint : c_white,
+        icon: it !== undefined ? Bag.icon(it) : -1,
+        iconColor: InvTable.rarityColor(slot.itemId),
       });
     }
     facetFillList(panel.list, entries, I18n.textRef("MOD_EMPTY"));

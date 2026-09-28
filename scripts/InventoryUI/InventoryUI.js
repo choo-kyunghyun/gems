@@ -1,9 +1,9 @@
 /**
  * Bag page of the tabbed character window.
  *
- * The Items tab is a slot grid beside a detail pane: icons carry recognition, the pane carries
- * the metadata a table would spread across columns. The page is built once and rebuilt only in
- * its live data, so sort, filter, scroll and the active tab survive a rebuild.
+ * The Items tab is a table beside a detail pane: a row names the item under its category's icon,
+ * and the pane shows the selected item's own art. The page is built once and rebuilt only in its
+ * live data, so sort, filter, scroll and the active tab survive a rebuild.
  */
 globalThis.InventoryUI = {
   /**
@@ -22,10 +22,8 @@ globalThis.InventoryUI = {
       sel: null, // selected row model
       click: { key: "", time: 0 }, // double-click-to-use latch
       cat: "", // active category filter code ("" = all)
-      grid: null,
-      gridEl: null,
+      table: null,
       belt: null, // the hotbar's slot row
-      view: [], // filtered row models, parallel to the grid's items
       detailHost: null,
       equipHost: null,
       extraHost: null,
@@ -77,9 +75,11 @@ globalThis.InventoryUI = {
     return page;
   },
 
-  GRID_COLS: 6,
-  GRID_CELL: 64,
-  GRID_GAP: 6,
+  BELT_CELL: 64,
+  BELT_GAP: 6,
+  // the art preview's box; the art draws at the largest whole scale that fits it
+  PREVIEW_W: 480,
+  PREVIEW_H: 96,
   DETAIL_WRAP: 520,
   // equip-bonus stat key -> i18n label
   STAT_KEYS: {
@@ -139,13 +139,13 @@ globalThis.InventoryUI = {
       facetSelect(cats, {
         onChange: (_i, code) => {
           page.cat = code;
-          InventoryUI._refreshGrid(scene, page);
+          InventoryUI._filter(page);
           InventoryUI._refreshDetail(scene, page); // the selection may have filtered away
         },
       }),
     );
     top.insertChild(filterCell);
-    // sorts the real bag, not the view; the grid mirrors it
+    // tidies the real bag: merges stacks and files it by category
     top.insertChild(
       facetButton(
         I18n.textRef("COMMON_SORT"),
@@ -160,8 +160,6 @@ globalThis.InventoryUI = {
     );
     tab.insertChild(top);
 
-    // BUG: no scroll around the grid: a clipped scroll beside a non-clipped sibling hits the
-    // scissor flush quirk (docs/GMRT.md); the grid fits the tall card instead.
     const content = new UIElement({
       width: "100%",
       flexGrow: 1,
@@ -169,29 +167,24 @@ globalThis.InventoryUI = {
       flexDirection: "row",
       gap: FacetTheme.gap,
     });
-    const grid = facetSlots([], {
-      cols: InventoryUI.GRID_COLS,
-      cellSize: InventoryUI.GRID_CELL,
-      gap: InventoryUI.GRID_GAP,
-      draggable: true,
-      onSelect: (i) => InventoryUI._onGridSelect(scene, page, i),
-      onActivate: (i) => {
-        // browse-mode confirm acts on the cursor slot (the mouse path double-clicks)
-        const row = page.view[i];
-        if (row !== undefined) InventoryUI._activate(scene, row);
-      },
-      onDrop: (src, from) => InventoryUI._dropOnBag(scene, page, src, from),
+    const table = InvTable.table(InventoryUI._columns(), {
+      emptyText: I18n.text("COMMON_EMPTY"),
+      onSelect: (row) => InventoryUI._onSelect(scene, page, row),
+      // browse-mode confirm acts on the cursor row (the mouse path double-clicks)
+      onActivate: (row) => InventoryUI._activate(scene, row),
     });
-    page.grid = grid.getComponent(UISlots);
-    page.gridEl = grid;
-    const gridCell = new UIElement({ flexShrink: 0, gap: FacetTheme.gapSm });
-    gridCell.insertChild(grid);
-    gridCell.insertChild(new UIElement({ flexGrow: 1 })); // the belt sits at the column's foot
-    gridCell.insertChild(InventoryUI._buildBelt(scene, page));
-    content.insertChild(gridCell);
+    page.table = table.getComponent(UITable);
+    const listCol = new UIElement({
+      flexGrow: 3,
+      flexBasis: 0,
+      gap: FacetTheme.gapSm,
+    });
+    listCol.insertChild(table);
+    listCol.insertChild(InventoryUI._buildBelt(scene, page));
+    content.insertChild(listCol);
 
     const detail = new UIElement({
-      flexGrow: 1,
+      flexGrow: 2,
       flexBasis: 0,
       padding: FacetTheme.padSm,
       gap: 4,
@@ -252,20 +245,32 @@ globalThis.InventoryUI = {
   },
 
   /**
-   * The hotbar as a slot row: a drop from the bag binds, a drop within reorders, and a click binds
-   * the selection or clears the slot when there is none.
+   * The hotbar as a slot row: a drop within reorders, and a click binds the selection or clears
+   * the slot when there is none. Its icons are categories, so the pointed slot's item is named.
    */
   _buildBelt(scene, page) {
-    const col = new UIElement({ gap: 4 });
-    const title = new UIElement({ width: "100%", height: 20 });
+    const col = new UIElement({ gap: 4, flexShrink: 0 });
+    const title = new UIElement({
+      width: "100%",
+      height: 20,
+      flexDirection: "row",
+      gap: FacetTheme.gapSm,
+    });
     title.insertChild(
       facetLabel(I18n.textRef("INV_HOTBAR"), { color: "warn" }),
     );
+    const nameCell = new UIElement({ flexGrow: 1, flexBasis: 0 });
+    nameCell.insertChild(
+      facetLabel(() => InventoryUI._beltName(scene, page), {
+        color: FacetTheme.textMuted,
+      }),
+    );
+    title.insertChild(nameCell);
     col.insertChild(title);
     const belt = facetSlots(new Array(HOTBAR_SIZE).fill(null), {
       cols: HOTBAR_SIZE,
-      cellSize: InventoryUI.GRID_CELL,
-      gap: InventoryUI.GRID_GAP,
+      cellSize: InventoryUI.BELT_CELL,
+      gap: InventoryUI.BELT_GAP,
       draggable: true,
       onSelect: (i) => InventoryUI._assignHotbar(scene, page, i),
       onDrop: (src, from, to) =>
@@ -275,6 +280,15 @@ globalThis.InventoryUI = {
     page.belt = belt.getComponent(UISlots);
     col.insertChild(belt);
     return col;
+  },
+
+  /** The pointed belt slot's item name, "" when none is pointed or it is empty. */
+  _beltName(scene, page) {
+    const i = page.belt.hovered();
+    if (i < 0) return "";
+    const hb = scene.level.entities.require(scene.playerId, Hotbar);
+    const it = Item.get(hb.slots[i]);
+    return it !== undefined ? I18n.text(it.name) : "";
   },
 
   _assignHotbar(scene, page, i) {
@@ -290,29 +304,16 @@ globalThis.InventoryUI = {
     scene.showHotbar();
   },
 
-  /** A bag cell binds; a belt cell trades places with the one it lands on. */
+  /** A belt cell trades places with the one it lands on. */
   _dropOnBelt(scene, page, src, from, to) {
-    const hb = scene.level.entities.require(scene.playerId, Hotbar);
-    if (src === page.belt) Belt.swap(hb, from, to);
-    else if (src === page.grid) {
-      const row = page.view[from];
-      if (row === undefined) return;
-      Belt.set(hb, to, row.itemId, row.uid ?? "");
-    } else return;
-    InventoryUI._rebound(scene);
-  },
-
-  /** A belt cell dragged back to the bag unbinds; the bag's own order is the sort's alone. */
-  _dropOnBag(scene, page, src, from) {
     if (src !== page.belt) return;
-    Belt.clear(scene.level.entities.require(scene.playerId, Hotbar), from);
+    Belt.swap(scene.level.entities.require(scene.playerId, Hotbar), from, to);
     InventoryUI._rebound(scene);
   },
 
   /** A hotbar key over the page binds the hovered item, else the selected one. */
   bindKey(scene, page, i) {
-    const h = page.grid.hovered();
-    const row = h >= 0 && h < page.view.length ? page.view[h] : page.sel;
+    const row = page.table.hovered() ?? page.sel;
     if (row === null) return;
     const hb = scene.level.entities.require(scene.playerId, Hotbar);
     Belt.set(hb, i, row.itemId, row.uid ?? "");
@@ -655,7 +656,9 @@ globalThis.InventoryUI = {
    * Refreshes live data only, so the view, filter and active tab survive. `opts` as for build.
    */
   rebuild(scene, page, opts) {
-    InventoryUI._refreshGrid(scene, page);
+    // a column toggle lands while the page is closed
+    page.table.setColumns(InventoryUI._columns());
+    InventoryUI._refreshTable(scene, page);
     page.belt.items = InvTable.beltCells(scene.level.entities, scene.playerId);
     page.belt.selected = -1; // a click binds; it selects nothing
     InventoryUI._refreshDetail(scene, page);
@@ -702,75 +705,41 @@ globalThis.InventoryUI = {
     return rows;
   },
 
-  /**
-   * The unfiltered view pads to capacity with empty cells, so the bag's size reads at a glance.
-   */
-  _refreshGrid(scene, page) {
+  _columns() {
+    return InvTable.columns({ fav: true, worn: true });
+  },
+
+  _refreshTable(scene, page) {
     const rows = InventoryUI._buildRows(scene);
-    const cat = page.cat;
-    const view = [];
-    for (let i = 0; i < rows.length; i++) {
-      const r = rows[i];
-      // "fav" is a pseudo-category: the favorited flag, not an item type
-      if (cat === "" || (cat === "fav" ? r.fav : r.cat === cat)) view.push(r);
-    }
-    page.view = view;
-
-    const gold = facetColor("warn");
-    const accent = facetColor(FacetTheme.accent);
-    const items = [];
-    for (let i = 0; i < view.length; i++) {
-      const r = view[i];
-      const it = Item.get(r.itemId);
-      items.push({
-        sprite: it !== undefined ? it.sprite : -1,
-        color: it !== undefined ? it.tint : c_white,
-        count: r.qty > 1 ? r.qty : null,
-        borderColor: r.color,
-        badge: r.worn ? "E" : r.fav ? "*" : null,
-        badgeColor: r.worn ? accent : gold,
-      });
-    }
-    if (cat === "") {
-      const inv = scene.level.entities.get(scene.playerId, Inventory);
-      for (let i = view.length; i < inv.capacity; i++) items.push(null);
-    }
-
-    const g = page.grid;
-    g.items = items;
-
+    page.table.setRows(rows);
     // re-map the selection by identity: row models are fresh objects each refresh
-    let sel = -1;
+    let sel = null;
     if (page.sel !== null) {
-      for (let i = 0; i < view.length; i++) {
-        if (InventoryUI._sameRow(view[i], page.sel)) {
-          sel = i;
+      for (let i = 0; i < rows.length; i++) {
+        if (InventoryUI._sameRow(rows[i], page.sel)) {
+          sel = rows[i];
           break;
         }
       }
-      page.sel = sel >= 0 ? view[sel] : null;
     }
-    g.selected = sel;
-
-    const rowsN = Math.max(1, Math.ceil(items.length / g.cols));
-    UIDraw.resizeTo(
-      page.gridEl,
-      g.cols * g.cellSize + (g.cols - 1) * g.gap,
-      rowsN * g.cellSize + (rowsN - 1) * g.gap,
-    );
+    page.sel = sel;
+    InventoryUI._filter(page);
   },
 
-  /**
-   * A re-click acts on the row; an empty cell clears the selection.
-   */
-  _onGridSelect(scene, page, i) {
-    const row = i >= 0 && i < page.view.length ? page.view[i] : null;
-    if (row === null) {
+  /** Applies the category filter; a selection it hides is dropped. */
+  _filter(page) {
+    const cat = page.cat;
+    // "fav" is a pseudo-category: the favorited flag, not an item type
+    page.table.setFilter(
+      cat === "" ? null : (r) => (cat === "fav" ? r.fav : r.cat === cat),
+    );
+    if (page.sel !== null && page.table.getView().indexOf(page.sel) < 0)
       page.sel = null;
-      page.grid.selected = -1;
-      InventoryUI._refreshDetail(scene, page);
-      return;
-    }
+    page.table.selectRow(page.sel);
+  },
+
+  /** A re-click acts on the row. */
+  _onSelect(scene, page, row) {
     if (InvTable.reclick(page.click, row, "bag")) {
       InventoryUI._activate(scene, row); // dirties the window; its rebuild refreshes the pane
       return;
@@ -809,13 +778,6 @@ globalThis.InventoryUI = {
       alignItems: "center",
       gap: FacetTheme.gapSm,
     });
-    if (it !== undefined && sprite_exists(it.sprite)) {
-      const ic = new UIElement({ width: 48, height: 48, flexShrink: 0 });
-      ic.addComponent(
-        new UIImage({ sprite: it.sprite, color: it.tint, fit: OBJECT_FIT.CONTAIN }),
-      );
-      head.insertChild(ic);
-    }
     const hcol = new UIElement({ flexGrow: 1, flexBasis: 0, gap: 2 });
     hcol.insertChild(
       facetLabel(row.name, { font: "header", color: row.color }),
@@ -830,6 +792,8 @@ globalThis.InventoryUI = {
       );
     head.insertChild(hcol);
     host.insertChild(head);
+    if (it !== undefined && sprite_exists(it.sprite))
+      host.insertChild(InventoryUI._preview(it));
 
     const mk = it !== undefined ? Manufacturer.get(it.maker) : undefined;
     if (mk !== undefined) {
@@ -947,6 +911,31 @@ globalThis.InventoryUI = {
     );
   },
 
+  /** The item's own art, centred at the largest whole scale its box holds, so no pixel smears. */
+  _preview(it) {
+    const w = sprite_get_width(it.sprite);
+    const h = sprite_get_height(it.sprite);
+    const k = Math.max(
+      1,
+      Math.floor(
+        Math.min(InventoryUI.PREVIEW_W / w, InventoryUI.PREVIEW_H / h),
+      ),
+    );
+    const box = new UIElement({
+      width: "100%",
+      height: Math.max(InventoryUI.PREVIEW_H, h * k),
+      flexShrink: 0,
+      alignItems: "center",
+      justifyContent: "center",
+    });
+    const art = new UIElement({ width: w * k, height: h * k, flexShrink: 0 });
+    art.addComponent(
+      new UIImage({ sprite: it.sprite, color: it.tint, fit: OBJECT_FIT.FILL }),
+    );
+    box.insertChild(art);
+    return box;
+  },
+
   _sameRow(a, b) {
     return InvTable.rowId(a) === InvTable.rowId(b);
   },
@@ -993,8 +982,8 @@ globalThis.InventoryUI = {
         {
           height: 30,
           textColor: InvTable.rarityColor(itemId),
-          icon: it !== undefined ? it.sprite : -1,
-          iconColor: it !== undefined ? it.tint : c_white,
+          icon: it !== undefined ? Bag.icon(it) : -1,
+          iconColor: InvTable.rarityColor(itemId),
         },
       );
     }

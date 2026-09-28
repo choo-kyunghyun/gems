@@ -241,10 +241,7 @@ globalThis.TradeUI = {
         label: I18n.text("INV_COL_NAME"),
         width: 120,
         flex: 3,
-        sprite: (r) => {
-          const it = Item.get(r.itemId);
-          return it !== undefined ? { sprite: it.sprite, color: it.tint } : -1;
-        },
+        sprite: (r) => ({ sprite: Bag.icon(Item.get(r.itemId)), color: r.color }),
         text: (r) => r.name,
         color: (r) => r.color,
         sortValue: (r) => r.name,

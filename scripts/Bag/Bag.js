@@ -226,16 +226,82 @@ globalThis.Bag = {
     inv.slots = slots;
   },
 
-  /** The bag's categories in sort order; an item files under the first whose test it passes. */
+  /**
+   * The bag's categories in sort order; an item files under the first whose test it passes, and
+   * its icon stands for every item filed there.
+   */
   CATEGORIES: [
-    { code: "weapon", key: "INV_CAT_WEAPON", test: (it) => it.hasComponent(Weapon) },
-    { code: "gear", key: "INV_CAT_GEAR", test: (it) => it.hasComponent(Equippable) },
     {
-      code: "consumable",
-      key: "INV_CAT_CONSUMABLE",
+      code: "pistol",
+      key: "INV_CAT_PISTOL",
+      icon: pixIconPistol,
+      test: (it) => {
+        const g = it.getComponent(Gun);
+        return g !== undefined && g.caliber === "pistol";
+      },
+    },
+    {
+      code: "rifle",
+      key: "INV_CAT_RIFLE",
+      icon: pixIconRifle,
+      test: (it) => it.hasComponent(Gun),
+    },
+    {
+      code: "melee",
+      key: "INV_CAT_MELEE",
+      icon: pixIconKnife,
+      test: (it) => it.hasComponent(Weapon),
+    },
+    {
+      code: "ammo",
+      key: "INV_CAT_AMMO",
+      icon: pixIconAmmo,
+      test: (it) => it.hasComponent(Ammo),
+    },
+    {
+      code: "gear",
+      key: "INV_CAT_GEAR",
+      icon: pixIconVest,
+      test: (it) => it.hasComponent(Equippable),
+    },
+    {
+      code: "medical",
+      key: "INV_CAT_MEDICAL",
+      icon: pixIconMedkit,
+      test: (it) => {
+        const c = it.getComponent(Consumable);
+        if (c === undefined) return false;
+        for (const need in c.needs) return false;
+        return true;
+      },
+    },
+    {
+      code: "food",
+      key: "INV_CAT_FOOD",
+      icon: pixIconMeat,
+      test: (it) => {
+        const c = it.getComponent(Consumable);
+        return c !== undefined && (c.needs[Hunger] ?? 0) > 0;
+      },
+    },
+    {
+      code: "drink",
+      key: "INV_CAT_DRINK",
+      icon: pixIconBottle,
       test: (it) => it.hasComponent(Consumable),
     },
-    { code: "misc", key: "INV_CAT_MISC", test: (it) => true },
+    {
+      code: "material",
+      key: "INV_CAT_MATERIAL",
+      icon: pixIconGear,
+      test: (it) => it.hasComponent(Material),
+    },
+    {
+      code: "misc",
+      key: "INV_CAT_MISC",
+      icon: pixIconBackpack,
+      test: (it) => true,
+    },
   ],
 
   /** The index into CATEGORIES of def `it`; an unknown def files as misc. */
@@ -244,6 +310,11 @@ globalThis.Bag = {
     if (it === undefined) return cats.length - 1;
     for (let i = 0; i < cats.length; i++) if (cats[i].test(it)) return i;
     return cats.length - 1;
+  },
+
+  /** The icon the bag shows for def `it`: its category's. */
+  icon(it) {
+    return Bag.CATEGORIES[Bag.category(it)].icon;
   },
 
   _cmp(a, b) {
