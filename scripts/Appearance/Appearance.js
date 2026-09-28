@@ -16,6 +16,8 @@
  *                           never authored; never on a doll without Equipment.
  * @property {Object} [tints] overlay blends — spine slot name -> colour; absent key = white.
  *                            Derived with `gear`.
+ * @property {Object} [scales] overlay sizes — spine slot name -> factor on the art's world size;
+ *                             absent key = 1. Derived with `gear`.
  * @property {boolean} dirty pushed onto the puppet on the next pass, which clears it
  */
 globalThis.Appearance = "Appearance";

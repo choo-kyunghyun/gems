@@ -11,7 +11,7 @@ is in `tools/PALETTE.md`.
 | Cell | The world cell is 32 px, and a sprite is authored 1:1 at 32 px per cell: `density` `1` (sprite px per world px). A tile set's tile must be the 32 px cell, because the runtime draws tile maps unscaled, so it is drawn at 32×32 and imported with no upscale. A wall texture is stretched over its face, so it is drawn at 32×32 and imported as is. |
 | Alpha | Binary. Entities are alpha-tested billboards, so every pixel is either fully opaque or fully clear. |
 | Palette | AAP-64 only. Snap anything foreign as `tools/PALETTE.md` describes. |
-| Item | An item's art is what lies in the world and what a hand holds, both at its world size: authored at 32 px per cell, pointing right, on a canvas whose width and height are each a multiple of 8 px, at least 16×16. The bag shows its category's icon instead. |
+| Item | An item's art is what lies in the world and what a hand holds: authored at 32 px per cell, pointing right, on a canvas whose width and height are each a multiple of 8 px, at least 16×16. The world draws it at its world size and a hand at half. The bag shows its category's icon instead. |
 | Anchor | Set on import: entities at the foot (bottom-center), items at the center, held gear at the grip, garments at their slot's bone, tiles at the top-left. |
 
 ## Garments
