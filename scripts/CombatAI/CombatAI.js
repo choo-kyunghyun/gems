@@ -2,6 +2,8 @@
 const SHOT_RANGE_SECS = 1.5;
 // world px a mobile actor may be knocked off its home before it walks back
 const HOME_SLACK = 16;
+// px/s for a mobile actor without Stats
+const WALK_SPEED = 90;
 
 /**
  * Per-actor AI memory and tuning. It must survive a snapshot round-trip, which re-creates the
@@ -17,7 +19,6 @@ globalThis.Brain = "Brain";
   aggro: 160,
   deAggro: 240,
   attackRange: 30,
-  speed: 90,
   cdMax: 0.75,
   cd: 0,
   bulletSpeed: 0,
@@ -38,7 +39,6 @@ globalThis.Brain = "Brain";
  * @property {number} aggro       distance at which an idle actor acquires a hostile target
  * @property {number} deAggro     distance at which a chasing actor gives up
  * @property {number} attackRange distance at which it stops to attack
- * @property {number} speed       px/s
  * @property {number} cdMax       seconds between attacks
  * @property {number} cd          seconds
  * @property {number} bulletSpeed px/s, scaling the hitscan reach; 0 for melee
@@ -74,13 +74,7 @@ globalThis.CombatAI = {
             const dx = brain.home.x - pos.x;
             const dy = brain.home.y - pos.y;
             if (dx * dx + dy * dy > HOME_SLACK * HOME_SLACK)
-              CombatAI._seek(
-                level,
-                id,
-                brain.home.x,
-                brain.home.y,
-                brain.speed * 0.5,
-              );
+              CombatAI._seek(level, id, brain.home.x, brain.home.y, 0.5);
             else CombatAI._stop(entities, id);
           }
 
@@ -159,7 +153,7 @@ globalThis.CombatAI = {
           if (!blocked || level.grid === null) {
             PathFollow.clear(entities, id);
             brain.pathCd = 0; // replan immediately the next time a wall gets in the way
-            CombatAI._seek(level, id, tp.x, tp.y, brain.speed);
+            CombatAI._seek(level, id, tp.x, tp.y);
             CombatAI._animate(entities, id, false, true);
             return;
           }
@@ -172,7 +166,7 @@ globalThis.CombatAI = {
             tp.x,
             tp.y,
           );
-          CombatAI._seek(level, id, mp.x, mp.y, brain.speed);
+          CombatAI._seek(level, id, mp.x, mp.y);
           CombatAI._animate(entities, id, false, true);
         },
         finish(level, id) {
@@ -243,15 +237,23 @@ globalThis.CombatAI = {
     return Math.sqrt(dx * dx + dy * dy);
   },
 
-  /** Aim velocity at (tx, ty), scaled by the terrain underfoot. */
-  _seek(level, id, tx, ty, speed) {
+  /**
+   * Aim velocity at (tx, ty) at `pace` × the actor's walk speed, scaled by its statuses and the
+   * terrain underfoot.
+   */
+  _seek(level, id, tx, ty, pace = 1) {
     const entities = level.entities;
     const pos = entities.get(id, Position);
     const vel = entities.get(id, Velocity);
+    const stats = entities.get(id, Stats);
     const dx = tx - pos.x;
     const dy = ty - pos.y;
     const d = Math.sqrt(dx * dx + dy * dy) || 1;
-    const s = speed * PathFollow.speedScale(level.grid, pos.x, pos.y);
+    const s =
+      (stats !== undefined ? stats.speed : WALK_SPEED) *
+      pace *
+      Effects.scale(entities, id, "speed") *
+      PathFollow.speedScale(level.grid, pos.x, pos.y);
     vel.x = (dx / d) * s;
     vel.y = (dy / d) * s;
   },

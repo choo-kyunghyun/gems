@@ -257,7 +257,6 @@ globalThis.contentPresets = {
             attackRange: 220,
             cdMax: 0.5,
             bulletSpeed: 380,
-            speed: 0,
           });
         },
       },

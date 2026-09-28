@@ -30,9 +30,3 @@
 ## Assets
 
 - More hair sprites for `spineHuman`
-
-## 32 px cell
-
-The world cell is 32 world px and art is authored 1:1 at 32 px per cell (density 1).
-
-- Raider and rat `Stats.speed` is never read for movement; both move at the `CombatAI` blank speed
