@@ -5,27 +5,6 @@ nothing else. `aap-64.gpl` is the palette in GIMP/Aseprite format: its `R G B` l
 in order. The `.aseprite` sources under `art/` embed the same 64 colors, and they win when the two
 disagree.
 
-## Ramps
-
-Each entry belongs to exactly one ramp. The table lists every ramp's indices from dark to light.
-
-| ramp | indices, dark → light |
-|---|---|
-| `void` | 0 |
-| `ink` | 1 |
-| `blood` | 2 3 4 5 |
-| `hazard` | 6 7 8 9 |
-| `moss` | 16 15 14 13 12 11 10 |
-| `sky` | 17 18 19 20 21 |
-| `bone` | 24 23 22 |
-| `viol` | 30 29 28 27 26 25 |
-| `leather` | 31 32 33 34 35 36 |
-| `steel` | 42 41 40 39 38 37 |
-| `rust` | 43 44 45 46 47 |
-| `slate` | 52 51 50 49 48 |
-| `bio` | 53 54 55 56 57 |
-| `ochre` | 63 62 61 60 59 58 |
-
 ## Matching
 
 To bring a foreign color onto the palette, use the entry nearest to it in OKLab, measured as
