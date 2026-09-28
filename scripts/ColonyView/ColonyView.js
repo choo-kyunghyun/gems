@@ -399,8 +399,8 @@ globalThis.ColonyView = {
         zoomHome: baseZoom,
         viewCap: viewCap,
         zoomMin: 0.125,
-        zoomMax: 0.75, // one stop of zoom-in headroom
-        zoomSteps: [0.125, 0.25, 0.5, 0.75],
+        zoomMax: 1, // one stop of zoom-in headroom
+        zoomSteps: [0.125, 0.25, 0.5, 1],
         // the pitched view never shows past a map edge
         bounds: {
           x1: 0,
