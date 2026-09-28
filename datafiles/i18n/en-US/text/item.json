@@ -63,12 +63,5 @@
   "ITEM_VINYL": "Vinyl Record",
   "ITEM_VINYL_DESC": "Music from before the collapse, if you can find a player.",
   "ITEM_FLOPPY_DISK": "Floppy Disk",
-  "ITEM_FLOPPY_DISK_DESC": "Old data on old media. Someone might still read it.",
-
-  "MAKER_AEON": "Aeon Dynamics",
-  "MAKER_AEON_LORE": "Precision energy-arms firm from the orbital yards. Fast, light, surgical.",
-  "MAKER_VEKT": "Vekt Heavy Industries",
-  "MAKER_VEKT_LORE": "The conglomerate that dug the colony's foundations. Overbuilt everything.",
-  "MAKER_HELIOS": "Helios Terraforming Authority",
-  "MAKER_HELIOS_LORE": "The authority whose terraforming failed. Its survival gear outlived it."
+  "ITEM_FLOPPY_DISK_DESC": "Old data on old media. Someone might still read it."
 }

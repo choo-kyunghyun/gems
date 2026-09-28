@@ -1,5 +1,5 @@
 /**
- * The colony's item content: rarities, manufacturers and the item set. Registered on demand,
+ * The colony's item content: rarities and the item set. Registered on demand,
  * never at top level (docs/GMRT.md).
  */
 const RARITIES = [
@@ -10,45 +10,9 @@ const RARITIES = [
   { id: "legendary", name: "RARITY_LEGENDARY", color: "#ff9800", valueMod: 30 },
 ];
 
-// A maker's `ops` is its signature weapon layer, folded in like an attachment — Aeon fast and
-// precise but soft, Vekt slow but punchy with small clips. Helios makes survival gear.
-const MAKERS = [
-  {
-    id: "aeon",
-    name: "MAKER_AEON",
-    lore: "MAKER_AEON_LORE",
-    color: "#4dd0e1",
-    ops: {
-      fireCd: { mul: 0.8 },
-      velocity: { mul: 1.15 },
-      power: { mul: 0.9 },
-      damage: { mul: 0.9 },
-    },
-  },
-  {
-    id: "vekt",
-    name: "MAKER_VEKT",
-    lore: "MAKER_VEKT_LORE",
-    color: "#e08a3c",
-    ops: {
-      fireCd: { mul: 1.25 },
-      power: { mul: 1.3 },
-      damage: { mul: 1.3 },
-      magazine: { mul: 0.75 },
-    },
-  },
-  {
-    id: "helios",
-    name: "MAKER_HELIOS",
-    lore: "MAKER_HELIOS_LORE",
-    color: "#9ccc65",
-  },
-];
-
 globalThis.contentItems = {
   register() {
     Rarity.register(RARITIES);
-    Manufacturer.register(MAKERS);
 
     // `sprite` is the bag icon and the held art, shared freely between ids. A misspelt ref kills
     // the runner without a log (docs/GMRT.md).
