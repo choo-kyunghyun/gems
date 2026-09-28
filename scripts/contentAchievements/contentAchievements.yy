@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"contentAchievements",
   "parent":{
-    "name":"Progress",
-    "path":"folders/Game/Progress.yy",
+    "name":"Content",
+    "path":"folders/Game/Content.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

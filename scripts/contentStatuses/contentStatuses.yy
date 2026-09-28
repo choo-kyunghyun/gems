@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"contentStatuses",
   "parent":{
-    "name":"Stats",
-    "path":"folders/Game/Stats.yy",
+    "name":"Content",
+    "path":"folders/Game/Content.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"contentHud",
   "parent":{
-    "name":"Colony",
-    "path":"folders/Game/Colony.yy",
+    "name":"Content",
+    "path":"folders/Game/Content.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

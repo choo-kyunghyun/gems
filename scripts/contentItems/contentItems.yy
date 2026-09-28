@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"contentItems",
   "parent":{
-    "name":"Item",
-    "path":"folders/Game/Item.yy",
+    "name":"Content",
+    "path":"folders/Game/Content.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

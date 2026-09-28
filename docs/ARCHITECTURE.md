@@ -40,8 +40,9 @@ Two top-level pillars (project folders), Core reusable without Game:
   own), and the media assets in `Game/Media`.
 
 Inside a pillar a folder is an AREA — one feature, never one kind of code: an area's component
-tokens, its tickers and namespaces, its registries, its `content*` tables, its UI pages and its
-render passes sit together, so a change to a feature opens one folder.
+tokens, its tickers and namespaces, its registries, its UI pages and its render passes sit
+together, so a change to a feature opens one folder. The one exception is content: every
+`content*` table sits in `Game/Content`, so the game's data reads as one set.
 
 Placement rule for new code:
 
@@ -54,10 +55,10 @@ Placement rule for new code:
   `Core/Test`.
 - States a gameplay rule — damage, needs, economy, progression — or names specific
   content/scenes/`Colony*` → Game, into the area whose rule it states. Content is authored as JS
-  (`content*` — content is code, never a shipped JSON datafile), and a table that several areas
-  read goes to `Game/Content`. A level-generation stage goes to `Game/Level` (the runner is Core;
-  what it runs is content policy), and a render pass reading the gameplay model to its area (the
-  pass contract is Core; what it draws is Game's). What only wires areas together — the scene, its
+  (`content*` — content is code, never a shipped JSON datafile) and goes to `Game/Content`. A
+  level-generation stage goes to `Game/Level` (the runner is Core; what it runs is content
+  policy), and a render pass reading the gameplay model to its area (the pass contract is Core;
+  what it draws is Game's). What only wires areas together — the scene, its
   maps, its player, its save, its HUD — is `Game/Colony`.
 - A new area is a folder, not a kind: where a module fits no area and names no feature of its own,
   it joins the area of its main consumer.
