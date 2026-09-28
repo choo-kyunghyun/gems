@@ -37,8 +37,7 @@ rig's density. So it is drawn on the setup pose, never by eye:
 | | |
 |---|---|
 | Cover | The garment covers its part completely, outline included. Slot alpha does not hide a part, so a garment overdraws the body; it never cuts it away. |
-| Colour | The body is a white template tinted per skin; a garment keeps its authored colours. Keep it distinct from every skin tone after the world's colour grading. |
-| Style | A `void` outline, a fill, and a shade along the bottom edge. |
+| Colour | The body is a white template tinted per skin; a garment keeps its authored colours. |
 | Limbs | A garment follows one bone. Nothing bends with a limb mesh, so a sleeve or a trouser leg is not a garment. |
 
 A garment is not an item's art: the item carries its own sprite, drawn to the item rule.
