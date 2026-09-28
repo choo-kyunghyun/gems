@@ -3,8 +3,21 @@
  * may differ by mods — or "". The item itself stays in the Inventory.
  *
  * @typedef {Object} Equipment
- * @property {Object} slots   { weapon, armor, trinket, backpack } → instance uid strings
+ * @property {Object} slots   { weapon, head, body, legs, outer, hands, feet, backpack, trinket }
+ *                            → instance uid strings
  */
 globalThis.Equipment = "Equipment";
 // any script may load first (docs/GMRT.md)
-(globalThis.Blank ??= {})[Equipment] = { slots: { weapon: "", armor: "", trinket: "", backpack: "" } };
+(globalThis.Blank ??= {})[Equipment] = {
+  slots: {
+    weapon: "",
+    head: "",
+    body: "",
+    legs: "",
+    outer: "",
+    hands: "",
+    feet: "",
+    backpack: "",
+    trinket: "",
+  },
+};

@@ -5,7 +5,7 @@
  * Two layers compose per dress slot: the authored base, which rebuild never touches, under the
  * gear overlay it re-derives wholesale from the equipped items, so a slot whose claim goes away
  * falls back to the base with no memory. An item names the slots it claims (`worn` as an
- * object); a plain string lands on its gear slot's default.
+ * object); a plain string lands on its gear slot's defaults.
  *
  * Where gear goes is read, never declared: a rig's dress slots are those its setup pose leaves
  * empty, and a garment sits with its own sprite origin on the slot's bone, so placing a piece is
@@ -13,13 +13,18 @@
  * item art in the hand, at HELD scale.
  */
 globalThis.AppearanceSystem = {
-  // Equipment slot -> the dress slot a plain-string `worn` lands on. Declaration order is the
-  // merge order: on a claim conflict the later gear slot wins.
+  // Equipment slot -> the dress slots a plain-string `worn` lands on; a held weapon shows in the
+  // first. Declaration order is the merge order: on a claim conflict the later gear slot wins.
   SLOT: {
-    weapon: "primary",
-    armor: "outer",
-    backpack: "backpack",
-    trinket: "hat",
+    weapon: ["primary"],
+    backpack: ["backpack"],
+    legs: ["pants"],
+    body: ["shirt"],
+    outer: ["outer"],
+    feet: ["shoeL", "shoeR"],
+    hands: ["gloveL", "gloveR"],
+    head: ["hat"],
+    trinket: ["glasses"],
   },
 
   // item art is authored at twice the size a hand holds it
@@ -184,18 +189,20 @@ globalThis.AppearanceSystem = {
       }
       return;
     }
-    const slot = AppearanceSystem.SLOT[gear];
+    const slots = AppearanceSystem.SLOT[gear];
     if (worn !== undefined) {
-      out[slot] = worn;
-      delete tints[slot];
-      delete scales[slot];
+      for (let i = 0; i < slots.length; i++) {
+        out[slots[i]] = worn;
+        delete tints[slots[i]];
+        delete scales[slots[i]];
+      }
       return;
     }
     // held gear shows its item art, in the art's tint
     if (gear === "weapon" && sprite_exists(item.sprite)) {
-      out[slot] = item.sprite;
-      tints[slot] = item.tint;
-      scales[slot] = AppearanceSystem.HELD;
+      out[slots[0]] = item.sprite;
+      tints[slots[0]] = item.tint;
+      scales[slots[0]] = AppearanceSystem.HELD;
     }
   },
 

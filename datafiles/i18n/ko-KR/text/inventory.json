@@ -17,7 +17,12 @@
   "INV_PICKUP_PROMPT": "[E] 줍기",
   "INV_PICKED_UP": "{1} {0}개를 주웠습니다",
   "SLOT_WEAPON": "무기",
-  "SLOT_ARMOR": "방어구",
+  "SLOT_HEAD": "머리",
+  "SLOT_BODY": "상의",
+  "SLOT_LEGS": "하의",
+  "SLOT_OUTER": "외투",
+  "SLOT_HANDS": "손",
+  "SLOT_FEET": "발",
   "SLOT_TRINKET": "장신구",
   "SLOT_BACKPACK": "배낭",
 

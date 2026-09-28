@@ -122,9 +122,14 @@ class _SceneColonyClass {
       InventoryUI.build(this, {
         equipSlots: [
           { slot: "weapon", labelKey: "SLOT_WEAPON" },
-          { slot: "armor", labelKey: "SLOT_ARMOR" },
-          { slot: "trinket", labelKey: "SLOT_TRINKET" },
+          { slot: "head", labelKey: "SLOT_HEAD" },
+          { slot: "body", labelKey: "SLOT_BODY" },
+          { slot: "legs", labelKey: "SLOT_LEGS" },
+          { slot: "outer", labelKey: "SLOT_OUTER" },
+          { slot: "hands", labelKey: "SLOT_HANDS" },
+          { slot: "feet", labelKey: "SLOT_FEET" },
           { slot: "backpack", labelKey: "SLOT_BACKPACK" },
+          { slot: "trinket", labelKey: "SLOT_TRINKET" },
         ],
         extraRows: (scene, body) => {
           const rec = new UIElement({ width: "100%", height: 22 });

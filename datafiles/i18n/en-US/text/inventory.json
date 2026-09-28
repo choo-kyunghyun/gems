@@ -17,7 +17,12 @@
   "INV_PICKUP_PROMPT": "[E] Pick up",
   "INV_PICKED_UP": "Picked up {0}× {1}",
   "SLOT_WEAPON": "Weapon",
-  "SLOT_ARMOR": "Armor",
+  "SLOT_HEAD": "Head",
+  "SLOT_BODY": "Body",
+  "SLOT_LEGS": "Legs",
+  "SLOT_OUTER": "Outer",
+  "SLOT_HANDS": "Hands",
+  "SLOT_FEET": "Feet",
   "SLOT_TRINKET": "Trinket",
   "SLOT_BACKPACK": "Backpack",
 
