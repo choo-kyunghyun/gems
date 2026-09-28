@@ -24,7 +24,7 @@ globalThis.Loot = {
   drop(entities, itemId, qty, x, y, src) {
     const id = entities.create();
     entities.add(id, Position, { x: x, y: y });
-    // Matches the icon drawn one cell wide, so the pick outline lines up with the drop.
+    // One cell wide whatever the art's size, so a small item stays easy to pick.
     entities.add(id, BBox, { x: -64, y: -64, width: 128, height: 128 });
     entities.add(id, Interaction, { kind: "pickup" });
     const drop = { itemId: itemId, qty: qty };

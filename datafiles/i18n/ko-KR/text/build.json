@@ -1,7 +1,7 @@
 {
   "TILE_TERRAIN": "지형",
 
-  "BUILD_STATUS": "목재 {0}   ·   {1} ({2})   ·   {3}   ·   좌클릭 설치 / 우클릭 철거",
+  "BUILD_STATUS": "판자 {0}   ·   {1} ({2})   ·   {3}   ·   좌클릭 설치 / 우클릭 철거",
   "BUILD_CAT_TILES": "타일",
   "BUILD_CAT_FURNITURE": "가구",
   "BUILD_CAT_STATIONS": "설비",
@@ -52,7 +52,7 @@
   "BUILD_FREE": "자유 건설",
   "BUILD_FREE_ON": "자유 건설 켬 (F6)",
   "BUILD_FREE_OFF": "자유 건설 끔",
-  "BUILD_NO_WOOD": "목재 부족 — {0} 필요",
+  "BUILD_NO_WOOD": "판자 부족 — {0} 필요",
   "BUILD_CAPTURED": "{0}x{1} 캡처 → {2}",
   "BUILD_CAPTURE_FAIL": "캡처 실패 — 로그 확인",
   "BUILD_DESTROYED": "{0}이(가) 파괴되었습니다!",

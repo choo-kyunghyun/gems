@@ -60,8 +60,8 @@ globalThis.WorldOverlay = {
     const slots = Handle.SLOTS;
     entities.forEach([Projectile, Position], (id, _proj, p) => {
       if (fuse[id % slots] !== undefined) {
-        const f = AssetMeta.fit(pixItemGrenade, 1);
-        draw_sprite_ext(pixItemGrenade, 0, p.x, p.y, f, f, 0, c_white, 1);
+        const f = AssetMeta.fit(pixItemGrenadeFrag, 1);
+        draw_sprite_ext(pixItemGrenadeFrag, 0, p.x, p.y, f, f, 0, c_white, 1);
       } else draw_circle(p.x, p.y, 16, false);
     });
     const tracers = WorldOverlay._tracers;

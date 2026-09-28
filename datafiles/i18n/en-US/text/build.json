@@ -1,7 +1,7 @@
 {
   "TILE_TERRAIN": "Terrain",
 
-  "BUILD_STATUS": "Wood {0}   ·   {1} ({2})   ·   {3}   ·   LMB place / RMB remove",
+  "BUILD_STATUS": "Planks {0}   ·   {1} ({2})   ·   {3}   ·   LMB place / RMB remove",
   "BUILD_CAT_TILES": "Tiles",
   "BUILD_CAT_FURNITURE": "Furniture",
   "BUILD_CAT_STATIONS": "Stations",
@@ -52,7 +52,7 @@
   "BUILD_FREE": "FREE BUILD",
   "BUILD_FREE_ON": "Free build on (F6)",
   "BUILD_FREE_OFF": "Free build off",
-  "BUILD_NO_WOOD": "Not enough wood — {0} needed",
+  "BUILD_NO_WOOD": "Not enough planks — {0} needed",
   "BUILD_CAPTURED": "Captured {0}x{1} → {2}",
   "BUILD_CAPTURE_FAIL": "Capture failed — see the log",
   "BUILD_DESTROYED": "{0} destroyed!",

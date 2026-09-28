@@ -10,7 +10,7 @@
  */
 globalThis.Build = {
   KEY: "build", // a data key: a save holds it
-  RESOURCE: "wood",
+  RESOURCE: "plank",
   FACTION: "player",
   // DEV free build: no gate, no cost, no refund — structures built to be captured, not paid for.
   // Session-wide, so it outlives any one map.

@@ -20,24 +20,23 @@ globalThis.contentQuests = {
         name: "QUEST_HUMANS_NAME",
         objLabel: "QUEST_HUMANS_OBJ",
         objectives: [{ kind: "kill", target: "raider", count: 5 }],
-        rewards: { items: [{ itemId: "medkit", qty: 2 }] },
+        rewards: { items: [{ itemId: "first_aid_kit", qty: 2 }] },
       },
       {
         id: contentQuests.QUEST_GATHER,
         passive: true,
         name: "QUEST_GATHER_NAME",
         objLabel: "QUEST_GATHER_OBJ",
-        objectives: [{ kind: "collect", target: "rags", count: 3 }],
-        rewards: { items: [{ itemId: "circuitry", qty: 1 }] },
+        objectives: [{ kind: "collect", target: "cloth", count: 3 }],
+        rewards: { items: [{ itemId: "floppy_disk", qty: 1 }] },
       },
       {
         id: contentQuests.QUEST_REACH,
         passive: true,
         name: "QUEST_REACH_NAME",
         objLabel: "QUEST_REACH_OBJ",
-        // a permanent attribute boost, gated on exploration
         objectives: [{ kind: "reach", target: "ruins", count: 1 }],
-        rewards: { items: [{ itemId: "vitality_serum", qty: 1 }] },
+        rewards: { items: [{ itemId: "gold", qty: 1 }] },
       },
     ]);
   },

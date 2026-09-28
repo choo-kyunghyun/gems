@@ -1,251 +1,81 @@
 /**
- * Colony crafting recipes. The Toolkit module gates no recipe; it opens the weapon-mod panel.
+ * Colony crafting recipes, all made at a bare workbench.
  */
 globalThis.contentRecipes = {
   register() {
     Recipe.register([
       {
-        id: "craft_lead_pipe",
+        id: "craft_bandage",
         station: "workbench",
-        inputs: [{ itemId: "wood", qty: 3 }],
-        output: { itemId: "lead_pipe", qty: 1 },
+        inputs: [{ itemId: "cloth", qty: 1 }],
+        output: { itemId: "bandage", qty: 2 },
       },
-      // modules craft at a bare bench, so it bootstraps its own upgrades.
       {
-        id: "craft_machining_module",
+        id: "craft_first_aid_kit",
         station: "workbench",
         inputs: [
-          { itemId: "scrap_metal", qty: 4 },
-          { itemId: "wood", qty: 2 },
+          { itemId: "bandage", qty: 2 },
+          { itemId: "ointment", qty: 1 },
+          { itemId: "cloth", qty: 1 },
         ],
-        output: { itemId: "machining_module", qty: 1 },
-      },
-      {
-        id: "craft_chem_module",
-        station: "workbench",
-        inputs: [
-          { itemId: "scrap_metal", qty: 2 },
-          { itemId: "circuitry", qty: 1 },
-        ],
-        output: { itemId: "chem_module", qty: 1 },
-      },
-      {
-        id: "craft_cooking_module",
-        station: "workbench",
-        inputs: [
-          { itemId: "scrap_metal", qty: 2 },
-          { itemId: "wood", qty: 4 },
-        ],
-        output: { itemId: "cooking_module", qty: 1 },
-      },
-      {
-        id: "craft_gunsmith_kit",
-        station: "workbench",
-        inputs: [
-          { itemId: "scrap_metal", qty: 3 },
-          { itemId: "circuitry", qty: 1 },
-        ],
-        output: { itemId: "gunsmith_kit", qty: 1 },
-      },
-
-      {
-        id: "craft_armored_vest",
-        station: "workbench",
-        requires: "machining_module",
-        inputs: [{ itemId: "scrap_metal", qty: 2 }],
-        output: { itemId: "armored_vest", qty: 1 },
-      },
-      {
-        id: "craft_blaster",
-        station: "workbench",
-        requires: "machining_module",
-        inputs: [
-          { itemId: "scrap_metal", qty: 4 },
-          { itemId: "circuitry", qty: 1 },
-        ],
-        output: { itemId: "blaster", qty: 1 },
-      },
-      {
-        id: "craft_ammo_light",
-        station: "workbench",
-        requires: "machining_module",
-        inputs: [{ itemId: "scrap_metal", qty: 1 }],
-        output: { itemId: "ammo_light", qty: 12 },
-      },
-      {
-        id: "craft_ammo_heavy",
-        station: "workbench",
-        requires: "machining_module",
-        inputs: [{ itemId: "scrap_metal", qty: 2 }],
-        output: { itemId: "ammo_heavy", qty: 8 },
-      },
-      {
-        id: "craft_ammo_ap",
-        station: "workbench",
-        requires: "machining_module",
-        inputs: [
-          { itemId: "scrap_metal", qty: 2 },
-          { itemId: "circuitry", qty: 1 },
-        ],
-        output: { itemId: "ammo_ap", qty: 6 },
-      },
-      {
-        id: "craft_mod_scope",
-        station: "workbench",
-        requires: "machining_module",
-        inputs: [
-          { itemId: "scrap_metal", qty: 2 },
-          { itemId: "circuitry", qty: 1 },
-        ],
-        output: { itemId: "mod_scope", qty: 1 },
-      },
-      {
-        id: "craft_mod_long_barrel",
-        station: "workbench",
-        requires: "machining_module",
-        inputs: [{ itemId: "scrap_metal", qty: 3 }],
-        output: { itemId: "mod_long_barrel", qty: 1 },
-      },
-      {
-        id: "craft_mod_extended_mag",
-        station: "workbench",
-        requires: "machining_module",
-        inputs: [
-          { itemId: "scrap_metal", qty: 2 },
-          { itemId: "wood", qty: 2 },
-        ],
-        output: { itemId: "mod_extended_mag", qty: 1 },
-      },
-      {
-        id: "craft_mod_grip",
-        station: "workbench",
-        requires: "machining_module",
-        inputs: [
-          { itemId: "scrap_metal", qty: 1 },
-          { itemId: "wood", qty: 2 },
-        ],
-        output: { itemId: "mod_grip", qty: 1 },
-      },
-      {
-        id: "craft_mod_suppressor",
-        station: "workbench",
-        requires: "machining_module",
-        inputs: [
-          { itemId: "scrap_metal", qty: 2 },
-          { itemId: "circuitry", qty: 1 },
-        ],
-        output: { itemId: "mod_suppressor", qty: 1 },
-      },
-      {
-        id: "craft_mod_sharp",
-        station: "workbench",
-        requires: "machining_module",
-        inputs: [{ itemId: "scrap_metal", qty: 3 }],
-        output: { itemId: "mod_sharp", qty: 1 },
-      },
-      {
-        id: "craft_mod_heavy",
-        station: "workbench",
-        requires: "machining_module",
-        inputs: [
-          { itemId: "scrap_metal", qty: 4 },
-          { itemId: "circuitry", qty: 1 },
-        ],
-        output: { itemId: "mod_heavy", qty: 1 },
-      },
-
-      {
-        id: "craft_medkit",
-        station: "workbench",
-        requires: "chem_module",
-        inputs: [
-          { itemId: "rags", qty: 2 },
-          { itemId: "wood", qty: 1 },
-        ],
-        output: { itemId: "medkit", qty: 1 },
-      },
-      {
-        id: "craft_medgel",
-        station: "workbench",
-        requires: "chem_module",
-        inputs: [{ itemId: "rags", qty: 3 }],
-        output: { itemId: "medgel", qty: 1 },
-      },
-      {
-        id: "craft_combat_stim",
-        station: "workbench",
-        requires: "chem_module",
-        inputs: [
-          { itemId: "scrap_metal", qty: 2 },
-          { itemId: "rags", qty: 2 },
-        ],
-        output: { itemId: "combat_stim", qty: 1 },
-      },
-      // permanent attribute growth is gated on gathering, not playtime.
-      {
-        id: "craft_power_serum",
-        station: "workbench",
-        requires: "chem_module",
-        inputs: [
-          { itemId: "circuitry", qty: 1 },
-          { itemId: "scrap_metal", qty: 3 },
-        ],
-        output: { itemId: "power_serum", qty: 1 },
-      },
-      {
-        id: "craft_vitality_serum",
-        station: "workbench",
-        requires: "chem_module",
-        inputs: [
-          { itemId: "circuitry", qty: 1 },
-          { itemId: "rags", qty: 4 },
-        ],
-        output: { itemId: "vitality_serum", qty: 1 },
-      },
-      {
-        id: "craft_agility_serum",
-        station: "workbench",
-        requires: "chem_module",
-        inputs: [
-          { itemId: "circuitry", qty: 1 },
-          { itemId: "wood", qty: 4 },
-        ],
-        output: { itemId: "agility_serum", qty: 1 },
-      },
-      {
-        id: "craft_endurance_serum",
-        station: "workbench",
-        requires: "chem_module",
-        inputs: [
-          { itemId: "circuitry", qty: 1 },
-          { itemId: "scrap_metal", qty: 2 },
-        ],
-        output: { itemId: "endurance_serum", qty: 1 },
-      },
-
-      {
-        id: "craft_water_bottle",
-        station: "workbench",
-        requires: "cooking_module",
-        inputs: [{ itemId: "rags", qty: 1 }],
-        output: { itemId: "water_bottle", qty: 1 },
-      },
-      {
-        id: "craft_ration_pack",
-        station: "workbench",
-        requires: "cooking_module",
-        inputs: [{ itemId: "wood", qty: 2 }],
-        output: { itemId: "ration_pack", qty: 1 },
+        output: { itemId: "first_aid_kit", qty: 1 },
       },
       {
         id: "craft_cooked_meat",
         station: "workbench",
-        requires: "cooking_module",
         inputs: [
-          { itemId: "rags", qty: 2 },
-          { itemId: "wood", qty: 1 },
+          { itemId: "raw_meat", qty: 1 },
+          { itemId: "plank", qty: 1 },
         ],
         output: { itemId: "cooked_meat", qty: 1 },
+      },
+      {
+        id: "craft_tarp",
+        station: "workbench",
+        inputs: [{ itemId: "cloth", qty: 3 }],
+        output: { itemId: "tarp", qty: 1 },
+      },
+
+      {
+        id: "craft_iron_pipe",
+        station: "workbench",
+        inputs: [{ itemId: "scrap_metal", qty: 2 }],
+        output: { itemId: "iron_pipe", qty: 1 },
+      },
+      {
+        id: "craft_spanner",
+        station: "workbench",
+        inputs: [{ itemId: "scrap_metal", qty: 3 }],
+        output: { itemId: "spanner", qty: 1 },
+      },
+      {
+        id: "craft_kitchen_knife",
+        station: "workbench",
+        inputs: [
+          { itemId: "scrap_metal", qty: 2 },
+          { itemId: "plank", qty: 1 },
+        ],
+        output: { itemId: "kitchen_knife", qty: 1 },
+      },
+
+      // hand-loaded rounds: the guns themselves are issue-only
+      {
+        id: "craft_pistol_ammo",
+        station: "workbench",
+        inputs: [{ itemId: "scrap_metal", qty: 1 }],
+        output: { itemId: "pistol_ammo", qty: 12 },
+      },
+      {
+        id: "craft_rifle_ammo",
+        station: "workbench",
+        inputs: [{ itemId: "scrap_metal", qty: 2 }],
+        output: { itemId: "rifle_ammo", qty: 10 },
+      },
+      {
+        id: "craft_sniper_ammo",
+        station: "workbench",
+        inputs: [{ itemId: "scrap_metal", qty: 3 }],
+        output: { itemId: "sniper_ammo", qty: 5 },
       },
     ]);
   },

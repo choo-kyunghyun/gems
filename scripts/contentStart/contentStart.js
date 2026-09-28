@@ -8,8 +8,9 @@ globalThis.contentStart = {
   QUESTS: ["td_gather", "td_reach"],
 
   KIT: [
-    { itemId: "lead_pipe", qty: 1, equip: true },
-    { itemId: "filter_mask", qty: 1, equip: true },
+    { itemId: "iron_pipe", qty: 1, equip: true },
+    { itemId: "bandage", qty: 3 },
+    { itemId: "water_bottle", qty: 1 },
     { itemId: "coin", qty: 1000 }, // carried across maps with the inventory
   ],
 

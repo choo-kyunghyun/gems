@@ -29,7 +29,7 @@ globalThis.contentFlora = {
       ground: ["soil", "richsoil", "grass", "mud", "sand", "gravel", "rocky"],
       solidFrom: 1,
       action: "chop",
-      yield: { itemId: "wood", qty: 4 },
+      yield: { itemId: "plank", qty: 4 },
     },
     // a perennial shrub, dormant through winter
     berry_bush: {
@@ -41,7 +41,7 @@ globalThis.contentFlora = {
       season: { spring: 1.5, summer: 1, autumn: 0.7, winter: 0 },
       ground: ["soil", "richsoil", "grass"],
       action: "harvest",
-      yield: { itemId: "berries", qty: 3 },
+      yield: { itemId: "apple", qty: 3 },
       regrow: 0.5,
     },
     // the farm crop: quick, and the first frost takes it
@@ -55,7 +55,7 @@ globalThis.contentFlora = {
       hardy: false,
       ground: ["soil", "richsoil"],
       action: "harvest",
-      yield: { itemId: "grain", qty: 2 },
+      yield: { itemId: "snack", qty: 2 },
     },
   },
 

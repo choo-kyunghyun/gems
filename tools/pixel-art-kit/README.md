@@ -11,7 +11,8 @@ is in `tools/palette`.
 | Cell | The world cell is 128 px, and a sprite is authored at that scale: one sprite px per world px. Art authored at another scale declares its `density` (sprite px per world px), e.g. `0.25` for 32 px per cell. A terrain tile set's tile is the 128 px cell itself. |
 | Alpha | Binary. Entities are alpha-tested billboards, so every pixel is either fully opaque or fully clear. |
 | Palette | AAP-64 only. Snap anything foreign as `tools/palette` describes. |
-| Anchor | Set in the IDE on import: entities at the foot (bottom-center), items at the center, tiles at the top-left. |
+| Item | An item's art is its bag icon and what a hand holds, drawn at held size: 1 px per cm, pointing right. |
+| Anchor | Set in the IDE on import: entities at the foot (bottom-center), items at the center, held gear at the grip, tiles at the top-left. |
 
 ## Hardening
 
@@ -44,5 +45,5 @@ editing the yyp. Set the origin, collision mask and playback speed there. A tile
 `output_tileset.png` saved once in the IDE (`docs/GMCLI.md`).
 
 A sprite authored at 128 px per cell needs no declaration. One authored at another scale declares
-its `density` in `contentSprites`, or it draws at the wrong size. `pixItem*` icons are 32 px, and
-they are declared `density: 0.25` by name, with no line needed.
+its `density` in `contentSprites`, or it draws at the wrong size. The legacy `pixItem*Legacy` icons
+are 32 px, and they are declared `density: 0.25` by name, with no line needed.
