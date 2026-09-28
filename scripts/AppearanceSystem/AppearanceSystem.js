@@ -10,7 +10,7 @@
  * Where gear goes is read, never declared: a rig's dress slots are those its setup pose leaves
  * empty, and a garment sits with its own sprite origin on the slot's bone, so placing a piece is
  * an origin edit and a new rig or slot needs nothing here. A weapon with no worn art shows its
- * item art in the hand, at HELD scale.
+ * item art in the hand, at its world size.
  */
 globalThis.AppearanceSystem = {
   // Equipment slot -> the dress slots a plain-string `worn` lands on; a held weapon shows in the
@@ -27,9 +27,6 @@ globalThis.AppearanceSystem = {
     trinket: ["glasses"],
   },
 
-  // item art is authored at twice the size a hand holds it
-  HELD: 0.5,
-
   // skeleton sprite name -> its dress slots; rig data never changes within a run
   _rigs: {},
 
@@ -41,7 +38,6 @@ globalThis.AppearanceSystem = {
     if (eq === undefined || inv === undefined) return;
     ap.gear = {};
     ap.tints = {};
-    ap.scales = {};
     for (const gear in AppearanceSystem.SLOT) {
       AppearanceSystem._claims(inv, eq.slots[gear], gear, ap);
     }
@@ -66,22 +62,19 @@ globalThis.AppearanceSystem = {
     const rig = AppearanceSystem._rig(inst.sprite_index);
     const gear = ap.gear ?? {}; // an authored doll carries no overlay
     const tints = ap.tints ?? {};
-    const scales = ap.scales ?? {};
     for (let i = 0; i < rig.length; i++) {
       const slot = rig[i];
       let spr = gear[slot.name];
       let tint = tints[slot.name] ?? c_white;
-      let scale = scales[slot.name] ?? 1;
       if (spr === undefined) {
         spr = ap.slots[slot.name]; // unclaimed: the base layer shows, as authored
         tint = c_white;
-        scale = 1;
       }
       if (spr === undefined || !sprite_exists(spr)) {
         inst.skeleton_attachment_set(slot.name, -1); // the manual's clear; "" is not one
         continue;
       }
-      AppearanceSystem._attach(inst, slot, spr, tint, scale);
+      AppearanceSystem._attach(inst, slot, spr, tint);
     }
     ap.dirty = false;
   },
@@ -126,21 +119,18 @@ globalThis.AppearanceSystem = {
   },
 
   /**
-   * Mounts a sprite with its own origin on the slot's bone, `scale` times its world size. The
+   * Mounts a sprite with its own origin on the slot's bone, at its world size. The
    * runtime centres the trimmed rect at bone-local coordinates (docs/SPINE.md), so the offset
    * gives the trim back and moves that centre onto the sprite origin; the doll shows the art's
    * authored framing, trimmed or not.
    */
-  _attach(inst, slot, spr, tint, scale) {
-    // one name per (slot, sprite, tint, scale): its definition never changes, so a repeat is
-    // skipped
-    const name =
-      "a_" + slot.name + "_" + sprite_get_name(spr) + "_" + tint + "_" + scale;
+  _attach(inst, slot, spr, tint) {
+    // one name per (slot, sprite, tint): its definition never changes, so a repeat is skipped
+    const name = "a_" + slot.name + "_" + sprite_get_name(spr) + "_" + tint;
     if (inst.skeleton_attachment_get(slot.name) === name) return;
     // attachment scale is rig-pixel space, so the density RATIO keeps the art's world size:
     // a denser rig would otherwise shrink every worn piece with it
-    const k =
-      (AssetMeta.density(inst.sprite_index) / AssetMeta.density(spr)) * scale;
+    const k = AssetMeta.density(inst.sprite_index) / AssetMeta.density(spr);
     const uv = sprite_get_uvs(spr, 0);
     const dx = (uv[4] + (sprite_get_width(spr) * uv[6]) / 2 - sprite_get_xoffset(spr)) * k;
     const dy = (uv[5] + (sprite_get_height(spr) * uv[7]) / 2 - sprite_get_yoffset(spr)) * k;
@@ -165,13 +155,12 @@ globalThis.AppearanceSystem = {
 
   /**
    * Merges one equipped uid's claims into `ap.gear` (dress slot -> sprite, -1 = occupied bare),
-   * their blends into `ap.tints` and their sizes into `ap.scales`. Claiming a slot the rig lacks
-   * is harmless: apply reads back only the rig's own slots.
+   * and their blends into `ap.tints`. Claiming a slot the rig lacks is harmless: apply reads back
+   * only the rig's own slots.
    */
   _claims(inv, uid, gear, ap) {
     const out = ap.gear;
     const tints = ap.tints;
-    const scales = ap.scales;
     if (uid === undefined || uid === "") return;
     const s = Bag.findByUid(inv, uid);
     if (s === undefined) return;
@@ -185,7 +174,6 @@ globalThis.AppearanceSystem = {
       for (const slot in worn) {
         out[slot] = AppearanceSystem._sprite(worn[slot]);
         delete tints[slot];
-        delete scales[slot];
       }
       return;
     }
@@ -194,7 +182,6 @@ globalThis.AppearanceSystem = {
       for (let i = 0; i < slots.length; i++) {
         out[slots[i]] = worn;
         delete tints[slots[i]];
-        delete scales[slots[i]];
       }
       return;
     }
@@ -202,7 +189,6 @@ globalThis.AppearanceSystem = {
     if (gear === "weapon" && sprite_exists(item.sprite)) {
       out[slots[0]] = item.sprite;
       tints[slots[0]] = item.tint;
-      scales[slots[0]] = AppearanceSystem.HELD;
     }
   },
 
