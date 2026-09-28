@@ -8,10 +8,10 @@ is in `tools/PALETTE.md`.
 
 | | |
 |---|---|
-| Cell | The world cell is 128 px, and a sprite is authored at that scale: one sprite px per world px. Art authored at another scale declares its `density` (sprite px per world px), e.g. `0.25` for 32 px per cell. A terrain tile set's tile is the 128 px cell itself. |
+| Cell | The world cell is 128 px, and a sprite is authored at 64 px per cell: one sprite px per two world px, `density` `0.5` (sprite px per world px). A tile set's tile must be the 128 px cell, because the runtime draws tile maps unscaled, so it is drawn at 64 px per cell and scaled up 2× nearest-neighbour before import. A wall texture is stretched over its face, so it is drawn at 64×64 and imported as is. |
 | Alpha | Binary. Entities are alpha-tested billboards, so every pixel is either fully opaque or fully clear. |
 | Palette | AAP-64 only. Snap anything foreign as `tools/PALETTE.md` describes. |
-| Item | An item's art is what lies in the world and what a hand holds, both at its world size: authored at the cell's scale, it fills its canvas, pointing right. The canvas's width and height are each a multiple of 32 px, at least 64×64, e.g. 128×64 for a long one (a rifle, a pipe). The size serves legibility, not measurement: a small thing fills its canvas, and a long thin one is drawn thicker than true. The bag shows its category's icon instead. |
+| Item | An item's art is what lies in the world and what a hand holds, both at its world size: authored at 64 px per cell, it fills its canvas, pointing right. The canvas's width and height are each a multiple of 16 px, at least 32×32, e.g. 64×32 for a long one (a rifle, a pipe). The size serves legibility, not measurement: a small thing fills its canvas, and a long thin one is drawn thicker than true. The bag shows its category's icon instead. |
 | Anchor | Set on import: entities at the foot (bottom-center), items at the center, held gear at the grip, garments at their slot's bone, tiles at the top-left. |
 
 ## Hardening
@@ -51,7 +51,7 @@ is set when that cell is filled. There are two forms, and their bit orders diffe
 | form | layout | bits |
 |---|---|---|
 | sprite strip (the `"dual"` tile map, e.g. `pixTileDual`) | 16 frames, frame = mask | TL=1 TR=2 BR=4 BL=8 |
-| tile set (terrain, `ts*` over a `pixTerrain*` sprite) | one 2048×128 image of 16 tiles, tile = mask; tile 0 is never drawn | TL=1 TR=2 BL=4 BR=8 |
+| tile set (terrain, `ts*` over a `pixTerrain*` sprite) | one 2048×128 image of 16 tiles (drawn 1024×64, scaled up 2×), tile = mask; tile 0 is never drawn | TL=1 TR=2 BL=4 BR=8 |
 
 Cut every frame from one seamless material patch. A frame's coverage is the bilinear interpolation
 of its four corner bits, thresholded at 0.5. Because that is continuous across a shared edge, the
@@ -65,5 +65,5 @@ editing the yyp. Set the origin, collision mask and playback speed there; throug
 the origin point and the bounding box are each set explicitly. A tile set also needs its
 `output_tileset.png` saved once in the IDE (`docs/GMCLI.md`).
 
-A sprite authored at 128 px per cell needs no declaration. One authored at another scale declares
-its `density` in `contentSprites`, or it draws at the wrong size.
+Every sprite declares `density: 0.5` in `contentSprites`; an undeclared one draws at half its size.
+A tile set and a wall texture declare nothing.

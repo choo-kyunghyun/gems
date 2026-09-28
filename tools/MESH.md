@@ -1,20 +1,19 @@
 # Meshes
 
-Volume props are 3D models in `datafiles/meshes/`. A model comes in two formats that share one name:
+Volume props are low-poly 3D models in `datafiles/meshes/`, one `.mesh` (PMSH) file each. The
+runtime also greedy-meshes a MagicaVoxel `.vox` at load, and a `.mesh` shadows the `.vox` of the
+same name; the committed `.vox` models stay loadable, but a new model is never a `.vox`, since a
+voxel's stepped faces spend the triangle budget on edges instead of form.
 
-- `.vox` (MagicaVoxel): the runtime greedy-meshes it at load, so the editable file is the asset.
-- `.mesh` (PMSH): a baked low-poly model. A `.mesh` shadows the `.vox` of the same name, and the
-  `.vox` stays in place as the spare.
-
-There is no code here. Build a model in MagicaVoxel or in a throwaway script kept outside the
+There is no code here. Build a model in Blender or in a throwaway script kept outside the
 repository. Check it in the game: place it, then `Screenshot.take()` (CLAUDE.md, Debugging).
 
 ## The contract
 
 | | |
 |---|---|
-| Units | 1 model unit (1 voxel) = 1 world px, so a cell is 128 units. A model authored at another scale declares its `density` (model units per world px) in `contentMeshes`, e.g. `0.25` for 32 units per cell, as every committed model is; an undeclared model draws at density 1. |
-| Axes | Author in MagicaVoxel's axes: x = east, y = south (+y is the face toward the camera), z = up, with the ground at z = 0. |
+| Units | 1 model unit = 1 world px, so a cell is 128 units. A model authored at another scale declares its `density` (model units per world px) in `contentMeshes`, e.g. `0.25` for 32 units per cell, as every committed model is; an undeclared model draws at density 1. |
+| Axes | x = east, y = south (+y is the face toward the camera), z = up, with the ground at z = 0. |
 | Placement | The model is centered on its footprint with its feet at z = 0. For a `.vox`, the runtime centers the canvas, not the content, so content off the canvas center draws off its collider. Content above z = 0 floats. |
 | Collider | Derived from the tight content extent w × d: `max(32, w / density − 8)` × `max(32, d / density − 8)` world px. |
 | Faces | Top and four sides, never a bottom. The fixed-yaw camera sees the top and the south face. |
@@ -22,7 +21,7 @@ repository. Check it in the game: place it, then `Screenshot.take()` (CLAUDE.md,
 | Palette | AAP-64 RGB only (`tools/PALETTE.md`). |
 | Name | camelCase `<material><Object>[<Variant>]`, shared by the file and `Mesh.model` (`docs/NAMING.md`). |
 
-## .vox
+## .vox (committed models)
 
 The runtime reads only the first `SIZE` + `XYZI` model and the `RGBA` palette, and ignores every
 other chunk. A file with no palette logs an error and draws nothing. Palette indices are 1-based
