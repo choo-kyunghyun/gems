@@ -14,15 +14,6 @@ is in `tools/PALETTE.md`.
 | Item | An item's art is what lies in the world and what a hand holds, both at its world size: authored at 64 px per cell, it fills its canvas, pointing right. The canvas's width and height are each a multiple of 16 px, at least 32×32, e.g. 64×32 for a long one (a rifle, a pipe). The size serves legibility, not measurement: a small thing fills its canvas, and a long thin one is drawn thicker than true. The bag shows its category's icon instead. |
 | Anchor | Set on import: entities at the foot (bottom-center), items at the center, held gear at the grip, garments at their slot's bone, tiles at the top-left. |
 
-## Hardening
-
-Shapes drawn with anti-aliasing (curves, ellipses, rotated shapes) are hardened before export:
-
-1. Draw at 4×.
-2. Box-downsample to 1×.
-3. Make a pixel opaque when at least half of its supersamples are covered.
-4. Snap its mean colour to the palette.
-
 ## Garments
 
 A garment dresses one slot of a skeletal rig — a slot the rig's setup pose leaves empty. It is
