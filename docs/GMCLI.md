@@ -46,6 +46,7 @@ Then delete the generated `scripts/<name>/<name>.gml` stub and `Write` `scripts/
 - Folders: `FOLDER CREATE FOLDER=Parent/Child`. It rejects names with spaces/`&` (over-strict), and there is no FOLDER DELETE — for both, hand-edit the `Folders` array in `gems.yyp` (safe, unlike `resources`).
 - Delete: `RESOURCE DELETE NAME=<name> TYPE=Script` — removes the `gems.yyp` entry and the asset's folder. Never by hand.
 - Rename: `RESOURCE SET EXPR=<name>.name VALUE=<newname>`. A script's `.js` + `scriptSource` are not renamed — `mv` the file, then re-set. NEVER inside a `SCRIPT PATH=` batch: it skips the `gems.yyp` save and the project won't load (revert the file renames to recover).
+- Sprite: `RESOURCE CREATE TYPE=Sprite`, then `SPRITE ADDFRAME NAME=<name> PATH=<png>` imports the image. `RESOURCE SET EXPR=<name>.origin` sets only the enum — the origin point is `<name>.sequence.xorigin`/`yorigin`, set separately — and nothing recomputes the `bbox_*` fields, so set those too. To replace an image, add the new frame, then `SPRITE DELETEFRAME INDEX=0`.
 - Tile set: its runtime texture is `tilesets/<name>/output_tileset.png`, which only the IDE writes — neither `RESOURCE CREATE` nor a build does, and without it every tile draws as nothing on either runtime. Save the tile set once in the IDE and commit the image with it.
 - Non-renameable: an included file — the dotted name breaks EXPR, so rename the file + hand-edit its `IncludedFiles` line.
 - Verify: `CHECK PROJECTPATH=gems.yyp`, then `gm-cli compile`.

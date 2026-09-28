@@ -12,7 +12,7 @@ is in `tools/palette`.
 | Alpha | Binary. Entities are alpha-tested billboards, so every pixel is either fully opaque or fully clear. |
 | Palette | AAP-64 only. Snap anything foreign as `tools/palette` describes. |
 | Item | An item's art is what lies in the world and what a hand holds: 2 px per cm, pointing right. The world draws it as authored and a hand at half size. The bag shows its category's icon instead. |
-| Anchor | Set in the IDE on import: entities at the foot (bottom-center), items at the center, held gear at the grip, tiles at the top-left. |
+| Anchor | Set on import: entities at the foot (bottom-center), items at the center, held gear at the grip, garments at their slot's bone, tiles at the top-left. |
 
 ## Hardening
 
@@ -22,6 +22,26 @@ Shapes drawn with anti-aliasing (curves, ellipses, rotated shapes) are hardened 
 2. Box-downsample to 1×.
 3. Make a pixel opaque when at least half of its supersamples are covered.
 4. Snap its mean colour to the palette.
+
+## Garments
+
+A garment dresses one slot of a skeletal rig — a slot the rig's setup pose leaves empty. It is
+mounted rigidly on that slot's bone: its origin on the bone, upright in the setup pose, at the
+rig's density. So it is drawn on the setup pose, never by eye:
+
+1. From the skeleton `.json` and its atlas, render the bone's own parts in the setup pose onto a
+   64×64 canvas with the bone at 32,32.
+2. Draw the garment over that template, then drop the template.
+3. Import with the origin at 32,32.
+
+| | |
+|---|---|
+| Cover | The garment covers its part completely, outline included. Slot alpha does not hide a part, so a garment overdraws the body; it never cuts it away. |
+| Colour | The body is a white template tinted per skin; a garment keeps its authored colours. Keep it distinct from every skin tone after the world's colour grading. |
+| Style | A `void` outline, a fill, and a shade along the bottom edge. |
+| Limbs | A garment follows one bone. Nothing bends with a limb mesh, so a sleeve or a trouser leg is not a garment. |
+
+A garment is not an item's art: the item carries its own sprite, drawn to the item rule.
 
 ## Dual-grid tiles
 
@@ -41,7 +61,8 @@ tileable noise, periodic functions, or content that stays clear of the border.
 ## Registration
 
 Import the PNG as a `GMSprite` through the IDE or `gm-cli resourcetool` (`docs/GMCLI.md`), never by
-editing the yyp. Set the origin, collision mask and playback speed there. A tile set also needs its
+editing the yyp. Set the origin, collision mask and playback speed there; through `resourcetool`,
+the origin point and the bounding box are each set explicitly. A tile set also needs its
 `output_tileset.png` saved once in the IDE (`docs/GMCLI.md`).
 
 A sprite authored at 128 px per cell needs no declaration. One authored at another scale declares
