@@ -35,6 +35,17 @@ globalThis.Loot = {
       if (src.rounds !== undefined) drop.rounds = src.rounds;
     }
     entities.add(id, ItemDrop, drop);
+    // drawn as a body, frame 0 held; an unknown item draws the placeholder
+    const it = Item.get(itemId);
+    const spr = it !== undefined ? it.sprite : -1;
+    const f = sprite_exists(spr) ? AssetMeta.fit(spr, 1) : 1;
+    entities.add(id, Sprite, {
+      sprite: spr,
+      speed: 0,
+      xscale: f,
+      yscale: f,
+      blend: it !== undefined ? it.tint : c_white,
+    });
     // TODO: a stream particle marks the drop again once stream particles are authorable
   },
 

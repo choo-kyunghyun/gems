@@ -1,5 +1,5 @@
 /**
- * World-space gameplay overlay for the colony scene: drops, projectiles, fading hitscan tracers
+ * World-space gameplay overlay for the colony scene: projectiles, fading hitscan tracers
  * and the Reach regions. Drawn after the world, whose ground passes paint an opaque fill that
  * would hide it.
  */
@@ -30,23 +30,7 @@ globalThis.WorldOverlay = {
   drawWorld(scene) {
     const entities = scene.level.entities;
 
-    // the rarity color stands in where a drop's item has no icon.
     const pitch = CameraSystem.view(scene.level).pitch;
-    entities.forEach([ItemDrop, Position], (_id, d, p) => {
-      const it = Item.get(d.itemId);
-      const spr = it !== undefined ? it.sprite : -1;
-      const color = InvTable.rarityColor(d.itemId);
-      if (sprite_exists(spr)) {
-        const f = AssetMeta.fit(spr, 1);
-        draw_sprite_ext(spr, 0, p.x, p.y, f, f, 0, it.tint, 1);
-      } else {
-        draw_set_color(color);
-        draw_rectangle(p.x - 32, p.y - 32, p.x + 32, p.y + 32, false);
-        draw_set_color(c_black);
-        draw_rectangle(p.x - 32, p.y - 32, p.x + 32, p.y + 32, true);
-      }
-    });
-
     // in-air cues lift off the ground so they read as flying, with no depth test so a body they
     // pass can't hide them.
     const lift = pitch !== 0 ? 128 : 0;

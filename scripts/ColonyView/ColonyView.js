@@ -224,14 +224,15 @@ globalThis.ColonyView = {
     const gridPass = new RenderGrid(grid, { camera: ctx.camera });
     gridPass.enabled = false;
     ctx.renderer.insert(gridPass);
-    // A body lying flat casts no shadow; NPCs carry no Health, so a corpse is known by its
-    // interaction kind.
+    // A body lying flat casts no shadow, nor a ground item, whose box is a pick area rather than
+    // a footprint; NPCs carry no Health, so a corpse is known by its interaction kind.
     ctx.renderer.insert(
       new RenderEntityShadow({
         filter: (entities, id) => {
           if (entities.has(id, Downed)) return false;
           const it = entities.get(id, Interaction);
-          return it !== undefined ? it.kind !== "corpse" : true; // `?:` not `||` (docs/GMRT.md)
+          // `?:` not `||` (docs/GMRT.md)
+          return it !== undefined ? it.kind !== "corpse" && it.kind !== "pickup" : true;
         },
       }),
     );
