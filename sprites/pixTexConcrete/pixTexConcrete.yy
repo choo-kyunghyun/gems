@@ -2,9 +2,9 @@
   "$GMSprite":"v2",
   "%Name":"pixTexConcrete",
   "bboxMode":0,
-  "bbox_bottom":127,
+  "bbox_bottom":31,
   "bbox_left":0,
-  "bbox_right":127,
+  "bbox_right":31,
   "bbox_top":0,
   "collisionKind":1,
   "collisionTolerance":0,
@@ -16,7 +16,7 @@
   ],
   "gridX":0,
   "gridY":0,
-  "height":128,
+  "height":32,
   "HTile":false,
   "layers":[
     {"$GMImageLayer":"","%Name":"66628d54-78ab-4477-a035-a99f94a57fa5","blendMode":0,"displayName":"default","isLocked":false,"name":"66628d54-78ab-4477-a035-a99f94a57fa5","opacity":100.0,"resourceType":"GMImageLayer","resourceVersion":"2.0","visible":true,},
@@ -86,5 +86,5 @@
   },
   "type":0,
   "VTile":false,
-  "width":128,
+  "width":32,
 }

@@ -11,7 +11,7 @@
  */
 globalThis.RenderMesh = class RenderMesh {
   static MAX_LIGHTS = 8; // must match shMeshlit.fsh MAX_LIGHTS
-  static LIGHT_Z = -80; // point-light height off the ground plane (torch flame)
+  static LIGHT_Z = -20; // point-light height off the ground plane, world px (torch flame)
   // BUG: a literal, since a static initializer can't reference its own class (docs/GMRT.md)
   static SUN_DEFAULT = {
     x: 0,

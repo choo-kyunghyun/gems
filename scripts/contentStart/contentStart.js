@@ -15,8 +15,8 @@ globalThis.contentStart = {
   ],
 
   COMPANION: {
-    x: -112,
-    y: 88,
+    x: -28,
+    y: 22,
     follower: { label: "Companion", bonusWeight: 15 },
   },
 };

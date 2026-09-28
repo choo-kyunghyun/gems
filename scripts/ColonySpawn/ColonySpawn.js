@@ -14,6 +14,9 @@
  * The helpers below `_spawn` are the hooks' vocabulary, so a preset states its rule in one line.
  */
 globalThis.ColonySpawn = {
+  FOOT_MIN: 8, // a footprint side's floor, world px
+  FOOT_INSET: 2, // world px taken off each content side
+
   /**
    * Collider footprint for a mesh model from its content dims, in world px: erring small for
    * walkability, with a floor that keeps thin content solid. Undefined for an unknown model.
@@ -29,8 +32,8 @@ globalThis.ColonySpawn = {
     if (content === undefined) return undefined;
     const u = AssetMeta.fit(model, 1); // world px per model unit
     return {
-      w: Math.max(32, content[0] * u - 8),
-      h: Math.max(32, content[1] * u - 8),
+      w: Math.max(ColonySpawn.FOOT_MIN, content[0] * u - ColonySpawn.FOOT_INSET),
+      h: Math.max(ColonySpawn.FOOT_MIN, content[1] * u - ColonySpawn.FOOT_INSET),
     };
   },
 

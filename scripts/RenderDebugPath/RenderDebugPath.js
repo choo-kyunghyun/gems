@@ -3,6 +3,8 @@
  * @implements {RenderPass}
  */
 globalThis.RenderDebugPath = class RenderDebugPath {
+  static CROSS = 4; // the goal cross's half-size, world px
+
   constructor(grid) {
     this.enabled = true;
     this.grid = grid;
@@ -40,9 +42,10 @@ globalThis.RenderDebugPath = class RenderDebugPath {
     for (const id of entities.query(PathRequest)) {
       const req = entities.get(id, PathRequest);
       const wp = grid.gridToWorld(req.goalX, req.goalY);
+      const k = RenderDebugPath.CROSS;
       draw_set_color(c_red);
-      draw_line(wp.x - 16, wp.y - 16, wp.x + 16, wp.y + 16);
-      draw_line(wp.x + 16, wp.y - 16, wp.x - 16, wp.y + 16);
+      draw_line(wp.x - k, wp.y - k, wp.x + k, wp.y + k);
+      draw_line(wp.x + k, wp.y - k, wp.x - k, wp.y + k);
     }
 
     draw_set_color(color);

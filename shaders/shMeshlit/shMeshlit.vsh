@@ -28,12 +28,14 @@ varying vec4 v_vColour;
 // planted, a taller clump swings wider, and the world-position phase makes gusts TRAVEL.
 uniform float u_sway;
 uniform float u_swayTime;
+// gust phase per world px along x and y
+#define SWAY_FREQ vec2(0.11, 0.07)
 
 void main() {
   vec4 object_space_pos = vec4(in_Position.x, in_Position.y, in_Position.z, 1.0);
   if (u_sway > 0.0) {
     float h = max(0.0, -in_Position.z);
-    float ph = in_Position.x * 0.0275 + in_Position.y * 0.0175;
+    float ph = in_Position.x * SWAY_FREQ.x + in_Position.y * SWAY_FREQ.y;
     object_space_pos.x += u_sway * h * 0.22 *
       (sin(u_swayTime * 1.9 + ph) * 0.6 + sin(u_swayTime * 3.1 + ph * 1.7) * 0.4);
   }

@@ -9,6 +9,8 @@
  * @implements {RenderPass}
  */
 globalThis.RenderGrass = class RenderGrass {
+  static INSET = 2; // world px a clump's anchor keeps clear of its cell's edges
+
   /**
    * `layer` is a tile layer (`LevelLayer`). A def grows on TileType `id` from a sheet
    * of clump variants (origin at the foot); `chance` is the share of eligible cells carrying any,
@@ -68,6 +70,7 @@ globalThis.RenderGrass = class RenderGrass {
     const y1 = r.y1 < rows ? r.y1 : rows;
     const cw = this.grid.cellWidth;
     const ch = this.grid.cellHeight;
+    const inset = RenderGrass.INSET;
     const d = this.layer.ids.data;
     const nd = this.defs.length;
     for (let k = 0; k < nd; k++) {
@@ -109,9 +112,9 @@ globalThis.RenderGrass = class RenderGrass {
             const s2 = salt + 7 + n * 53;
             // snapped to the sheet's texel grid so the denser art still samples whole
             const px =
-              Math.round((gx * cw + 8 + hash2(gx, gy, s2) * (cw - 16)) * dens) / dens;
+              Math.round((gx * cw + inset + hash2(gx, gy, s2) * (cw - 2 * inset)) * dens) / dens;
             const py =
-              Math.round((gy * ch + 8 + hash2(gx, gy, s2 + 1) * (ch - 16)) * dens) / dens;
+              Math.round((gy * ch + inset + hash2(gx, gy, s2 + 1) * (ch - 2 * inset)) * dens) / dens;
             const frame = Math.min(
               frames - 1,
               Math.floor(hash2(gx, gy, s2 + 2) * frames),

@@ -5,13 +5,15 @@
  * @implements {RenderPass}
  */
 globalThis.RenderEntityShadow = class RenderEntityShadow {
+  static RY_MIN = 3; // world px, so a thin body still casts a visible shadow
+
   constructor(opt) {
     opt = opt ?? {};
     this.enabled = true;
     this.alpha = opt.alpha ?? 0.26;
     this.scaleX = opt.scaleX ?? 0.6; // half-width as a fraction of BBox width
     this.flatten = opt.flatten ?? 0.32; // height/width
-    this.defaultRx = opt.defaultRx ?? 64; // px half-width without a BBox
+    this.defaultRx = opt.defaultRx ?? 16; // world px half-width without a BBox
     this.filter = opt.filter; // (entities, id) => bool; undefined shadows every visible body
   }
 
@@ -33,7 +35,7 @@ globalThis.RenderEntityShadow = class RenderEntityShadow {
     let rx = this.defaultRx;
     const box = entities.get(entity, BBox);
     if (box !== undefined) rx = box.width * this.scaleX;
-    const ry = Math.max(12, rx * this.flatten);
+    const ry = Math.max(RenderEntityShadow.RY_MIN, rx * this.flatten);
     draw_ellipse_colour(
       rp.x - rx,
       rp.y - ry,

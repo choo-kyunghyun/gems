@@ -67,6 +67,8 @@ uniform float u_chroma;
 uniform float u_wave;
 uniform vec3 u_waveColor;
 uniform float u_time;
+// crest phase per world px: x the slow sway, y the bands
+#define CREST_FREQ vec2(0.05, 0.14)
 
 vec3 toLinear(vec3 c) {
   return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)), step(0.04045, c));
@@ -122,7 +124,7 @@ void main() {
   if (u_wave > 0.5) {
     // one sine along y, its phase warped by a slower one along x: thin crest LINES that
     // drift down-screen and sway, ~1/8 of the surface
-    float w = sin(v_worldPos.y * 0.035 + sin(v_worldPos.x * 0.0125 + u_time * 0.4) * 2.0 - u_time * 0.7);
+    float w = sin(v_worldPos.y * CREST_FREQ.y + sin(v_worldPos.x * CREST_FREQ.x + u_time * 0.4) * 2.0 - u_time * 0.7);
     albedo = mix(albedo, u_waveColor, step(0.86, w));
   }
   if (u_chroma < 1.0) albedo = chromaScale(albedo, u_chroma);

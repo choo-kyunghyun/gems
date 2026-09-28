@@ -1,5 +1,7 @@
 // turret reach in seconds of bullet flight
 const SHOT_RANGE_SECS = 1.5;
+// world px a mobile actor may be knocked off its home before it walks back
+const HOME_SLACK = 16;
 
 /**
  * Per-actor AI memory and tuning. It must survive a snapshot round-trip, which re-creates the
@@ -12,10 +14,10 @@ globalThis.Brain = "Brain";
   target: -1,
   mobile: true,
   ranged: false,
-  aggro: 640,
-  deAggro: 960,
-  attackRange: 120,
-  speed: 360,
+  aggro: 160,
+  deAggro: 240,
+  attackRange: 30,
+  speed: 90,
   cdMax: 0.75,
   cd: 0,
   bulletSpeed: 0,
@@ -71,7 +73,7 @@ globalThis.CombatAI = {
           if (brain.mobile) {
             const dx = brain.home.x - pos.x;
             const dy = brain.home.y - pos.y;
-            if (dx * dx + dy * dy > 4096)
+            if (dx * dx + dy * dy > HOME_SLACK * HOME_SLACK)
               CombatAI._seek(
                 level,
                 id,
@@ -265,7 +267,7 @@ globalThis.CombatAI = {
     const vel = entities.get(id, Velocity);
     let st = "idle";
     if (attacking) st = "attack";
-    else if (vel !== undefined && vel.x * vel.x + vel.y * vel.y > 16)
+    else if (vel !== undefined && Doll.moving(vel))
       st = running ? "run" : "walk";
     Doll.setState(entities, id, st);
     if (vel !== undefined) Doll.face(entities, id, vel.x);

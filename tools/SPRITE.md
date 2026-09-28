@@ -8,10 +8,10 @@ is in `tools/PALETTE.md`.
 
 | | |
 |---|---|
-| Cell | The world cell is 128 px, and a sprite is authored at 64 px per cell: one sprite px per two world px, `density` `0.5` (sprite px per world px). A tile set's tile must be the 128 px cell, because the runtime draws tile maps unscaled, so it is drawn at 64 px per cell and scaled up 2× nearest-neighbour before import. A wall texture is stretched over its face, so it is drawn at 64×64 and imported as is. |
+| Cell | The world cell is 32 px, and a sprite is authored 1:1 at 32 px per cell: `density` `1` (sprite px per world px). A tile set's tile must be the 32 px cell, because the runtime draws tile maps unscaled, so it is drawn at 32×32 and imported with no upscale. A wall texture is stretched over its face, so it is drawn at 32×32 and imported as is. |
 | Alpha | Binary. Entities are alpha-tested billboards, so every pixel is either fully opaque or fully clear. |
 | Palette | AAP-64 only. Snap anything foreign as `tools/PALETTE.md` describes. |
-| Item | An item's art is what lies in the world and what a hand holds, both at its world size: authored at 64 px per cell, pointing right, on a canvas whose width and height are each a multiple of 16 px, at least 32×32. The bag shows its category's icon instead. |
+| Item | An item's art is what lies in the world and what a hand holds, both at its world size: authored at 32 px per cell, pointing right, on a canvas whose width and height are each a multiple of 8 px, at least 16×16. The bag shows its category's icon instead. |
 | Anchor | Set on import: entities at the foot (bottom-center), items at the center, held gear at the grip, garments at their slot's bone, tiles at the top-left. |
 
 ## Garments
@@ -21,9 +21,9 @@ mounted rigidly on that slot's bone: its origin on the bone, upright in the setu
 rig's density. So it is drawn on the setup pose, never by eye:
 
 1. From the skeleton `.json` and its atlas, render the bone's own parts in the setup pose onto a
-   64×64 canvas with the bone at 32,32.
+   32×32 canvas with the bone at 16,16.
 2. Draw the garment over that template, then drop the template.
-3. Import with the origin at 32,32.
+3. Import with the origin at 16,16.
 
 | | |
 |---|---|
@@ -41,7 +41,7 @@ is set when that cell is filled. There are two forms, and their bit orders diffe
 | form | layout | bits |
 |---|---|---|
 | sprite strip (the `"dual"` tile map, e.g. `pixTileDual`) | 16 frames, frame = mask | TL=1 TR=2 BR=4 BL=8 |
-| tile set (terrain, `ts*` over a `pixTerrain*` sprite) | one 2048×128 image of 16 tiles (drawn 1024×64, scaled up 2×), tile = mask; tile 0 is never drawn | TL=1 TR=2 BL=4 BR=8 |
+| tile set (terrain, `ts*` over a `pixTerrain*` sprite) | one 512×32 image of 16 tiles, tile = mask; tile 0 is never drawn | TL=1 TR=2 BL=4 BR=8 |
 
 Frames must agree wherever two meet: along a shared edge, both sides show the same coverage and
 the same material, so any arrangement tiles.
@@ -53,5 +53,5 @@ editing the yyp. Set the origin, collision mask and playback speed there; throug
 the origin point and the bounding box are each set explicitly. A tile set also needs its
 `output_tileset.png` saved once in the IDE (`docs/GMCLI.md`).
 
-Every sprite declares `density: 0.5` in `contentSprites`; an undeclared one draws at half its size.
-A tile set and a wall texture declare nothing.
+A sprite at 32 px per cell declares nothing. One authored at another scale declares its `density` in
+`contentSprites`, and a garment declares its rig's. A tile set and a wall texture declare nothing.

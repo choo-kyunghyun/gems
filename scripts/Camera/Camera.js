@@ -29,9 +29,9 @@ globalThis.Camera = "Camera";
   pitch: 0,
   yaw: 0,
   roll: 0,
-  dist: 400,
-  zoom: 0.25,
+  dist: 100,
+  zoom: 1,
   znear: 1,
-  zfar: 32000,
+  zfar: 8000,
   fov: 70,
 };

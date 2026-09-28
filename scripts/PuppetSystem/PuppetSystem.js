@@ -29,7 +29,7 @@
  */
 globalThis.PuppetSystem = {
   KEY: "colliders", // derived, on the level's own entity
-  MASK: 128, // the unit mask sprite's side (px)
+  MASK: 32, // the unit mask sprite's side (px)
   _probe: null,
   _doomed: [],
   _list: -1, // made on first use, kept for the run

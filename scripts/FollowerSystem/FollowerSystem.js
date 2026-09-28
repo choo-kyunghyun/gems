@@ -1,4 +1,4 @@
-const FOLLOWER_EASE_BAND = 192; // px past `range` over which approach speed ramps to full
+const FOLLOWER_EASE_BAND = 48; // px past `range` over which approach speed ramps to full
 
 /**
  * A "follow" member steers toward the player, easing to a stop near `range` so it settles instead
@@ -43,7 +43,7 @@ globalThis.FollowerSystem = {
       Doll.setState(
         entities,
         id,
-        vel.x * vel.x + vel.y * vel.y > 16 ? "walk" : "idle",
+        Doll.moving(vel) ? "walk" : "idle",
       );
       Doll.face(entities, id, vel.x);
     });

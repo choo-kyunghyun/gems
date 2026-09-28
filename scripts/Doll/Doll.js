@@ -13,16 +13,16 @@ globalThis.Doll = {
   RIGS: {
     spineHuman: {
       idle: { anim: "idle0", loop: true },
-      walk: { anim: "walk0", loop: true, pace: 440 },
-      run: { anim: "run0", loop: true, pace: 180 },
+      walk: { anim: "walk0", loop: true, pace: 110 },
+      run: { anim: "run0", loop: true, pace: 45 },
       attack: { anim: "attack0", loop: false },
       kick: { anim: "attack1", loop: false },
       down: { anim: "down0", loop: false },
     },
     spineRat: {
       idle: { anim: "idle", loop: true },
-      walk: { anim: "walk", loop: true, pace: 240 },
-      run: { anim: "walk", loop: true, pace: 240 },
+      walk: { anim: "walk", loop: true, pace: 60 },
+      run: { anim: "walk", loop: true, pace: 60 },
       attack: { anim: "attack", loop: false },
       down: { anim: "down", loop: false },
     },
@@ -54,6 +54,13 @@ globalThis.Doll = {
   // pace clamp: a blocked walker still shuffles, a hasted one never blurs
   PACE_MIN: 0.6,
   PACE_MAX: 5,
+  // world px/s at or under which a doll stands still and keeps its facing
+  STILL: 1,
+
+  /** Whether a Velocity moves faster than a doll stands still. */
+  moving(vel) {
+    return vel.x * vel.x + vel.y * vel.y > Doll.STILL * Doll.STILL;
+  },
 
   /**
    * Stride-match every moving doll's locomotion set to its actual speed, once per frame; any
@@ -80,13 +87,13 @@ globalThis.Doll = {
   },
 
   /**
-   * Face toward `vx`, ignoring anything under `dead`. Sign ONLY — |xscale| carries the baked size
-   * factor, so a bare ±1 would silently reset the actor's size.
+   * Face toward `vx`, ignoring anything under `dead` (default `STILL`). Sign ONLY — |xscale|
+   * carries the baked size factor, so a bare ±1 would silently reset the actor's size.
    */
   face(entities, id, vx, dead) {
     const spr = entities.get(id, Sprite);
     if (spr === undefined) return;
-    const d = dead ?? 4;
+    const d = dead ?? Doll.STILL;
     if (vx < -d) spr.xscale = -Math.abs(spr.xscale);
     else if (vx > d) spr.xscale = Math.abs(spr.xscale);
   },

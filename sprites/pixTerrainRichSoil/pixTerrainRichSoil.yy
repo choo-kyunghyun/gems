@@ -2,9 +2,9 @@
   "$GMSprite":"v2",
   "%Name":"pixTerrainRichSoil",
   "bboxMode":0,
-  "bbox_bottom":127,
-  "bbox_left":128,
-  "bbox_right":2047,
+  "bbox_bottom":31,
+  "bbox_left":32,
+  "bbox_right":511,
   "bbox_top":0,
   "collisionKind":1,
   "collisionTolerance":0,
@@ -16,7 +16,7 @@
   ],
   "gridX":0,
   "gridY":0,
-  "height":128,
+  "height":32,
   "HTile":false,
   "layers":[
     {"$GMImageLayer":"","%Name":"4d0e173a-5a1f-4b18-a2b9-7c09d9e4f288","blendMode":0,"displayName":"default","isLocked":false,"name":"4d0e173a-5a1f-4b18-a2b9-7c09d9e4f288","opacity":100.0,"resourceType":"GMImageLayer","resourceVersion":"2.0","visible":true,},
@@ -86,5 +86,5 @@
   },
   "type":0,
   "VTile":false,
-  "width":2048,
+  "width":512,
 }

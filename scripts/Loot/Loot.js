@@ -3,6 +3,10 @@
  * keeps its uid and mods through the drop, so pickup re-inserts the same one.
  */
 globalThis.Loot = {
+  // world px a spilled slot lands off the body: across, alternating sides, and the default down
+  SPILL_X: 32,
+  SPILL_Y: 24,
+
   /** Scatter an entity's Inventory as ground drops; `opts` { yBase, ySpread }. */
   spill(entities, id, opts) {
     const inv = entities.get(id, Inventory);
@@ -11,10 +15,10 @@ globalThis.Loot = {
     const yBase =
       opts !== undefined && opts.yBase !== undefined ? opts.yBase : 0;
     const ySpread =
-      opts !== undefined && opts.ySpread !== undefined ? opts.ySpread : 96;
+      opts !== undefined && opts.ySpread !== undefined ? opts.ySpread : Loot.SPILL_Y;
     for (let i = 0; i < inv.slots.length; i++) {
       const s = inv.slots[i];
-      const ox = (i % 2 === 0 ? -1 : 1) * 128;
+      const ox = (i % 2 === 0 ? -1 : 1) * Loot.SPILL_X;
       const oy = (i < 2 ? -1 : 1) * ySpread;
       Loot.drop(entities, s.itemId, s.qty, pos.x + ox, pos.y + yBase + oy, s);
     }
@@ -25,7 +29,8 @@ globalThis.Loot = {
     const id = entities.create();
     entities.add(id, Position, { x: x, y: y });
     // One cell wide whatever the art's size, so a small item stays easy to pick.
-    entities.add(id, BBox, { x: -64, y: -64, width: 128, height: 128 });
+    const c = LevelGrid.CELL;
+    entities.add(id, BBox, { x: -c / 2, y: -c / 2, width: c, height: c });
     entities.add(id, Interaction, { kind: "pickup" });
     const drop = { itemId: itemId, qty: qty };
     if (src !== undefined && src.uid !== undefined) {

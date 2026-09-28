@@ -94,7 +94,7 @@ globalThis.Loadout = {
 
   // gun kinetic power: velocity squared rewards speed.
   KIN_K: 0.75,
-  KIN_REF: 4800, // scaled with ammo velocities so damage is scale-independent
+  KIN_REF: 1200, // scaled with ammo velocities so damage is scale-independent
 
   /** The equipped weapon's live Inventory slot — not a copy, so a shot can spend its rounds. */
   weaponSlot(entities, id) {

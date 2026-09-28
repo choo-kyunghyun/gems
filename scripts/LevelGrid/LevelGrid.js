@@ -39,9 +39,11 @@
  * fresh one is, each layer adopting its channel, then pruned once its types are bound.
  */
 globalThis.LevelGrid = class LevelGrid {
+  static CELL = 32; // the default cell side, world px
+
   constructor(opt = {}) {
-    this.cellWidth = opt.cellWidth ?? 128;
-    this.cellHeight = opt.cellHeight ?? 128;
+    this.cellWidth = opt.cellWidth ?? LevelGrid.CELL;
+    this.cellHeight = opt.cellHeight ?? LevelGrid.CELL;
     this.cols = opt.cols ?? Math.floor(room_width / this.cellWidth);
     this.rows = opt.rows ?? Math.floor(room_height / this.cellHeight);
     this.size = this.cols * this.rows;

@@ -4,8 +4,10 @@ globalThis.FloatingText = {
   _items: [], // { x, y, text, color, age, life, rise, scale }
 
   life: 0.9, // seconds on screen, fades included
-  rise: 240, // world px risen over life
+  rise: 60, // world px risen over life
   fadeIn: 0.12, // seconds
+  scale: 2, // world px per font px, sized for the camera's home zoom
+  shadowOffset: 1, // world px
 
   font: -1,
   shadowColor: Color.parse("#0a0c10"),
@@ -33,7 +35,7 @@ globalThis.FloatingText = {
       age: 0,
       life: opts.life ?? FloatingText.life,
       rise: opts.rise ?? FloatingText.rise,
-      scale: opts.scale ?? 8, // keeps screen size under the camera's zoom
+      scale: opts.scale ?? FloatingText.scale,
     });
   },
 
@@ -73,6 +75,7 @@ globalThis.FloatingText = {
     gpu_set_ztestenable(false);
 
     const sh = FloatingText.shadowColor;
+    const off = FloatingText.shadowOffset;
     for (let i = 0; i < live.length; i++) {
       const t = live[i];
       const p = t.age / t.life;
@@ -100,8 +103,8 @@ globalThis.FloatingText = {
       const c = t.color;
       draw_set_alpha(a * 0.7);
       draw_text_transformed_color(
-        ox + 4,
-        oy + 4,
+        ox + off,
+        oy + off,
         t.text,
         sc,
         sc,

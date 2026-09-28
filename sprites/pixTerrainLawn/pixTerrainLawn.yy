@@ -2,9 +2,9 @@
   "$GMSprite":"v2",
   "%Name":"pixTerrainLawn",
   "bboxMode":0,
-  "bbox_bottom":127,
-  "bbox_left":128,
-  "bbox_right":2047,
+  "bbox_bottom":31,
+  "bbox_left":32,
+  "bbox_right":511,
   "bbox_top":0,
   "collisionKind":1,
   "collisionTolerance":0,
@@ -16,7 +16,7 @@
   ],
   "gridX":0,
   "gridY":0,
-  "height":128,
+  "height":32,
   "HTile":false,
   "layers":[
     {"$GMImageLayer":"","%Name":"b639b801-faec-417a-abee-39f584439c1b","blendMode":0,"displayName":"default","isLocked":false,"name":"b639b801-faec-417a-abee-39f584439c1b","opacity":100.0,"resourceType":"GMImageLayer","resourceVersion":"2.0","visible":true,},
@@ -86,5 +86,5 @@
   },
   "type":0,
   "VTile":false,
-  "width":2048,
+  "width":512,
 }

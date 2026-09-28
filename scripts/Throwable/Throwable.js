@@ -5,9 +5,9 @@ globalThis.Throwable = class Throwable {
    * damage (at the blast centre), penetration (armor penetration at each hit).
    */
   constructor(d = {}) {
-    this.speed = d.speed ?? 1280;
+    this.speed = d.speed ?? 320;
     this.fuse = d.fuse ?? 1.5;
-    this.radius = d.radius ?? 384;
+    this.radius = d.radius ?? 96;
     this.damage = d.damage ?? 6;
     this.penetration = d.penetration ?? 0;
   }

@@ -1,4 +1,3 @@
-const CELL = 128; // fallback cell size; the media set is authored 1:1 at 128px/cell
 const ANCHOR_CLEAR = 6; // cells around a site's anchor kept procedural-free — no camp on the doorstep
 
 /**
@@ -50,7 +49,7 @@ globalThis.ColonyLevel = {
     if (site.claimable === true) meta.claimable = true;
     if (site.id === ColonyLevel.START) meta.persistent = true; // the home is never rebuilt
     return {
-      cell: CELL,
+      cell: LevelGrid.CELL,
       cols: site.cols,
       rows: site.rows,
       meta: meta,
@@ -108,7 +107,7 @@ globalThis.ColonyLevel = {
    * falling back to `default`. `spawns` are translated but not spawned.
    */
   build(data, entryId = "default") {
-    const cell = data.cell ?? CELL;
+    const cell = data.cell ?? LevelGrid.CELL;
     const grid = new LevelGrid({
       cellWidth: cell,
       cellHeight: cell,

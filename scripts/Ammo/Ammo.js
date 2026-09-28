@@ -11,7 +11,7 @@ globalThis.Ammo = class Ammo {
   constructor(d = {}) {
     this.caliber = d.caliber ?? "standard";
     this.mass = d.mass ?? 4;
-    this.velocity = d.velocity ?? 2400;
+    this.velocity = d.velocity ?? 600;
     this.power = d.power ?? 1;
     this.penetration = d.penetration ?? 0;
   }

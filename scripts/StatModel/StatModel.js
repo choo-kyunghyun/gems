@@ -11,6 +11,9 @@ globalThis.StatModel = {
     { id: "agi", name: "ATTR_AGI", default: 5 },
     { id: "end", name: "ATTR_END", default: 6 },
   ],
+  // walk speed in world px/s: the base, plus this much per agi point
+  SPEED: 320,
+  SPEED_AGI: 24,
 
   defaults() {
     const a = {};
@@ -26,7 +29,7 @@ globalThis.StatModel = {
       maxHp: 4 + a.vit * 2,
       attack: Math.floor(a.pow / 2),
       defense: Math.floor(a.vit / 4),
-      speed: 1280 + a.agi * 96,
+      speed: StatModel.SPEED + a.agi * StatModel.SPEED_AGI,
       maxStamina: 40 + a.end * 10,
     };
   },

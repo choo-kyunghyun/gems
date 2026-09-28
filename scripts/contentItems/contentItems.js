@@ -214,7 +214,7 @@ globalThis.contentItems = {
           new Ammo({
             caliber: "pistol",
             mass: 3,
-            velocity: 4800,
+            velocity: 1200,
             power: 2,
             penetration: 1,
           }),
@@ -232,7 +232,7 @@ globalThis.contentItems = {
           new Ammo({
             caliber: "rifle",
             mass: 4,
-            velocity: 6400,
+            velocity: 1600,
             power: 3,
             penetration: 3,
           }),
@@ -250,7 +250,7 @@ globalThis.contentItems = {
           new Ammo({
             caliber: "sniper",
             mass: 10,
-            velocity: 7200,
+            velocity: 1800,
             power: 6,
             penetration: 6,
           }),
@@ -264,7 +264,7 @@ globalThis.contentItems = {
         weight: 1,
         value: 20,
         rarity: "uncommon",
-        components: [new Throwable({ radius: 320, damage: 8 })],
+        components: [new Throwable({ radius: 80, damage: 8 })],
       },
       {
         id: "frag_grenade",
@@ -274,7 +274,7 @@ globalThis.contentItems = {
         weight: 1,
         value: 20,
         rarity: "uncommon",
-        components: [new Throwable({ radius: 448, damage: 5 })],
+        components: [new Throwable({ radius: 112, damage: 5 })],
       },
 
       // ---- common gear
@@ -300,7 +300,7 @@ globalThis.contentItems = {
           new Weapon({
             damage: 4,
             fireCd: 0.35,
-            hitbox: { width: 304, height: 96, xoffset: 152, yoffset: 0 },
+            hitbox: { width: 76, height: 24, xoffset: 38, yoffset: 0 },
           }),
         ],
       },
@@ -317,7 +317,7 @@ globalThis.contentItems = {
           new Weapon({
             damage: 3,
             fireCd: 0.3,
-            hitbox: { width: 320, height: 96, xoffset: 160, yoffset: 0 },
+            hitbox: { width: 80, height: 24, xoffset: 40, yoffset: 0 },
           }),
         ],
       },
@@ -334,7 +334,7 @@ globalThis.contentItems = {
           new Weapon({
             damage: 3,
             fireCd: 0.2,
-            hitbox: { width: 288, height: 96, xoffset: 144, yoffset: 0 },
+            hitbox: { width: 72, height: 24, xoffset: 36, yoffset: 0 },
           }),
         ],
       },

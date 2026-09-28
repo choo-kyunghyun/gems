@@ -2,9 +2,9 @@
   "$GMSprite":"v2",
   "%Name":"pixTileDual",
   "bboxMode":0,
-  "bbox_bottom":15,
+  "bbox_bottom":31,
   "bbox_left":0,
-  "bbox_right":15,
+  "bbox_right":31,
   "bbox_top":0,
   "collisionKind":1,
   "collisionTolerance":0,
@@ -31,7 +31,7 @@
   ],
   "gridX":8,
   "gridY":8,
-  "height":16,
+  "height":32,
   "HTile":false,
   "layers":[
     {"$GMImageLayer":"","%Name":"0fc06cc9-88f4-4ea5-a7ff-3f7a6ba19878","blendMode":0,"displayName":"default","isLocked":false,"name":"0fc06cc9-88f4-4ea5-a7ff-3f7a6ba19878","opacity":100.0,"resourceType":"GMImageLayer","resourceVersion":"2.0","visible":true,},
@@ -146,5 +146,5 @@
   },
   "type":0,
   "VTile":false,
-  "width":16,
+  "width":32,
 }

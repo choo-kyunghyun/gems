@@ -15,6 +15,10 @@
 globalThis.ColonyTravel = {
   // in-game hours per world-map chart unit (corner to corner is ~1.4 units)
   HOURS_PER_CHART: 20,
+  // world px a companion lands behind and below the entry, each further one a step further back
+  LAND_X: 24,
+  LAND_Y: 24,
+  LAND_STEP: 22,
 
   /**
    * Take the squad to another map, parking the current one; a pooled target resumes, any other
@@ -61,7 +65,11 @@ globalThis.ColonyTravel = {
     });
     for (let i = 1; i < squad.length; i++)
       scene.world.put(scene.level.id, squad[i], {
-        [Position]: { x: sp.x - 96 - i * 88, y: sp.y + 96, z: 0 },
+        [Position]: {
+          x: sp.x - ColonyTravel.LAND_X - i * ColonyTravel.LAND_STEP,
+          y: sp.y + ColonyTravel.LAND_Y,
+          z: 0,
+        },
         [Velocity]: { x: 0, y: 0, z: 0 },
       });
   },

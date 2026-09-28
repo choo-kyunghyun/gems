@@ -7,7 +7,7 @@
  */
 globalThis.SolidSystem = {
   KEY: "solid_tiles", // derived, on the level's own entity
-  maxStep: 32, // px; below the thinnest collider to prevent tunneling
+  maxStep: 8, // world px; below the thinnest collider to prevent tunneling
 
   /** The level's SolidTiles, seeded from its grid on the first read and synced by each pass. */
   tiles(level) {

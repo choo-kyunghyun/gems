@@ -15,10 +15,10 @@
  * @implements {RenderPass}
  */
 globalThis.RenderFence = class RenderFence {
-  static POST = 24; // square footprint, world px
-  static RAIL_T = 8; // thickness across the run
-  static RAIL_H = 12;
-  static RAIL_TOP = [24, 56]; // each rail's top, measured DOWN from the post top
+  static POST = 6; // square footprint, world px
+  static RAIL_T = 2; // thickness across the run
+  static RAIL_H = 3;
+  static RAIL_TOP = [6, 14]; // each rail's top, measured DOWN from the post top
 
   /**
    * `layer` is any occupancy view: only a truthy `get(gx, gy)` is read. opt: `color` the flat
@@ -31,7 +31,7 @@ globalThis.RenderFence = class RenderFence {
     this.grid = grid;
     this.layer = layer;
     this.color = opt.color ?? c_white;
-    this.height = opt.height ?? 96;
+    this.height = opt.height ?? 24;
     this.lights = opt.lights;
     // must stay in lockstep with the lit mesh vertex layout
     vertex_format_begin();

@@ -2,9 +2,9 @@
   "$GMSprite":"v2",
   "%Name":"pixTileFenceSquare",
   "bboxMode":0,
-  "bbox_bottom":15,
+  "bbox_bottom":31,
   "bbox_left":0,
-  "bbox_right":15,
+  "bbox_right":31,
   "bbox_top":0,
   "collisionKind":1,
   "collisionTolerance":0,
@@ -31,7 +31,7 @@
   ],
   "gridX":0,
   "gridY":0,
-  "height":16,
+  "height":32,
   "HTile":false,
   "layers":[
     {"$GMImageLayer":"","%Name":"a1503312-55a2-49a8-b279-c7f1dd30f9e6","blendMode":0,"displayName":"default","isLocked":false,"name":"a1503312-55a2-49a8-b279-c7f1dd30f9e6","opacity":100.0,"resourceType":"GMImageLayer","resourceVersion":"2.0","visible":true,},
@@ -146,5 +146,5 @@
   },
   "type":0,
   "VTile":false,
-  "width":16,
+  "width":32,
 }

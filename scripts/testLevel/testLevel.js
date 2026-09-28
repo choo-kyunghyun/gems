@@ -117,7 +117,7 @@ Test.register(Test.CHECK, [
       twin.entities.import(exp, () => ctx.buf);
       const cells = twin.entities.get(twin.self, Level.CELLS);
       t.ok(cells.cols === 3 && cells.rows === 2, "the blob carries the shape");
-      t.ok(cells.cellWidth === 128 && cells.cellHeight === 128, "and the cell size");
+      t.ok(cells.cellWidth === LevelGrid.CELL && cells.cellHeight === LevelGrid.CELL, "and the cell size");
       t.eq(cells.layers.length, 1, "and every layer");
       t.eq(twin.grid, null, "no grid comes back without its builder");
       const grid = new LevelGrid(cells);
@@ -283,20 +283,21 @@ Test.register(Test.CHECK, [
       const mk = () => {
         const c = Test.level(8, 8);
         const s = c.entities;
-        Test.box(s, 384, 0, 128, 896); // a wall down column 3, rows 0..6
+        const cell = LevelGrid.CELL;
+        Test.box(s, 3 * cell, 0, cell, 7 * cell); // a wall down column 3, rows 0..6
         c.a = s.create();
-        s.add(c.a, Position, { x: 160, y: 400, z: 0 });
-        s.add(c.a, BBox, { x: -32, y: -32, width: 64, height: 64 });
+        s.add(c.a, Position, { x: 40, y: 100, z: 0 });
+        s.add(c.a, BBox, { x: -8, y: -8, width: 16, height: 16 });
         s.add(c.a, Collision, { solid: true });
-        s.add(c.a, Velocity, { x: 2400, y: 0, z: 0 });
+        s.add(c.a, Velocity, { x: 600, y: 0, z: 0 });
         c.b = s.create();
-        s.add(c.b, Position, { x: 192, y: 416, z: 0 });
-        s.add(c.b, BBox, { x: -32, y: -32, width: 64, height: 64 });
+        s.add(c.b, Position, { x: 48, y: 104, z: 0 });
+        s.add(c.b, BBox, { x: -8, y: -8, width: 16, height: 16 });
         s.add(c.b, Collision, { solid: true });
         s.add(c.b, Velocity, { x: 0, y: 0, z: 0 });
         c.w = s.create();
-        s.add(c.w, Position, { x: 64, y: 64, z: 0 });
-        Cameras.create(s, { x: 400, y: 400 });
+        s.add(c.w, Position, { x: 16, y: 16, z: 0 });
+        Cameras.create(s, { x: 100, y: 100 });
         return c;
       };
       ctx.p = mk();
@@ -451,7 +452,8 @@ Test.register(Test.CHECK, [
       ctx.layer.set(2, 2, ctx.mud);
       nav.sync();
       t.eq(nav.grid.get(2, 2), 3, "a weighted tile mirrors its cost");
-      nav.stamp([{ x1: 384, y1: 384, x2: 512, y2: 512 }]);
+      const cell = LevelGrid.CELL;
+      nav.stamp([{ x1: 3 * cell, y1: 3 * cell, x2: 4 * cell, y2: 4 * cell }]);
       t.eq(nav.grid.get(3, 3), Infinity, "a static stamps its cell");
       t.eq(nav.grid.get(4, 4), 1, "x2/y2 are exclusive");
       t.eq(nav.grid.get(2, 2), 3, "the base survives a stamp");
@@ -532,9 +534,10 @@ Test.register(Test.CHECK, [
     setup(ctx) {
       Object.assign(ctx, Test.level(8, 8));
       const s = ctx.entities;
-      ctx.wall = Test.box(s, 384, 0, 128, 896); // column 3, rows 0..6: a detour through row 7
+      const cell = LevelGrid.CELL;
+      ctx.wall = Test.box(s, 3 * cell, 0, cell, 7 * cell); // column 3, rows 0..6: a detour through row 7
       ctx.walker = s.create();
-      s.add(ctx.walker, Position, { x: 64, y: 64, z: 0 });
+      s.add(ctx.walker, Position, { x: 16, y: 16, z: 0 });
       s.add(ctx.walker, PathRequest, { startX: 0, startY: 0, goalX: 7, goalY: 0 }, { mint: true });
       ctx.other = s.create();
       // a held path a restamp drops
@@ -577,8 +580,8 @@ Test.register(Test.CHECK, [
       // only kinematic colliders move the generation
       hold();
       const body = s.create();
-      s.add(body, Position, { x: 200, y: 200, z: 0 });
-      s.add(body, BBox, { x: -8, y: -8, width: 16, height: 16 });
+      s.add(body, Position, { x: 50, y: 50, z: 0 });
+      s.add(body, BBox, { x: -2, y: -2, width: 4, height: 4 });
       s.add(body, Collision, { solid: true });
       PuppetSystem.update(level);
       PathfindingSystem.update(level);
@@ -597,7 +600,7 @@ Test.register(Test.CHECK, [
       Test.types(ctx);
       const s = ctx.entities;
       ctx.walker = s.create();
-      s.add(ctx.walker, Position, { x: 64, y: 64, z: 0 });
+      s.add(ctx.walker, Position, { x: 16, y: 16, z: 0 });
     },
     verify(ctx, t) {
       const s = ctx.entities;

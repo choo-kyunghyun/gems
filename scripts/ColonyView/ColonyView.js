@@ -14,8 +14,10 @@ globalThis.ColonyView = {
   // Camera pitch in degrees (0 = flat, debug only — front-view art reads wrong flat): the
   // frame-0 seed and the pitched-map gate; the live pitch follows PITCH_CURVE.
   BB_PITCH: 42,
-  // Pitch by zoom: look further = flatter. Zoom thresholds are tuned for the 128px-cell world.
-  PITCH_CURVE: { pitchLo: 42, pitchHi: 58, zoomLo: 0.3125, zoomHi: 0.65625 },
+  // Pitch by zoom: look further = flatter.
+  PITCH_CURVE: { pitchLo: 42, pitchHi: 58, zoomLo: 1.25, zoomHi: 2.625 },
+  // Clip depth either side of the look-at, world px: past any ground the widest view shows.
+  DEPTH: 8000,
 
   /**
    * The world's albedo chroma this frame, pulled toward 1 (the authored colours) by the
@@ -365,7 +367,7 @@ globalThis.ColonyView = {
    */
   _camera(level) {
     const pitch = ColonyView.BB_PITCH;
-    const baseZoom = pitch > 0 ? 0.5 : 0.25;
+    const baseZoom = pitch > 0 ? 2 : 1;
     const entities = level.entities;
     // Cap zoom-out to the world's width, the binding axis on a landscape surface.
     const viewCap = level.grid.cols * level.grid.cellWidth;
@@ -379,8 +381,8 @@ globalThis.ColonyView = {
         // the eye at the look-at, the near plane behind it: a tile map culls around the eye
         // (docs/GMRT.md), and nothing on screen is then clipped
         dist: 1,
-        znear: -32000,
-        zfar: 32000,
+        znear: -ColonyView.DEPTH,
+        zfar: ColonyView.DEPTH,
         zoom: baseZoom,
       });
     }
@@ -398,9 +400,9 @@ globalThis.ColonyView = {
         zoomTarget: entities.require(id, Camera).zoom, // resume at the persisted zoom
         zoomHome: baseZoom,
         viewCap: viewCap,
-        zoomMin: 0.125,
-        zoomMax: 1, // one stop of zoom-in headroom
-        zoomSteps: [0.125, 0.25, 0.5, 1],
+        zoomMin: 0.5,
+        zoomMax: 4, // one stop of zoom-in headroom
+        zoomSteps: [0.5, 1, 2, 4],
         // the pitched view never shows past a map edge
         bounds: {
           x1: 0,

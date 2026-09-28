@@ -8,11 +8,10 @@ globalThis.contentParticles = {
     if (contentParticles.registered) return;
     contentParticles.registered = true;
     AssetMeta.register([
-      // authored for a 32 px cell under the 128 px one
-      { asset: psDrop, kind: "particle", density: 0.25 },
-      { asset: psExplosion, kind: "particle", density: 0.25 },
-      { asset: psGone, kind: "particle", density: 0.25 },
-      { asset: psMuzzle, kind: "particle", density: 0.25 },
+      { asset: psDrop, kind: "particle" },
+      { asset: psExplosion, kind: "particle" },
+      { asset: psGone, kind: "particle" },
+      { asset: psMuzzle, kind: "particle" },
     ]);
   },
 };

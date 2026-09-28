@@ -15,8 +15,8 @@
 globalThis.CameraPan = "CameraPan";
 // any script may load first (docs/GMRT.md)
 (globalThis.Blank ??= {})[CameraPan] = {
-  zoomMin: 0.0625,
-  zoomMax: 2,
+  zoomMin: 0.25,
+  zoomMax: 8,
   zoomStep: 0.15,
   button: mb_middle,
   dragging: false,

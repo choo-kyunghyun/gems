@@ -4,6 +4,9 @@
  * paint an opaque fill that would hide it.
  */
 globalThis.WorldOverlay = {
+  LIFT: 32, // world px the in-air cues rise under a pitched camera
+  DOT: 4, // a bullet's radius, world px
+  NUDGE: 1, // world px a hidden drop's silhouette steps toward the camera
   _tracers: [], // aged on real time
   _flatU: undefined, // the world shader's uniforms, looked up on the first silhouette
 
@@ -35,7 +38,7 @@ globalThis.WorldOverlay = {
     if (pitch !== 0) WorldOverlay._hiddenDrops(entities, pitch);
     // in-air cues lift off the ground so they read as flying, with no depth test so a body they
     // pass can't hide them.
-    const lift = pitch !== 0 ? 128 : 0;
+    const lift = pitch !== 0 ? WorldOverlay.LIFT : 0;
     if (lift !== 0) {
       gpu_set_ztestenable(false);
       matrix_set(matrix_world, matrix_build(0, 0, -lift, 0, 0, 0, 1, 1, 1));
@@ -47,7 +50,7 @@ globalThis.WorldOverlay = {
       if (fuse[id % slots] !== undefined) {
         const f = AssetMeta.fit(pixItemGrenadeFrag, 1);
         draw_sprite_ext(pixItemGrenadeFrag, 0, p.x, p.y, f, f, 0, c_white, 1);
-      } else draw_circle(p.x, p.y, 16, false);
+      } else draw_circle(p.x, p.y, WorldOverlay.DOT, false);
     });
     const tracers = WorldOverlay._tracers;
     for (let i = tracers.length - 1; i >= 0; i--) {
@@ -114,9 +117,10 @@ globalThis.WorldOverlay = {
       shader_set_uniform_f(u.alphaRef, 0.5);
     }
     gpu_set_zfunc(cmpfunc_greater);
+    const nudge = WorldOverlay.NUDGE;
     entities.forEach([ItemDrop, Sprite, Position], (_id, d, spr, p) => {
       if (!sprite_exists(spr.sprite)) return;
-      matrix_set(matrix_world, matrix_build(p.x, p.y + 4, 0, -90, 0, 0, 1, 1, tall));
+      matrix_set(matrix_world, matrix_build(p.x, p.y + nudge, 0, -90, 0, 0, 1, 1, tall));
       draw_sprite_ext(
         spr.sprite,
         spr.index,

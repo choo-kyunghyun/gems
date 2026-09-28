@@ -12,10 +12,10 @@ repository. Check it in the game: place it, then `Screenshot.take()` (CLAUDE.md,
 
 | | |
 |---|---|
-| Units | 1 model unit = 1 world px, so a cell is 128 units. A model authored at another scale declares its `density` (model units per world px) in `contentMeshes`, e.g. `0.25` for 32 units per cell, as every committed model is; an undeclared model draws at density 1. |
+| Units | 1 model unit = 1 world px, so a cell is 32 units, as every committed model is. A model authored at another scale declares its `density` (model units per world px) in `contentMeshes`; an undeclared model draws at density 1. |
 | Axes | x = east, y = south (+y is the face toward the camera), z = up, with the ground at z = 0. |
 | Placement | The model is centered on its footprint with its feet at z = 0. For a `.vox`, the runtime centers the canvas, not the content, so content off the canvas center draws off its collider. Content above z = 0 floats. |
-| Collider | Derived from the tight content extent w × d: `max(32, w / density − 8)` × `max(32, d / density − 8)` world px. |
+| Collider | Derived from the tight content extent w × d: `max(8, w / density − 2)` × `max(8, d / density − 2)` world px. |
 | Faces | Top and four sides, never a bottom. The fixed-yaw camera sees the top and the south face. |
 | Shading | Never authored. The shader lights the flat colour live, so a surface carries only its base tone. |
 | Palette | AAP-64 RGB only (`tools/PALETTE.md`). |
@@ -37,7 +37,7 @@ to horizontal, and a straight-down face cannot be represented, so never emit one
 1. Put the file in `datafiles/meshes/`.
 2. Register a new file once in `gems.yyp`'s `IncludedFiles`, as a hand-added sibling line in the
    array's order; resourcetool has no included-file command.
-3. Declare it in `contentMeshes`.
+3. Declare it in `contentMeshes` if it is not authored at 32 units per cell.
 4. Name it in a preset's `Mesh.model`.
 
 Editing an existing model needs none of these steps.

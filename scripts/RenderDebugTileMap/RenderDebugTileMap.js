@@ -14,6 +14,9 @@
  * @implements {RenderPass}
  */
 globalThis.RenderDebugTileMap = class RenderDebugTileMap {
+  static TEXT_SCALE = 1; // world px per font px
+  static PAD = 2; // a coordinate label's drop below its cell's top edge, world px
+
   constructor(grid, opt = {}) {
     this.enabled = true;
     this.grid = grid;
@@ -64,6 +67,7 @@ globalThis.RenderDebugTileMap = class RenderDebugTileMap {
     }
 
     if (this.tiles || this.coords) {
+      const ts = RenderDebugTileMap.TEXT_SCALE;
       draw_set_alpha(1);
       draw_set_halign(fa_center);
       draw_set_valign(fa_middle);
@@ -76,14 +80,14 @@ globalThis.RenderDebugTileMap = class RenderDebugTileMap {
             const t = this._topTile(x, y);
             if (t !== undefined) {
               draw_set_color(c_white);
-              draw_text_transformed(cx, cy, this.names ? t.name : String(t.id), 4, 4, 0);
+              draw_text_transformed(cx, cy, this.names ? t.name : String(t.id), ts, ts, 0);
             }
           }
 
           if (this.coords) {
             draw_set_color(c_aqua);
             draw_set_valign(fa_top);
-            draw_text_transformed(cx, y * cellHeight + 8, `${x},${y}`, 4, 4, 0);
+            draw_text_transformed(cx, y * cellHeight + RenderDebugTileMap.PAD, `${x},${y}`, ts, ts, 0);
             draw_set_valign(fa_middle);
           }
         }

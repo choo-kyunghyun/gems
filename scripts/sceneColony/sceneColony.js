@@ -1,3 +1,5 @@
+const RADAR_LIFT = 32; // the radar ring's height off the floor, world px
+
 globalThis.sceneColony = () => new _SceneColonyClass();
 Scene.register(sceneColony, {
   label: I18n.textRef("COLONY_NAME"),
@@ -424,7 +426,7 @@ class _SceneColonyClass {
     if (Settings.get("hudRadar"))
       // lifted to body height under a pitched camera
       RadarArrows.draw(this.level.entities, this.playerId, this._radarRules, {
-        lift: camera.pitch !== 0 ? 128 : 0,
+        lift: camera.pitch !== 0 ? RADAR_LIFT : 0,
       });
     Interactable.drawTarget(this, this.interact);
     BuildMode.drawWorld(this, this.build);

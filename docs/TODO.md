@@ -30,3 +30,14 @@
 ## Assets
 
 - More hair sprites for `spineHuman`
+
+## 32 px cell
+
+The world cell is 32 world px and art is authored 1:1 at 32 px per cell (density 1).
+
+- Art: the placeholders box-downsampled from 128/cell are a redraw at 32/cell
+    - 11 flora, 45 items, `pixIconCoin` (the coin's world sprite)
+    - 9 `pixTerrain*`, each `ts*` `output_tileset.png` rebuilt after
+    - `pixTex` Carpet, Concrete, Metal, Mosaic, Plank
+    - Rigs: `spineHuman` and `spineRat` draw at 128/cell under a declared density of 4 in `contentSprites`, which the 17 garments share — redraw at 32/cell and drop all 19
+- Raider and rat `Stats.speed` is never read for movement; both move at the `CombatAI` blank speed
