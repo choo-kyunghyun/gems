@@ -11,7 +11,7 @@ is in `tools/palette`.
 | Cell | The world cell is 128 px, and a sprite is authored at that scale: one sprite px per world px. Art authored at another scale declares its `density` (sprite px per world px), e.g. `0.25` for 32 px per cell. A terrain tile set's tile is the 128 px cell itself. |
 | Alpha | Binary. Entities are alpha-tested billboards, so every pixel is either fully opaque or fully clear. |
 | Palette | AAP-64 only. Snap anything foreign as `tools/palette` describes. |
-| Item | An item's art is its bag icon and what a hand holds, drawn at held size: 1 px per cm, pointing right. |
+| Item | An item's art is what lies in the world and what a hand holds: 2 px per cm, pointing right. The world draws it as authored and a hand at half size. The bag shows its category's icon instead. |
 | Anchor | Set in the IDE on import: entities at the foot (bottom-center), items at the center, held gear at the grip, tiles at the top-left. |
 
 ## Hardening

@@ -14,7 +14,7 @@ globalThis.contentItems = {
   register() {
     Rarity.register(RARITIES);
 
-    // `sprite` is the bag icon and the held art, shared freely between ids. A misspelt ref kills
+    // `sprite` is the world and held art, shared freely between ids. A misspelt ref kills
     // the runner without a log (docs/GMRT.md).
     Item.register([
       // ---- consumables

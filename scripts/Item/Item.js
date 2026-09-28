@@ -2,8 +2,9 @@
 // compose via `components[]`, queried by `instanceof`.
 globalThis.Item = class Item {
   /**
-   * name/description are i18n keys; sprite is the bag icon (-1 = none) and tint its blend (colour
-   * int or "#rrggbb"); value is the base, before rarity scaling; maker "" = unbranded.
+   * name/description are i18n keys; sprite is the item's art in the world and in hand (-1 = none)
+   * and tint its blend (colour int or "#rrggbb"); value is the base, before rarity scaling; maker
+   * "" = unbranded.
    */
   constructor(def) {
     this.id = def.id;
