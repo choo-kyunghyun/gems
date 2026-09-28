@@ -43,12 +43,17 @@ globalThis.ParticleFx = {
     ParticleFx._active = live;
   },
 
-  /** World space, after the renderer. */
-  draw() {
+  /**
+   * World space, after the renderer. `pitchDeg` (the camera pitch) stands each burst up on a
+   * camera-facing plane, so it keeps its authored shape on screen.
+   */
+  draw(pitchDeg = 0) {
+    const tilt = -pitchDeg;
     const a = ParticleFx._active;
     for (let i = 0; i < a.length; i++) {
       const b = a[i];
-      matrix_set(matrix_world, matrix_build(b.x, b.y, 0, 0, 0, 0, b.scale, b.scale, 1));
+      const s = b.scale;
+      matrix_set(matrix_world, matrix_build(b.x, b.y, 0, tilt, 0, 0, s, s, s));
       part_system_drawit(b.sys);
     }
     matrix_set(matrix_world, matrix_build_identity());

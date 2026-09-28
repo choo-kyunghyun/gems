@@ -433,7 +433,7 @@ class _SceneColonyClass {
       this.level.entities,
       (camera.pitch * 180) / Math.PI,
     );
-    ParticleFx.draw();
+    ParticleFx.draw((camera.pitch * 180) / Math.PI);
     // pitch in degrees, so the numbers stand up under a pitched camera
     FloatingText.draw((camera.pitch * 180) / Math.PI);
   }
