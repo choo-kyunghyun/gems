@@ -59,7 +59,7 @@ globalThis.contentPresets = {
           Name: { name: "Raider" },
           Persona: { sex: "male", age: 30 }, // baseline — adapt re-picks per spawn
           // authored loot, never weight-gated
-          Inventory: { slots: [], capacity: 8 },
+          Inventory: {},
           Sprite: {
             sprite: spineHuman,
             anim: Doll.rest(spineHuman),
@@ -94,7 +94,7 @@ globalThis.contentPresets = {
           Rat: {}, // species marker
           Faction: { id: "monster" },
           Name: { name: "Rat" },
-          Inventory: { slots: [], capacity: 4 },
+          Inventory: {},
           Sprite: { sprite: spineRat, anim: Doll.rest(spineRat) },
         },
         adapt(s, over) {
@@ -141,14 +141,11 @@ globalThis.contentPresets = {
           Collision: { solid: true, kinematic: true },
           Interaction: { kind: "storage" },
           Name: { name: "Footlocker" },
-          Inventory: { slots: [], capacity: 12 },
+          Inventory: {},
           Mesh: { model: "militaryCrate" },
         },
         adapt(s, over) {
-          const inv = {};
-          if (s.items !== undefined) inv.slots = s.items;
-          if (s.capacity !== undefined) inv.capacity = s.capacity;
-          if (Object.keys(inv).length > 0) over.Inventory = inv;
+          if (s.items !== undefined) over.Inventory = { slots: s.items };
         },
       },
       {
@@ -339,7 +336,7 @@ globalThis.contentPresets = {
           Attributes: StatModel.defaults(),
           // seeds only: post's recompute overwrites them from the attributes; speed in world px/s
           Stats: { maxHp: 10, maxStamina: 100, attack: 1, defense: 0, speed: 880 },
-          Inventory: { capacity: 16, maxWeight: 50 },
+          Inventory: { maxWeight: 50 },
           Encumbrance: {},
           Equipment: {},
           Hotbar: {},
@@ -392,7 +389,6 @@ globalThis.contentPresets = {
             speed: 1040, // > player speed (880) so it can catch up when it lags
             range: 160,
             // carry bonus while following (0 = none); a file-authored follower grants none
-            bonusCapacity: 0,
             bonusWeight: 0,
           },
           Interaction: { kind: "rehire" },
@@ -415,7 +411,6 @@ globalThis.contentPresets = {
           if (s.state !== undefined) fol.state = s.state;
           if (s.speed !== undefined) fol.speed = s.speed;
           if (s.range !== undefined) fol.range = s.range;
-          if (s.bonusCapacity !== undefined) fol.bonusCapacity = s.bonusCapacity;
           if (s.bonusWeight !== undefined) fol.bonusWeight = s.bonusWeight;
           if (Object.keys(fol).length > 0) over.Follower = fol;
         },

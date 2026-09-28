@@ -24,10 +24,7 @@ globalThis.Crafting = {
     const inv = entities.require(crafterId, Inventory);
     if (!Crafting.canCraft(inv, recipe, module)) return false;
 
-    const probe = {
-      slots: Crafting._cloneSlots(inv.slots),
-      capacity: inv.capacity,
-    };
+    const probe = { slots: Crafting._cloneSlots(inv.slots) };
     if (inv.maxWeight !== undefined) probe.maxWeight = inv.maxWeight;
     const out = recipe.output;
     if (Bag.add(probe, out.itemId, out.qty) !== 0) {

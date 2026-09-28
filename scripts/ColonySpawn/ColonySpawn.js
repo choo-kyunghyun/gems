@@ -89,7 +89,7 @@ globalThis.ColonySpawn = {
    * by item so instanced gear is minted; weightless, so a vendor is never encumbered.
    */
   merchant(entities, id, mc) {
-    const mInv = { slots: [], capacity: mc.capacity ?? 32 };
+    const mInv = { slots: [] };
     const stock = mc.stock ?? [];
     for (let i = 0; i < stock.length; i++)
       Bag.add(mInv, stock[i].itemId, stock[i].qty);

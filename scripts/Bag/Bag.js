@@ -28,11 +28,9 @@ globalThis.Bag = {
 
     // `mods` is a MAP { slotId -> attachmentId }, not an array
     if (instanced) {
-      while (left > 0 && inv.slots.length < inv.capacity) {
+      for (let i = 0; i < accept; i++)
         inv.slots.push({ itemId: itemId, qty: 1, uid: uuid(), mods: {} });
-        left -= 1;
-      }
-      return left + (qty - accept);
+      return qty - accept;
     }
 
     for (let i = 0; i < inv.slots.length && left > 0; i++) {
@@ -45,13 +43,13 @@ globalThis.Bag = {
       }
     }
 
-    while (left > 0 && inv.slots.length < inv.capacity) {
+    while (left > 0) {
       const move = left < max ? left : max;
       inv.slots.push({ itemId: itemId, qty: move });
       left -= move;
     }
 
-    return left + (qty - accept); // unfit-by-slots + weight-gate refused
+    return qty - accept;
   },
 
   /**
@@ -68,7 +66,6 @@ globalThis.Bag = {
     if (inv.maxWeight !== undefined && unitW > 0) {
       if (Bag.weight(inv) + unitW > inv.maxWeight) return slot.qty;
     }
-    if (inv.slots.length >= inv.capacity) return slot.qty;
     if (slot.mods === undefined) slot.mods = {}; // tolerate a bare {itemId,qty,uid}
     if (slot.uid === undefined) slot.uid = uuid();
     inv.slots.push(slot);
@@ -79,7 +76,7 @@ globalThis.Bag = {
    * Move up to `amount` of slot `idx` from `src` to `dst`, capped at what fits; returns the amount
    * moved (0 = nothing fit). THE bag transfer rule: an INSTANCE moves whole by reference (its uid
    * and mods ride along — add() would mint a fresh one), a fungible stack moves as much as dst's
-   * slots and weight allow, and a slot the move empties is spliced out. `amount` only bounds a
+   * weight allows, and a slot the move empties is spliced out. `amount` only bounds a
    * fungible stack; omit it for the whole stack.
    */
   transfer(src, dst, idx, amount) {
@@ -87,14 +84,14 @@ globalThis.Bag = {
     const s = src.slots[idx];
     const def = Item.get(s.itemId);
     if (def !== undefined && def.isInstanced()) {
-      if (Bag.addSlot(dst, s) !== 0) return 0; // dst full / weight-gated
+      if (Bag.addSlot(dst, s) !== 0) return 0; // weight-gated
       src.slots.splice(idx, 1);
       return 1;
     }
     const want = amount === undefined ? s.qty : Math.min(amount, s.qty);
     if (want <= 0) return 0;
     const moved = want - Bag.add(dst, s.itemId, want);
-    if (moved <= 0) return 0; // dst full / weight-gated
+    if (moved <= 0) return 0; // weight-gated
     s.qty -= moved;
     if (s.qty <= 0) src.slots.splice(idx, 1);
     return moved;

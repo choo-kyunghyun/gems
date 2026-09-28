@@ -15,7 +15,6 @@
  *
  * @typedef {Object} Inventory
  * @property {InventorySlot[]} slots
- * @property {number} capacity    max slots
  * @property {number} [maxWeight] omit for none
  */
 globalThis.Inventory = "Inventory";

@@ -111,16 +111,8 @@ globalThis.InventoryUI = {
       facetLabel(
         () => {
           const v = scene.level.entities.get(scene.playerId, Inventory);
-          let s =
-            I18n.text("INV_SLOTS") + " " + v.slots.length + "/" + v.capacity;
-          if (v.maxWeight !== undefined)
-            s +=
-              "   " +
-              I18n.text("INV_WEIGHT") +
-              " " +
-              Bag.weight(v) +
-              "/" +
-              v.maxWeight;
+          let s = I18n.text("INV_WEIGHT") + " " + Bag.weight(v);
+          if (v.maxWeight !== undefined) s += "/" + v.maxWeight;
           return s;
         },
         { color: FacetTheme.textMuted },
@@ -456,11 +448,7 @@ globalThis.InventoryUI = {
           return (
             state +
             "   ·   " +
-            I18n.text(
-              "FOLLOWER_BONUS",
-              f.bonusCapacity ?? 0,
-              f.bonusWeight ?? 0,
-            )
+            I18n.text("FOLLOWER_BONUS", f.bonusWeight ?? 0)
           );
         },
         { color: FacetTheme.textMuted },

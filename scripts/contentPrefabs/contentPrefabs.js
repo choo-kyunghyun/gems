@@ -94,7 +94,6 @@ globalThis.contentPrefabs = {
             preset: "chest",
             gx: 10,
             gy: 9,
-            capacity: 12,
             settlement: "hub",
             items: [
               { itemId: "first_aid_kit", qty: 2 },
@@ -170,7 +169,6 @@ globalThis.contentPrefabs = {
               sellMargin: 0.6,
               credits: 500,
               restockHours: 6,
-              capacity: 40,
               stock: [
                 { itemId: "service_pistol", qty: 1 },
                 { itemId: "service_assault_rifle", qty: 1 },
@@ -297,7 +295,6 @@ globalThis.contentPrefabs = {
             preset: "chest",
             gx: 2,
             gy: 2,
-            capacity: 8,
             items: [
               { itemId: "coin", qty: 5 },
               { itemId: "scrap_metal", qty: 2 },
@@ -329,7 +326,6 @@ globalThis.contentPrefabs = {
             preset: "chest",
             gx: 1,
             gy: 2,
-            capacity: 8,
             items: [
               { itemId: "gold", qty: 1 },
               { itemId: "scrap_metal", qty: 2 },

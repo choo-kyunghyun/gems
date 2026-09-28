@@ -19,7 +19,7 @@
   "FOLLOWER_STATE_DOWN": "Down (recovering)",
   "FOLLOWER_DOWN": "{0} is down!",
   "FOLLOWER_RECOVERED": "{0} recovered at base",
-  "FOLLOWER_BONUS": "Carry bonus: +{0} slots, +{1} weight",
+  "FOLLOWER_BONUS": "Carry bonus: +{0} weight",
   "FOLLOWER_DISMISS": "Kick from squad",
   "FOLLOWER_RECALL_HINT": "Rehire a kicked companion: walk up and press {0}",
 

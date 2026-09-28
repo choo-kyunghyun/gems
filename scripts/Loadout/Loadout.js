@@ -5,7 +5,7 @@
  *
  * Equip/unequip rebuild the derived Stats from source rather than applying a delta, so they can't
  * drift; mods apply only to a wearer with Attributes, and a raised max HP does not heal. A
- * Container's capacity bonus is the one direct delta.
+ * Container's weight bonus is the one direct delta.
  */
 globalThis.Loadout = {
   /** A different occupant of the slot is unequipped first. */
@@ -298,12 +298,13 @@ globalThis.Loadout = {
     return out;
   },
 
-  /** `sign` ±1. Items over a reduced capacity just stay. */
+  /** `sign` ±1. Items over a reduced maxWeight just stay. */
   _applyContainer(entities, id, item, sign) {
     const con = item.getComponent(Container);
     if (con === undefined) return;
     const inv = entities.require(id, Inventory);
-    inv.capacity += con.capacity * sign;
-    if (inv.capacity < 0) inv.capacity = 0;
+    if (inv.maxWeight === undefined) return;
+    inv.maxWeight += con.bonusWeight * sign;
+    if (inv.maxWeight < 0) inv.maxWeight = 0;
   },
 };

@@ -457,7 +457,7 @@ globalThis.contentItems = {
         rarity: "uncommon",
         components: [
           new Equippable({ slot: "backpack", worn: pixBackpackBrown }),
-          new Container({ capacity: 8 }),
+          new Container({ bonusWeight: 20 }),
         ],
       },
 

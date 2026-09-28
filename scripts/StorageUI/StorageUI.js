@@ -95,9 +95,7 @@ globalThis.StorageUI = {
 
   _usageText(inv) {
     if (inv === undefined) return "";
-    let s =
-      I18n.text("INV_SLOTS") + " " + inv.slots.length + "/" + inv.capacity;
-    s += "   " + I18n.text("INV_WEIGHT") + " " + Bag.weight(inv);
+    let s = I18n.text("INV_WEIGHT") + " " + Bag.weight(inv);
     if (inv.maxWeight !== undefined) s += "/" + inv.maxWeight;
     return s;
   },

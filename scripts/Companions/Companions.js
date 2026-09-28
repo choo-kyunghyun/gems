@@ -71,13 +71,9 @@ globalThis.Companions = {
     return true;
   },
 
-  /** A balanced delta (`sign` ±1), so nothing ever recomputes the capacity from base. */
+  /** A balanced delta (`sign` ±1), so nothing ever recomputes the maxWeight from base. */
   _applyBenefit(entities, playerId, f, sign) {
     const inv = entities.require(playerId, Inventory);
-    if (f.bonusCapacity) {
-      inv.capacity += f.bonusCapacity * sign;
-      if (inv.capacity < 0) inv.capacity = 0;
-    }
     if (f.bonusWeight && inv.maxWeight !== undefined) {
       inv.maxWeight += f.bonusWeight * sign;
       if (inv.maxWeight < 0) inv.maxWeight = 0;

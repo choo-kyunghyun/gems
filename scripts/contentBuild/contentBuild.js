@@ -215,7 +215,7 @@ globalThis.contentBuild = {
           labelKey: "BUILD_CHEST",
           cost: 5,
           kind: "entity",
-          spawn: { preset: "chest", capacity: 12 },
+          spawn: { preset: "chest" },
         },
         {
           id: "workbench",
