@@ -52,28 +52,13 @@ A loop clicks unless all three of these rules hold. Getting two right sounds the
 3. Folded tails. Whatever overhangs the end, such as a reverb tail or a late event, is added
    back onto the head. That turns the linear convolution into a circular one.
 
-Some further rules:
-
 - Never fade a loop. On a loop, the fade becomes the seam.
-- Stereo from mono. Roll one channel against the other: 10–30 ms (the Haas spread) for tonal
-  material, a third of the loop for a noise bed. This is legal only because the material is periodic.
-- Cut the sub. Remove content below about 30 Hz with two cyclic high-pass passes. Pink and brown
-  beds put most of their energy there, where it eats headroom and adds no loudness.
-- Check the seam. After every change, measure the seam on the mono mix:
+- Check the seam after every change, on the mono mix:
   `20·log10(|x[0] − x[−1]| / p99(|diff(x)|))`. At 0 dB or below, the seam is indistinguishable
-  from any other sample step. Shipped loops measure −3.5 … −41 dB. The ear always catches a seam,
-  and a spectrogram never shows one.
+  from any other sample step. Shipped loops measure −3.5 … −41 dB.
 
 ## One-shots
 
-- Reverb on an SFX stays mono: use a mono impulse response, since a stereo reverb breaks positioning.
-- Balance the layers inside a sound by measured level. Use RMS for a continuous layer and peak for
-  a sparse one, because RMS over mostly-silence measures the silence.
-- Finish in this order:
-  1. a few ms of out-fade, which kills the click of a non-zero last sample;
-  2. trim the silence that convolution leaves on the tail;
-  3. level last. Fading after levelling drops the peak of any attack inside the fade.
-- A naive oscillator aliases on a fast sweep through the high register. Use band-limited
-  (additive) saws and squares.
-- Seed noise from a stable hash of the sound's name, such as crc32. Python's `hash()` is randomized
-  per process.
+- Reverb on an SFX stays mono, since a stereo reverb breaks positioning.
+- Finish with a few ms of out-fade, then trim the tail's silence, then level last: fading after
+  levelling drops the peak of any attack inside the fade.

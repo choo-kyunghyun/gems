@@ -23,32 +23,14 @@ repository. Check it in the game: place it, then `Screenshot.take()` (CLAUDE.md,
 
 ## .vox (committed models)
 
-The runtime reads only the first `SIZE` + `XYZI` model and the `RGBA` palette, and ignores every
-other chunk. A file with no palette logs an error and draws nothing. Palette indices are 1-based
-(0 = empty), and `RGBA` entry i − 1 is the colour of index i. By convention, slots 1..64 are AAP-64
-entries 0..63 (`tools/PALETTE.md`, MagicaVoxel). Committed canvases, all at density 0.25, are
-32×32×32 or 64×32×32.
-
-A minimal file: `"VOX "`, int32 150, then a `MAIN` chunk with empty content whose children are
-`SIZE` (3 × int32), `XYZI` (int32 count + count × u8 x, y, z, index) and `RGBA` (256 × u8 r, g, b, a).
-A chunk is its id, int32 content size, int32 children size, content, then children. All integers
-are little-endian.
+The runtime reads only the first `SIZE` + `XYZI` model and the `RGBA` palette. Slots 1..64 are
+AAP-64 entries 0..63 (`tools/PALETTE.md`, MagicaVoxel).
 
 ## .mesh
 
-All values are little-endian. The file is a triangle list.
-
-- Header, 24 B: `"PMSH"`, u32 version 1, u32 vertex count, f32 content w, d, h (the tight extent).
-- Vertex, 24 B: f32 x, y, z in game space; u8 r, g, b, 255; f32 nx, ny (the packed normal).
-
-Game space is author space with z negated: `(x, y, −z)`, so up is −z.
-
-The normal is one per face, taken from the winding, which is counter-clockwise seen from outside.
-The shader recovers `nz = −sqrt(1 − nx² − ny²)` in game space, so a normal cannot point down:
-
-- An underside normal (author nz < 0) clamps to horizontal, with (nx, ny) renormalized. The camera
-  never sees one.
-- A straight-down face cannot be represented, so never emit one.
+The byte layout is in the `Poly` script's header. A normal is one per face, taken from the winding,
+which is counter-clockwise seen from outside. A normal cannot point down: an underside normal clamps
+to horizontal, and a straight-down face cannot be represented, so never emit one.
 
 ## Registration
 
