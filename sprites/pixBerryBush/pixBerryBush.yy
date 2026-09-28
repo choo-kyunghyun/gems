@@ -27,8 +27,8 @@
   "nineSlice":null,
   "origin":7,
   "parent":{
-    "name":"Props",
-    "path":"folders/Game/Media/Sprites/Props.yy",
+    "name":"Florae",
+    "path":"folders/Game/Media/Sprites/Florae.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",
