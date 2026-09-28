@@ -45,5 +45,4 @@ editing the yyp. Set the origin, collision mask and playback speed there. A tile
 `output_tileset.png` saved once in the IDE (`docs/GMCLI.md`).
 
 A sprite authored at 128 px per cell needs no declaration. One authored at another scale declares
-its `density` in `contentSprites`, or it draws at the wrong size. The legacy `pixItem*Legacy` icons
-are 32 px, and they are declared `density: 0.25` by name, with no line needed.
+its `density` in `contentSprites`, or it draws at the wrong size.

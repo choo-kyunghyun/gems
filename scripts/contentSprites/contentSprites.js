@@ -19,18 +19,8 @@ globalThis.contentSprites = {
       { asset: pixTree, kind: "entity", density: 0.25 },
       { asset: pixTreeBig, kind: "entity", density: 0.25 },
       { asset: pixReef, kind: "entity", density: 0.25 },
+      { asset: pixBackpack, kind: "item", density: 0.25 },
       { asset: pixMissing, kind: "entity" },
     ]);
-    // the legacy Item icons: 32 px, one cell wide in the world. BUG: the id list reaches JS
-    // opaque, so it is walked with array_length/array_get (docs/GMRT.md)
-    const ids = asset_get_ids(asset_sprite);
-    const items = [{ asset: pixBackpack, kind: "item", density: 0.25 }];
-    for (let i = 0; i < array_length(ids); i++) {
-      const spr = array_get(ids, i);
-      const name = sprite_get_name(spr);
-      if (name.startsWith("pixItem") && name.endsWith("Legacy"))
-        items.push({ asset: spr, kind: "item", density: 0.25 });
-    }
-    AssetMeta.register(items);
   },
 };
