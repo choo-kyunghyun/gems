@@ -31,7 +31,6 @@ globalThis.RenderGrass = class RenderGrass {
     this._batches = new Array(this._chunks.count * defs.length);
     this._range = { x0: 0, y0: 0, x1: 0, y1: 0 }; // the chunk being baked
     this._win = { x0: 0, y0: 0, x1: 0, y1: 0 }; // the chunks in view this frame
-    this._uvs = []; // per frame of the def being baked, its UVs
     this._lit = shMeshlit;
     this._litOk = shaders_are_supported() && shader_is_compiled(this._lit);
     this._uAlphaRef = this._litOk
@@ -92,8 +91,6 @@ globalThis.RenderGrass = class RenderGrass {
       const salt = this.seed + k * 131;
       const id = def.id;
       const interior = def.edge !== true;
-      const uvs = this._uvs; // per frame, read once per bake
-      uvs.length = 0;
       const batch = new VertexBatch().begin();
       for (let gy = y0; gy < y1; gy++) {
         for (let gx = x0; gx < x1; gx++) {
@@ -122,11 +119,7 @@ globalThis.RenderGrass = class RenderGrass {
             // the packer-trimmed rect, foot on the anchor; a mirrored clump anchors from its
             // right edge
             const sc = sMin + hash2(gx, gy, s2 + 4) * (sMax - sMin);
-            let uv = uvs[frame];
-            if (uv === undefined) {
-              uv = batch.uvs(spr, frame);
-              uvs[frame] = uv;
-            }
+            const uv = batch.uvs(spr, frame);
             const w = (sw * uv[6] * sc) / dens;
             const h = (sh * uv[7] * sc) / dens;
             const a = ((xoff - uv[4]) * sc) / dens;

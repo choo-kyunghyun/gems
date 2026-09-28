@@ -1,41 +1,42 @@
 /**
- * A vertex buffer paired with the one texture page every quad in it samples. The pairing is the
- * batch's invariant, not the caller's memory: `uvs` pins the batch to a frame's page on the
- * first read and throws on a frame from another page, since a sprite can straddle pages and a
- * buffer submitted under one page would silently sample the other's texels. `submit()` takes no
- * texture: it is the pinned page's. A pass that hears the throw splits its quads into one batch
- * per page. Owns a native handle; destroy it.
+ * Quads sorted by the texture page they sample: one vertex buffer per page, since a sprite can
+ * straddle pages and a buffer submitted under one page would silently sample the other's texels.
+ * `uvs` routes the quads that follow to its frame's page, so the pairing is the batch's
+ * invariant, not the caller's memory; `submit()` draws each page's buffer under that page. Owns
+ * native handles; destroy it.
  */
 globalThis.VertexBatch = class VertexBatch {
   constructor() {
-    this._vb = new VertexBuffer();
-    this._tex = undefined; // the pinned page's texture
-    this.page = -1; // the pinned page index; -1 unpinned
     this.count = 0; // quads added since begin
-    // BUG: per-sprite page tables in parallel arrays, since a Map keyed by an asset ref
+    // per page: its index, its texture, its buffer
+    this._pages = [];
+    this._texs = [];
+    this._vbs = [];
+    this._vb = undefined; // the buffer the next quads land in
+    // BUG: per-sprite page and UV tables in parallel arrays, since a Map keyed by an asset ref
     // crashes (docs/GMRT.md)
     this._sprites = [];
-    this._pages = [];
+    this._pageTabs = [];
+    this._uvTabs = [];
   }
 
   begin() {
-    this._vb.begin();
-    this._tex = undefined;
-    this.page = -1;
+    this._free();
     this.count = 0;
     this._sprites.length = 0;
-    this._pages.length = 0;
+    this._pageTabs.length = 0;
+    this._uvTabs.length = 0;
     return this;
   }
 
   /**
-   * Reads each sprite's page table once per build. BUG: the nested array reaches JS opaque, so
-   * it is walked with array_length/array_get (docs/GMRT.md).
+   * The sprite's slot in the per-build tables. BUG: the nested frames array reaches JS opaque,
+   * so it is walked with array_length/array_get (docs/GMRT.md).
    */
-  _pageOf(sprite, frame) {
+  _slot(sprite) {
     let i = 0;
     while (i < this._sprites.length) {
-      if (this._sprites[i] === sprite) return this._pages[i][frame];
+      if (this._sprites[i] === sprite) return i;
       i++;
     }
     const frames = sprite_get_info(sprite).frames;
@@ -43,32 +44,29 @@ globalThis.VertexBatch = class VertexBatch {
     const pages = new Array(n);
     for (let k = 0; k < n; k++) pages[k] = array_get(frames, k).texture;
     this._sprites.push(sprite);
-    this._pages.push(pages);
-    return pages[frame];
+    this._pageTabs.push(pages);
+    this._uvTabs.push(new Array(n));
+    return i;
   }
 
-  /**
-   * `sprite_get_uvs` for a quad of this batch. The first read pins the batch to the frame's
-   * page; a later read off another page throws.
-   */
+  /** `sprite_get_uvs` for a quad of this batch; the quads that follow land on the frame's page. */
   uvs(sprite, frame) {
-    const page = this._pageOf(sprite, frame);
-    if (this.page === -1) {
-      this.page = page;
-      this._tex = sprite_get_texture(sprite, frame);
-    } else if (page !== this.page) {
-      throw new Error(
-        "VertexBatch: " +
-          sprite_get_name(sprite) +
-          "[" +
-          frame +
-          "] is on texture page " +
-          page +
-          ", the batch on " +
-          this.page,
-      );
+    const i = this._slot(sprite);
+    const page = this._pageTabs[i][frame];
+    let p = 0;
+    while (p < this._pages.length && this._pages[p] !== page) p++;
+    if (p === this._pages.length) {
+      this._pages.push(page);
+      this._texs.push(sprite_get_texture(sprite, frame));
+      this._vbs.push(new VertexBuffer().begin());
     }
-    return sprite_get_uvs(sprite, frame);
+    this._vb = this._vbs[p];
+    let uv = this._uvTabs[i][frame];
+    if (uv === undefined) {
+      uv = sprite_get_uvs(sprite, frame);
+      this._uvTabs[i][frame] = uv;
+    }
+    return uv;
   }
 
   /**
@@ -94,14 +92,14 @@ globalThis.VertexBatch = class VertexBatch {
     return this;
   }
 
-  /** UVs must come through `uvs`. */
+  /** UVs must come through `uvs`, which picks the page the quad lands on. */
   addQuad(x, y, w, h, u0, v0, u1, v1, color = c_white, alpha = 1) {
     this._vb.addQuad(x, y, w, h, u0, v0, u1, v1, color, alpha);
     this.count++;
     return this;
   }
 
-  /** UVs must come through `uvs`. */
+  /** UVs must come through `uvs`, which picks the page the quad lands on. */
   addUpright(x, y, z0, w, h, u0, v0, u1, v1, color = c_white, alpha = 1) {
     this._vb.addUpright(x, y, z0, w, h, u0, v0, u1, v1, color, alpha);
     this.count++;
@@ -109,18 +107,25 @@ globalThis.VertexBatch = class VertexBatch {
   }
 
   end(freeze = true) {
-    this._vb.end(freeze);
+    for (let p = 0; p < this._vbs.length; p++) this._vbs[p].end(freeze);
     return this;
   }
 
-  /** An unpinned batch holds no quad and submits nothing. */
+  /** A batch with no quad submits nothing. */
   submit() {
-    if (this.page !== -1) this._vb.submit(this._tex);
+    for (let p = 0; p < this._vbs.length; p++) this._vbs[p].submit(this._texs[p]);
     return this;
   }
 
   destroy() {
-    this._vb.destroy();
+    this._free();
+  }
+
+  _free() {
+    for (let p = 0; p < this._vbs.length; p++) this._vbs[p].destroy();
+    this._pages.length = 0;
+    this._texs.length = 0;
+    this._vbs.length = 0;
     this._vb = undefined;
   }
 };

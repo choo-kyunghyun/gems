@@ -258,48 +258,52 @@ Test.register(Test.CHECK, [
     },
   },
   {
-    // A batch pins its texture page on the first frame read and refuses a frame off another
-    // page. Two runtime sprites, each on a page of its own, stand in for a group that overflowed.
+    // One batch takes quads off several texture pages and draws each under its own page. Two
+    // runtime sprites, each on a page of its own, stand in for a sheet that straddles pages.
     id: "render.batch",
+    frames: 2,
     setup(ctx) {
-      const surf = surface_create(8, 8);
-      surface_set_target(surf);
-      draw_clear_alpha(c_white, 1);
-      surface_reset_target();
-      ctx.a = sprite_create_from_surface(surf, 0, 0, 8, 8, false, false, 0, 0);
-      ctx.b = sprite_create_from_surface(surf, 0, 0, 8, 8, false, false, 0, 0);
-      surface_free(surf);
+      const solid = (col) => {
+        const surf = surface_create(8, 8);
+        surface_set_target(surf);
+        draw_clear_alpha(col, 1);
+        surface_reset_target();
+        const spr = sprite_create_from_surface(surf, 0, 0, 8, 8, false, false, 0, 0);
+        surface_free(surf);
+        return spr;
+      };
+      ctx.a = solid(c_red);
+      ctx.b = solid(c_blue);
       ctx.batch = new VertexBatch();
-      ctx.other = new VertexBatch();
+      ctx.surf = surface_create(24, 8);
+      ctx.seen = [];
+    },
+    draw(ctx) {
+      if (ctx.seen.length > 0) return;
+      const b = ctx.batch.begin();
+      b.addFrame(ctx.a, 0, 0, 0, 8, 8);
+      b.addFrame(ctx.b, 0, 8, 0, 8, 8);
+      b.addFrame(ctx.a, 0, 16, 0, 8, 8);
+      b.end();
+      surface_set_target(ctx.surf);
+      draw_clear_alpha(c_black, 1);
+      b.submit();
+      surface_reset_target();
+      for (let x = 4; x < 24; x += 8) ctx.seen.push(surface_getpixel(ctx.surf, x, 4));
     },
     verify(ctx, t) {
-      const b = ctx.batch.begin();
-      t.eq(b.page, -1, "a fresh batch is unpinned");
-      const uv = b.uvs(ctx.a, 0);
-      t.eq(array_length(uv), 8, "uvs is sprite_get_uvs' 8-array");
-      t.ok(b.page >= 0, "the first read pins the page");
-      const page = b.page;
-      b.addFrame(ctx.a, 0, 0, 0, 8, 8);
-      t.eq(b.page, page, "a same-page frame keeps the pin");
-      t.eq(b.count, 1, "addFrame counts one quad");
-      const other = ctx.other.begin();
-      other.uvs(ctx.b, 0);
-      t.ok(other.page !== page, "two runtime sprites sit on pages of their own");
-      let threw = false;
-      try {
-        b.uvs(ctx.b, 0);
-      } catch (e) {
-        threw = true;
-      }
-      t.ok(threw, "a frame off another page throws");
-      t.eq(b.page, page, "the refused read leaves the pin");
-      t.eq(b.count, 1, "the refused read adds no quad");
-      b.end();
-      other.end();
+      const page = (spr) => array_get(sprite_get_info(spr).frames, 0).texture;
+      t.ok(page(ctx.a) !== page(ctx.b), "the two sprites sit on pages of their own");
+      t.eq(ctx.batch.count, 3, "each added frame counts one quad");
+      t.eq(
+        ctx.seen.join(","),
+        [c_red, c_blue, c_red].join(","),
+        "every quad samples its own frame's page",
+      );
     },
     teardown(ctx) {
       ctx.batch.destroy();
-      ctx.other.destroy();
+      surface_free(ctx.surf);
       sprite_delete(ctx.a);
       sprite_delete(ctx.b);
     },
