@@ -2,8 +2,8 @@
 
 Volume props are low-poly 3D models in `datafiles/meshes/`, one `.mesh` (PMSH) file each. The
 runtime also greedy-meshes a MagicaVoxel `.vox` at load, and a `.mesh` shadows the `.vox` of the
-same name; the committed `.vox` models stay loadable, but a new model is never a `.vox`, since a
-voxel's stepped faces spend the triangle budget on edges instead of form.
+same name; every committed model is a `.mesh`, and a new model is never a `.vox`, since a voxel's
+stepped faces spend the triangle budget on edges instead of form.
 
 There is no code here. Build a model in Blender or in a throwaway script kept outside the
 repository. Check it in the game: place it, then `Screenshot.take()` (CLAUDE.md, Debugging).
@@ -21,7 +21,7 @@ repository. Check it in the game: place it, then `Screenshot.take()` (CLAUDE.md,
 | Palette | AAP-64 RGB only (`tools/PALETTE.md`). |
 | Name | camelCase `<material><Object>[<Variant>]`, shared by the file and `Mesh.model` (`docs/NAMING.md`). |
 
-## .vox (committed models)
+## .vox
 
 The runtime reads only the first `SIZE` + `XYZI` model and the `RGBA` palette. Slots 1..64 are
 AAP-64 entries 0..63 (`tools/PALETTE.md`, MagicaVoxel).
