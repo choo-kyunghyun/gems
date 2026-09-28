@@ -287,6 +287,31 @@ globalThis.contentItems = {
         rarity: "common",
       },
       {
+        id: "beanie",
+        name: "ITEM_BEANIE",
+        description: "ITEM_BEANIE_DESC",
+        sprite: pixItemBeanie,
+        weight: 0,
+        value: 8,
+        rarity: "common",
+        components: [new Equippable({ slot: "trinket", worn: pixHatBeanie })],
+      },
+      {
+        id: "work_gloves",
+        name: "ITEM_WORK_GLOVES",
+        description: "ITEM_WORK_GLOVES_DESC",
+        sprite: pixItemGloves,
+        weight: 1,
+        value: 10,
+        rarity: "common",
+        components: [
+          new Equippable({
+            slot: "armor",
+            worn: { gloveL: pixGloveLeather, gloveR: pixGloveLeather },
+          }),
+        ],
+      },
+      {
         id: "spanner",
         name: "ITEM_SPANNER",
         description: "ITEM_SPANNER_DESC",

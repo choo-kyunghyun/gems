@@ -144,6 +144,8 @@ globalThis.contentPrefabs = {
                 { itemId: "scrap_metal", qty: 1 },
                 { itemId: "cloth", qty: 1 },
                 { itemId: "tarp", qty: 1 },
+                { itemId: "beanie", qty: 1 },
+                { itemId: "work_gloves", qty: 1 },
               ],
             },
           },
