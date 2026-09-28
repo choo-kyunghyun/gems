@@ -2,7 +2,7 @@
   "$GMSprite":"v2",
   "%Name":"pixItemGloves",
   "bboxMode":0,
-  "bbox_bottom":14,
+  "bbox_bottom":13,
   "bbox_left":0,
   "bbox_right":15,
   "bbox_top":1,

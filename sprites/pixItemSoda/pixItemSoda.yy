@@ -2,7 +2,7 @@
   "$GMSprite":"v2",
   "%Name":"pixItemSoda",
   "bboxMode":0,
-  "bbox_bottom":14,
+  "bbox_bottom":15,
   "bbox_left":3,
   "bbox_right":12,
   "bbox_top":0,

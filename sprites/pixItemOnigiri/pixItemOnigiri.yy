@@ -3,7 +3,7 @@
   "%Name":"pixItemOnigiri",
   "bboxMode":0,
   "bbox_bottom":14,
-  "bbox_left":0,
+  "bbox_left":1,
   "bbox_right":14,
   "bbox_top":1,
   "collisionKind":1,

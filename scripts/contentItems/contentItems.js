@@ -548,7 +548,6 @@ globalThis.contentItems = {
         id: "coin",
         name: "ITEM_COIN",
         sprite: pixIconCoin,
-        tint: "#b0b0b0",
         weight: 0,
         value: 1,
         rarity: "common",
