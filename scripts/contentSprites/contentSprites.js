@@ -19,7 +19,6 @@ globalThis.contentSprites = {
       { asset: pixTree, kind: "entity", density: 0.25 },
       { asset: pixTreeBig, kind: "entity", density: 0.25 },
       { asset: pixReef, kind: "entity", density: 0.25 },
-      { asset: pixBackpack, kind: "item", density: 0.25 },
       { asset: pixMissing, kind: "entity" },
     ]);
   },
