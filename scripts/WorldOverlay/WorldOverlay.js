@@ -1,10 +1,11 @@
 /**
- * World-space gameplay overlay for the colony scene: projectiles, fading hitscan tracers
- * and the Reach regions. Drawn after the world, whose ground passes paint an opaque fill that
- * would hide it.
+ * World-space gameplay overlay for the colony scene: hidden drops' silhouettes, projectiles,
+ * fading hitscan tracers and the Reach regions. Drawn after the world, whose ground passes
+ * paint an opaque fill that would hide it.
  */
 globalThis.WorldOverlay = {
   _tracers: [], // aged on real time
+  _flatU: undefined, // the world shader's uniforms, looked up on the first silhouette
 
   pushTracer(x0, y0, x1, y1) {
     WorldOverlay._tracers.push({ x0, y0, x1, y1, age: 0, life: 0.07 });
@@ -31,6 +32,7 @@ globalThis.WorldOverlay = {
     const entities = scene.level.entities;
 
     const pitch = CameraSystem.view(scene.level).pitch;
+    if (pitch !== 0) WorldOverlay._hiddenDrops(entities, pitch);
     // in-air cues lift off the ground so they read as flying, with no depth test so a body they
     // pass can't hide them.
     const lift = pitch !== 0 ? 128 : 0;
@@ -73,5 +75,62 @@ globalThis.WorldOverlay = {
     });
     draw_set_alpha(1);
     draw_set_color(c_white);
+  },
+
+  /**
+   * A standing drop's hidden part — behind grass, a wall or a body — redrawn as a flat silhouette
+   * in its rarity colour, where the depth test says something nearer covers it. Nudged toward the
+   * camera so its own visible pixels never pass.
+   */
+  _hiddenDrops(entities, pitch) {
+    const tall = RenderBillboard.tall(pitch);
+    // the world shader, untextured and unlit, fills the texel cutout with the tint alone
+    const flat = shaders_are_supported() && shader_is_compiled(shMeshlit);
+    if (flat) {
+      if (WorldOverlay._flatU === undefined) {
+        const u = (name) => shader_get_uniform(shMeshlit, name);
+        WorldOverlay._flatU = {
+          ambient: u("u_ambient"),
+          sunDir: u("u_sunDir"),
+          sunColor: u("u_sunColor"),
+          chroma: u("u_chroma"),
+          wave: u("u_wave"),
+          sway: u("u_sway"),
+          lightCount: u("u_lightCount"),
+          useTex: u("u_useTex"),
+          alphaRef: u("u_alphaRef"),
+        };
+      }
+      const u = WorldOverlay._flatU;
+      shader_set(shMeshlit);
+      shader_set_uniform_f(u.ambient, 1);
+      shader_set_uniform_f(u.sunDir, 0, 0, -1, 0);
+      shader_set_uniform_f(u.sunColor, 1, 1, 1);
+      shader_set_uniform_f(u.chroma, 1);
+      shader_set_uniform_f(u.wave, 0);
+      shader_set_uniform_f(u.sway, 0);
+      shader_set_uniform_f(u.lightCount, 0);
+      shader_set_uniform_f(u.useTex, 0);
+      shader_set_uniform_f(u.alphaRef, 0.5);
+    }
+    gpu_set_zfunc(cmpfunc_greater);
+    entities.forEach([ItemDrop, Sprite, Position], (_id, d, spr, p) => {
+      if (!sprite_exists(spr.sprite)) return;
+      matrix_set(matrix_world, matrix_build(p.x, p.y + 4, 0, -90, 0, 0, 1, 1, tall));
+      draw_sprite_ext(
+        spr.sprite,
+        spr.index,
+        0,
+        0,
+        spr.xscale,
+        spr.yscale,
+        spr.angle,
+        InvTable.rarityColor(d.itemId),
+        0.6,
+      );
+    });
+    matrix_set(matrix_world, matrix_build_identity());
+    gpu_set_zfunc(cmpfunc_lessequal);
+    if (flat) shader_reset();
   },
 };
