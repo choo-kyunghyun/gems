@@ -2,7 +2,7 @@
 
 This is what a sprite has to be to work in the game. There is no code here. Draw in Aseprite or in
 a throwaway script (Pillow or numpy) kept outside the repository, then import the PNG. The palette
-is in `tools/palette`.
+is in `tools/PALETTE.md`.
 
 ## Sprites
 
@@ -10,7 +10,7 @@ is in `tools/palette`.
 |---|---|
 | Cell | The world cell is 128 px, and a sprite is authored at that scale: one sprite px per world px. Art authored at another scale declares its `density` (sprite px per world px), e.g. `0.25` for 32 px per cell. A terrain tile set's tile is the 128 px cell itself. |
 | Alpha | Binary. Entities are alpha-tested billboards, so every pixel is either fully opaque or fully clear. |
-| Palette | AAP-64 only. Snap anything foreign as `tools/palette` describes. |
+| Palette | AAP-64 only. Snap anything foreign as `tools/PALETTE.md` describes. |
 | Item | An item's art is what lies in the world and what a hand holds, both at its world size: authored at the cell's scale, it fills a 64×64 px box, a long one (a rifle, a pipe) a 128×64 box, pointing right. The size serves legibility, not measurement: a small thing fills its box, and a long thin one is drawn thicker than true. The bag shows its category's icon instead. |
 | Anchor | Set on import: entities at the foot (bottom-center), items at the center, held gear at the grip, garments at their slot's bone, tiles at the top-left. |
 

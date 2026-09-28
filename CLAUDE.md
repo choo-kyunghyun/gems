@@ -53,4 +53,4 @@ head -40 scripts/<Name>/<Name>.js                             # the area's contr
 
 ## Tools
 
-`tools/` holds the asset guides (`palette`, `pixel-art-kit`, `mesh-kit`, `audio-kit`) and standalone tools independent of GameMaker; read the matching `README` before authoring that kind of asset or using a tool.
+`tools/` holds the asset guides (`PALETTE.md` with its `aap-64.gpl`, `SPRITE.md`, `MESH.md`, `AUDIO.md`) and standalone tools independent of GameMaker, each in its own directory; read the matching guide before authoring that kind of asset, or a tool's `README` before using it.

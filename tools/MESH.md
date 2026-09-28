@@ -19,7 +19,7 @@ repository. Check it in the game: place it, then `Screenshot.take()` (CLAUDE.md,
 | Collider | Derived from the tight content extent w × d: `max(32, w / density − 8)` × `max(32, d / density − 8)` world px. |
 | Faces | Top and four sides, never a bottom. The fixed-yaw camera sees the top and the south face. |
 | Shading | Never authored. The shader lights the flat colour live, so a surface carries only its base tone. |
-| Palette | AAP-64 RGB only (`tools/palette`). |
+| Palette | AAP-64 RGB only (`tools/PALETTE.md`). |
 | Name | camelCase `<material><Object>[<Variant>]`, shared by the file and `Mesh.model` (`docs/NAMING.md`). |
 
 ## .vox
@@ -27,7 +27,7 @@ repository. Check it in the game: place it, then `Screenshot.take()` (CLAUDE.md,
 The runtime reads only the first `SIZE` + `XYZI` model and the `RGBA` palette, and ignores every
 other chunk. A file with no palette logs an error and draws nothing. Palette indices are 1-based
 (0 = empty), and `RGBA` entry i − 1 is the colour of index i. By convention, slots 1..64 are AAP-64
-entries 0..63 (`tools/palette`, MagicaVoxel). Committed canvases, all at density 0.25, are
+entries 0..63 (`tools/PALETTE.md`, MagicaVoxel). Committed canvases, all at density 0.25, are
 32×32×32 or 64×32×32.
 
 A minimal file: `"VOX "`, int32 150, then a `MAIN` chunk with empty content whose children are
