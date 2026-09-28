@@ -916,6 +916,12 @@ globalThis.InventoryUI = {
 
   _activate(scene, row) {
     if (row === null || row === undefined) return;
+    // a throw aims at the cursor, which the open bag covers
+    const it = Item.get(row.itemId);
+    if (it !== undefined && it.hasComponent(Throwable)) {
+      Toast.push(I18n.text("INV_THROW_HOTBAR"), { type: "warn" });
+      return;
+    }
     InventoryUI.use(scene, row.itemId, row.uid);
   },
 

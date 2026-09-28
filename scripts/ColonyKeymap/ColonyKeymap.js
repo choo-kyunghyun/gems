@@ -23,7 +23,6 @@ globalThis.ColonyKeymap = {
       interact: [INPUT_SOURCE.KEYBOARD, ord("E"), ["play", "window", "dialogue"]],
       build: [INPUT_SOURCE.KEYBOARD, ord("B"), ["play", "build"]],
       reload: [INPUT_SOURCE.KEYBOARD, ord("R"), ["play"]],
-      grenade: [INPUT_SOURCE.KEYBOARD, ord("G"), ["play"]],
     });
 
     // gamepad bindings OR-combine with the keyboard's; they mute while a menu owns navigation
@@ -37,7 +36,6 @@ globalThis.ColonyKeymap = {
     Input.get("inventory").bindButton(GP, gp_face4); // Y
     Input.get("interact").bindButton(GP, gp_face1); // A
     Input.get("build").bindButton(GP, gp_face3); // X
-    Input.get("grenade").bindButton(GP, gp_shoulderlb); // LT
     Input.register(
       "moveX",
       new InputAction()
@@ -87,7 +85,6 @@ globalThis.ColonyKeymap = {
       ["sprint", "INPUT_SPRINT"],
       ["fire", "INPUT_FIRE"],
       ["reload", "INPUT_RELOAD"],
-      ["grenade", "INPUT_GRENADE"],
       ["interact", "INPUT_INTERACT"],
       ["inventory", "INPUT_INVENTORY"],
       ["build", "INPUT_BUILD"],

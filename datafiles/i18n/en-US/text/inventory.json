@@ -75,6 +75,7 @@
   "INV_ALREADY_WORN": "Already equipped",
   "INV_UNKNOWN_ITEM": "Unknown item",
   "INV_NOT_USABLE": "That item cannot be used",
+  "INV_THROW_HOTBAR": "Bind it to the hotbar to throw it",
   "INV_NO_EFFECT": "It would have no effect now",
   "INV_NOACTION": "-"
 }

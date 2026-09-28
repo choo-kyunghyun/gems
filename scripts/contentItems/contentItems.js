@@ -256,7 +256,6 @@ globalThis.contentItems = {
           }),
         ],
       },
-      // TODO: the throw is not yet drawn from the bag
       {
         id: "he_grenade",
         name: "ITEM_HE_GRENADE",
@@ -265,6 +264,7 @@ globalThis.contentItems = {
         weight: 1,
         value: 20,
         rarity: "uncommon",
+        components: [new Throwable({ radius: 320, damage: 8 })],
       },
       {
         id: "frag_grenade",
@@ -274,6 +274,7 @@ globalThis.contentItems = {
         weight: 1,
         value: 20,
         rarity: "uncommon",
+        components: [new Throwable({ radius: 448, damage: 5 })],
       },
 
       // ---- common gear

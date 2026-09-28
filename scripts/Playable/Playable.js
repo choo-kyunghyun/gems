@@ -9,6 +9,7 @@
  * @property {number} cursorX  the aim point, latched once per frame: what the cursor visibly
  *                   covers, not the ground cursor
  * @property {number} cursorY
+ * @property {string} toss     the Throwable item id the next ready frame throws; "" = none
  */
 globalThis.Playable = "Playable";
 // any script may load first (docs/GMRT.md)
@@ -18,4 +19,5 @@ globalThis.Playable = "Playable";
   attackAnim: "",
   cursorX: 0,
   cursorY: 0,
+  toss: "",
 };

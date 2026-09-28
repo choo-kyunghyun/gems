@@ -8,11 +8,6 @@ const KICK_ANIM = 0.38; // s — 5 frames @ 13fps, fits the fist's cadence
 const MELEE_HITBOX = { width: 184, height: 96, xoffset: 92, yoffset: 0 };
 const STICK_DEADZONE = 0.25; // drift guard
 
-// TODO: a grenade item gates the throw on the bag; until then it is unlimited
-const GRENADE_SPEED = 1280; // px/s
-const GRENADE_FUSE = 1.5; // s
-const GRENADE_RADIUS = 384; // px
-const GRENADE_DAMAGE = 6; // at the centre
 const THROW_RANGE = 1280; // px; the pad's fixed reach along the aim
 const THROW_CD = 0.5; // s
 
@@ -144,8 +139,8 @@ globalThis.PlayerSystem = {
     }
 
     // shares fireCd so a throw never overlaps a shot
-    if (Input.get("grenade").pressed() && pl.fireCd <= 0)
-      PlayerSystem._throwGrenade(entities, id, pl, dir);
+    if (pl.toss !== "" && pl.fireCd <= 0)
+      PlayerSystem._toss(entities, id, pl, dir);
 
     // attackCd is read live, never cached (docs/GMRT.md)
     let state = "idle";
@@ -209,10 +204,16 @@ globalThis.PlayerSystem = {
   },
 
   /**
-   * Lob at the cursor, clamped to THROW_RANGE, or the full range along the aim while the stick
-   * is deflected. A cursor throw turns the player toward its target.
+   * Lobs one unit of the readied Throwable at the cursor, clamped to THROW_RANGE, or the full
+   * range along the aim while the stick is deflected. A cursor throw turns the player toward its
+   * target. A readied item the bag no longer holds is dropped unthrown.
    */
-  _throwGrenade(entities, id, pl, dir) {
+  _toss(entities, id, pl, dir) {
+    const item = Item.get(pl.toss);
+    pl.toss = "";
+    const thr = item !== undefined ? item.getComponent(Throwable) : undefined;
+    if (thr === undefined) return;
+    if (Bag.remove(entities.require(id, Inventory), item.id, 1) < 1) return;
     const pos = entities.get(id, Position);
     const rx = Input.get("aimX").value();
     const ry = Input.get("aimY").value();
@@ -234,10 +235,11 @@ globalThis.PlayerSystem = {
       }
     }
     Combat.lob(entities, id, tx, ty, {
-      speed: GRENADE_SPEED,
-      secs: GRENADE_FUSE,
-      radius: GRENADE_RADIUS,
-      damage: GRENADE_DAMAGE,
+      speed: thr.speed,
+      secs: thr.fuse,
+      radius: thr.radius,
+      damage: thr.damage,
+      penetration: thr.penetration,
     });
     pl.fireCd = THROW_CD;
     pl.attackAnim = "attack"; // the punch thrust reads as the throw

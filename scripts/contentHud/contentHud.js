@@ -11,7 +11,6 @@ globalThis.contentHud = {
     },
     { actions: ["sprint"], label: "HINT_SPRINT", contexts: ["play", "build"] },
     { actions: ["fire"], label: "HINT_ATTACK", contexts: ["play"] },
-    { actions: ["grenade"], label: "HINT_GRENADE", contexts: ["play"] },
     { actions: ["buildPlace"], label: "HINT_PLACE", contexts: ["build"] },
     { actions: ["buildRemove"], label: "HINT_REMOVE", contexts: ["build"] },
     { actions: ["inventory"], label: "HINT_BAG", contexts: ["play", "build"] },

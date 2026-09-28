@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Throwable",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Throwable",
+  "parent":{
+    "name":"Component",
+    "path":"folders/Game/Item/Component.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Throwable.js",
+}
