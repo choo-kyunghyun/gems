@@ -1,15 +1,22 @@
 /**
  * Pure equipment operations; an equipped item stays in the Inventory. The wearer must carry
  * Inventory and Equipment, or an entry point fails at once. A refusal is stated, never folded into
- * false: `equip` returns "" when equipped, else the i18n key of why.
+ * false: `equip` returns "" when equipped, else the i18n key of why. A change made by an `actor`
+ * other than the wearer is refused on a protected loadout.
  *
  * Equip/unequip rebuild the derived Stats from source rather than applying a delta, so they can't
  * drift; mods apply only to a wearer with Attributes, and a raised max HP does not heal. A
  * Container's weight bonus is the one direct delta.
  */
 globalThis.Loadout = {
+  /** Whether `actor` may change `id`'s gear: its own always, another's only when unprotected. */
+  editable(entities, actor, id) {
+    return actor === id || !entities.require(id, Equipment).protected;
+  },
+
   /** A different occupant of the slot is unequipped first. */
-  equip(entities, id, uid) {
+  equip(entities, id, uid, actor = id) {
+    if (!Loadout.editable(entities, actor, id)) return "INV_PROTECTED";
     const inv = entities.require(id, Inventory);
     const eq = entities.require(id, Equipment);
     const slot = Bag.findByUid(inv, uid);
@@ -30,11 +37,11 @@ globalThis.Loadout = {
   },
 
   /** Equips the first owned instance of `itemId`; returns as `equip`. */
-  equipFirst(entities, id, itemId) {
+  equipFirst(entities, id, itemId, actor = id) {
     const inv = entities.require(id, Inventory);
     for (let i = 0; i < inv.slots.length; i++) {
       if (inv.slots[i].itemId === itemId && inv.slots[i].uid !== undefined)
-        return Loadout.equip(entities, id, inv.slots[i].uid);
+        return Loadout.equip(entities, id, inv.slots[i].uid, actor);
     }
     return "INV_NOT_OWNED";
   },
@@ -58,8 +65,9 @@ globalThis.Loadout = {
     return false;
   },
 
-  /** Returns the unequipped uid, or "" if the slot was empty. */
-  unequip(entities, id, slot) {
+  /** Returns the unequipped uid, or "" if the slot was empty or `actor` may not change it. */
+  unequip(entities, id, slot, actor = id) {
+    if (!Loadout.editable(entities, actor, id)) return "";
     const eq = entities.require(id, Equipment);
     const uid = eq.slots[slot];
     if (uid === undefined || uid === "") return "";

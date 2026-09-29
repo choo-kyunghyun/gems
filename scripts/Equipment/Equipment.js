@@ -5,6 +5,8 @@
  * @typedef {Object} Equipment
  * @property {Object} slots   { weapon, head, body, legs, outer, hands, feet, backpack, trinket }
  *                            → instance uid strings
+ * @property {boolean} protected  true = only the wearer changes its gear; false = another body
+ *                            may too
  */
 globalThis.Equipment = "Equipment";
 // any script may load first (docs/GMRT.md)
@@ -20,4 +22,5 @@ globalThis.Equipment = "Equipment";
     backpack: "",
     trinket: "",
   },
+  protected: true,
 };

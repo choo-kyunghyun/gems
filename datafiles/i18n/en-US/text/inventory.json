@@ -67,6 +67,7 @@
   "INV_HOTBAR_HINT": "Select an item and click a slot, or point at one and press 1-5",
   "INV_SELECT_NONE": "Select an item",
   "INV_NOT_OWNED": "You do not carry that item",
+  "INV_PROTECTED": "Its gear can't be changed",
   "INV_NOT_EQUIPPABLE": "That item cannot be equipped",
   "INV_ALREADY_WORN": "Already equipped",
   "INV_UNKNOWN_ITEM": "Unknown item",

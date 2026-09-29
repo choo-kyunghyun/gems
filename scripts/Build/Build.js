@@ -164,6 +164,9 @@ globalThis.Build = {
         grid,
         Build.descriptor(level, item, gx, gy),
       );
+      // what the player builds, the player may re-arm
+      const eq = level.entities.get(id, Equipment);
+      if (eq !== undefined) eq.protected = false;
     }
     rec.builtEnts[key] = { ent: id, itemId: item.id };
     Grassland.cut(level, gx, gy);
