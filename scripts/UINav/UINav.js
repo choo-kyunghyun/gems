@@ -106,7 +106,7 @@ globalThis.UINav = {
 
     if (UINav._dispatch(ev)) {
       UINav._spend(ev);
-      if (ev.kind === "confirm") Audio.play({ sound: UI.sounds.click });
+      if (ev.kind === "confirm") UI.cue("click");
       return;
     }
     if (ev.kind === "move") {
@@ -114,7 +114,7 @@ globalThis.UINav = {
       UINav._move(items, ev.dx, ev.dy);
       if (UINav.focused !== prevFocus) {
         UINav._spend(ev);
-        Audio.play({ sound: UI.sounds.tick });
+        UI.cue("tick");
       }
     }
   },

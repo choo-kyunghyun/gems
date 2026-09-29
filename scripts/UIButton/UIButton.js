@@ -33,14 +33,12 @@ globalThis.UIButton = class UIButton {
     this.focusable = true;
     // callbacks are live closures, so reassigning a handler after construction keeps working
     this._fsm = new UITrigger({
+      cue: true,
       onEnter: () => this.onEnter(),
       onLeave: () => this.onLeave(),
       onDown: () => this.onDown(),
       onUp: () => this.onUp(),
-      onClick: () => {
-        Audio.play({ sound: UI.sounds.click }); // before onClick, which may swap the level
-        this.onClick();
-      },
+      onClick: () => this.onClick(),
     });
     // float channels, not a packed int: a packed-int lerp loses a sub-1 per-frame step at
     // unlimited FPS, and merge_color drifts darker. Unseeded until first eased, so there's no

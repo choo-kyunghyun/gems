@@ -9,6 +9,11 @@ globalThis.UI = {
     tick: -1, // a nav focus step
   },
 
+  /** Plays the injected cue `name` ("click" | "tick"). */
+  cue(name) {
+    Audio.play({ sound: UI.sounds[name] });
+  },
+
   // the app's menu driver, injected
   menu: () => {},
 

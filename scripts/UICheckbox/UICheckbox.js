@@ -16,7 +16,7 @@ globalThis.UICheckbox = class UICheckbox {
     this.colorKnob = box.colorKnob ?? c_white; // knob / tick
     this.colorBorder = box.colorBorder ?? c_black;
 
-    this._fsm = new UITrigger({ onClick: () => this.onToggle() });
+    this._fsm = new UITrigger({ cue: true, onClick: () => this.onToggle() });
     this._t = undefined; // eased 0..1 toward the on/off state
   }
 

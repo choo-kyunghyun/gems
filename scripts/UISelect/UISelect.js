@@ -19,6 +19,7 @@ globalThis.UISelect = class UISelect {
     this._side = 0;
     // its onClick reads the _side latched earlier in the same onUpdate
     this._fsm = new UITrigger({
+      cue: true,
       onClick: () => {
         if (this._side < 0) this.retreat();
         else this.advance();

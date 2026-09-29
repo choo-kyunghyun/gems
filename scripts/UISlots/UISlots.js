@@ -95,6 +95,7 @@ globalThis.UISlots = class UISlots {
     }
 
     if (this._inside && this._hover >= 0 && Input.pointer.left.pressed) {
+      UI.cue("click");
       this._select(this._hover);
       return true;
     }

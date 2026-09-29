@@ -279,7 +279,10 @@ globalThis.UITable = class UITable {
           break;
         }
       }
-      if (this._hoverCol >= 0 && Input.pointer.left.pressed) this.sortBy(this._hoverCol);
+      if (this._hoverCol >= 0 && Input.pointer.left.pressed) {
+        UI.cue("click");
+        this.sortBy(this._hoverCol);
+      }
     }
 
     const bodyH = g.bodyRows * this.rowH;
@@ -292,6 +295,7 @@ globalThis.UITable = class UITable {
       if (r >= 0 && r < this._view.length) {
         this._hoverRow = r;
         if (Input.pointer.left.pressed) {
+          UI.cue("click");
           this._selRow = this._view[r];
           this._cursor = r;
           this.onSelect(this._selRow, r);

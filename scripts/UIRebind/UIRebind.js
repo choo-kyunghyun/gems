@@ -20,6 +20,7 @@ globalThis.UIRebind = class UIRebind {
     this._capturing = false;
     // release-inside arms capture mode
     this._fsm = new UITrigger({
+      cue: true,
       onClick: () => {
         this._capturing = true;
       },

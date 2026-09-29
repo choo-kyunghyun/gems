@@ -101,6 +101,7 @@ globalThis.UITabs = class UITabs {
       }
       // selects on PRESS — deliberately snappier than a release-inside commit
       if (Input.pointer.left.pressed) {
+        UI.cue("click");
         this.select(this._hover);
         return true;
       }

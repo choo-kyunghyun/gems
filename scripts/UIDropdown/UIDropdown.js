@@ -25,6 +25,7 @@ globalThis.UIDropdown = class UIDropdown {
     this._open = false;
     this._el = null; // stashed each onUpdate for the onClick closure
     this._fsm = new UITrigger({
+      cue: true,
       onClick: () => this._toggle(),
     });
     // the list is no descendant of the field, so a cancel from its rows is caught on the list

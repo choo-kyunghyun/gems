@@ -22,6 +22,7 @@ globalThis.UIAccordion = class UIAccordion {
 
     this._el = null; // host element, stashed each onUpdate for the click closure
     this._fsm = new UITrigger({
+      cue: true,
       onClick: () => this.toggle(this._el),
     });
   }

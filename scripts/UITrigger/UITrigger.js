@@ -9,10 +9,11 @@
  * @implements {UIComponent}
  */
 globalThis.UITrigger = class UITrigger {
-  /** trigger: { block, readOnly, onEnter, onHover, onLeave, onDown, onUp, onClick } */
+  /** trigger: { block, readOnly, cue, onEnter, onHover, onLeave, onDown, onUp, onClick } */
   constructor(trigger = {}) {
     this.block = trigger.block ?? true;
     this.readOnly = trigger.readOnly ?? false;
+    this.cue = trigger.cue ?? false; // a click plays the click cue; a swallower stays silent
     this.onEnter = trigger.onEnter ?? noop;
     this.onHover = trigger.onHover ?? noop;
     this.onLeave = trigger.onLeave ?? noop;
@@ -46,6 +47,7 @@ globalThis.UITrigger = class UITrigger {
         this.onUp();
         if (this.enter) {
           element.state.clicked = true;
+          if (this.cue) UI.cue("click"); // before onClick, which may swap the level
           this.onClick();
         }
       }

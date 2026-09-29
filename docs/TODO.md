@@ -19,7 +19,6 @@
 - Gacha capsule with new UI
 - World map — a trip costs in-game hours but no survival needs; a site's extraction point is its arrival beacon (a separate extraction site is the extraction-shooter tension knob); site codenames from word pools (WORLD_KO) instead of fixed i18n names
 - Killfeed UI
-- Click cue on non-button widgets — only `UIButton`/`UINav` activation cues today, so a click on a slider/checkbox/list is silent
 - Blueprint UI — stamp a captured or registered plan (`Blueprint.stamp`) for its wood
 - Markers in the DEV capture — `entry`/`reach` placed in-game instead of hand-added to the exported literal
 - More `testStress` scenarios over the same shape as `stress.pathfind`: a raycast storm (hitscan volleys over the static buckets), a spawn/despawn churn (the free list, the flush cost), a tile-edit storm (`SolidTiles.sync` + `NavGrid.sync` per frame)

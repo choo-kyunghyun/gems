@@ -26,8 +26,9 @@ globalThis.UISlider = class UISlider {
     this._fillStyle = slider.fill ?? {};
     this._thumbStyle = slider.thumb ?? {};
 
-    // the drag reads the delegate's hold flag, which a read-only trigger never latches
-    this._fsm = new UITrigger();
+    // the drag reads the delegate's hold flag, which a read-only trigger never latches; the press
+    // clicks, as a per-step cue would chatter through a drag
+    this._fsm = new UITrigger({ onDown: () => UI.cue("click") });
   }
 
   _snap(value) {

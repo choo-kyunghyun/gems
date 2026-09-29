@@ -806,6 +806,88 @@ Test.register(Test.CHECK, [
     },
   },
   {
+    // every widget the pointer acts on clicks once, as the nav clicks on a taken confirm; what
+    // only swallows or only shows stays silent
+    id: "ui.clickCue",
+    setup(ctx) {
+      Test.ui(ctx);
+      const root = new UIElement({ flexDirection: "column" });
+      const row = (comp, h = 30) => {
+        const e = new UIElement({ width: 300, height: h }).addComponent(comp);
+        root.insertChild(e);
+        return e;
+      };
+      ctx.button = row(new UIButton());
+      ctx.box = row(new UICheckbox());
+      ctx.shown = row(new UICheckbox({ readOnly: true }));
+      ctx.select = row(new UISelect({ items: [{ name: "a" }, { name: "b" }] }));
+      ctx.dropdown = row(new UIDropdown({ items: [{ name: "a" }] }));
+      ctx.accordion = row(new UIAccordion());
+      ctx.slider = row(new UISlider({ showValue: false }));
+      const pane = () => {
+        const e = new UIElement({ width: 1, height: 1 });
+        root.insertChild(e);
+        return e;
+      };
+      ctx.tabs = row(
+        new UITabs({
+          tabs: [
+            { label: "a", content: pane() },
+            { label: "b", content: pane() },
+          ],
+        }),
+      );
+      ctx.slots = row(new UISlots({ items: [null, null] }), 64);
+      ctx.table = row(
+        new UITable({
+          columns: [{ label: "N", text: (r) => string(r.n) }],
+          rows: [{ n: 1 }, { n: 2 }],
+        }),
+        114,
+      );
+      ctx.swallow = row(new UITrigger());
+      ctx.rebind = row(new UIRebind({ actionKey: "test_absent" }));
+      UI.insert(root);
+      Test.uiFrame(ctx, []);
+    },
+    verify(ctx, t) {
+      const left = Input.pointer.left;
+      // the cues one press-and-release at (dx, dy) inside `el` plays
+      const click = (el, dx = 10, dy = 15) => {
+        const pos = el.getLayoutPosition();
+        const before = ctx.sounds;
+        Input.pointer.x = pos.left + dx;
+        Input.pointer.y = pos.top + dy;
+        left.pressed = true;
+        left.down = true;
+        Test.uiFrame(ctx, []);
+        left.pressed = false;
+        left.down = false;
+        left.released = true;
+        Test.uiFrame(ctx, []);
+        left.released = false;
+        return ctx.sounds - before;
+      };
+
+      t.eq(click(ctx.button), 1, "a button clicks");
+      t.eq(click(ctx.box), 1, "a checkbox clicks");
+      t.eq(click(ctx.shown), 0, "a read-only checkbox stays silent");
+      t.eq(click(ctx.select), 1, "a select clicks");
+      t.eq(click(ctx.dropdown), 1, "a dropdown field clicks");
+      t.eq(click(ctx.accordion), 1, "an accordion clicks");
+      t.eq(click(ctx.slider, 150), 1, "a slider clicks once for a press");
+      t.eq(click(ctx.tabs, 225), 1, "a tab strip clicks");
+      t.eq(click(ctx.slots), 1, "a slot grid clicks");
+      t.eq(click(ctx.table, 20, 23), 1, "a table header clicks");
+      t.eq(click(ctx.table, 20, 52), 1, "a table row clicks");
+      t.eq(click(ctx.swallow), 0, "a bare trigger stays silent");
+      t.eq(click(ctx.rebind), 1, "a rebind row clicks");
+    },
+    teardown(ctx) {
+      Test.uiRestore(ctx);
+    },
+  },
+  {
     // a font swap under an unchanged string re-measures, as a locale switch needs
     id: "ui.richTextFont",
     setup(ctx) {
