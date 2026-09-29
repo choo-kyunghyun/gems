@@ -105,25 +105,27 @@ globalThis.Flora = {
 
   /**
    * A ripe plant's yield to `playerId`'s bag — all or nothing, so a full bag refuses rather than
-   * losing the rest — then the plant regrows or goes. `qty` 0 with `reason` "" for an unripe
+   * losing the rest — then the plant regrows or goes. `items` empty with `reason` "" for an unripe
    * plant, "INV_FULL" for a refused bag.
    */
   harvest(entities, id, playerId) {
     const g = entities.require(id, Growth);
-    if (g.progress < 1) return { itemId: "", qty: 0, reason: "" };
+    if (g.progress < 1) return { items: [], reason: "" };
     const def = Flora.species(g.species);
     const inv = entities.require(playerId, Inventory);
-    const qty = def.yield.qty;
-    const left = Bag.add(inv, def.yield.itemId, qty);
-    if (left > 0) {
-      if (left < qty) Bag.remove(inv, def.yield.itemId, qty - left);
-      return { itemId: def.yield.itemId, qty: 0, reason: "INV_FULL" };
+    const items = def.yield;
+    for (let i = 0; i < items.length; i++) {
+      const left = Bag.add(inv, items[i].itemId, items[i].qty);
+      if (left === 0) continue;
+      if (left < items[i].qty) Bag.remove(inv, items[i].itemId, items[i].qty - left);
+      for (let j = 0; j < i; j++) Bag.remove(inv, items[j].itemId, items[j].qty);
+      return { items: [], reason: "INV_FULL" };
     }
     if (def.regrow !== undefined) {
       g.progress = def.regrow;
       entities.detach(id, Interaction);
       Flora.stage(entities, id, g, entities.get(id, Sprite), def);
     } else entities.remove(id);
-    return { itemId: def.yield.itemId, qty: qty, reason: "" };
+    return { items: items, reason: "" };
   },
 };

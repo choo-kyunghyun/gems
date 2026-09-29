@@ -13,7 +13,7 @@
  *              and build alike
  *   solidFrom? "tree" only: the stage from which the trunk collides
  *   action     the interaction a ripe plant carries ("harvest" | "chop")
- *   yield      { itemId, qty } the harvest gives
+ *   yield      [{ itemId, qty }] the harvest gives, all or nothing
  *   regrow?    progress a perennial falls back to after a harvest; absent = the harvest removes it
  */
 globalThis.contentFlora = {
@@ -29,7 +29,7 @@ globalThis.contentFlora = {
       fertility: 0.2,
       solidFrom: 1,
       action: "chop",
-      yield: { itemId: "plank", qty: 4 },
+      yield: [{ itemId: "plank", qty: 4 }],
     },
     // a perennial shrub, dormant through winter
     berry_bush: {
@@ -41,7 +41,10 @@ globalThis.contentFlora = {
       season: { spring: 1.5, summer: 1, autumn: 0.7, winter: 0 },
       fertility: 0.7,
       action: "harvest",
-      yield: { itemId: "apple", qty: 3 },
+      yield: [
+        { itemId: "apple", qty: 3 },
+        { itemId: "berry_seed", qty: 1 },
+      ],
       regrow: 0.5,
     },
     // the farm crop: quick, and the first frost takes it
@@ -55,7 +58,10 @@ globalThis.contentFlora = {
       hardy: false,
       fertility: 1,
       action: "harvest",
-      yield: { itemId: "snack", qty: 2 },
+      yield: [
+        { itemId: "snack", qty: 2 },
+        { itemId: "wheat_seed", qty: 1 },
+      ],
     },
   },
 

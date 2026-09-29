@@ -14,16 +14,18 @@ globalThis.contentInteractions = {
    */
   _harvest(ctx) {
     const r = Flora.harvest(ctx.entities, ctx.id, ctx.playerId);
-    if (r.qty === 0) {
+    if (r.items.length === 0) {
       if (r.reason !== "") Toast.push(I18n.text(r.reason), { type: "info" });
       return;
     }
-    Progression.collect(ctx.entities, r.itemId, r.qty);
+    const parts = [];
+    for (let i = 0; i < r.items.length; i++) {
+      const it = r.items[i];
+      Progression.collect(ctx.entities, it.itemId, it.qty);
+      parts.push(I18n.text("FLORA_YIELD", it.qty, I18n.text(Item.get(it.itemId).name)));
+    }
     ctx.scene.window.dirty = true;
-    Toast.push(
-      I18n.text("FLORA_HARVESTED", r.qty, I18n.text(Item.get(r.itemId).name)),
-      { type: "success" },
-    );
+    Toast.push(I18n.text("FLORA_HARVESTED", parts.join(", ")), { type: "success" });
   },
 
   /** The NPC's line in the scene's dialogue, then `then` once it is read. */

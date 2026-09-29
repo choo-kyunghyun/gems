@@ -42,5 +42,6 @@
   "FLORA_WHEAT": "밀",
   "FLORA_HARVEST_PROMPT": "[E] 수확하기",
   "FLORA_CHOP_PROMPT": "[E] 벌목하기",
-  "FLORA_HARVESTED": "{1} {0}개를 얻었습니다"
+  "FLORA_YIELD": "{1} {0}개",
+  "FLORA_HARVESTED": "{0}를 얻었습니다"
 }
