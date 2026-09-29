@@ -43,14 +43,14 @@ Settings.register({
   volSfx: 1.0,
   mouseSensitivity: 0.5,
   rawInput: false,
-  // inventory column visibility (toggled in inventory Settings tab)
+  // inventory column visibility (toggled in the Gameplay settings)
   invColRarity: false,
   invColType: true,
   invColWeight: true,
   invColValue: true,
-  // HUD temperature unit ("K"|"C"|"F"; toggled in inventory Settings tab)
+  // HUD temperature unit ("K"|"C"|"F"; toggled in the Gameplay settings)
   tempUnit: "K",
-  // colony HUD radar: markers on screen, edge arrows off it (toggled in inventory Settings tab)
+  // colony HUD radar: markers on screen, edge arrows off it (toggled in the Gameplay settings)
   hudRadar: false,
   // Facet color theme ("dark"|"light"; switched live in the Settings tab)
   theme: "dark",

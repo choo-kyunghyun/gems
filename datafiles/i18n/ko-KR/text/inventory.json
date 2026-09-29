@@ -8,7 +8,6 @@
   "INV_TAB_ACH": "업적",
   "INV_TAB_ACH_ABBR": "업적",
   "INV_TAB_RADIO": "라디오",
-  "INV_TAB_SETTINGS": "설정",
 
   "INV_EQUIPMENT": "장비",
   "INV_WEIGHT": "무게",
@@ -38,11 +37,6 @@
 
   "INV_FOLLOWERS": "동료",
   "INV_NO_FOLLOWERS": "이곳에 동료가 없습니다",
-  "INV_SET_COLS": "표시 열",
-  "INV_SET_UNITS": "단위",
-  "INV_SET_TEMP": "온도",
-  "INV_SET_HUD": "HUD",
-  "INV_RADAR": "방향 레이더",
   "INV_COL_NAME": "이름",
   "INV_COL_RARITY": "등급",
   "INV_COL_TYPE": "종류",

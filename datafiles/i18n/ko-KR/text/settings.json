@@ -25,6 +25,14 @@
   "SETTINGS_KEYS_PROMPT": "키를 누르세요…",
   "SETTINGS_KEYS_RESET": "기본값으로 초기화",
 
+  "SETTINGS_GAME_TITLE": "게임플레이",
+  "SETTINGS_GAME_TEMP": "온도 단위",
+  "SETTINGS_GAME_RADAR": "방향 레이더",
+  "SETTINGS_GAME_COL_RARITY": "등급 열",
+  "SETTINGS_GAME_COL_TYPE": "종류 열",
+  "SETTINGS_GAME_COL_WT": "무게 열",
+  "SETTINGS_GAME_COL_VAL": "가치 열",
+
   "SETTINGS_DEBUG_TITLE": "디버그",
   "SETTINGS_DEBUG_BBOX": "BBox 외곽선",
 

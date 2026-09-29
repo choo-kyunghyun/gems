@@ -54,7 +54,7 @@ globalThis.InventoryUI = {
           content: InventoryUI._buildQuestsTab(),
         },
         {
-          // eight equal segments: the full label would overrun its neighbour, so the strip draws
+          // seven equal segments: the full label would overrun its neighbour, so the strip draws
           // the abbreviation and the full name is its hover tooltip
           label: I18n.textRef("INV_TAB_ACH"),
           short: I18n.textRef("INV_TAB_ACH_ABBR"),
@@ -63,10 +63,6 @@ globalThis.InventoryUI = {
         {
           label: I18n.textRef("INV_TAB_RADIO"),
           content: RadioUI.build(scene),
-        },
-        {
-          label: I18n.textRef("INV_TAB_SETTINGS"),
-          content: InventoryUI._buildSettingsTab(),
         },
       ],
       { grow: true },
@@ -558,75 +554,6 @@ globalThis.InventoryUI = {
     );
     card.insertChild(desc);
     return card;
-  },
-
-  /**
-   * Toggles only persist: only one page shows at a time, and each reads the settings on open.
-   */
-  _buildSettingsTab() {
-    const tab = new UIElement({ width: "100%", gap: FacetTheme.gapSm });
-    const title = new UIElement({ width: "100%", height: 22 });
-    title.insertChild(
-      facetLabel(I18n.textRef("INV_SET_COLS"), { color: "warn" }),
-    );
-    tab.insertChild(title);
-    // the toggle callback gets no argument, so flip the live value
-    const toggle = (labelKey, settingKey) =>
-      facetCheckbox(
-        I18n.textRef(labelKey),
-        () => Settings.get(settingKey),
-        () => {
-          Settings.set(settingKey, !Settings.get(settingKey));
-          Settings.save(SETTINGS_FILE);
-        },
-        { style: "switch", key: settingKey },
-      );
-    tab.insertChild(toggle("INV_COL_RARITY", "invColRarity"));
-    tab.insertChild(toggle("INV_COL_TYPE", "invColType"));
-    tab.insertChild(toggle("INV_COL_WT", "invColWeight"));
-    tab.insertChild(toggle("INV_COL_VAL", "invColValue"));
-
-    // display settings are read live each frame, so persisting is enough
-    tab.insertChild(facetDivider());
-    const unitsTitle = new UIElement({ width: "100%", height: 22 });
-    unitsTitle.insertChild(
-      facetLabel(I18n.textRef("INV_SET_UNITS"), { color: "warn" }),
-    );
-    tab.insertChild(unitsTitle);
-    const units = [
-      { name: "K", value: "K" },
-      { name: "°C", value: "C" },
-      { name: "°F", value: "F" },
-    ];
-    tab.insertChild(
-      facetRow(
-        I18n.textRef("INV_SET_TEMP"),
-        facetSelect(units, {
-          key: "tempUnit",
-          onChange: () => Settings.save(SETTINGS_FILE),
-        }),
-        { key: "tempUnit" },
-      ),
-    );
-
-    tab.insertChild(facetDivider());
-    const hudTitle = new UIElement({ width: "100%", height: 22 });
-    hudTitle.insertChild(
-      facetLabel(I18n.textRef("INV_SET_HUD"), { color: "warn" }),
-    );
-    tab.insertChild(hudTitle);
-    tab.insertChild(
-      facetCheckbox(
-        I18n.textRef("INV_RADAR"),
-        () => Settings.get("hudRadar"),
-        () => {
-          Settings.set("hudRadar", !Settings.get("hudRadar"));
-          Settings.save(SETTINGS_FILE);
-        },
-        { style: "switch", key: "hudRadar" },
-      ),
-    );
-    return tab;
   },
 
   /**

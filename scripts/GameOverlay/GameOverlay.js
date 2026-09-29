@@ -429,6 +429,38 @@ globalThis.GameOverlay = {
     );
     scroll.scrollBody.insertChild(langSection);
 
+    // every row here is read where it shows, so a row only flips its setting
+    const gameSection = facetSection(I18n.textRef("SETTINGS_GAME_TITLE"));
+    const units = [
+      { name: "K", value: "K" },
+      { name: "°C", value: "C" },
+      { name: "°F", value: "F" },
+    ];
+    gameSection.insertChild(
+      facetRow(
+        I18n.textRef("SETTINGS_GAME_TEMP"),
+        facetSelect(units, { key: "tempUnit" }),
+        { key: "tempUnit" },
+      ),
+    );
+    const flip = (labelKey, key) =>
+      facetToggle(
+        I18n.textRef(labelKey),
+        () => Settings.get(key),
+        () => Settings.set(key, !Settings.get(key)),
+        {
+          key,
+          onText: I18n.textRef("COMMON_ON"),
+          offText: I18n.textRef("COMMON_OFF"),
+        },
+      );
+    gameSection.insertChild(flip("SETTINGS_GAME_RADAR", "hudRadar"));
+    gameSection.insertChild(flip("SETTINGS_GAME_COL_RARITY", "invColRarity"));
+    gameSection.insertChild(flip("SETTINGS_GAME_COL_TYPE", "invColType"));
+    gameSection.insertChild(flip("SETTINGS_GAME_COL_WT", "invColWeight"));
+    gameSection.insertChild(flip("SETTINGS_GAME_COL_VAL", "invColValue"));
+    scroll.scrollBody.insertChild(gameSection);
+
     // bindings apply live; Save persists them with the rest
     if (GameOverlay.keymap !== null) {
       const keySection = facetSection(I18n.textRef("SETTINGS_KEYS_TITLE"));

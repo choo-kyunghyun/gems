@@ -8,7 +8,6 @@
   "INV_TAB_ACH": "Achievements",
   "INV_TAB_ACH_ABBR": "Feats",
   "INV_TAB_RADIO": "Radio",
-  "INV_TAB_SETTINGS": "Settings",
 
   "INV_EQUIPMENT": "Equipment",
   "INV_WEIGHT": "Weight",
@@ -38,11 +37,6 @@
 
   "INV_FOLLOWERS": "Companions",
   "INV_NO_FOLLOWERS": "No companions here",
-  "INV_SET_COLS": "Visible columns",
-  "INV_SET_UNITS": "Units",
-  "INV_SET_TEMP": "Temperature",
-  "INV_SET_HUD": "HUD",
-  "INV_RADAR": "Directional radar",
   "INV_COL_NAME": "Name",
   "INV_COL_RARITY": "Rarity",
   "INV_COL_TYPE": "Type",
