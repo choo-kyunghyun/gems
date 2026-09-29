@@ -7,6 +7,7 @@ globalThis.contentBiomes = {
   // Terrain materials by id; a biome profile supplies each one's band position. `tileset` is the
   // untinted dual-grid tile set; `color` is a design-reference tint, not drawn. `pathCost` is the
   // weighted movement cost for both pathfinding and movement speed (null = impassable).
+  // `fertility` is how well the ground grows plants, soil at 1; absent = barren (0).
   // Shallow water wades at 3 but is not `spawnable`.
   MATERIALS: {
     // `wave` marks a flowing material: the crest tone drifted over the flat sheet.
@@ -30,12 +31,14 @@ globalThis.contentBiomes = {
       color: "#c2a878",
       tileset: tsSand,
       pathCost: 1.5,
+      fertility: 0.2,
     },
     mud: {
       name: "Mud",
       color: "#605444",
       tileset: tsMud,
       pathCost: 2,
+      fertility: 0.4,
     },
     soil: {
       name: "Soil",
@@ -53,12 +56,14 @@ globalThis.contentBiomes = {
         },
       ],
       pathCost: 1,
+      fertility: 1,
     },
     richsoil: {
       name: "Rich Soil",
       color: "#6e5840",
       tileset: tsRichSoil,
       pathCost: 1,
+      fertility: 1.4,
     },
     // `clump` grows a volume layer dense enough to carry the green itself over the soil sheet,
     // so grass needs no tile set of its own. `clutter` entries are sparse accents of the same
@@ -88,6 +93,7 @@ globalThis.contentBiomes = {
         },
       ],
       pathCost: 1,
+      fertility: 0.7,
     },
     // Maintained grass: flat reads as designed ground, so it takes no clumps. Never a biome
     // band; only stamped.
@@ -102,12 +108,14 @@ globalThis.contentBiomes = {
       color: "#858178",
       tileset: tsGravel,
       pathCost: 1.5,
+      fertility: 0.3,
     },
     rocky: {
       name: "Rocky",
       color: "#76746e",
       tileset: tsRocky,
       pathCost: 2,
+      fertility: 0.2,
     },
   },
 

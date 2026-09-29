@@ -11,7 +11,6 @@
 - Settlement
     - Farming
         - More seed sources
-        - Farmable terrain gate
     - Fishing
     - Raid event
 - Gacha capsule

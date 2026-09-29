@@ -194,7 +194,7 @@ globalThis.OverworldGen = {
         if (def === undefined)
           throw new Error(`OverworldGen: unknown flora species "${species}"`);
         const mat = ctx.palette[ctx.materialAt(gx, gy)].id;
-        if (def.ground.indexOf(mat) < 0) return undefined;
+        if (!Flora.roots(def, mat)) return undefined;
         const q = Math.floor(hash2(gx, gy, ctx.seed) * 2147483647);
         return {
           preset: def.preset,

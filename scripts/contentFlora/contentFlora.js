@@ -9,8 +9,8 @@
  *   season     growth weight per season id; 0 halts growth (and kills a non-`hardy` species);
  *              also weights the spread rolls
  *   hardy?     false = a frost kills it (default true)
- *   ground     ground material ids it roots on, the placement test for generation, spread and
- *              build alike
+ *   fertility  the least ground fertility it roots on, the placement test for generation, spread
+ *              and build alike
  *   solidFrom? "tree" only: the stage from which the trunk collides
  *   action     the interaction a ripe plant carries ("harvest" | "chop")
  *   yield      { itemId, qty } the harvest gives
@@ -26,7 +26,7 @@ globalThis.contentFlora = {
       growHours: 480,
       stages: 4,
       season: { spring: 1.2, summer: 1, autumn: 0.6, winter: 0.1 },
-      ground: ["soil", "richsoil", "grass", "mud", "sand", "gravel", "rocky"],
+      fertility: 0.2,
       solidFrom: 1,
       action: "chop",
       yield: { itemId: "plank", qty: 4 },
@@ -39,7 +39,7 @@ globalThis.contentFlora = {
       growHours: 96,
       stages: 3,
       season: { spring: 1.5, summer: 1, autumn: 0.7, winter: 0 },
-      ground: ["soil", "richsoil", "grass"],
+      fertility: 0.7,
       action: "harvest",
       yield: { itemId: "apple", qty: 3 },
       regrow: 0.5,
@@ -53,7 +53,7 @@ globalThis.contentFlora = {
       stages: 3,
       season: { spring: 1.2, summer: 1, autumn: 0.8, winter: 0 },
       hardy: false,
-      ground: ["soil", "richsoil"],
+      fertility: 1,
       action: "harvest",
       yield: { itemId: "snack", qty: 2 },
     },

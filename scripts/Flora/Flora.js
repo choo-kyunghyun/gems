@@ -51,9 +51,16 @@ globalThis.Flora = {
     return undefined;
   },
 
+  /** Is material `mat` fertile enough for `def`; an unknown or absent material is barren. */
+  roots(def, mat) {
+    const m = contentBiomes.MATERIALS[mat];
+    return (m !== undefined ? (m.fertility ?? 0) : 0) >= def.fertility;
+  },
+
   /**
-   * Can `def` take root at a cell: inside the border margin, on its ground, under no build layer
-   * or built entity, and with nothing standing on the cell — a body, a prop, another plant.
+   * Can `def` take root at a cell: inside the border margin, on fertile enough ground, under no
+   * build layer or built entity, and with nothing standing on the cell — a body, a prop, another
+   * plant.
    */
   canRoot(level, def, gx, gy) {
     const grid = level.grid;
@@ -61,9 +68,7 @@ globalThis.Flora = {
     if (gy < 1) return false;
     if (gx >= grid.cols - 1) return false;
     if (gy >= grid.rows - 1) return false;
-    const mat = Flora.materialAt(level, gx, gy);
-    if (mat === undefined) return false;
-    if (def.ground.indexOf(mat) < 0) return false;
+    if (!Flora.roots(def, Flora.materialAt(level, gx, gy))) return false;
     const rt = ColonyMap.runtime(level);
     const lkeys = contentBuild.tileLayers();
     for (let i = 0; i < lkeys.length; i++)
