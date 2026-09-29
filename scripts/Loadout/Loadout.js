@@ -25,6 +25,8 @@ globalThis.Loadout = {
     if (item === undefined) return "INV_UNKNOWN_ITEM";
     const eqp = item.getComponent(Equippable);
     if (eqp === undefined) return "INV_NOT_EQUIPPABLE";
+    // a body wears only the slots its Equipment names
+    if (eq.slots[eqp.slot] === undefined) return "INV_NO_SLOT";
     if (eq.slots[eqp.slot] === uid) return "INV_ALREADY_WORN";
 
     if (eq.slots[eqp.slot] !== "")

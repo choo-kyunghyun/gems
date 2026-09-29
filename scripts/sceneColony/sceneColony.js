@@ -117,20 +117,21 @@ class _SceneColonyClass {
     // it; it opens below the key hints
     const pad = FacetTheme.pad;
     this.window = new Window(this.ui, { top: pad + FacetTheme.lineH + FacetTheme.gap });
+    const equipSlots = [
+      { slot: "weapon", labelKey: "SLOT_WEAPON" },
+      { slot: "head", labelKey: "SLOT_HEAD" },
+      { slot: "body", labelKey: "SLOT_BODY" },
+      { slot: "legs", labelKey: "SLOT_LEGS" },
+      { slot: "outer", labelKey: "SLOT_OUTER" },
+      { slot: "hands", labelKey: "SLOT_HANDS" },
+      { slot: "feet", labelKey: "SLOT_FEET" },
+      { slot: "backpack", labelKey: "SLOT_BACKPACK" },
+      { slot: "trinket", labelKey: "SLOT_TRINKET" },
+    ];
     this.window.add(
       "bag",
       InventoryUI.build(this, {
-        equipSlots: [
-          { slot: "weapon", labelKey: "SLOT_WEAPON" },
-          { slot: "head", labelKey: "SLOT_HEAD" },
-          { slot: "body", labelKey: "SLOT_BODY" },
-          { slot: "legs", labelKey: "SLOT_LEGS" },
-          { slot: "outer", labelKey: "SLOT_OUTER" },
-          { slot: "hands", labelKey: "SLOT_HANDS" },
-          { slot: "feet", labelKey: "SLOT_FEET" },
-          { slot: "backpack", labelKey: "SLOT_BACKPACK" },
-          { slot: "trinket", labelKey: "SLOT_TRINKET" },
-        ],
+        equipSlots,
         extraRows: (scene, body) => {
           const rec = new UIElement({ width: "100%", height: 22 });
           rec.insertChild(
@@ -155,6 +156,7 @@ class _SceneColonyClass {
       }),
     );
     this.window.add("storage", StorageUI.build(this)); // a chest, or a corpse's loot
+    this.window.add("loadout", LoadoutUI.build(this, equipSlots)); // a squad member or a gun
     this.window.add("workbench", CraftingUI.build(this));
     this.window.add("modbench", WeaponModUI.build(this));
     this.window.add("travel", WorldMapUI.build(this));
@@ -235,10 +237,10 @@ class _SceneColonyClass {
     pl.cursorY = aim.y;
 
     // the bag closes on its own key, and opens over whatever page shows; on a gun seat it is the
-    // carrier's store instead, since E there steps off
+    // carrier's gear instead, since E there steps off
     if (Input.get("inventory").pressed()) {
       const store = Boarding.store(this.level.entities, this.playerId);
-      const page = store !== -1 ? "storage" : "bag";
+      const page = store !== -1 ? "loadout" : "bag";
       if (this.window.is(page)) this.window.close();
       else this.window.open(page, { target: store });
     }

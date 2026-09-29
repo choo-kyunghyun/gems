@@ -21,6 +21,7 @@
   "FOLLOWER_RECOVERED": "{0} recovered at base",
   "FOLLOWER_BONUS": "Carry bonus: +{0} weight",
   "FOLLOWER_DISMISS": "Kick from squad",
+  "FOLLOWER_GEAR": "Gear",
   "FOLLOWER_RECALL_HINT": "Rehire a kicked companion: walk up and press {0}",
 
   "SQUAD_KICKED": "Kicked from the squad — talk to rehire",

@@ -90,7 +90,7 @@ globalThis.Interactable = {
 
     const target = scene.window.target;
     if (target !== -1) {
-      if (!Interactable._inRange(scene, target)) scene.window.close();
+      if (!Interactable.inReach(scene, target)) scene.window.close();
     }
 
     // hidden under build mode too: E is not bound there, and its HUD stands where the prompt does.
@@ -165,7 +165,8 @@ globalThis.Interactable = {
     }
   },
 
-  _inRange(scene, id) {
+  /** Whether `id` stands within the player's reach, where a page over it stays open. */
+  inReach(scene, id) {
     if (id === -1) return false;
     const entities = scene.level.entities;
     const p = entities.get(scene.playerId, Position);

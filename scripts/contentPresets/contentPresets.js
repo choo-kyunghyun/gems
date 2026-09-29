@@ -254,7 +254,7 @@ globalThis.contentPresets = {
           Name: { name: "Turret" },
           Mesh: { model: "militaryTurret" },
           Inventory: {},
-          Equipment: {},
+          Equipment: { slots: { weapon: "" } },
           Interaction: { kind: "turret" },
         },
         post(entities, id, ctx) {
@@ -283,7 +283,7 @@ globalThis.contentPresets = {
           Mesh: { model: "militaryTurret" },
           Mount: { seats: [{ x: 0, y: -18, role: "gun" }] },
           Inventory: {},
-          Equipment: {},
+          Equipment: { slots: { weapon: "" } },
           Interaction: { kind: "mount" },
         },
       },
@@ -446,6 +446,9 @@ globalThis.contentPresets = {
             // carry bonus while following (0 = none); a file-authored follower grants none
             bonusWeight: 0,
           },
+          // its own bag and gear, which the player may change
+          Inventory: { maxWeight: 30 },
+          Equipment: { protected: false },
           Interaction: { kind: "rehire" },
         },
         adapt(s, over) {

@@ -58,11 +58,11 @@ globalThis.contentInteractions = {
         },
       },
       {
-        // a gunner's bag: the storage page over the gun and the rounds it fires
+        // a gunner: the gear page over the gun it wears and the rounds it fires
         id: "turret",
         prompt: "STORAGE_TURRET_PROMPT",
         run(ctx) {
-          ctx.scene.window.open("storage", { target: ctx.id });
+          ctx.scene.window.open("loadout", { target: ctx.id });
         },
       },
       {

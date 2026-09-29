@@ -456,6 +456,14 @@ globalThis.InventoryUI = {
         },
       ),
     );
+    // its gear page, in reach only, as a station's
+    card.insertChild(
+      facetButton(
+        I18n.textRef("FOLLOWER_GEAR"),
+        () => scene.window.open("loadout", { target: fid }),
+        { height: 30, disabled: () => !Interactable.inReach(scene, fid) },
+      ),
+    );
     return card;
   },
 

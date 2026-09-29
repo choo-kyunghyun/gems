@@ -349,6 +349,7 @@
     {"id":{"name":"LifetimeSystem","path":"scripts/LifetimeSystem/LifetimeSystem.yy",},},
     {"id":{"name":"Light","path":"scripts/Light/Light.yy",},},
     {"id":{"name":"Loadout","path":"scripts/Loadout/Loadout.yy",},},
+    {"id":{"name":"LoadoutUI","path":"scripts/LoadoutUI/LoadoutUI.yy",},},
     {"id":{"name":"Log","path":"scripts/Log/Log.yy",},},
     {"id":{"name":"Looks","path":"scripts/Looks/Looks.yy",},},
     {"id":{"name":"Loot","path":"scripts/Loot/Loot.yy",},},
