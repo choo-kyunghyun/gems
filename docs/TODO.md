@@ -21,5 +21,4 @@
 - Killfeed UI
 - Blueprint UI — stamp a captured or registered plan (`Blueprint.stamp`) for its wood
 - Markers in the DEV capture — `entry`/`reach` placed in-game instead of hand-added to the exported literal
-- More `testStress` scenarios over the same shape as `stress.pathfind`: a raycast storm (hitscan volleys over the static buckets), a spawn/despawn churn (the free list, the flush cost)
 - A `DEV_MODE` section timer around `sceneColony.update`'s phases, logging the colony frame profile (sim, renderer, GUI) as a `[BENCH]` line in place of the hand probe

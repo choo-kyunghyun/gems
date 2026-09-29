@@ -16,6 +16,13 @@ const SHOT_FRAME = 150;
 const AUDIT_EVERY = 60; // frames between the invariant audits
 const EDITS = 16; // rocks raised a frame and as many torn down, so the edit logs wrap every few frames
 const LIFE = 15; // frames a raised rock stands
+const CHURN = 16; // short-lived colliders spawned a frame
+const TTL_MIN = 0.1; // s
+const TTL_SPAN = 0.4; // s over the minimum, so the churn's live count stays well under capacity
+const SHOOTERS = 8; // volleys a frame
+const PELLETS = 8; // casts a volley
+const SPREAD = 0.3; // rad, a volley's cone
+const RANGE = 384; // px
 
 /**
  * Overlaps past half a pixel only: mask edges round to whole pixels (docs/GMRT.md), so a body may
@@ -102,10 +109,12 @@ function _stressWorld(ctx, id) {
     return grid.gridToWorld(idx % COLS, Math.floor(idx / COLS));
   };
   ctx.pick = pick;
+  ctx.agents = [];
   for (let i = 0; i < AGENTS; i++) {
     const at = pick();
     const goal = pick();
     const id = s.create();
+    ctx.agents.push(id);
     s.add(id, Position, { x: at.x, y: at.y, z: 0 });
     s.add(id, BBox, {
       x: -HALF,
@@ -223,8 +232,11 @@ function _stressDraw(ctx, t) {
   t.sample(ctx.id + ".draw", get_timer() - t0);
 }
 
-/** What the shared load must end with, whatever the scenario put it through. */
-function _stressVerify(ctx, t) {
+/**
+ * What the shared load must end with, whatever the scenario put it through; `extra` is what the
+ * scenario keeps live beside it.
+ */
+function _stressVerify(ctx, t, extra = 0) {
   const s = ctx.entities;
   let trips = 0;
   let nan = 0;
@@ -239,7 +251,7 @@ function _stressVerify(ctx, t) {
   t.eq(ctx.overlaps, 0, "no body inside a wall after any solid pass");
   t.eq(
     s.count(),
-    AGENTS + 2, // + the camera entity and the level's own
+    AGENTS + 2 + extra, // + the camera entity and the level's own
     "no entity leaked or vanished",
   );
 }
@@ -291,6 +303,147 @@ function _stressEdit(ctx) {
     layer.set(x, y, ctx.rock);
     raised[k] = idx;
   }
+}
+
+/** The entities carrying `token`. */
+function _stressCount(entities, token) {
+  let n = 0;
+  entities.forEach([token], () => {
+    n += 1;
+  });
+  return n;
+}
+
+/** Spawns CHURN non-solid colliders on random free cells, each expiring on its own Lifetime. */
+function _stressSpawn(ctx) {
+  const s = ctx.entities;
+  const rand = ctx.churnRand;
+  const free = ctx.free;
+  const grid = ctx.grid;
+  const ring = ctx.spawned;
+  for (let k = 0; k < CHURN; k++) {
+    const idx = free[Math.floor(rand() * free.length)];
+    const at = grid.gridToWorld(idx % COLS, Math.floor(idx / COLS));
+    const id = s.create();
+    s.add(id, Position, { x: at.x, y: at.y, z: 0 });
+    s.add(id, BBox, { x: -2, y: -2, width: 4, height: 4 });
+    s.add(id, Collision, { solid: false });
+    s.add(id, Lifetime, { secs: TTL_MIN + rand() * TTL_SPAN });
+    s.add(id, "StressChurn", { self: id });
+    ring[ctx.ringAt] = id;
+    ctx.ringAt = (ctx.ringAt + 1) % ring.length;
+  }
+}
+
+/**
+ * Recent handles whose validity disagrees with the row their slot holds: a live one must name its
+ * own row, and a dead one never its slot's next owner.
+ */
+function _stressHandles(ctx) {
+  const s = ctx.entities;
+  const ring = ctx.spawned;
+  let bad = 0;
+  for (let k = 0; k < ring.length; k++) {
+    const id = ring[k];
+    if (id < 0) continue;
+    const row = s.get(id, "StressChurn");
+    const owns = row === undefined ? false : row.self === id;
+    if (s.isValid(id) !== owns) bad += 1;
+  }
+  return bad;
+}
+
+/** Puppet instances beyond the ones the store's Instance rows hold. */
+function _stressPuppets(ctx) {
+  return Math.abs(
+    instance_number(Puppet) - ctx.puppets - _stressCount(ctx.entities, Instance),
+  );
+}
+
+/** SHOOTERS volleys of PELLETS casts from random agents, each segment and hit kept for audit. */
+function _stressVolley(ctx) {
+  const level = ctx.level;
+  const s = ctx.entities;
+  const rand = ctx.castRand;
+  const agents = ctx.agents;
+  const segs = ctx.segs;
+  const hits = ctx.hits;
+  let w = 0;
+  let n = 0;
+  for (let k = 0; k < SHOOTERS; k++) {
+    const id = agents[Math.floor(rand() * agents.length)];
+    const pos = s.get(id, Position);
+    const aim = rand() * Math.PI * 2;
+    for (let p = 0; p < PELLETS; p++) {
+      const a = aim + (rand() - 0.5) * SPREAD;
+      const x1 = pos.x + Math.cos(a) * RANGE;
+      const y1 = pos.y + Math.sin(a) * RANGE;
+      const hit = Query.cast(level, pos.x, pos.y, x1, y1, { ignore: id });
+      if (hit !== null) {
+        if (hit.id === level.self) ctx.walls += 1;
+        else ctx.bodies += 1;
+      }
+      hits[n++] = hit;
+      segs[w++] = id;
+      segs[w++] = pos.x;
+      segs[w++] = pos.y;
+      segs[w++] = x1;
+      segs[w++] = y1;
+    }
+  }
+  segs.length = w;
+  hits.length = n;
+}
+
+/**
+ * Kept casts that break the cast contract, each segment re-cast whole: the nearest hit is the
+ * first of all of them, every `t` lies on the segment, a cell hit enters a blocking cell, and a
+ * body hit is a live collider other than the shooter.
+ */
+function _stressCasts(ctx) {
+  const level = ctx.level;
+  const s = ctx.entities;
+  const solid = SolidSystem.tiles(level);
+  const segs = ctx.segs;
+  const hits = ctx.hits;
+  let bad = 0;
+  for (let k = 0; k < hits.length; k++) {
+    const shooter = segs[k * 5];
+    const x0 = segs[k * 5 + 1];
+    const y0 = segs[k * 5 + 2];
+    const dx = segs[k * 5 + 3] - x0;
+    const dy = segs[k * 5 + 4] - y0;
+    const hit = hits[k];
+    const all = Query.castAll(level, x0, y0, x0 + dx, y0 + dy, { ignore: shooter });
+    if (hit === null) {
+      if (all.length > 0) bad += 1;
+      continue;
+    }
+    if (all.length === 0) {
+      bad += 1;
+      continue;
+    }
+    if (all[0].t !== hit.t) bad += 1;
+    for (let j = 0; j < all.length; j++) {
+      const h = all[j];
+      if (!(h.t >= 0)) bad += 1;
+      if (h.t > 1) bad += 1;
+      if (h.id === level.self) {
+        // the cell entered lies past the face the normal names — a step along the ray from a
+        // point near a corner could land in the diagonal neighbour instead
+        let cx = Math.floor(h.x / CELL);
+        let cy = Math.floor(h.y / CELL);
+        if (h.t > 0) {
+          if (h.nx !== 0) cx = Math.round(h.x / CELL) - (h.nx > 0 ? 1 : 0);
+          else cy = Math.round(h.y / CELL) - (h.ny > 0 ? 1 : 0);
+        }
+        if (!solid.at(cx, cy)) bad += 1;
+      } else if (h.id === shooter) bad += 1;
+      else if (!s.isValid(h.id)) bad += 1;
+      else if (!s.has(h.id, Collision)) bad += 1;
+    }
+  }
+  return bad;
 }
 
 Test.register(Test.STRESS, [
@@ -346,6 +499,93 @@ Test.register(Test.STRESS, [
         0,
         "the solid mask and the nav costs match the layers at every audit",
       );
+    },
+    teardown: _stressTeardown,
+  },
+  {
+    // the shared load while short-lived colliders spawn and expire every frame, so the free
+    // list turns over many times and every expiry releases a puppet
+    id: "stress.churn",
+    frames: FRAMES,
+    setup(ctx) {
+      _stressWorld(ctx, "stress.churn");
+      ctx.churnRand = _stressRand(24680);
+      ctx.spawned = new Array(CHURN * 60).fill(-1); // a second's spawns
+      ctx.ringAt = 0;
+      PuppetSystem.probe(); // made on first use, so made before the count
+      ctx.puppets = instance_number(Puppet);
+      ctx.peak = ctx.entities.count();
+      ctx.stale = 0;
+      ctx.leaks = 0;
+    },
+    frame(ctx, i, t) {
+      const s = ctx.entities;
+      let t0 = get_timer();
+      _stressSpawn(ctx);
+      t.sample("stress.churn.spawn", get_timer() - t0);
+      ctx.peak = Math.max(ctx.peak, s.count());
+      _stressStep(ctx, i, t);
+      t0 = get_timer();
+      LifetimeSystem.update(ctx.level);
+      const t1 = get_timer();
+      s.flush();
+      t.sample("stress.churn.expire", t1 - t0);
+      t.sample("stress.churn.flush", get_timer() - t1);
+      t.sample("stress.churn.live", s.count() - AGENTS - 2);
+      if (i % AUDIT_EVERY === 0) {
+        ctx.stale += _stressHandles(ctx);
+        ctx.leaks += _stressPuppets(ctx);
+      }
+    },
+    draw: _stressDraw,
+    verify(ctx, t) {
+      const s = ctx.entities;
+      _stressVerify(ctx, t, _stressCount(s, "StressChurn"));
+      t.eq(
+        ctx.stale + _stressHandles(ctx),
+        0,
+        "a live handle names its own row and a dead one never its slot's next owner",
+      );
+      t.eq(
+        ctx.leaks + _stressPuppets(ctx),
+        0,
+        "every expired collider's puppet went with it",
+      );
+      t.eq(s.ids.next, ctx.peak, "a freed slot is reused before a new one is added");
+    },
+    teardown: _stressTeardown,
+  },
+  {
+    // the shared load under hitscan volleys, each cast over the colliders and the blocking cells
+    id: "stress.cast",
+    frames: FRAMES,
+    setup(ctx) {
+      _stressWorld(ctx, "stress.cast");
+      ctx.castRand = _stressRand(13579);
+      ctx.segs = [];
+      ctx.hits = [];
+      ctx.walls = 0;
+      ctx.bodies = 0;
+      ctx.bad = 0;
+    },
+    frame(ctx, i, t) {
+      // after the step, as a shot resolves against where the bodies moved
+      _stressStep(ctx, i, t);
+      const walls = ctx.walls;
+      const bodies = ctx.bodies;
+      const t0 = get_timer();
+      _stressVolley(ctx);
+      t.sample("stress.cast.volley", get_timer() - t0);
+      t.sample("stress.cast.walls", ctx.walls - walls);
+      t.sample("stress.cast.bodies", ctx.bodies - bodies);
+      if (i % AUDIT_EVERY === 0) ctx.bad += _stressCasts(ctx);
+    },
+    draw: _stressDraw,
+    verify(ctx, t) {
+      _stressVerify(ctx, t);
+      t.eq(ctx.bad, 0, "every audited cast keeps the cast contract");
+      t.ok(ctx.walls > 0, "volleys hit walls");
+      t.ok(ctx.bodies > 0, "volleys hit bodies");
     },
     teardown: _stressTeardown,
   },
