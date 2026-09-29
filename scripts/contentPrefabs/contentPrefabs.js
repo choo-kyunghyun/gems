@@ -83,6 +83,7 @@ globalThis.contentPrefabs = {
           { preset: "reach", gx: 17, gy: 2, half: 88, target: "ruins" },
           { preset: "radio", gx: 2, gy: 5 },
           { preset: "prop", gx: 2, gy: 3, kind: "travel", label: "Beacon" },
+          { preset: "prop", gx: 4, gy: 2, kind: "settlement", label: "Command Post" },
           // walls left and right, so the leaf lies flat
           { preset: "prop", gx: 12, gy: 12, kind: "door", label: "Door" },
           { preset: "lantern", gx: 14, gy: 11 },

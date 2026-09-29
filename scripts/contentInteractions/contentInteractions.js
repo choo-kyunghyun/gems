@@ -142,6 +142,17 @@ globalThis.contentInteractions = {
         },
       },
       {
+        // the settlement's centre: its management page, only on a settlement the player's side holds
+        id: "settlement",
+        prompt(ctx) {
+          return Build.allied(ctx.scene.level) ? "SETTLEMENT_MANAGE_PROMPT" : "";
+        },
+        run(ctx) {
+          if (Build.allied(ctx.scene.level))
+            ctx.scene.window.open("settlement", { target: ctx.id });
+        },
+      },
+      {
         id: "bed",
         prompt: "SURVIVAL_SLEEP_PROMPT",
         run(ctx) {

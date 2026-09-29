@@ -159,6 +159,7 @@ class _SceneColonyClass {
     this.window.add("modbench", WeaponModUI.build(this));
     this.window.add("travel", WorldMapUI.build(this));
     this.window.add("trade", TradeUI.build(this));
+    this.window.add("settlement", SettlementUI.build(this));
     // after the window, so these stay over it
     const hints = new UIElement({
       positionType: "absolute",

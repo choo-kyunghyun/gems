@@ -65,5 +65,7 @@
   "SETTLEMENT_FOUND_PROMPT": "[E] Found settlement",
   "SETTLEMENT_DEFAULT_NAME": "Home",
   "SETTLEMENT_HUB_NAME": "Colony Outpost",
-  "SETTLEMENT_FOUNDED": "Settlement founded"
+  "SETTLEMENT_FOUNDED": "Settlement founded",
+  "SETTLEMENT_MANAGE_PROMPT": "[E] Manage settlement",
+  "SETTLEMENT_TITLE": "Settlement"
 }

@@ -259,20 +259,22 @@ globalThis.Build = {
   },
 
   /**
-   * Found FACTION's settlement over the level at a survey post, keeping the map from then on,
-   * then spend the post — also on an already-settled level, so it never re-founds. Returns
-   * whether a settlement was founded.
+   * Found FACTION's settlement over the level at a survey post, keeping the map from then on; the
+   * post stands on as the settlement's centre. On an already-settled level the post is spent
+   * instead, so it never re-founds. Returns whether a settlement was founded.
    */
   claim(level, postId) {
     const s = Settlement.found(level, {
       name: I18n.text("SETTLEMENT_DEFAULT_NAME"),
       factionId: Build.FACTION,
     });
-    if (s !== undefined) {
-      ColonyMap.persist(level);
-      Log.info(`founded settlement over ${level.id}`);
+    if (s === undefined) {
+      level.entities.detach(postId, Interaction);
+      return false;
     }
-    level.entities.detach(postId, Interaction);
-    return s !== undefined;
+    level.entities.require(postId, Interaction).kind = "settlement";
+    ColonyMap.persist(level);
+    Log.info(`founded settlement over ${level.id}`);
+    return true;
   },
 };

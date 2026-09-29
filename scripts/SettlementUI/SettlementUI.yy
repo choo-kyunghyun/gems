@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"SettlementUI",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"SettlementUI",
+  "parent":{
+    "name":"Settlement",
+    "path":"folders/Game/Settlement.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"SettlementUI.js",
+}

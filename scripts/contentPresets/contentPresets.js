@@ -27,6 +27,7 @@ globalThis.contentPresets = {
     modbench: "woodenWorkbench",
     bed: "woodenBed",
     claim: "woodenSign",
+    settlement: "woodenSign", // a claimed survey post stands on as the centre
     door: "woodenDoor",
     hydrate: "woodenTub",
     feed: "woodenBin",

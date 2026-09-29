@@ -35,6 +35,12 @@ globalThis.contentHud = {
         where: (c) => c.kind === "travel",
         color: Color.parse("#9b8cff"),
       },
+      // the settlement's centre
+      {
+        has: Interaction,
+        where: (c) => c.kind === "settlement",
+        color: Color.parse("#5aa0ff"),
+      },
       { has: Follower, color: Color.parse("#6fd0a0") },
     ];
   },

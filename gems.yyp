@@ -440,6 +440,7 @@
     {"id":{"name":"Settings","path":"scripts/Settings/Settings.yy",},},
     {"id":{"name":"Settlement","path":"scripts/Settlement/Settlement.yy",},},
     {"id":{"name":"SettlementComponent","path":"scripts/SettlementComponent/SettlementComponent.yy",},},
+    {"id":{"name":"SettlementUI","path":"scripts/SettlementUI/SettlementUI.yy",},},
     {"id":{"name":"Shelter","path":"scripts/Shelter/Shelter.yy",},},
     {"id":{"name":"Silhouette","path":"scripts/Silhouette/Silhouette.yy",},},
     {"id":{"name":"Sleep","path":"scripts/Sleep/Sleep.yy",},},

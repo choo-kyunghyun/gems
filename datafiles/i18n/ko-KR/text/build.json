@@ -65,5 +65,7 @@
   "SETTLEMENT_FOUND_PROMPT": "[E] 정착지 건설",
   "SETTLEMENT_DEFAULT_NAME": "우리 정착지",
   "SETTLEMENT_HUB_NAME": "식민지 전초기지",
-  "SETTLEMENT_FOUNDED": "정착지를 건설했습니다"
+  "SETTLEMENT_FOUNDED": "정착지를 건설했습니다",
+  "SETTLEMENT_MANAGE_PROMPT": "[E] 정착지 관리",
+  "SETTLEMENT_TITLE": "정착지"
 }
