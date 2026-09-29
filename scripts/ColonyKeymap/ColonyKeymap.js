@@ -61,7 +61,7 @@ globalThis.ColonyKeymap = {
         .inContext(["play"]),
     );
 
-    // keyboard only: the gamepad dpad is movement; live in a window, where a key binds its slot
+    // a key per slot, live in a window, where a key binds its slot
     for (let i = 0; i < HOTBAR_SIZE; i++) {
       Input.register(
         "hotbar" + (i + 1),
@@ -70,11 +70,20 @@ globalThis.ColonyKeymap = {
           .inContext(["play", "window"]),
       );
     }
+    // the dpad is movement, so the pad reaches the bar through a cursor it steps and uses
+    Input.register(
+      "hotbarNext",
+      new InputAction().bindButton(GP, gp_shoulderr).inContext(["play"]), // RB
+    );
+    Input.register(
+      "hotbarUse",
+      new InputAction().bindButton(GP, gp_shoulderlb).inContext(["play"]), // LT
+    );
   },
 
   /**
    * The rebindable actions in display order, as `{ action, label }` rows with a live textRef
-   * label. The gamepad-only stick axes stay out.
+   * label. The gamepad-only actions stay out.
    */
   rows() {
     const rows = [

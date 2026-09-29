@@ -349,7 +349,10 @@ class _SceneColonyClass {
     WorldOverlay.clearTracers();
   }
 
-  /** A hotbar key uses its slot in play, binds it over the bag, and is idle in another window. */
+  /**
+   * A hotbar key uses its slot in play, binds it over the bag, and is idle in another window. The
+   * pad, with no key per slot, steps the bar's cursor and uses the slot under it, in play alone.
+   */
   _useHotbar() {
     const hb = this.level.entities.require(this.playerId, Hotbar);
     const inv = this.level.entities.require(this.playerId, Inventory);
@@ -359,14 +362,21 @@ class _SceneColonyClass {
         if (this.window.is("bag")) InventoryUI.bindKey(this, this.window.page, i);
         continue;
       }
-      this.showHotbar(i); // even an empty slot reveals the bar
-      const itemId = hb.slots[i];
-      if (itemId === "") continue;
-      InventoryUI.use(this, itemId, Belt.instance(hb, inv, i));
+      this._useSlot(hb, inv, i);
     }
+    if (Input.get("hotbarNext").pressed()) Hud.cycleHotbar(this.hud);
+    if (Input.get("hotbarUse").pressed())
+      this._useSlot(hb, inv, Hud.hotbarSlot(this.hud));
   }
 
-  /** Reveal the hotbar HUD and restart its auto-hide countdown; a pressed `slot` is named. */
+  _useSlot(hb, inv, i) {
+    this.showHotbar(i); // even an empty slot reveals the bar
+    const itemId = hb.slots[i];
+    if (itemId === "") return;
+    InventoryUI.use(this, itemId, Belt.instance(hb, inv, i));
+  }
+
+  /** Reveal the hotbar HUD and restart its auto-hide countdown; a pressed `slot` takes the cursor. */
   showHotbar(slot = -1) {
     Hud.showHotbar(this.hud, slot);
   }

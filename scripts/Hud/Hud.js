@@ -16,7 +16,7 @@ globalThis.Hud = {
     const hud = {
       bar: null,
       cells: null, // the bar's slot grid
-      slot: -1, // the slot last pressed, named beside the bar; -1 = none
+      slot: -1, // the bar's cursor, the slot last pressed or stepped to, named beside it; -1 = none
       sleep: null,
       timer: HOTBAR_HUD_SECS, // wall clock; the bar shows while > 0
       slide: 0, // 0 = tucked below the screen, 1 = fully up
@@ -45,10 +45,25 @@ globalThis.Hud = {
     hud.sleep.enabled = scene.sleep.on;
   },
 
-  /** Reveal the hotbar and restart its auto-hide countdown; a pressed `slot` is named. */
+  /** Reveal the hotbar and restart its auto-hide countdown; a pressed `slot` takes the cursor. */
   showHotbar(hud, slot = -1) {
     hud.timer = HOTBAR_HUD_SECS;
-    hud.slot = slot;
+    if (slot >= 0) hud.slot = slot;
+  },
+
+  /**
+   * Step the cursor to the next slot, wrapping, and reveal the bar. A hidden bar is only revealed,
+   * so the first step shows the slot a use would take.
+   */
+  cycleHotbar(hud) {
+    const at = Hud.hotbarSlot(hud);
+    const shown = hud.timer > 0 && hud.slot >= 0;
+    Hud.showHotbar(hud, shown ? (at + 1) % HOTBAR_SIZE : at);
+  },
+
+  /** The slot under the cursor, the first while none is set. */
+  hotbarSlot(hud) {
+    return hud.slot < 0 ? 0 : hud.slot;
   },
 
   /**
