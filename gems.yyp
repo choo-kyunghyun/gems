@@ -506,7 +506,6 @@
     {"id":{"name":"VertexBatch","path":"scripts/VertexBatch/VertexBatch.yy",},},
     {"id":{"name":"VertexBuffer","path":"scripts/VertexBuffer/VertexBuffer.yy",},},
     {"id":{"name":"View","path":"scripts/View/View.yy",},},
-    {"id":{"name":"Vox","path":"scripts/Vox/Vox.yy",},},
     {"id":{"name":"Weapon","path":"scripts/Weapon/Weapon.yy",},},
     {"id":{"name":"WeaponMod","path":"scripts/WeaponMod/WeaponMod.yy",},},
     {"id":{"name":"WeaponModUI","path":"scripts/WeaponModUI/WeaponModUI.yy",},},

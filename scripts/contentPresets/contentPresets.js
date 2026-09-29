@@ -164,7 +164,7 @@ globalThis.contentPresets = {
             contentPresets.KIND_MODELS[s.kind] ??
             "woodenCrate";
           over.Mesh = { model };
-          // collider matched to the model's voxel footprint; a door in a N-S wall run stands
+          // collider matched to the model's content footprint; a door in a N-S wall run stands
           // vertical (the toggle keeps yaw relative to this base)
           const fp = ColonySpawn.footprint(model);
           const vertical = s.kind === "door" && s.vertical === true;

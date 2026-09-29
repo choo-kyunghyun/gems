@@ -90,19 +90,18 @@ globalThis.RenderMesh = class RenderMesh {
   }
 
   /**
-   * A `.mesh` bake wins over a `.vox`; a name missing both caches vb -1 so the warning fires
-   * once, not per frame. `unit` is the world px per model unit, off the name's declared density.
+   * A missing model caches vb -1 so the warning fires once, not per frame. `unit` is the world
+   * px per model unit, off the name's declared density.
    */
   _model(name) {
     let m = this._models.get(name);
     if (m !== undefined) return m;
     m = { vb: Poly.mesh(name, this._format), unit: AssetMeta.fit(name, 1) };
-    if (m.vb === -1) m.vb = Vox.mesh(name, this._format);
     if (m.vb !== -1) {
       vertex_freeze(m.vb);
       this._vbs.push(m.vb);
     } else {
-      Log.warn(`RenderMesh: missing model meshes/${name}.mesh|.vox`);
+      Log.warn(`RenderMesh: missing model meshes/${name}.mesh`);
     }
     this._models.set(name, m);
     return m;

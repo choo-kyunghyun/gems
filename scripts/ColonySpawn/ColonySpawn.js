@@ -22,14 +22,9 @@ globalThis.ColonySpawn = {
    * walkability, with a floor that keeps thin content solid. Undefined for an unknown model.
    */
   footprint(model) {
-    let content;
     const p = Poly.load(model);
-    if (p !== undefined) content = p.content;
-    else {
-      const m = Vox.load(model);
-      if (m !== undefined) content = m.content;
-    }
-    if (content === undefined) return undefined;
+    if (p === undefined) return undefined;
+    const content = p.content;
     const u = AssetMeta.fit(model, 1); // world px per model unit
     return {
       w: Math.max(ColonySpawn.FOOT_MIN, content[0] * u - ColonySpawn.FOOT_INSET),

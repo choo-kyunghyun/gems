@@ -215,7 +215,7 @@ globalThis.RenderWalls = class RenderWalls {
 
   /**
    * submit one bucket's buffer under its mode (textured: real UVs + per-orientation u_normal
-   * already set by the caller; flat: packed-normal vox mode).
+   * already set by the caller; flat: packed-normal mode).
    */
   _submit(vb, m, lit) {
     if (vb === -1) return;

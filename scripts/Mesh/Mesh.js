@@ -5,16 +5,15 @@
  * unset, and tints the sprite when set.
  *
  * @typedef {Object} Mesh
- * @property {string} [model]     vox model name; when set, the box fields are ignored for drawing
+ * @property {string} [model]     mesh model name; when set, the box fields are ignored for drawing
  * @property {number} scale       uniform design scale; the model's declared density divides it.
- *                                Visual-only, the BBox stays authored. Voxels read style-visible
- *                                past ~1.5×
+ *                                Visual-only, the BBox stays authored
  * @property {number} [xscale]    per-axis override (world x); negative mirrors
  * @property {number} [yscale]    per-axis override (world y)
  * @property {number} [zscale]    per-axis override (world z)
  * @property {number} yaw         degrees about the up axis, pivoting on the footprint center;
  *                                visual-only, so author the swapped footprint for a 90° turn
- * @property {number} pitch       tilt in degrees about world x; vox models have no bottom faces,
+ * @property {number} pitch       tilt in degrees about world x; models have no bottom faces,
  *                                so a tip past ~90° shows a hollow underside
  * @property {number} roll        tilt in degrees about world y (same bottom caveat)
  * @property {number} width       footprint x extent (world px)

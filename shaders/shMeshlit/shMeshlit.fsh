@@ -6,7 +6,7 @@
 // pop at night), while the light map keeps owning absolute darkness + the visible glow
 // pools. Sun strength goes to 0 at night (WorldClock.sunDir), leaving ambient + points.
 //
-// THE one world shader: every world pass submits through it in vox or textured mode, so
+// THE one world shader: every world pass submits through it in flat or textured mode, so
 // day/night stays RenderLighting's light map and never becomes a second shader. Rules for
 // adding to it (general GameMaker behaviour, not GMRT quirks):
 //   * declare each uniform in exactly ONE stage. Declared in both, shader_get_uniform hands
@@ -19,18 +19,18 @@ varying vec3 v_normal;
 varying vec2 v_texcoord;
 varying vec4 v_vColour;
 
-// 0 = vox mode (albedo = vertex colour; texcoord is a packed normal the vsh decoded into
+// 0 = flat mode (albedo = vertex colour; texcoord is a packed normal the vsh decoded into
 // v_normal), 1 = textured mode (walls / billboards / ground tiles: albedo = gm_BaseTexture
 // sample x vertex tint; the normal is u_normal — constant per submit, a UNIT vector in
 // world space: walls swap top/south, billboards pass the bent sprite normal, ground passes
-// straight up). The texture sample runs in BOTH modes — an untextured vox submit reads
+// straight up). The texture sample runs in BOTH modes — an untextured flat submit reads
 // gm_BaseTexture as black (GMRT), but the mix() throws that sample away at u_useTex = 0, so
 // it's harmless; likewise the vsh's normal decode of real UVs is finite garbage this mix
 // discards. u_useTex is only ever exactly 0 or 1, so each mix returns an endpoint exactly.
 uniform float u_useTex;
 uniform vec3 u_normal;
 // texel-alpha cutout (billboards / sprite faces; 0 = off — RenderMesh.setupLights pins 0 so
-// vox/wall submits never discard). Tested on the TEXEL alpha (the sprite SHAPE), never the
+// flat/wall submits never discard). Tested on the TEXEL alpha (the sprite SHAPE), never the
 // final v_vColour*tex alpha, so a dimmed/tinted entity stays fully visible — only the shape
 // is cut. A discarded fragment writes no depth (GMRT's fixed-function alpha test is inert;
 // this replaces the retired sh_alphatest).

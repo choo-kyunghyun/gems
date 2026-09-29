@@ -141,7 +141,7 @@ and are cited from here, never restated):
             and per-tick SCRATCH that holds nothing between ticks (a reused rect, a collector buffer) —
       so a map switch is a pointer swap and nothing of one level or one world survives in a
       module; a level-sized scratch or a fairness cursor is the level's and rides its derived entry
-      (`NavGrid.scratch`, `NavGrid.cursor`). Asset-derived tables (`Vox`, `Poly`, `Anim._info`) are
+      (`NavGrid.scratch`, `NavGrid.cursor`). Asset-derived tables (`Poly`, `Anim._info`) are
       run-lifetime and immutable, not state.
 - Level / Scene / World: `Level` and `World` are data and run no logic; the scene interprets
   them. A `Level` is one map — its store, whose own entity (`self`) carries the grid, the map's

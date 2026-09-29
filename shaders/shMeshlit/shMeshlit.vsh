@@ -1,8 +1,8 @@
 // Mesh lighting, vertex stage. The texcoord has TWO interpretations, selected by the
 // FRAGMENT stage's u_useTex (the fsh owns every shared uniform; this stage's only two are
 // the sway pair below — vsh uniforms verified live on the pinned runtime):
-// - vox mode: the texcoord is the face normal PACKED by Vox (scripts/Vox)
-//   (u = nx, v = ny; nz = -sqrt(1 - u^2 - v^2) — valid because Vox never emits a
+// - flat mode: the texcoord is the PACKED face normal
+//   (u = nx, v = ny; nz = -sqrt(1 - u^2 - v^2) — valid because a mesh carries no
 //   BOTTOM face, so nz <= 0 with up = -z). The world matrix on this path is scale +
 //   OPTIONAL rotation (Mesh.yaw/pitch/roll) + translate: transforming the normal by
 //   mat3(world) + renormalizing rotates it with the model (a yawed mesh lights per its
@@ -12,7 +12,7 @@
 //   1e-6 floor keeps the garbage FINITE: real UVs can hit u^2+v^2 >= 1, and normalize(vec3(0))
 //   is NaN — which would survive the fsh mix() (NaN*0 = NaN) and black the fragment.
 attribute vec3 in_Position; // (x,y,z)
-attribute vec4 in_Colour; // (r,g,b,a) - UNSHADED albedo (vox) or material tint (textured)
+attribute vec4 in_Colour; // (r,g,b,a) - UNSHADED albedo (flat) or material tint (textured)
 attribute vec2 in_TextureCoord; // packed face normal OR real UVs (see fsh u_useTex)
 
 varying vec3 v_worldPos;

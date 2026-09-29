@@ -10,9 +10,3 @@ disagree.
 To bring a foreign color onto the palette, use the entry nearest to it in OKLab, measured as
 squared distance. Never match on raw RGB: it sends a dark red to a dark green. When snapping an
 image, alpha becomes a hard cutout at 128.
-
-## MagicaVoxel
-
-MagicaVoxel imports a palette from a 256×1 PNG (Palette > Open). Pixel i of that image is entry i,
-and every pixel past 63 is black. The editor puts pixel i in slot i+1, so its slots 1..64 hold
-AAP-64 entries 0..63. Project `.vox` files use the same slot order.

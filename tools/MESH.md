@@ -1,9 +1,6 @@
 # Meshes
 
-Volume props are low-poly 3D models in `datafiles/meshes/`, one `.mesh` (PMSH) file each. The
-runtime also greedy-meshes a MagicaVoxel `.vox` at load, and a `.mesh` shadows the `.vox` of the
-same name; every committed model is a `.mesh`, and a new model is never a `.vox`, since a voxel's
-stepped faces spend the triangle budget on edges instead of form.
+Volume props are low-poly 3D models in `datafiles/meshes/`, one `.mesh` (PMSH) file each.
 
 There is no code here. Build a model in Blender or in a throwaway script kept outside the
 repository. Check it in the game: place it, then `Screenshot.take()` (CLAUDE.md, Debugging).
@@ -14,17 +11,12 @@ repository. Check it in the game: place it, then `Screenshot.take()` (CLAUDE.md,
 |---|---|
 | Units | 1 model unit = 1 world px, so a cell is 32 units, as every committed model is. A model authored at another scale declares its `density` (model units per world px) in `contentMeshes`; an undeclared model draws at density 1. |
 | Axes | x = east, y = south (+y is the face toward the camera), z = up, with the ground at z = 0. |
-| Placement | The model is centered on its footprint with its feet at z = 0. For a `.vox`, the runtime centers the canvas, not the content, so content off the canvas center draws off its collider. Content above z = 0 floats. |
+| Placement | The model is centered on its footprint with its feet at z = 0. Content above z = 0 floats. |
 | Collider | Derived from the tight content extent w × d: `max(8, w / density − 2)` × `max(8, d / density − 2)` world px. |
 | Faces | Top and four sides, never a bottom. The fixed-yaw camera sees the top and the south face. |
 | Shading | Never authored. The shader lights the flat colour live, so a surface carries only its base tone. |
 | Palette | AAP-64 RGB only (`tools/PALETTE.md`). |
 | Name | camelCase `<material><Object>[<Variant>]`, shared by the file and `Mesh.model` (`docs/NAMING.md`). |
-
-## .vox
-
-The runtime reads only the first `SIZE` + `XYZI` model and the `RGBA` palette. Slots 1..64 are
-AAP-64 entries 0..63 (`tools/PALETTE.md`, MagicaVoxel).
 
 ## .mesh
 
@@ -47,16 +39,14 @@ Editing an existing model needs none of these steps.
 These must hold, or the runtime or the palette rule rejects the model:
 
 - the file parses;
-- it has a model and a palette;
 - every colour is on AAP-64;
 - every packed normal lies inside the unit disc;
 - it has at most 1000 triangles (more means a runaway generator).
 
 These draw wrong:
 
-- a second model;
-- the lowest voxel above z = 0;
+- the lowest vertex above z = 0;
 - content more than 1 unit off center;
-- parts not 6-connected to the grounded body;
+- a part floating free of the grounded body;
 - a header content that disagrees with the geometry;
 - degenerate triangles.
