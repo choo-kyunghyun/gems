@@ -11,15 +11,6 @@ globalThis.Belt = {
     Belt.set(hb, i, "", "");
   },
 
-  swap(hb, i, j) {
-    const n = hb.slots.length;
-    if (i < 0 || i >= n || j < 0 || j >= n) return;
-    const itemId = hb.slots[i];
-    const uid = hb.uids[i];
-    Belt.set(hb, i, hb.slots[j], hb.uids[j]);
-    Belt.set(hb, j, itemId, uid);
-  },
-
   /** Whether any slot is bound to itemId. */
   has(hb, itemId) {
     return hb.slots.indexOf(itemId) >= 0;

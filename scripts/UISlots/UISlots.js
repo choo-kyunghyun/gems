@@ -4,9 +4,7 @@
  * badge?, badgeColor? } or null; `borderColor` overrides the grid border per cell and `badge` is a
  * short corner marker. `sprite` must be raster (docs/GMRT.md).
  *
- * A drag onto a grid with `onDrop(source, from, to)` hands the outcome to that hook and puts the
- * carried item back, so the owner's model decides what moved; a grid without one swaps the two
- * cells. A `passive` grid only draws: it never hovers, selects or takes the pointer.
+ * A `passive` grid only draws: it never hovers, selects or takes the pointer.
  *
  * A nav confirm enters browse mode, where the grid takes the nav's moves as a 2D slot cursor, its
  * confirm as `onActivate` on the cursor slot and its cancel as the way out; a pointer move or click
@@ -23,8 +21,6 @@ globalThis.UISlots = class UISlots {
     this.selected = s.selected ?? -1;
     this.onSelect = s.onSelect ?? noop;
     this.onActivate = s.onActivate ?? noop; // browse-mode confirm on the cursor slot
-    this.draggable = s.draggable ?? false;
-    this.onDrop = s.onDrop ?? null;
     this.passive = s.passive ?? false;
     this.focusable = true;
     this.font = s.font ?? -1;
@@ -98,21 +94,7 @@ globalThis.UISlots = class UISlots {
         this._hover = i;
     }
 
-    if (this.draggable) {
-      if (this._inside && this._hover >= 0 && Input.pointer.left.pressed) {
-        if (this.items[this._hover] != null) {
-          SlotDrag.begin(this, this._hover);
-        } else {
-          this._select(this._hover);
-        }
-        return true;
-      }
-      // the drop resolves on the last reported slot, forgiving drift on release
-      if (SlotDrag.active && this._inside && this._hover >= 0) {
-        SlotDrag.hover(this, this._hover);
-        return true;
-      }
-    } else if (this._inside && this._hover >= 0 && Input.pointer.left.pressed) {
+    if (this._inside && this._hover >= 0 && Input.pointer.left.pressed) {
       this._select(this._hover);
       return true;
     }

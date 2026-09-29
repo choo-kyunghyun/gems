@@ -117,7 +117,7 @@ and are cited from here, never restated):
       singletons the `Game` object drives from its events (`Input`'s keymap, claims and rebinds,
       `InputContext`'s stack, `UI.roots`, `Music`'s handle, `Time`, `Settings`,
       `SaveGame`'s index and the load bundle a scene hands the next) plus the GUI singletons that
-      span every scene (`GameOverlay`, `Toast`, `Tooltip`, `SlotDrag`); a scene may push into it
+      span every scene (`GameOverlay`, `Toast`, `Tooltip`); a scene may push into it
       but never owns it, so the switch (`Game._apply`, Create_0) sweeps every app member a scene
       can touch in ONE list — a scene's `destroy` drops only what that scene itself wired (its UI
       root, its injected hooks, its `World`), and a new app member a scene can dirty gets its line

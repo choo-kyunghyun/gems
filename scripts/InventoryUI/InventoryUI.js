@@ -263,10 +263,7 @@ globalThis.InventoryUI = {
       cols: HOTBAR_SIZE,
       cellSize: InventoryUI.BELT_CELL,
       gap: InventoryUI.BELT_GAP,
-      draggable: true,
       onSelect: (i) => InventoryUI._assignHotbar(scene, page, i),
-      onDrop: (src, from, to) =>
-        InventoryUI._dropOnBelt(scene, page, src, from, to),
       tooltip: I18n.textRef("INV_HOTBAR_HINT"),
     });
     page.belt = belt.getComponent(UISlots);
@@ -294,13 +291,6 @@ globalThis.InventoryUI = {
   _rebound(scene) {
     scene.window.dirty = true;
     scene.showHotbar();
-  },
-
-  /** A belt cell trades places with the one it lands on. */
-  _dropOnBelt(scene, page, src, from, to) {
-    if (src !== page.belt) return;
-    Belt.swap(scene.level.entities.require(scene.playerId, Hotbar), from, to);
-    InventoryUI._rebound(scene);
   },
 
   /** A hotbar key over the page binds the hovered item, else the selected one. */

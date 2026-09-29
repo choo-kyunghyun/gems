@@ -371,8 +371,6 @@ globalThis.facetSlots = function facetSlots(items, opts = {}) {
       selected: opts.selected ?? -1,
       onSelect: opts.onSelect,
       onActivate: opts.onActivate,
-      draggable: opts.draggable ?? false,
-      onDrop: opts.onDrop,
       passive: opts.passive,
       font: opts.font ?? -1,
       slotColor: facetColor(opts.slotColor ?? FacetTheme.btnPress),

@@ -606,28 +606,14 @@ class _SceneFacetClass {
 
   _inventorySection() {
     const sec = facetSection(I18n.textRef("FACET_INV_TITLE"));
-    const grids = new UIElement({
-      width: "100%",
-      flexDirection: "row",
-      gap: FacetTheme.gap,
-    });
-    const elA = facetSlots(this._bag(0), {
-      cols: 3,
-      cellSize: 60,
-      draggable: true,
-      onSelect: (i) => (this.selSlot = i),
-      tooltip: I18n.textRef("FACET_TIP_INV"),
-    });
-    const elB = facetSlots(this._bag(1), {
-      cols: 3,
-      cellSize: 60,
-      draggable: true,
-      onSelect: (i) => (this.selSlot = i),
-      tooltip: I18n.textRef("FACET_TIP_INV"),
-    });
-    grids.insertChild(elA);
-    grids.insertChild(elB);
-    sec.insertChild(grids);
+    sec.insertChild(
+      facetSlots(this._bag(), {
+        cols: 3,
+        cellSize: 60,
+        onSelect: (i) => (this.selSlot = i),
+        tooltip: I18n.textRef("FACET_TIP_INV"),
+      }),
+    );
     sec.insertChild(
       facetLabel(
         () =>
@@ -640,15 +626,13 @@ class _SceneFacetClass {
     return sec;
   }
 
-  /** Offset per bag so the two grids differ. */
-  _bag(which) {
-    const icon = pixTile16;
+  _bag() {
     const items = [];
     for (let i = 0; i < 9; i++) {
-      if ((i + which) % 2 === 0)
+      if (i % 2 === 0)
         items.push({
-          sprite: icon,
-          subimg: (i + which * 3) % 16,
+          sprite: pixTile16,
+          subimg: i % 16,
           count: (i % 4) + 1,
         });
       else items.push(null);

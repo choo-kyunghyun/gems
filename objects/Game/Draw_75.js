@@ -1,7 +1,6 @@
 // Draw GUI End, not Draw GUI: screen_save() is only permitted in this event.
 UI.draw();
 UINav.draw();
-SlotDrag.draw();
 Tooltip.draw();
 Toast.draw();
 SceneTransition.draw(); // last: the fade cover veils the UI + level during a swap

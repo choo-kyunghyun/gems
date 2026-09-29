@@ -73,13 +73,11 @@ globalThis.UI = {
   },
 
   /**
-   * The GUI's one input pass, in priority order: the tree, the drag it feeds, the menu driver,
-   * whose page is then nav-reachable the same frame, and last the nav, which acts only on what
-   * they left.
+   * The GUI's one input pass, in priority order: the tree, the menu driver, whose page is then
+   * nav-reachable the same frame, and last the nav, which acts only on what they left.
    */
   step() {
     UI.update();
-    SlotDrag.update();
     UI.menu();
     UINav.update();
   },

@@ -151,7 +151,6 @@ this.label = () => {
  * cross-scene singletons, then build the target.
  */
 this._apply = (factory) => {
-  SlotDrag.cancel(); // before the scene goes: a carried item returns to its source slot
   this._destroyScene();
   // input + GUI
   UINav.reset(); // drop focus held on the outgoing scene's UI
