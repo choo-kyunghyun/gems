@@ -1,8 +1,8 @@
 /**
  * The colony's rules for riding, by seat role: "drive" steers the carrier's Vehicle, "gun" fires
- * its Armament, "ride" only rides, and on any seat the rider's own weapon and throw are idle. A
- * player who takes the wheel brings its following squad aboard, and they leave with it. A refusal
- * comes back as an i18n key.
+ * the gun the carrier holds, fed from the carrier's own bag, "ride" only rides, and on any seat
+ * the rider's own weapon and throw are idle. A player who takes the wheel brings its following
+ * squad aboard, and they leave with it. A refusal comes back as an i18n key.
  */
 globalThis.Boarding = {
   _riders: [], // leave's collector
@@ -14,13 +14,17 @@ globalThis.Boarding = {
     return s.role ?? "ride";
   },
 
-  /** The live slot `id` fires — its gun seat's Armament, else its own weapon — or null. */
+  /** The live slot `id` fires — its gun seat's carrier's gun, else its own weapon — or null. */
   weaponSlot(entities, id) {
     const role = Boarding.role(entities, id);
     if (role === "") return Loadout.weaponSlot(entities, id);
     if (role !== "gun") return null;
-    const arm = entities.get(Ride.carrier(entities, id), Armament);
-    return arm !== undefined ? arm : null;
+    return Loadout.weaponSlot(entities, Ride.carrier(entities, id));
+  },
+
+  /** The carrier whose bag `id`'s seat feeds — the one its gun seat stands on — or -1. */
+  store(entities, id) {
+    return Boarding.role(entities, id) === "gun" ? Ride.carrier(entities, id) : -1;
   },
 
   /** The role of the seat `carrier` would offer next; "" when it is full. */

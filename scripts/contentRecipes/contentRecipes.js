@@ -252,13 +252,13 @@ globalThis.contentRecipes = {
         output: { itemId: "turret", qty: 1 },
       },
       {
-        id: "craft_machine_gun_mount",
+        id: "craft_gun_mount",
         tag: "machining",
         inputs: [
           { itemId: "plank", qty: 5 },
           { itemId: "scrap_metal", qty: 10 },
         ],
-        output: { itemId: "machine_gun_mount", qty: 1 },
+        output: { itemId: "gun_mount", qty: 1 },
       },
     ]);
   },

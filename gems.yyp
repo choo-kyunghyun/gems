@@ -211,7 +211,6 @@
     {"id":{"name":"Anim","path":"scripts/Anim/Anim.yy",},},
     {"id":{"name":"Appearance","path":"scripts/Appearance/Appearance.yy",},},
     {"id":{"name":"AppearanceSystem","path":"scripts/AppearanceSystem/AppearanceSystem.yy",},},
-    {"id":{"name":"Armament","path":"scripts/Armament/Armament.yy",},},
     {"id":{"name":"AssetMeta","path":"scripts/AssetMeta/AssetMeta.yy",},},
     {"id":{"name":"Attributes","path":"scripts/Attributes/Attributes.yy",},},
     {"id":{"name":"Audio","path":"scripts/Audio/Audio.yy",},},

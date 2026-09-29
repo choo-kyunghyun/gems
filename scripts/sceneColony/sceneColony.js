@@ -234,10 +234,13 @@ class _SceneColonyClass {
     pl.cursorX = aim.x;
     pl.cursorY = aim.y;
 
-    // the bag closes on its own key, and opens over whatever page shows
+    // the bag closes on its own key, and opens over whatever page shows; on a gun seat it is the
+    // carrier's store instead, since E there steps off
     if (Input.get("inventory").pressed()) {
-      if (this.window.is("bag")) this.window.close();
-      else this.window.open("bag");
+      const store = Boarding.store(this.level.entities, this.playerId);
+      const page = store !== -1 ? "storage" : "bag";
+      if (this.window.is(page)) this.window.close();
+      else this.window.open(page, { target: store });
     }
 
     // before the sim, so its input reads see the context

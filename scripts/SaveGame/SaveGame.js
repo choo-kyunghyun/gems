@@ -10,7 +10,7 @@
  * VERSION is refused — no migration.
  */
 globalThis.SaveGame = {
-  VERSION: 32, // bump when the manifest/blob layout changes incompatibly
+  VERSION: 33, // bump when the manifest/blob layout changes incompatibly
   DIR: "saves/",
   INDEX: "saves/index.json",
   _index: null,

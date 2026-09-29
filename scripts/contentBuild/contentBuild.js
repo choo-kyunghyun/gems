@@ -252,10 +252,10 @@ globalThis.contentBuild = {
       spawn: { preset: "turret" },
     },
     {
-      id: "light_machine_gun",
-      labelKey: "BUILD_LIGHT_MACHINE_GUN",
+      id: "gun_mount",
+      labelKey: "BUILD_GUN_MOUNT",
       kind: "entity",
-      spawn: { preset: "light_machine_gun" },
+      spawn: { preset: "gun_mount" },
     },
 
     // props whose Interaction acts on the player

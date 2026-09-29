@@ -145,9 +145,9 @@ globalThis.PlayerSystem = {
   },
 
   /**
-   * A seated player: the stick steers a "drive" seat's vehicle, and the trigger fires a "gun"
-   * seat's armament at the aim, reloaded from the player's bag. The body itself stays put and
-   * wields nothing.
+   * A seated player: the stick steers a "drive" seat's vehicle, and the trigger fires the gun a
+   * "gun" seat's carrier holds at the aim, armed and reloaded from the carrier's own bag. The
+   * body itself stays put and wields nothing.
    */
   _ride(level, id, pl, role, dx, dy) {
     const entities = level.entities;
@@ -167,16 +167,16 @@ globalThis.PlayerSystem = {
         veh.steerY = dy * k;
       }
     } else if (role === "gun") {
-      const arm = entities.get(carrier, Armament);
-      if (arm !== undefined) {
-        PlayerSystem._aim(entities.get(carrier, Position), pl, dir);
-        const inv = entities.require(id, Inventory);
-        if (Input.get("reload").pressed()) Loadout.reloadSlot(inv, arm);
+      PlayerSystem._aim(entities.get(carrier, Position), pl, dir);
+      const slot = Loadout.arm(entities, carrier);
+      if (slot !== null) {
+        const inv = entities.require(carrier, Inventory);
+        if (Input.get("reload").pressed()) Loadout.reloadSlot(inv, slot);
         if (Input.get("fire").down() && pl.fireCd <= 0) {
-          const wpn = Loadout.composeWeapon(arm);
+          const wpn = Loadout.composeWeapon(slot);
           if (wpn !== null && wpn.kind === "gun") {
             const attack = entities.require(id, Stats).attack;
-            PlayerSystem._fireGun(level, carrier, inv, pl, arm, wpn, dir, attack);
+            PlayerSystem._fireGun(level, carrier, inv, pl, slot, wpn, dir, attack);
           }
         }
       }

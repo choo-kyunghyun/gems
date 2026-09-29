@@ -27,7 +27,7 @@
   "BUILD_TORCH": "Lamp",
   "BUILD_LANTERN": "Lantern",
   "BUILD_TURRET": "Turret",
-  "BUILD_LIGHT_MACHINE_GUN": "Light Machine Gun",
+  "BUILD_GUN_MOUNT": "Gun Mount",
   "BUILD_BED": "Bed",
   "BUILD_COT": "Cot",
   "BUILD_TABLE": "Table",

@@ -270,19 +270,20 @@ globalThis.contentPresets = {
         },
       },
       {
-        // a crewed gun: its one seat, behind it, fires the Armament; its Health and faction make
-        // it a target for enemies
-        id: "light_machine_gun",
+        // a crewed mount: its one seat, behind it, fires the first gun its bag holds, fed from
+        // the same bag; its Health and faction make it a target for enemies
+        id: "gun_mount",
         components: {
           BBox: { x: -8, y: -8, width: 16, height: 16 }, // militaryTurret content 16×16 units
           Collision: { solid: true, kinematic: true },
           Health: { hp: 12 },
           Stats: { maxHp: 12, maxStamina: 0, attack: 0, defense: 1, speed: 0 },
           Faction: { id: "player" },
-          Name: { name: "Light Machine Gun" },
+          Name: { name: "Gun Mount" },
           Mesh: { model: "militaryTurret" },
           Mount: { seats: [{ x: 0, y: -18, role: "gun" }] },
-          Armament: { itemId: "light_machine_gun" },
+          Inventory: {},
+          Equipment: {},
           Interaction: { kind: "mount" },
         },
       },

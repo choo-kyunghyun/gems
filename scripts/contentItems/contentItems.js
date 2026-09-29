@@ -193,7 +193,6 @@ globalThis.contentItems = {
         ],
       },
       {
-        // a mounted gun's Armament: never carried, so nothing makes it equippable
         id: "light_machine_gun",
         name: "ITEM_LIGHT_MACHINE_GUN",
         description: "ITEM_LIGHT_MACHINE_GUN_DESC",
@@ -202,6 +201,7 @@ globalThis.contentItems = {
         value: 400,
         rarity: "rare",
         components: [
+          new Equippable({ slot: "weapon", mods: { attack: 3 } }),
           new Weapon({ fireCd: 0.08 }),
           new Gun({ caliber: "rifle", magazine: 100 }),
         ],
@@ -647,12 +647,12 @@ globalThis.contentItems = {
         components: [new Placeable({ build: "turret" })],
       },
       {
-        id: "machine_gun_mount",
-        name: "ITEM_MACHINE_GUN_MOUNT",
+        id: "gun_mount",
+        name: "ITEM_GUN_MOUNT",
         weight: 15,
         value: 60,
         rarity: "common",
-        components: [new Placeable({ build: "light_machine_gun" })],
+        components: [new Placeable({ build: "gun_mount" })],
       },
       {
         id: "watertank",
