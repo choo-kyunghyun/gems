@@ -473,7 +473,8 @@ Test.register(Test.CHECK, [
       while (layer.log.length < 256) layer.set(0, 7, ctx.rock);
       nav.sync();
       layer.set(2, 7, ctx.mud);
-      t.eq(layer.since(layer.edits - 1), 0, "a reader caught up at a full log still replays the next write");
+      t.eq(layer.since(layer.edits - 1), layer.log.length - 1, "a reader caught up at a full log still replays the next write");
+      t.ok(layer.since(layer.edits - 8) >= 0, "and one a few writes behind it still replays");
       const behind = layer.edits;
       for (let i = 0; i < 300; i++) layer.set(i % 8, 6, ctx.rock);
       layer.set(1, 7, ctx.mud);

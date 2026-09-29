@@ -1,4 +1,5 @@
-const LOG_CAP = 256; // cell writes kept for replay before a reader behind them resamples everything
+const LOG_CAP = 256; // cell writes the log holds at most
+const LOG_KEEP = 128; // the newest writes a full log keeps, so a reader that recent still replays
 
 /**
  * A level layer of TileType cells. `emptyCost` controls empty-cell nav: undefined passes through
@@ -56,8 +57,10 @@ globalThis.TileLayer = class TileLayer {
     this.edits++;
     const log = this.log;
     if (log.length === LOG_CAP) {
-      log.length = 0;
-      this.base = this.edits - 1; // a reader caught up before this write still replays it
+      const drop = LOG_CAP - LOG_KEEP;
+      for (let k = 0; k < LOG_KEEP; k++) log[k] = log[k + drop];
+      log.length = LOG_KEEP;
+      this.base += drop;
     }
     log.push(i);
     return this;
