@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"UIRadar",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"UIRadar",
+  "parent":{
+    "name":"Element",
+    "path":"folders/Core/UI/Element.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"UIRadar.js",
+}

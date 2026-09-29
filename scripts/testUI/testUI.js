@@ -876,6 +876,54 @@ Test.register(Test.CHECK, [
       ctx.el.destroy();
     },
   },
+  {
+    // a body in view is marked where it stands, one out of view points from the edge, and the
+    // first rule claims a body two rules match and draws last
+    id: "ui.radar",
+    setup(ctx) {
+      ctx.level = new Level({ id: "test", capacity: 8 });
+      const e = ctx.level.entities;
+      const body = (x, low, high) => {
+        const id = e.create();
+        e.add(id, Position, { x: x, y: 0 });
+        if (low) e.add(id, "RadarLow", {});
+        if (high !== undefined) e.add(id, "RadarHigh", { on: high });
+      };
+      body(0, true);
+      body(100000, true);
+      body(0, true, true);
+      body(0, false, false); // refused by its rule's predicate
+      // the surface at zoom 1, centred on the origin
+      ctx.view = new View();
+      ctx.view.width = surface_get_width(application_surface);
+      ctx.view.height = surface_get_height(application_surface);
+      ctx.radar = new UIRadar({
+        margin: 20,
+        rules: [
+          { has: "RadarHigh", where: (c) => c.on, color: c_red },
+          { has: "RadarLow", color: c_blue },
+        ],
+      });
+    },
+    verify(ctx, t) {
+      const gw = display_get_gui_width();
+      const gh = display_get_gui_height();
+      const n = ctx.radar.place(ctx.level.entities, ctx.view, 0, 0, gw, gh);
+      t.eq(n, 3, "one blip per matched body");
+      const b = ctx.radar.blips;
+      t.eq(b[0].edge, false, "a body in view is marked");
+      t.near(b[0].x, gw / 2, 0.5, "the marker stands over the body");
+      t.eq(b[1].edge, true, "a body out of view points from the edge");
+      t.near(b[1].x, gw - 20, 0.5, "the arrow sits on the inset edge");
+      t.near(b[1].nx, 1, 0.001, "the arrow points at the body");
+      t.eq(b[2].color, c_red, "the first rule claims a body two rules match");
+      t.eq(b[0].color, c_blue, "a lower rule draws under it");
+    },
+    teardown(ctx) {
+      ctx.view.destroy();
+      ctx.level.destroy();
+    },
+  },
   // perf.ui: a GUI frame's fixed costs over a tree of labelled buttons, gross — `ui.update` per
   // node, `nav.idle` (a frame with a focus and no input) and `nav.collect` (the focus walk) per
   // focusable, `ui.rect` per layout read. `children.copy` against `children.loop` is the tree

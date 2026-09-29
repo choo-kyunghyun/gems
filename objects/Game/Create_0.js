@@ -50,7 +50,7 @@ Settings.register({
   invColValue: true,
   // HUD temperature unit ("K"|"C"|"F"; toggled in inventory Settings tab)
   tempUnit: "K",
-  // colony HUD directional radar (RadarArrows; toggled in inventory Settings tab)
+  // colony HUD radar: markers on screen, edge arrows off it (toggled in inventory Settings tab)
   hudRadar: false,
   // Facet color theme ("dark"|"light"; switched live in the Settings tab)
   theme: "dark",

@@ -1,5 +1,3 @@
-const RADAR_LIFT = 32; // the radar ring's height off the floor, world px
-
 globalThis.sceneColony = () => new _SceneColonyClass();
 Scene.register(sceneColony, {
   label: I18n.textRef("COLONY_NAME"),
@@ -55,8 +53,6 @@ class _SceneColonyClass {
 
     // marks a gameplay scene, which suspends menu navigation while playing
     this.gameplay = true;
-
-    this._radarRules = contentHud.radar();
 
     this._buildUI();
 
@@ -439,11 +435,6 @@ class _SceneColonyClass {
     stage.renderer.draw(this.level.entities);
     // after the renderer: the ground passes paint an opaque fill that would cover it
     WorldOverlay.drawWorld(this);
-    if (Settings.get("hudRadar"))
-      // lifted to body height under a pitched camera
-      RadarArrows.draw(this.level.entities, this.playerId, this._radarRules, {
-        lift: camera.pitch !== 0 ? RADAR_LIFT : 0,
-      });
     Interactable.drawTarget(this, this.interact);
     BuildMode.drawWorld(this, this.build);
     // additive, so bright over the day/night tint

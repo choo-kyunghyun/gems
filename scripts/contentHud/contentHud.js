@@ -1,6 +1,6 @@
 /**
  * What the colony's HUD offers: the key hints, each shown in the input contexts it lists, and the
- * radar's blip colours, first match wins — an entity matching none gets no arrow.
+ * radar's blip colours in priority order — an entity matching none gets no blip.
  */
 globalThis.contentHud = {
   HINTS: [

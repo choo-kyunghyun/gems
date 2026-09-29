@@ -9,11 +9,13 @@ const HOTBAR_HUD_SECS = 3; // wall-clock seconds the hotbar stays up after a hot
 const HOTBAR_SLIDE = 150; // GUI px the hotbar slides down off the bottom edge when hidden
 const HOTBAR_SLIDE_SPD = 16; // higher = snappier
 const HOTBAR_CELL = 56; // GUI px per hotbar slot
+const RADAR_LIFT = 60; // world px over a body's Position its radar marker points at
 
 globalThis.Hud = {
   /** Once per scene. Every panel goes into `scene.ui` but the sleep card, the scene's to place. */
   build(scene) {
     const hud = {
+      radar: null,
       bar: null,
       cells: null, // the bar's slot grid
       slot: -1, // the bar's cursor, the slot last pressed or stepped to, named beside it; -1 = none
@@ -21,6 +23,7 @@ globalThis.Hud = {
       timer: HOTBAR_HUD_SECS, // wall clock; the bar shows while > 0
       slide: 0, // 0 = tucked below the screen, 1 = fully up
     };
+    hud.radar = Hud._radar(scene);
     Hud._hud(scene);
     hud.bar = Hud._hotbar(scene, hud);
     hud.sleep = Hud._sleep(scene);
@@ -43,6 +46,7 @@ globalThis.Hud = {
       hud.cells.selected = hud.slot;
     }
     hud.sleep.enabled = scene.sleep.on;
+    hud.radar.enabled = Settings.get("hudRadar");
   },
 
   /** Reveal the hotbar and restart its auto-hide countdown; a pressed `slot` takes the cursor. */
@@ -120,6 +124,22 @@ globalThis.Hud = {
       ),
     );
     return row;
+  },
+
+  /** Over the whole screen and under every other panel, so a blip never hides one. */
+  _radar(scene) {
+    const radar = new UIElement({
+      positionType: "absolute",
+      left: 0,
+      top: 0,
+      right: 0,
+      bottom: 0,
+    });
+    radar.addComponent(
+      new UIRadar({ level: () => scene.level, rules: contentHud.radar(), lift: RADAR_LIFT }),
+    );
+    scene.ui.insertChild(radar);
+    return radar;
   },
 
   _sleep(scene) {
