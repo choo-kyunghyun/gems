@@ -160,6 +160,7 @@ class _SceneColonyClass {
     );
     this.window.add("storage", StorageUI.build(this)); // a chest, or a corpse's loot
     this.window.add("workbench", CraftingUI.build(this));
+    this.window.add("modbench", WeaponModUI.build(this));
     this.window.add("travel", WorldMapUI.build(this));
     this.window.add("trade", TradeUI.build(this));
     // after the window, so these stay over it

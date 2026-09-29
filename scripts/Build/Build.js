@@ -159,10 +159,6 @@ globalThis.Build = {
     const ent = rec.builtEnts[key];
     if (ent !== undefined) {
       if (entities.isValid(ent.ent)) {
-        // a slotted module is in no inventory: return it or deconstructing deletes it
-        const st = entities.get(ent.ent, Interaction);
-        if (st !== undefined && st.module !== undefined && st.module !== "")
-          Bag.add(entities.require(actorId, Inventory), st.module, 1);
         // spill the contents first, else removing the entity deletes them
         Loot.spill(entities, ent.ent);
         entities.remove(ent.ent);

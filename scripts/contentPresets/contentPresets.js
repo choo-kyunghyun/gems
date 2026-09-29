@@ -24,6 +24,7 @@ globalThis.contentPresets = {
   },
   KIND_MODELS: {
     workbench: "woodenWorkbench",
+    modbench: "woodenWorkbench",
     bed: "woodenBed",
     claim: "woodenSign",
     door: "woodenDoor",
@@ -151,7 +152,7 @@ globalThis.contentPresets = {
       },
       {
         // Solid kinematic prop; adapt always adds its Mesh (by `furn`, else `kind`, else the
-        // crate) and the Interaction for a kind.
+        // crate) and the Interaction for a kind, carrying a bench's `tags` and `title`.
         id: "prop",
         components: {
           BBox: { x: -14, y: -14, width: 28, height: 28 }, // 1-cell default, overridden per model
@@ -173,11 +174,14 @@ globalThis.contentPresets = {
               ? { x: -fp.h / 2, y: -fp.w / 2, width: fp.h, height: fp.w }
               : { x: -fp.w / 2, y: -fp.h / 2, width: fp.w, height: fp.h };
           if (vertical) over.Mesh.yaw = 90;
-          if (s.kind !== undefined)
+          if (s.kind !== undefined) {
             over.Interaction =
               s.kind === "door"
                 ? { kind: "door", open: 0 } // toggle state rides the component, so it saves
                 : { kind: s.kind };
+            if (s.tags !== undefined) over.Interaction.tags = s.tags.slice();
+            if (s.title !== undefined) over.Interaction.title = s.title;
+          }
           // TODO: a stream particle marks a travel beacon again once stream particles are
           // authorable
         },

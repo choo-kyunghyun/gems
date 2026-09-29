@@ -3,10 +3,11 @@
  * The extra flat fields are per-instance params the action reads, each with its own default, so
  * one component drives everything from opening a window to feeding the player.
  * @typedef {Object} Interaction
- * @property {string} kind      registered action id: "storage" | "workbench" | "corpse" |
- *   "pickup" | "door" | "rehire" | "claim" | "bed" | "hydrate" | "feed" | "buff" | "harvest" |
- *   "chop" | "talk" | "trade" | "companion" | "mount"
- * @property {string} [module]  workbench only: slotted module itemId ("" / absent = empty)
+ * @property {string} kind      registered action id: "storage" | "workbench" | "modbench" |
+ *   "corpse" | "pickup" | "door" | "rehire" | "claim" | "bed" | "hydrate" | "feed" | "buff" |
+ *   "harvest" | "chop" | "talk" | "trade" | "companion" | "mount"
+ * @property {string[]} [tags]  workbench only: the recipe tags it offers (absent = none)
+ * @property {string} [title]   workbench only: its page title's I18n key
  * @property {boolean} [open]   door only: current leaf state
  * @property {number} [yaw] door facing
  * @property {string} [status]  buff only: Status id to apply

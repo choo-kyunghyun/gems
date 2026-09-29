@@ -1,14 +1,16 @@
 {
   "CRAFT_TITLE": "Workbench",
+  "CRAFT_TITLE_MEDICAL": "Medical Bench",
+  "CRAFT_TITLE_COOKING": "Cooking Bench",
+  "CRAFT_TITLE_MACHINING": "Machining Bench",
   "CRAFT_PROMPT": "[E] Use workbench",
   "CRAFT_EMPTY": "No recipes",
   "CRAFT_INGREDIENTS": "Ingredients",
   "CRAFT_DO": "Craft",
   "CRAFT_SELECT": "Select a recipe",
 
-  "CRAFT_MODULE": "Module:",
-  "CRAFT_NO_MODULES": "Craft a module to upgrade this bench",
-
+  "MOD_TITLE": "Mod Bench",
+  "MOD_PROMPT": "[E] Use mod bench",
   "MOD_EMPTY": "No weapons to modify",
   "MOD_SELECT": "Select a weapon",
   "MOD_AVAILABLE": "Available attachments",

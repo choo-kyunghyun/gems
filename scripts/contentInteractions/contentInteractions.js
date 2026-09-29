@@ -65,6 +65,13 @@ globalThis.contentInteractions = {
         },
       },
       {
+        id: "modbench",
+        prompt: "MOD_PROMPT",
+        run(ctx) {
+          ctx.scene.window.open("modbench", { target: ctx.id });
+        },
+      },
+      {
         // a site's departure point: the world map the squad deploys from
         id: "travel",
         prompt: "WORLDMAP_PROMPT",

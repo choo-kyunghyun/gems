@@ -1,28 +1,38 @@
 /**
- * Weapon-attachment panel of the workbench: a master-detail over the player's weapon instances
+ * Mod bench page of the scene's Window: a master-detail over the player's weapon instances
  * (each a unique slot with a uid, a `mods` map { slotId -> attachmentItemId } and, for a gun, a
  * loaded `ammo` itemId + `rounds`). Install/remove re-derive Stats, since an attachment may grant
  * them, and every edit marks the window dirty to repopulate. Ammo actions target the selected
  * instance, which need not be equipped.
  */
 globalThis.WeaponModUI = {
-  /** The page that hosts the panel owns open/close. */
-  buildPanel(listHost, detailHost) {
-    return {
+  /** Build the page once. */
+  build(scene) {
+    const row = facetListDetail();
+    const page = {
+      title: I18n.textRef("MOD_TITLE"),
+      el: new UIElement({
+        width: "100%",
+        flexGrow: 1,
+        flexBasis: 0,
+      }),
       sel: "", // selected weapon instance uid (defaulted to the first on refresh)
-      list: listHost,
-      detail: detailHost,
+      list: row.list,
+      detail: row.detail,
+      refresh: () => WeaponModUI.refresh(scene, page),
     };
+    page.el.insertChild(row);
+    return page;
   },
 
   /** Rebuild both panes; a selection no longer owned falls back to the first weapon. */
-  refresh(scene, panel) {
+  refresh(scene, page) {
     const inv = scene.level.entities.get(scene.playerId, Inventory);
     const weapons = WeaponModUI._weaponInstances(inv);
-    if (weapons.length > 0 && !WeaponModUI._hasUid(weapons, panel.sel))
-      panel.sel = weapons[0].uid;
-    WeaponModUI._fillList(scene, panel, inv, weapons);
-    WeaponModUI._fillDetail(scene, panel, inv, weapons);
+    if (weapons.length > 0 && !WeaponModUI._hasUid(weapons, page.sel))
+      page.sel = weapons[0].uid;
+    WeaponModUI._fillList(scene, page, inv, weapons);
+    WeaponModUI._fillDetail(scene, page, inv, weapons);
   },
 
   _weaponInstances(inv) {
@@ -56,7 +66,7 @@ globalThis.WeaponModUI = {
   },
 
   /** "+N" counts filled slots; "[E]" marks the equipped instance. */
-  _fillList(scene, panel, inv, weapons) {
+  _fillList(scene, page, inv, weapons) {
     const equippedUid = scene.level.entities.require(scene.playerId, Equipment).slots.weapon;
     const entries = [];
     for (let i = 0; i < weapons.length; i++) {
@@ -70,21 +80,21 @@ globalThis.WeaponModUI = {
       entries.push({
         label,
         onPick: () => {
-          panel.sel = uid;
+          page.sel = uid;
           scene.window.dirty = true;
         },
-        selected: () => panel.sel === uid,
+        selected: () => page.sel === uid,
         textColor: InvTable.rarityColor(slot.itemId),
         icon: it !== undefined ? Bag.icon(it) : -1,
         iconColor: InvTable.rarityColor(slot.itemId),
       });
     }
-    facetFillList(panel.list, entries, I18n.textRef("MOD_EMPTY"));
+    facetFillList(page.list, entries, I18n.textRef("MOD_EMPTY"));
   },
 
   /** Unclipped: the host card has room for a fully-stuffed gun. */
-  _fillDetail(scene, panel, inv, weapons) {
-    const host = panel.detail;
+  _fillDetail(scene, page, inv, weapons) {
+    const host = page.detail;
     facetClear(host);
 
     if (weapons.length === 0) {
@@ -95,7 +105,7 @@ globalThis.WeaponModUI = {
     }
     let slot;
     for (let i = 0; i < weapons.length; i++)
-      if (weapons[i].uid === panel.sel) slot = weapons[i];
+      if (weapons[i].uid === page.sel) slot = weapons[i];
     if (slot === undefined) return;
     WeaponModUI._ensureMap(slot);
 
@@ -159,7 +169,7 @@ globalThis.WeaponModUI = {
     host.insertChild(facetDivider());
 
     if (gun !== undefined)
-      WeaponModUI._fillAmmo(scene, panel, inv, slot, gun, prof);
+      WeaponModUI._fillAmmo(scene, page, inv, slot, gun, prof);
 
     host.insertChild(
       facetLabel(I18n.textRef("MOD_SLOTS"), { color: FacetTheme.textMuted }),
@@ -186,8 +196,8 @@ globalThis.WeaponModUI = {
     }
   },
 
-  _fillAmmo(scene, panel, inv, slot, gun, prof) {
-    const host = panel.detail;
+  _fillAmmo(scene, page, inv, slot, gun, prof) {
+    const host = page.detail;
     host.insertChild(
       facetLabel(I18n.textRef("MOD_AMMO"), { color: FacetTheme.textMuted }),
     );

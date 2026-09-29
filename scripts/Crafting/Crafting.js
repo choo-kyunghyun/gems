@@ -2,12 +2,12 @@
 // world tick.
 globalThis.Crafting = {
   /**
-   * The station gate is enforced here, so it holds even for a recipe shown out of context.
+   * The bench gate (`tags`, the bench's workbench tags) is enforced here, so it holds even for a
+   * recipe shown out of context.
    */
-  canCraft(inv, recipe, module) {
+  canCraft(inv, recipe, tags) {
     if (inv === undefined || recipe === undefined) return false;
-    if (recipe.requires !== undefined && recipe.requires !== module)
-      return false;
+    if (tags.indexOf(recipe.tag) === -1) return false;
     for (let i = 0; i < recipe.inputs.length; i++) {
       const need = recipe.inputs[i];
       if (!Bag.has(inv, need.itemId, need.qty)) return false;
@@ -18,11 +18,11 @@ globalThis.Crafting = {
   /**
    * The output fit is dry-run before inputs are consumed, so a full bag can't eat materials.
    */
-  craft(entities, crafterId, recipeId, module) {
+  craft(entities, crafterId, recipeId, tags) {
     const recipe = Recipe.get(recipeId);
     if (recipe === undefined) return false;
     const inv = entities.require(crafterId, Inventory);
-    if (!Crafting.canCraft(inv, recipe, module)) return false;
+    if (!Crafting.canCraft(inv, recipe, tags)) return false;
 
     const probe = { slots: Crafting._cloneSlots(inv.slots) };
     if (inv.maxWeight !== undefined) probe.maxWeight = inv.maxWeight;

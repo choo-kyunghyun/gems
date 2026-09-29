@@ -1,18 +1,18 @@
 /**
- * Colony crafting recipes, all made at a bare workbench.
+ * Colony crafting recipes, each made at a bench carrying its tag.
  */
 globalThis.contentRecipes = {
   register() {
     Recipe.register([
       {
         id: "craft_bandage",
-        station: "workbench",
+        tag: "basic",
         inputs: [{ itemId: "cloth", qty: 1 }],
         output: { itemId: "bandage", qty: 2 },
       },
       {
         id: "craft_first_aid_kit",
-        station: "workbench",
+        tag: "medical",
         inputs: [
           { itemId: "bandage", qty: 2 },
           { itemId: "ointment", qty: 1 },
@@ -22,7 +22,7 @@ globalThis.contentRecipes = {
       },
       {
         id: "craft_cooked_meat",
-        station: "workbench",
+        tag: "cooking",
         inputs: [
           { itemId: "raw_meat", qty: 1 },
           { itemId: "plank", qty: 1 },
@@ -31,26 +31,26 @@ globalThis.contentRecipes = {
       },
       {
         id: "craft_tarp",
-        station: "workbench",
+        tag: "basic",
         inputs: [{ itemId: "cloth", qty: 3 }],
         output: { itemId: "tarp", qty: 1 },
       },
 
       {
         id: "craft_iron_pipe",
-        station: "workbench",
+        tag: "machining",
         inputs: [{ itemId: "scrap_metal", qty: 2 }],
         output: { itemId: "iron_pipe", qty: 1 },
       },
       {
         id: "craft_spanner",
-        station: "workbench",
+        tag: "machining",
         inputs: [{ itemId: "scrap_metal", qty: 3 }],
         output: { itemId: "spanner", qty: 1 },
       },
       {
         id: "craft_kitchen_knife",
-        station: "workbench",
+        tag: "machining",
         inputs: [
           { itemId: "scrap_metal", qty: 2 },
           { itemId: "plank", qty: 1 },
@@ -61,19 +61,19 @@ globalThis.contentRecipes = {
       // hand-loaded rounds: the guns themselves are issue-only
       {
         id: "craft_pistol_ammo",
-        station: "workbench",
+        tag: "machining",
         inputs: [{ itemId: "scrap_metal", qty: 1 }],
         output: { itemId: "pistol_ammo", qty: 12 },
       },
       {
         id: "craft_rifle_ammo",
-        station: "workbench",
+        tag: "machining",
         inputs: [{ itemId: "scrap_metal", qty: 2 }],
         output: { itemId: "rifle_ammo", qty: 10 },
       },
       {
         id: "craft_sniper_ammo",
-        station: "workbench",
+        tag: "machining",
         inputs: [{ itemId: "scrap_metal", qty: 3 }],
         output: { itemId: "sniper_ammo", qty: 5 },
       },
