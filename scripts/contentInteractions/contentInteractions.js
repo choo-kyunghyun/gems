@@ -10,22 +10,31 @@ globalThis.contentInteractions = {
   registered: false,
 
   /**
-   * The view side of a harvest: credit, refresh and toast, or the refusal it names.
+   * The view side of a harvest: credit and toast what the bag took, and name what hit the ground.
    */
   _harvest(ctx) {
     const r = Flora.harvest(ctx.entities, ctx.id, ctx.playerId);
-    if (r.items.length === 0) {
-      if (r.reason !== "") Toast.push(I18n.text(r.reason), { type: "info" });
-      return;
+    if (r.items.length > 0) {
+      Progression.collectAll(ctx.entities, r.items);
+      ctx.scene.window.dirty = true;
+      Toast.push(I18n.text("FLORA_HARVESTED", contentInteractions._list(r.items)), {
+        type: "success",
+      });
     }
+    if (r.dropped.length > 0)
+      Toast.push(I18n.text("FLORA_DROPPED", contentInteractions._list(r.dropped)), {
+        type: "info",
+      });
+  },
+
+  /** `[{ itemId, qty }]` as one localized line. */
+  _list(items) {
     const parts = [];
-    for (let i = 0; i < r.items.length; i++) {
-      const it = r.items[i];
-      Progression.collect(ctx.entities, it.itemId, it.qty);
-      parts.push(I18n.text("FLORA_YIELD", it.qty, I18n.text(Item.get(it.itemId).name)));
-    }
-    ctx.scene.window.dirty = true;
-    Toast.push(I18n.text("FLORA_HARVESTED", parts.join(", ")), { type: "success" });
+    for (let i = 0; i < items.length; i++)
+      parts.push(
+        I18n.text("FLORA_YIELD", items[i].qty, I18n.text(Item.get(items[i].itemId).name)),
+      );
+    return parts.join(", ");
   },
 
   /** The NPC's line in the scene's dialogue, then `then` once it is read. */

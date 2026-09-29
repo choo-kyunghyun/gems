@@ -37,13 +37,21 @@ globalThis.Progression = {
 
   /** The one pickup credit for every loot path, so collect quests can't diverge by path. */
   collect(entities, itemId, qty) {
+    Progression.collectAll(entities, [{ itemId: itemId, qty: qty }]);
+  },
+
+  /** Several pickups at once, `[{ itemId, qty }]`, under one chime. */
+  collectAll(entities, items) {
     const pid = ColonyPlayer.id(entities);
     if (pid !== -1) {
       const pp = entities.require(pid, Position);
       Audio.play({ sound: sndCoin, position: { x: pp.x, y: pp.y } });
     }
-    Progression.report(entities, "collect", itemId, qty);
-    Log.info(`picked up ${qty}x ${itemId} — items=${Tracker.count("itemsCollected")}`);
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i];
+      Progression.report(entities, "collect", it.itemId, it.qty);
+      Log.info(`picked up ${it.qty}x ${it.itemId} — items=${Tracker.count("itemsCollected")}`);
+    }
   },
 
   /**

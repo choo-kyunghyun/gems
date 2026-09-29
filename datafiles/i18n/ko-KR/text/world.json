@@ -43,5 +43,6 @@
   "FLORA_HARVEST_PROMPT": "[E] 수확하기",
   "FLORA_CHOP_PROMPT": "[E] 벌목하기",
   "FLORA_YIELD": "{1} {0}개",
-  "FLORA_HARVESTED": "{0}를 얻었습니다"
+  "FLORA_HARVESTED": "{0}를 얻었습니다",
+  "FLORA_DROPPED": "가방이 가득 차 {0}를 떨어뜨렸습니다"
 }
