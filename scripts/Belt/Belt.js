@@ -1,8 +1,19 @@
 // Stateless operations on a Hotbar component; an out-of-range slot is a no-op.
 globalThis.Belt = {
-  /** `uid` pins one instance of gear; "" binds whichever copy. */
+  /**
+   * `uid` pins one instance of gear; "" binds whichever copy. A binding holds one slot at most, so
+   * binding it again moves it.
+   */
   set(hb, i, itemId, uid = "") {
     if (i < 0 || i >= hb.slots.length) return;
+    if (itemId !== "") {
+      for (let j = 0; j < hb.slots.length; j++) {
+        if (hb.slots[j] === itemId && hb.uids[j] === uid) {
+          hb.slots[j] = "";
+          hb.uids[j] = "";
+        }
+      }
+    }
     hb.slots[i] = itemId;
     hb.uids[i] = uid;
   },
