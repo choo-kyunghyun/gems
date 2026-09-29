@@ -11,7 +11,6 @@
 - Separating Pathfinding into a different thread using C#
 - Modular turret (the built turret auto-fires a hardcoded hitscan today)
     - Auto turrets fire mounted weapons
-    - Mountable turrets
 - Explosives — the grenade is in (a `Throwable` item used from the hotbar lobs a `Fuse` charge through `Combat.lob`); remaining: the mine
 - Minify furnitures
 - Settlement and outpost — foundation done (`Settlement`: a level is one settlement with Name/Faction — the authored colony hub, or an outpost the player founds at a wild site's Survey Post; build mode gated to allied maps); settlement-management UI remains
