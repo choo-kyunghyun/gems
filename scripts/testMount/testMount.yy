@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"testMount",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"testMount",
+  "parent":{
+    "name":"Test",
+    "path":"folders/Core/Test.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"testMount.js",
+}

@@ -171,10 +171,9 @@ globalThis.Hud = {
       facetLabel(
         () => {
           if (scene.playerId === undefined) return "";
-          const prof = Loadout.weaponProfile(
-            scene.level.entities,
-            scene.playerId,
-          );
+          // on a gun seat, the gun's
+          const slot = Boarding.weaponSlot(scene.level.entities, scene.playerId);
+          const prof = slot !== null ? Loadout.composeWeapon(slot) : null;
           if (prof === null || prof.kind !== "gun") return "";
           if (prof.noAmmo) return I18n.text("MOD_UNLOADED");
           const it = Item.get(prof.ammo);

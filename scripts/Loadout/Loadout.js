@@ -105,12 +105,6 @@ globalThis.Loadout = {
     return slot ?? null;
   },
 
-  /** Null when unarmed. */
-  weaponProfile(entities, id) {
-    const slot = Loadout.weaponSlot(entities, id);
-    return slot !== null ? Loadout.composeWeapon(slot) : null;
-  },
-
   /** A fresh profile each call; the item def is never mutated. */
   composeWeapon(slot) {
     const item = Item.get(slot.itemId);

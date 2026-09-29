@@ -1,10 +1,11 @@
 /**
  * Equal-mass push-apart for unit crowding, over the runtime mirrors. Pure resolution, run after
  * the solid pass in the same tick: each solid body sums half of every overlap's shallower axis
- * against each other moving body (a static solid is the solid pass's), and every push is summed
- * before any body moves, so a pair reads one overlap from both sides and separates by the whole
- * of it. The move runs against the solids, so a push never lands a body inside a wall. A
- * solid-off body wears the empty mask, so it neither lists nor is pushed.
+ * against each other moving body (a static solid is the solid pass's) — the whole of it against
+ * an unpushable one, which sums nothing — and every push is summed before any body moves, so a
+ * pair reads one overlap from both sides and separates by the whole of it. The move runs against the solids, so a push never lands a body inside a wall. A
+ * solid-off body wears the empty mask, so it neither lists nor is pushed, and a rider belongs to
+ * its seat, so it neither pushes nor is pushed.
  */
 globalThis.SeparationSystem = {
   iterations: 1, // raise for dense clusters; each pass re-asks the runtime
@@ -18,6 +19,8 @@ globalThis.SeparationSystem = {
   update(level) {
     const entities = level.entities;
     const held = entities.column(Instance);
+    const cols = entities.column(Collision);
+    const riding = entities.column(Rider);
     const slots = Handle.SLOTS;
     const against = SolidSystem.tiles(level).against;
 
@@ -31,6 +34,8 @@ globalThis.SeparationSystem = {
         if (h.still) return; // a kinematic: the solid pass keeps bodies out of those
         if (!col.solid) return;
         if (!h.shaped) return; // no mirror shape yet
+        if (!col.pushable) return;
+        if (riding[id % slots] !== undefined) return;
         const inst = h.inst;
         const list = PuppetSystem.list();
         const found = inst.instance_place_list(inst.x, inst.y, Puppet, list, false);
@@ -48,14 +53,16 @@ globalThis.SeparationSystem = {
           const oh = held[oid % slots];
           if (oh === undefined) continue;
           if (oh.still) continue; // a Solid
+          if (riding[oid % slots] !== undefined) continue;
+          const share = cols[oid % slots].pushable ? 0.5 : 1;
           const bx1 = o.bbox_left;
           const by1 = o.bbox_top;
           const bx2 = o.bbox_right;
           const by2 = o.bbox_bottom;
           const ox = Math.min(ax2, bx2) - Math.max(ax1, bx1);
           const oy = Math.min(ay2, by2) - Math.max(ay1, by1);
-          if (ox < oy) px += (ax1 + ax2 < bx1 + bx2 ? -1 : 1) * ox * 0.5; // by centre
-          else py += (ay1 + ay2 < by1 + by2 ? -1 : 1) * oy * 0.5;
+          if (ox < oy) px += (ax1 + ax2 < bx1 + bx2 ? -1 : 1) * ox * share; // by centre
+          else py += (ay1 + ay2 < by1 + by2 ? -1 : 1) * oy * share;
         }
         if (px === 0 && py === 0) return;
         hs[n] = h;

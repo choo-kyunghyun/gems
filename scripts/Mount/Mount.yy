@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Mount",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Mount",
+  "parent":{
+    "name":"Mount",
+    "path":"folders/Core/Mount.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Mount.js",
+}

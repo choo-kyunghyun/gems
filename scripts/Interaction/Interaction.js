@@ -5,7 +5,7 @@
  * @typedef {Object} Interaction
  * @property {string} kind      registered action id: "storage" | "workbench" | "corpse" |
  *   "pickup" | "door" | "rehire" | "claim" | "bed" | "hydrate" | "feed" | "buff" | "harvest" |
- *   "chop" | "talk" | "trade" | "companion"
+ *   "chop" | "talk" | "trade" | "companion" | "mount"
  * @property {string} [module]  workbench only: slotted module itemId ("" / absent = empty)
  * @property {boolean} [open]   door only: current leaf state
  * @property {number} [yaw] door facing

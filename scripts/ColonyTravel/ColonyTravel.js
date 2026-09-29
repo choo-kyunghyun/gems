@@ -43,6 +43,8 @@ globalThis.ColonyTravel = {
             members[i],
             "follow",
           );
+        // a seat names a carrier of this map alone
+        Ride.release(scene.level.entities, members[i]);
         squad.push(scene.world.take(scene.level.id, members[i]));
       }
       scene.level.entities.flush(); // commit the taken members' removals before parking

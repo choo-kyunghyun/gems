@@ -2,8 +2,8 @@ const FOLLOWER_EASE_BAND = 48; // px past `range` over which approach speed ramp
 
 /**
  * A "follow" member steers toward the player, easing to a stop near `range` so it settles instead
- * of jittering; any other state holds still, and a Downed one lies where it fell. It only writes
- * Velocity. The player is found live, never stored.
+ * of jittering; any other state holds still, a Downed one lies where it fell, and a riding one
+ * sits. It only writes Velocity. The player is found live, never stored.
  */
 globalThis.FollowerSystem = {
   update(level) {
@@ -12,6 +12,7 @@ globalThis.FollowerSystem = {
     const pp = entities.get(playerId, Position);
     if (pp === undefined) return;
     const downed = entities.column(Downed);
+    const riding = entities.column(Rider);
     const slots = Handle.SLOTS;
     entities.forEach([Follower, Velocity, Position], (id, f, vel, pos) => {
       if (id === playerId) return;
@@ -19,6 +20,12 @@ globalThis.FollowerSystem = {
       if (downed[id % slots] !== undefined) {
         vel.x = 0;
         vel.y = 0;
+        return;
+      }
+      if (riding[id % slots] !== undefined) {
+        vel.x = 0;
+        vel.y = 0;
+        Doll.setState(entities, id, "idle");
         return;
       }
       if (f.state !== "follow") {

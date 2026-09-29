@@ -1,0 +1,8 @@
+{
+  "MOUNT_DRIVE": "[E] Drive",
+  "MOUNT_GUN": "[E] Man the gun",
+  "MOUNT_RIDE": "[E] Get in",
+  "MOUNT_LEAVE": "[E] Get off",
+  "MOUNT_FULL": "No free seat",
+  "MOUNT_BLOCKED": "No room to get off"
+}

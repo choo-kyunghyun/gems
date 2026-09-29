@@ -236,6 +236,13 @@ globalThis.contentBuild = {
           kind: "entity",
           spawn: { preset: "turret" },
         },
+        {
+          id: "light_machine_gun",
+          labelKey: "BUILD_LIGHT_MACHINE_GUN",
+          cost: 15,
+          kind: "entity",
+          spawn: { preset: "light_machine_gun" },
+        },
       ],
     },
     {

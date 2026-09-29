@@ -32,6 +32,8 @@
   "ITEM_SERVICE_ASSAULT_RIFLE_DESC": "정규군 제식 소총. 큰 탄창으로 빠르게 연사한다. 돌격소총 탄약을 쓴다.",
   "ITEM_SERVICE_SNIPER_RIFLE": "보급 저격소총",
   "ITEM_SERVICE_SNIPER_RIFLE_DESC": "볼트액션 저격소총. 느리지만 강하고 방어를 꿰뚫는다. 저격소총 탄약을 쓴다.",
+  "ITEM_LIGHT_MACHINE_GUN": "경기관총",
+  "ITEM_LIGHT_MACHINE_GUN_DESC": "거치대에 고정된 사수용 기관총. 긴 탄띠로 빠르게 연사한다. 사수의 가방에서 돌격소총 탄약을 쓴다.",
   "ITEM_TACTICAL_HEADPHONES": "전술 헤드폰",
   "ITEM_TACTICAL_HEADPHONES_DESC": "무전 연결이 되는 보급 청력 보호구.",
   "ITEM_PISTOL_AMMO": "권총 탄약",

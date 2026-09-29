@@ -22,8 +22,9 @@ const PLAYER_FIST = {
 };
 
 // The player brain: turns input into every Playable entity's Velocity, Direction, attacks and
-// animation state, ahead of the integration of the Velocity it writes. Per-frame state lives in
-// the Playable component, so it travels with the player.
+// animation state, ahead of the integration of the Velocity it writes; a seated player's input
+// works its seat instead. Per-frame state lives in the Playable component, so it travels with the
+// player.
 
 globalThis.PlayerSystem = {
   update(level) {
@@ -49,6 +50,12 @@ globalThis.PlayerSystem = {
     ) {
       dx = sx;
       dy = sy;
+    }
+
+    const role = Boarding.role(entities, id);
+    if (role !== "") {
+      PlayerSystem._ride(level, id, pl, role, dx, dy);
+      return;
     }
 
     const vel = entities.get(id, Velocity);
@@ -103,25 +110,13 @@ globalThis.PlayerSystem = {
       const slot = Loadout.weaponSlot(entities, id);
       const wpn =
         slot !== null ? Loadout.composeWeapon(slot) : PLAYER_FIST;
-      const pos = entities.get(id, Position);
-      const rx = Input.get("aimX").value();
-      const ry = Input.get("aimY").value();
-      if (
-        Math.abs(rx) <= STICK_DEADZONE &&
-        Math.abs(ry) <= STICK_DEADZONE
-      ) {
-        // the latched cursor, not mouse_x/mouse_y, which are wrong under the pitched camera
-        const adx = pl.cursorX - pos.x;
-        const ady = pl.cursorY - pos.y;
-        const adist = Math.sqrt(adx * adx + ady * ady) || 1;
-        dir.x = adx / adist;
-        dir.y = ady / adist;
-      }
+      PlayerSystem._aim(entities.get(id, Position), pl, dir);
       const attack = stats.attack;
       if (wpn === null) {
         // an equipped item with no Weapon component
       } else if (wpn.kind === "gun") {
-        PlayerSystem._fireGun(level, id, pl, slot, wpn, dir, attack);
+        const inv = entities.require(id, Inventory);
+        PlayerSystem._fireGun(level, id, inv, pl, slot, wpn, dir, attack);
       } else {
         const hitbox = wpn.hitbox !== undefined ? wpn.hitbox : MELEE_HITBOX;
         // an attachment can make it fractional; HP stays integer
@@ -152,25 +147,87 @@ globalThis.PlayerSystem = {
     Doll.face(entities, id, dir.x, 0.01);
   },
 
+  /**
+   * A seated player: the stick steers a "drive" seat's vehicle, and the trigger fires a "gun"
+   * seat's armament at the aim, reloaded from the player's bag. The body itself stays put and
+   * wields nothing.
+   */
+  _ride(level, id, pl, role, dx, dy) {
+    const entities = level.entities;
+    const dir = entities.get(id, Direction);
+    const carrier = Ride.carrier(entities, id);
+    pl.toss = ""; // nothing is thrown from a seat
+    Endurance.sprint(entities, id, false);
+    if (pl.fireCd > 0) pl.fireCd -= Time.step;
+    if (pl.attackCd > 0) pl.attackCd -= Time.step;
+
+    if (role === "drive") {
+      const veh = entities.get(carrier, Vehicle);
+      if (veh !== undefined) {
+        const len = Math.sqrt(dx * dx + dy * dy);
+        const k = len > 1 ? 1 / len : 1;
+        veh.steerX = dx * k;
+        veh.steerY = dy * k;
+      }
+    } else if (role === "gun") {
+      const arm = entities.get(carrier, Armament);
+      if (arm !== undefined) {
+        PlayerSystem._aim(entities.get(carrier, Position), pl, dir);
+        const inv = entities.require(id, Inventory);
+        if (Input.get("reload").pressed()) Loadout.reloadSlot(inv, arm);
+        if (Input.get("fire").down() && pl.fireCd <= 0) {
+          const wpn = Loadout.composeWeapon(arm);
+          if (wpn !== null && wpn.kind === "gun") {
+            const attack = entities.require(id, Stats).attack;
+            PlayerSystem._fireGun(level, carrier, inv, pl, arm, wpn, dir, attack);
+          }
+        }
+      }
+    }
+
+    Doll.setState(entities, id, pl.attackCd > 0 ? "attack" : "idle");
+    Doll.face(entities, id, dir.x, 0.01);
+  },
+
+  /**
+   * Turn `dir` from `pos` toward the aim: the deflected stick's heading, else the latched cursor —
+   * never mouse_x/mouse_y, which are wrong under the pitched camera.
+   */
+  _aim(pos, pl, dir) {
+    const rx = Input.get("aimX").value();
+    const ry = Input.get("aimY").value();
+    if (Math.abs(rx) > STICK_DEADZONE || Math.abs(ry) > STICK_DEADZONE) {
+      const rl = Math.sqrt(rx * rx + ry * ry) || 1;
+      dir.x = rx / rl;
+      dir.y = ry / rl;
+      return;
+    }
+    const adx = pl.cursorX - pos.x;
+    const ady = pl.cursorY - pos.y;
+    const adist = Math.sqrt(adx * adx + ady * ady) || 1;
+    dir.x = adx / adist;
+    dir.y = ady / adist;
+  },
+
   /** Edge-gated, so a held trigger clicks once. */
   _dryClick() {
     if (Input.get("fire").pressed()) Audio.play({ sound: sndGunUncocked });
   },
 
   /**
-   * Spends a round from `slot`. An empty or unloaded gun auto-reloads from the bag; a dry gun
-   * does not fire and sets no cooldown.
+   * Spends a round from `slot`, shot from `from`, the entity the gun stands on. An empty or
+   * unloaded gun auto-reloads from `inv`; a dry gun does not fire and sets no cooldown.
    */
-  _fireGun(level, id, pl, slot, wpn, dir, attack) {
+  _fireGun(level, from, inv, pl, slot, wpn, dir, attack) {
     const entities = level.entities;
     if (wpn.noAmmo) {
       // recompose so this shot uses the loaded round's stats
-      if (Loadout.reload(entities, id) <= 0)
+      if (Loadout.reloadSlot(inv, slot) <= 0)
         return PlayerSystem._dryClick();
       wpn = Loadout.composeWeapon(slot);
     }
     if (slot.rounds <= 0) {
-      if (Loadout.reload(entities, id) <= 0)
+      if (Loadout.reloadSlot(inv, slot) <= 0)
         return PlayerSystem._dryClick();
     }
     if (slot.rounds <= 0) return PlayerSystem._dryClick();
@@ -178,12 +235,12 @@ globalThis.PlayerSystem = {
     const speed = wpn.velocity !== undefined ? wpn.velocity : BULLET_SPEED;
     // the shot is instant, drawn as a fading tracer; velocity only scales its reach
     const range = speed * SHOT_RANGE_SECS;
-    const pos = entities.get(id, Position);
+    const pos = entities.get(from, Position);
     const m = Math.sqrt(dir.x * dir.x + dir.y * dir.y) || 1;
     const nx = dir.x / m;
     const ny = dir.y / m;
     const shot = Combat.hitscan(level, pos.x, pos.y, pos.x + nx * range, pos.y + ny * range, {
-      owner: id,
+      owner: from,
       damage: Math.round(wpn.power) + attack,
       penetration: wpn.penetration ?? 0,
       pierce: 1,

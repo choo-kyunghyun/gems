@@ -192,6 +192,20 @@ globalThis.contentItems = {
           new Gun({ caliber: "sniper", magazine: 5 }),
         ],
       },
+      {
+        // a mounted gun's Armament: never carried, so nothing makes it equippable
+        id: "light_machine_gun",
+        name: "ITEM_LIGHT_MACHINE_GUN",
+        description: "ITEM_LIGHT_MACHINE_GUN_DESC",
+        sprite: pixItemAssaultRifle,
+        weight: 12,
+        value: 400,
+        rarity: "rare",
+        components: [
+          new Weapon({ fireCd: 0.08 }),
+          new Gun({ caliber: "rifle", magazine: 100 }),
+        ],
+      },
       // TODO: gear without an effect until the equipment pass
       {
         id: "tactical_headphones",

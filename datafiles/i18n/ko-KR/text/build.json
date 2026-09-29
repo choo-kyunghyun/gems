@@ -27,6 +27,7 @@
   "BUILD_TORCH": "조명등",
   "BUILD_LANTERN": "랜턴",
   "BUILD_TURRET": "터렛",
+  "BUILD_LIGHT_MACHINE_GUN": "경기관총",
   "BUILD_BED": "침대",
   "BUILD_COT": "간이 침대",
   "BUILD_TABLE": "탁자",

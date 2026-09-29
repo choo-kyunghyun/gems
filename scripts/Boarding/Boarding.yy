@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Boarding",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Boarding",
+  "parent":{
+    "name":"Mount",
+    "path":"folders/Game/Mount.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Boarding.js",
+}

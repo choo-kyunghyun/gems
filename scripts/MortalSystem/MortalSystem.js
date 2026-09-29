@@ -26,6 +26,7 @@ globalThis.MortalSystem = {
       const hp = entities.get(id, Health);
       if (hp === undefined || hp.hp > 0) continue;
       const m = entities.get(id, Mortal);
+      Ride.release(entities, id); // every outcome leaves the seat
       if (m.kind === "despawn") {
         Loot.spill(entities, id, SPILL);
         MortalSystem._killed(entities, id);

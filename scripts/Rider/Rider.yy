@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Rider",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Rider",
+  "parent":{
+    "name":"Mount",
+    "path":"folders/Core/Mount.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Rider.js",
+}

@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Armament",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Armament",
+  "parent":{
+    "name":"Mount",
+    "path":"folders/Game/Mount.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Armament.js",
+}

@@ -9,7 +9,8 @@
  * The action is data in the InteractAction registry, so this is generic dispatch, not a per-kind
  * switch. Activation is E; the mouse only chooses the target. build() returns the pick handle
  * holding the engine's whole per-frame state, which the scene hands back to every member. An open
- * station page closes when its target leaves reach.
+ * station page closes when its target leaves reach, and a riding player's one pick is what it
+ * rides, so E steps it off.
  */
 globalThis.Interactable = {
   RADIUS: 72, // px
@@ -112,6 +113,13 @@ globalThis.Interactable = {
     if (p === undefined) {
       pick.target = -1;
       pick.kind = "";
+      return;
+    }
+    const carrier = Ride.carrier(entities, scene.playerId);
+    if (carrier !== -1) {
+      const it = entities.get(carrier, Interaction);
+      pick.target = carrier;
+      pick.kind = it !== undefined ? it.kind : "";
       return;
     }
     const rSq = Interactable.RADIUS * Interactable.RADIUS;

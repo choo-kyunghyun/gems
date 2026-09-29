@@ -185,6 +185,25 @@ globalThis.contentInteractions = {
         },
       },
 
+      {
+        // a carrier: E takes its next free seat, and on board steps off
+        id: "mount",
+        prompt(ctx) {
+          if (Ride.carrier(ctx.entities, ctx.playerId) === ctx.id) return "MOUNT_LEAVE";
+          const role = Boarding.offer(ctx.entities, ctx.id);
+          if (role === "") return "MOUNT_FULL";
+          return role === "drive" ? "MOUNT_DRIVE" : role === "gun" ? "MOUNT_GUN" : "MOUNT_RIDE";
+        },
+        run(ctx) {
+          const level = ctx.scene.level;
+          const reason =
+            Ride.carrier(ctx.entities, ctx.playerId) === ctx.id
+              ? Boarding.leave(level, ctx.playerId)
+              : Boarding.board(level, ctx.playerId, ctx.id);
+          if (reason !== "") Toast.push(I18n.text(reason), { type: "info" });
+        },
+      },
+
       // survival stations act on the player; a satisfied need gets a "no effect" cue
       {
         id: "hydrate",

@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"VehicleSystem",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"VehicleSystem",
+  "parent":{
+    "name":"Mount",
+    "path":"folders/Game/Mount.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"VehicleSystem.js",
+}

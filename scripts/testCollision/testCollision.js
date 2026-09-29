@@ -116,6 +116,16 @@ Test.register(Test.CHECK, [
       s.add(ctx.corpse, BBox, { x: 0, y: 0, width: 16, height: 16 });
       s.add(ctx.corpse, Collision, { solid: false });
       s.add(ctx.corpse, Velocity, { x: 0, y: 0, z: 0 });
+      ctx.cart = s.create(); // unpushable: c, overlapping it by 8 px in x, takes the whole push
+      s.add(ctx.cart, Position, { x: 40, y: 200, z: 0 });
+      s.add(ctx.cart, BBox, { x: 0, y: 0, width: 16, height: 16 });
+      s.add(ctx.cart, Collision, { pushable: false });
+      s.add(ctx.cart, Velocity, { x: 0, y: 0, z: 0 });
+      ctx.c = s.create();
+      s.add(ctx.c, Position, { x: 48, y: 200, z: 0 });
+      s.add(ctx.c, BBox, { x: 0, y: 0, width: 16, height: 16 });
+      s.add(ctx.c, Collision, {});
+      s.add(ctx.c, Velocity, { x: 0, y: 0, z: 0 });
     },
     verify(ctx, t) {
       const s = ctx.entities;
@@ -130,6 +140,8 @@ Test.register(Test.CHECK, [
       t.near(pa.x, 36, 1e-6, "separation pushes a back half the overlap");
       t.near(pb.x, 52, 1e-6, "separation pushes b forward half the overlap");
       t.eq(s.get(ctx.corpse, Position).x, 40, "a solid-off body is not separated");
+      t.eq(s.get(ctx.cart, Position).x, 40, "an unpushable body is not separated");
+      t.near(s.get(ctx.c, Position).x, 56, 1e-6, "a body against an unpushable one takes the whole push");
     },
     teardown(ctx) {
       ctx.level.destroy();

@@ -262,6 +262,51 @@ globalThis.contentPresets = {
         },
       },
       {
+        // a crewed gun: its one seat, behind it, fires the Armament; its Health and faction make
+        // it a target for enemies
+        id: "light_machine_gun",
+        components: {
+          BBox: { x: -8, y: -8, width: 16, height: 16 }, // militaryTurret content 16×16 units
+          Collision: { solid: true, kinematic: true },
+          Health: { hp: 12 },
+          Stats: { maxHp: 12, maxStamina: 0, attack: 0, defense: 1, speed: 0 },
+          Faction: { id: "player" },
+          Name: { name: "Light Machine Gun" },
+          Mesh: { model: "militaryTurret" },
+          Mount: { seats: [{ x: 0, y: -18, role: "gun" }] },
+          Armament: { itemId: "light_machine_gun" },
+          Interaction: { kind: "mount" },
+        },
+      },
+      {
+        // a driven carrier whose riders sit out of sight; with no Health, it is cover, never a
+        // target. Each exit clears the box's side by a player's half-width.
+        id: "buggy",
+        components: {
+          BBox: { x: -28, y: -20, width: 56, height: 40 },
+          Collision: { solid: true, pushable: false },
+          Velocity: {},
+          Name: { name: "Buggy" },
+          Mesh: {
+            width: 56,
+            depth: 40,
+            height: 22,
+            topColor: Color.parse("#a08662"),
+            frontColor: Color.parse("#5a4e44"),
+          },
+          Mount: {
+            seats: [
+              { x: -12, y: -8, role: "drive", hidden: true, exit: { x: -42, y: -8 } },
+              { x: 12, y: -8, hidden: true, exit: { x: 42, y: -8 } },
+              { x: -12, y: 10, hidden: true, exit: { x: -42, y: 14 } },
+              { x: 12, y: 10, hidden: true, exit: { x: 42, y: 14 } },
+            ],
+          },
+          Vehicle: { speed: 340, accel: 520 },
+          Interaction: { kind: "mount" },
+        },
+      },
+      {
         // A solid trunk under a canopy that visually overhangs it, so the tree reads big while
         // bodies path around the trunk. The mature frame by default; a species makes it grow.
         id: "tree",

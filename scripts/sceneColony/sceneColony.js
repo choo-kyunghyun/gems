@@ -88,7 +88,7 @@ class _SceneColonyClass {
   }
 
   /**
-   * A new game's player kit and companion. Seeded in code, not the map file, so a
+   * A new game's player kit, companion and vehicle. Seeded in code, not the map file, so a
    * persistent-map reload can't duplicate them; a load restores their records instead.
    */
   _seed() {
@@ -103,6 +103,8 @@ class _SceneColonyClass {
     const pp = entities.require(this.playerId, Position);
     const companion = ColonySpawn.spawnFollower(entities, pp.x + c.x, pp.y + c.y, c.follower);
     Companions.hire(entities, this.playerId, companion);
+    const v = contentStart.VEHICLE;
+    EntityPreset.spawn(entities, v.preset, pp.x + v.x, pp.y + v.y);
   }
 
   /**
@@ -268,8 +270,11 @@ class _SceneColonyClass {
     PlayerSystem.update(this.level);
     StateSystem.update(this.level);
     PathfindingSystem.update(this.level);
+    VehicleSystem.update(this.level);
     SolidSystem.update(this.level);
     SeparationSystem.update(this.level);
+    // once the carriers have moved
+    RideSystem.update(this.level);
     ProjectileSystem.update(this.level);
     FuseSystem.update(this.level);
     LifetimeSystem.update(this.level);
