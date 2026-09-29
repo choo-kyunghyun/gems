@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Gunfire",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Gunfire",
+  "parent":{
+    "name":"Combat",
+    "path":"folders/Game/Combat.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Gunfire.js",
+}

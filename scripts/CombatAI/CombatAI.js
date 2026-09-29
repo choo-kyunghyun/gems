@@ -1,5 +1,3 @@
-// turret reach in seconds of bullet flight
-const SHOT_RANGE_SECS = 1.5;
 // world px a mobile actor may be knocked off its home before it walks back
 const HOME_SLACK = 16;
 // px/s for a mobile actor without Stats
@@ -21,7 +19,6 @@ globalThis.Brain = "Brain";
   attackRange: 30,
   cdMax: 0.75,
   cd: 0,
-  bulletSpeed: 0,
   pathCd: 0,
   pathRate: 0.2,
   aggroRate: 0.25,
@@ -35,13 +32,13 @@ globalThis.Brain = "Brain";
  * @property {{x:number,y:number}} home  point a mobile actor drifts back to when idle
  * @property {number} target      chased entity id (-1 = none)
  * @property {boolean} mobile     false = stationary
- * @property {boolean} ranged     true = hitscan shot; false = melee contact
+ * @property {boolean} ranged     true = fires the gun in its weapon slot, fed from its own
+ *                                Inventory; false = melee contact
  * @property {number} aggro       distance at which an idle actor acquires a hostile target
  * @property {number} deAggro     distance at which a chasing actor gives up
  * @property {number} attackRange distance at which it stops to attack
- * @property {number} cdMax       seconds between attacks
+ * @property {number} cdMax       seconds between attacks; a gun's own cadence overrides it
  * @property {number} cd          seconds
- * @property {number} bulletSpeed px/s, scaling the hitscan reach; 0 for melee
  * @property {number} pathCd      seconds
  * @property {number} pathRate    seconds between replans during a wall-blocked chase
  * @property {number} aggroRate   seconds between idle target scans
@@ -192,9 +189,12 @@ globalThis.CombatAI = {
           // read live off the component, never a cached local (docs/GMRT.md)
           if (brain.cd > 0) brain.cd -= Time.step;
           if (brain.cd <= 0) {
-            if (brain.ranged) CombatAI._fireAt(level, id, brain);
-            else CombatAI._hitTarget(entities, id);
-            brain.cd = brain.cdMax;
+            if (brain.ranged) {
+              brain.cd = CombatAI._fireAt(level, id, brain);
+            } else {
+              CombatAI._hitTarget(entities, id);
+              brain.cd = brain.cdMax;
+            }
           }
 
           if (CombatAI._distTo(entities, id) > brain.attackRange)
@@ -287,30 +287,30 @@ globalThis.CombatAI = {
     Combat.applyDamage(entities, t, CombatAI._attackPower(entities, id));
   },
 
-  /** A hitscan shot at the target; it stops at a wall or ally, so no LOS check is needed. */
+  /**
+   * The gun in the weapon slot, armed from the actor's own bag, at the target — the shot stops at
+   * a wall or an ally, so it needs no LOS check; with no gun or no round it holds fire. Returns
+   * the seconds until its next shot.
+   */
   _fireAt(level, id, brain) {
     const entities = level.entities;
-    const t = brain.target;
-    if (!entities.isValid(t)) return;
+    const slot = Loadout.arm(entities, id);
+    if (slot === null) return brain.cdMax;
+    const wpn = Loadout.composeWeapon(slot);
+    if (wpn === null || wpn.kind !== "gun") return brain.cdMax;
     const sp = entities.get(id, Position);
-    const tp = entities.get(t, Position);
-    const dx = tp.x - sp.x;
-    const dy = tp.y - sp.y;
-    const d = Math.sqrt(dx * dx + dy * dy) || 1;
-    const nx = dx / d;
-    const ny = dy / d;
-    const range = brain.bulletSpeed * SHOT_RANGE_SECS;
-    const shot = Combat.hitscan(
+    const tp = entities.get(brain.target, Position);
+    const fired = Gunfire.shoot(
       level,
-      sp.x,
-      sp.y,
-      sp.x + nx * range,
-      sp.y + ny * range,
-      {
-        owner: id,
-        damage: CombatAI._attackPower(entities, id),
-      },
+      id,
+      entities.require(id, Inventory),
+      slot,
+      wpn,
+      tp.x - sp.x,
+      tp.y - sp.y,
+      CombatAI._attackPower(entities, id),
     );
-    WorldOverlay.pushTracer(sp.x, sp.y, shot.x, shot.y);
+    if (fired === null || fired.fireCd === undefined) return brain.cdMax;
+    return fired.fireCd;
   },
 };

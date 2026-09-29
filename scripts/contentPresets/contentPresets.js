@@ -240,21 +240,25 @@ globalThis.contentPresets = {
         },
       },
       {
-        // an immovable player-faction actor with a stationary ranged brain; its Health and
-        // faction make it a target for enemies
+        // an immovable player-faction gunner: it fires the first gun its bag holds, fed from the
+        // same bag, and holds fire without one; its Health and faction make it a target for
+        // enemies
         id: "turret",
         components: {
           BBox: { x: -8, y: -8, width: 16, height: 16 }, // militaryTurret content 16×16 units
           Collision: { solid: true, kinematic: true },
           Health: { hp: 8 },
-          // shot damage is Stats.attack
+          // attack is added to each round's power
           Stats: { maxHp: 8, maxStamina: 0, attack: 2, defense: 0, speed: 0 },
           Faction: { id: "player" },
           Name: { name: "Turret" },
           Mesh: { model: "militaryTurret" },
+          Inventory: {},
+          Equipment: {},
+          Interaction: { kind: "turret" },
         },
         post(entities, id, ctx) {
-          // aggro range == fire range; an instant hitscan at the nearest hostile
+          // aggro range == fire range; cdMax paces only a gun that sets no cadence, and a dry retry
           CombatAI.attach(entities, id, {
             mobile: false,
             ranged: true,
@@ -262,7 +266,6 @@ globalThis.contentPresets = {
             deAggro: 220,
             attackRange: 220,
             cdMax: 0.5,
-            bulletSpeed: 380,
           });
         },
       },

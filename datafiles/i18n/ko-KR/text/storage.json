@@ -4,6 +4,7 @@
   "STORAGE_BOX": "상자",
   "STORAGE_PROMPT": "[E] 상자 열기",
   "STORAGE_CORPSE_PROMPT": "[E] 시체 뒤지기",
+  "STORAGE_TURRET_PROMPT": "[E] 터렛 장전",
   "STORAGE_HINT": "더블 클릭하여 이동 (묶음은 아래 수량만큼)",
   "STORAGE_TAKE_ALL": "모두 가져오기",
   "STORAGE_STORE_ALL": "모두 보관",

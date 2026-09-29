@@ -317,6 +317,7 @@
     {"id":{"name":"Grid","path":"scripts/Grid/Grid.yy",},},
     {"id":{"name":"Growth","path":"scripts/Growth/Growth.yy",},},
     {"id":{"name":"Gun","path":"scripts/Gun/Gun.yy",},},
+    {"id":{"name":"Gunfire","path":"scripts/Gunfire/Gunfire.yy",},},
     {"id":{"name":"Handle","path":"scripts/Handle/Handle.yy",},},
     {"id":{"name":"Health","path":"scripts/Health/Health.yy",},},
     {"id":{"name":"Heat","path":"scripts/Heat/Heat.yy",},},

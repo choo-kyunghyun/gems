@@ -230,8 +230,8 @@ globalThis.Build = {
 
   /**
    * Per frame: drop built entities destroyed in combat from the build record, freeing the cell
-   * and keeping a dead handle out of the save. No refund. Returns the destroyed item ids in a
-   * buffer reused by the next call.
+   * and keeping a dead handle out of the save. Their contents spill; no refund. Returns the
+   * destroyed item ids in a buffer reused by the next call.
    */
   reap(level) {
     const lost = Build._lost;
@@ -248,6 +248,7 @@ globalThis.Build = {
       }
       const hp = entities.get(e.ent, Health);
       if (hp !== undefined && hp.hp <= 0) {
+        Loot.spill(entities, e.ent);
         entities.remove(e.ent);
         delete builtEnts[k];
         lost[w++] = e.itemId;

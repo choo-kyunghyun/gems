@@ -92,6 +92,26 @@ globalThis.Loadout = {
     return n;
   },
 
+  /**
+   * Keeps a gun in the weapon slot of a wielder that never picks its own: a worn instance that
+   * left the bag comes off, and an empty slot takes the first gun the bag holds. Returns the live
+   * weapon slot, or null.
+   */
+  arm(entities, id) {
+    Loadout.reconcile(entities, id);
+    const held = Loadout.weaponSlot(entities, id);
+    if (held !== null) return held;
+    const inv = entities.require(id, Inventory);
+    for (let i = 0; i < inv.slots.length; i++) {
+      const s = inv.slots[i];
+      if (s.uid === undefined) continue;
+      const item = Item.get(s.itemId);
+      if (item === undefined || item.getComponent(Gun) === undefined) continue;
+      if (Loadout.equip(entities, id, s.uid) === "") break;
+    }
+    return Loadout.weaponSlot(entities, id);
+  },
+
   // gun kinetic power: velocity squared rewards speed.
   KIN_K: 0.75,
   KIN_REF: 1200, // scaled with ammo velocities so damage is scale-independent

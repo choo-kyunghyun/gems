@@ -4,6 +4,7 @@
   "STORAGE_BOX": "Chest",
   "STORAGE_PROMPT": "[E] Open chest",
   "STORAGE_CORPSE_PROMPT": "[E] Loot corpse",
+  "STORAGE_TURRET_PROMPT": "[E] Load turret",
   "STORAGE_HINT": "Double-click to transfer (a stack moves the amount below)",
   "STORAGE_TAKE_ALL": "Take All",
   "STORAGE_STORE_ALL": "Store All",

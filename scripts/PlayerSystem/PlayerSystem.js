@@ -1,6 +1,4 @@
 const SPRINT_MULT = 1.6;
-const BULLET_SPEED = 600; // px/s
-const SHOT_RANGE_SECS = 1.5; // hitscan reach, in seconds of bullet flight
 const FIRE_CD = 0.13; // s
 const ATTACK_ANIM = 0.3; // s — 3 frames @ 10fps
 const KICK_ANIM = 0.38; // s — 5 frames @ 13fps, fits the fist's cadence
@@ -10,7 +8,6 @@ const STICK_DEADZONE = 0.25; // drift guard
 
 const THROW_RANGE = 320; // px; the pad's fixed reach along the aim
 const THROW_CD = 0.5; // s
-const MUZZLE = 18; // px from the shooter's centre to its muzzle flash
 
 // A composed melee profile for the unarmed wielder, so unarmed never fires a free bullet.
 // Read-only, shared.
@@ -215,48 +212,13 @@ globalThis.PlayerSystem = {
   },
 
   /**
-   * Spends a round from `slot`, shot from `from`, the entity the gun stands on. An empty or
-   * unloaded gun auto-reloads from `inv`; a dry gun does not fire and sets no cooldown.
+   * Spends a round from `slot`, shot from `from`, the entity the gun stands on. A dry gun does not
+   * fire and sets no cooldown.
    */
   _fireGun(level, from, inv, pl, slot, wpn, dir, attack) {
-    const entities = level.entities;
-    if (wpn.noAmmo) {
-      // recompose so this shot uses the loaded round's stats
-      if (Loadout.reloadSlot(inv, slot) <= 0)
-        return PlayerSystem._dryClick();
-      wpn = Loadout.composeWeapon(slot);
-    }
-    if (slot.rounds <= 0) {
-      if (Loadout.reloadSlot(inv, slot) <= 0)
-        return PlayerSystem._dryClick();
-    }
-    if (slot.rounds <= 0) return PlayerSystem._dryClick();
-
-    const speed = wpn.velocity !== undefined ? wpn.velocity : BULLET_SPEED;
-    // the shot is instant, drawn as a fading tracer; velocity only scales its reach
-    const range = speed * SHOT_RANGE_SECS;
-    const pos = entities.get(from, Position);
-    const m = Math.sqrt(dir.x * dir.x + dir.y * dir.y) || 1;
-    const nx = dir.x / m;
-    const ny = dir.y / m;
-    const shot = Combat.hitscan(level, pos.x, pos.y, pos.x + nx * range, pos.y + ny * range, {
-      owner: from,
-      damage: Math.round(wpn.power) + attack,
-      penetration: wpn.penetration ?? 0,
-      pierce: 1,
-    });
-    WorldOverlay.pushTracer(pos.x, pos.y, shot.x, shot.y);
-    slot.rounds -= 1;
-
-    ParticleFx.burst({
-      asset: psMuzzle,
-      x: pos.x + nx * MUZZLE,
-      y: pos.y + ny * MUZZLE,
-      angle: point_direction(0, 0, nx, ny),
-    });
-    Audio.play({ sound: sndGunFire, position: { x: pos.x, y: pos.y } });
-
-    pl.fireCd = wpn.fireCd !== undefined ? wpn.fireCd : FIRE_CD;
+    const fired = Gunfire.shoot(level, from, inv, slot, wpn, dir.x, dir.y, attack);
+    if (fired === null) return PlayerSystem._dryClick();
+    pl.fireCd = fired.fireCd !== undefined ? fired.fireCd : FIRE_CD;
     pl.attackAnim = "attack"; // gun fire plays the punch thrust (reads as recoil), never the kick
     pl.attackCd = ATTACK_ANIM;
   },
