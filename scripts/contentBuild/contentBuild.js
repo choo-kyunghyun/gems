@@ -1,16 +1,17 @@
 /**
  * The colony's build catalog: pure data plus its lookups, no registration step.
  *
- * An item is a TILE (`layer` the tile layer it edits, `mat` a wall's per-cell material) or an
- * ENTITY, whose `spawn` fields lay over the build descriptor defaults (`orient` turns it to match
- * a N-S wall run). `cost` is wood per placement; `id` is persisted in saves, so it MUST be unique
- * across the catalog; `species` marks a crop whose ground gates the cell. A new buildable is an
- * entry here, never a code edit.
+ * The palette (`CATEGORIES`) is what build mode paints, paid per placement in wood (`cost`); the
+ * props (`PROPS`) are set down from the bag, one Placeable item per placement. An entry is a TILE
+ * (`layer` the tile layer it edits, `mat` a wall's per-cell material) or an ENTITY, whose `spawn`
+ * fields lay over the build descriptor defaults (`orient` turns it to match a N-S wall run). `id`
+ * is persisted in saves, so it MUST be unique across the catalog; `species` marks a crop whose
+ * ground gates the cell. A new buildable is an entry here, never a code edit.
  */
 globalThis.contentBuild = {
   CATEGORIES: [
     {
-      labelKey: "BUILD_CAT_TILES",
+      labelKey: "BUILD_CAT_WALLS",
       items: [
         {
           id: "wall",
@@ -53,6 +54,20 @@ globalThis.contentBuild = {
           kind: "tile",
           layer: "fence",
         },
+        // openable, auto-oriented at placement
+        {
+          id: "door",
+          labelKey: "BUILD_DOOR",
+          cost: 4,
+          kind: "entity",
+          spawn: { kind: "door" },
+          orient: true,
+        },
+      ],
+    },
+    {
+      labelKey: "BUILD_CAT_FLOORS",
+      items: [
         {
           id: "floor",
           labelKey: "BUILD_FLOOR",
@@ -87,255 +102,196 @@ globalThis.contentBuild = {
         },
       ],
     },
+  ],
+
+  PROPS: [
+    // solid props; colliders come from the model's footprint, no per-item wiring
     {
-      // solid props; colliders come from the model's footprint, no per-item wiring
-      labelKey: "BUILD_CAT_FURNITURE",
-      items: [
-        {
-          id: "crate",
-          labelKey: "BUILD_CRATE",
-          cost: 2,
-          kind: "entity",
-          spawn: { furn: "crate" },
-        },
-        {
-          id: "barrel",
-          labelKey: "BUILD_BARREL",
-          cost: 2,
-          kind: "entity",
-          spawn: { furn: "barrel" },
-        },
-        // openable, auto-oriented at placement
-        {
-          id: "door",
-          labelKey: "BUILD_DOOR",
-          cost: 4,
-          kind: "entity",
-          spawn: { kind: "door" },
-          orient: true,
-        },
-        {
-          id: "bed",
-          labelKey: "BUILD_BED",
-          cost: 6,
-          kind: "entity",
-          spawn: { kind: "bed", color: "#b06a4f" },
-        },
-        // a cheaper bed
-        {
-          id: "cot",
-          labelKey: "BUILD_COT",
-          cost: 4,
-          kind: "entity",
-          spawn: { kind: "bed", furn: "cot" },
-        },
-        {
-          id: "table",
-          labelKey: "BUILD_TABLE",
-          cost: 4,
-          kind: "entity",
-          spawn: { furn: "table" },
-        },
-        {
-          id: "table_coffee",
-          labelKey: "BUILD_TABLE_COFFEE",
-          cost: 3,
-          kind: "entity",
-          spawn: { furn: "table_coffee" },
-        },
-        {
-          id: "table_small",
-          labelKey: "BUILD_TABLE_SMALL",
-          cost: 3,
-          kind: "entity",
-          spawn: { furn: "table_small" },
-        },
-        {
-          id: "dresser",
-          labelKey: "BUILD_DRESSER",
-          cost: 5,
-          kind: "entity",
-          spawn: { furn: "dresser" },
-        },
-        {
-          id: "dresser_double",
-          labelKey: "BUILD_DRESSER_DOUBLE",
-          cost: 7,
-          kind: "entity",
-          spawn: { furn: "dresser_double" },
-        },
-        {
-          id: "stool",
-          labelKey: "BUILD_STOOL",
-          cost: 1,
-          kind: "entity",
-          spawn: { furn: "stool" },
-        },
-        {
-          id: "stool_round",
-          labelKey: "BUILD_STOOL_ROUND",
-          cost: 1,
-          kind: "entity",
-          spawn: { furn: "stool_round" },
-        },
-        {
-          id: "nightstand",
-          labelKey: "BUILD_NIGHTSTAND",
-          cost: 2,
-          kind: "entity",
-          spawn: { furn: "nightstand" },
-        },
-      ],
+      id: "crate",
+      labelKey: "BUILD_CRATE",
+      kind: "entity",
+      spawn: { furn: "crate" },
     },
     {
-      labelKey: "BUILD_CAT_LIGHTING",
-      items: [
-        {
-          id: "torch",
-          labelKey: "BUILD_TORCH",
-          cost: 3,
-          kind: "entity",
-          spawn: { preset: "torch", color: "#ff9a3c" },
-        },
-        // steadier, wider, whiter light than the torch
-        {
-          id: "lantern",
-          labelKey: "BUILD_LANTERN",
-          cost: 5,
-          kind: "entity",
-          spawn: { preset: "lantern" },
-        },
-      ],
+      id: "barrel",
+      labelKey: "BUILD_BARREL",
+      kind: "entity",
+      spawn: { furn: "barrel" },
     },
     {
-      labelKey: "BUILD_CAT_STATIONS",
-      items: [
-        {
-          id: "chest",
-          labelKey: "BUILD_CHEST",
-          cost: 5,
-          kind: "entity",
-          spawn: { preset: "chest" },
-        },
-        {
-          id: "workbench",
-          labelKey: "BUILD_WORKBENCH",
-          cost: 8,
-          kind: "entity",
-          spawn: { kind: "workbench", tags: ["basic"], color: "#6b8caa" },
-        },
-        {
-          id: "medical_bench",
-          labelKey: "BUILD_MEDICAL_BENCH",
-          cost: 8,
-          kind: "entity",
-          spawn: {
-            kind: "workbench",
-            tags: ["medical"],
-            title: "CRAFT_TITLE_MEDICAL",
-            color: "#6b8caa",
-          },
-        },
-        {
-          id: "cooking_bench",
-          labelKey: "BUILD_COOKING_BENCH",
-          cost: 8,
-          kind: "entity",
-          spawn: {
-            kind: "workbench",
-            tags: ["cooking"],
-            title: "CRAFT_TITLE_COOKING",
-            color: "#6b8caa",
-          },
-        },
-        {
-          id: "machining_bench",
-          labelKey: "BUILD_MACHINING_BENCH",
-          cost: 10,
-          kind: "entity",
-          spawn: {
-            kind: "workbench",
-            tags: ["machining"],
-            title: "CRAFT_TITLE_MACHINING",
-            color: "#6b8caa",
-          },
-        },
-        {
-          id: "mod_bench",
-          labelKey: "BUILD_MOD_BENCH",
-          cost: 10,
-          kind: "entity",
-          spawn: { kind: "modbench", color: "#6b8caa" },
-        },
-      ],
+      id: "bed",
+      labelKey: "BUILD_BED",
+      kind: "entity",
+      spawn: { kind: "bed", color: "#b06a4f" },
     },
     {
-      labelKey: "BUILD_CAT_DEFENSE",
-      items: [
-        {
-          id: "turret",
-          labelKey: "BUILD_TURRET",
-          cost: 10,
-          kind: "entity",
-          spawn: { preset: "turret" },
-        },
-        {
-          id: "light_machine_gun",
-          labelKey: "BUILD_LIGHT_MACHINE_GUN",
-          cost: 15,
-          kind: "entity",
-          spawn: { preset: "light_machine_gun" },
-        },
-      ],
+      id: "cot",
+      labelKey: "BUILD_COT",
+      kind: "entity",
+      spawn: { kind: "bed", furn: "cot" },
     },
     {
-      // props whose Interaction acts on the player
-      labelKey: "BUILD_CAT_SURVIVAL",
-      items: [
-        {
-          id: "watertank",
-          labelKey: "BUILD_WATERTANK",
-          cost: 4,
-          kind: "entity",
-          spawn: { kind: "hydrate" },
-        },
-        {
-          id: "rationbox",
-          labelKey: "BUILD_RATIONBOX",
-          cost: 4,
-          kind: "entity",
-          spawn: { kind: "feed" },
-        },
-        {
-          id: "shrine",
-          labelKey: "BUILD_SHRINE",
-          cost: 12,
-          kind: "entity",
-          spawn: { kind: "buff" },
-        },
-      ],
+      id: "table",
+      labelKey: "BUILD_TABLE",
+      kind: "entity",
+      spawn: { furn: "table" },
     },
     {
-      // crops, put down as a seedling
-      labelKey: "BUILD_CAT_FARMING",
-      items: [
-        {
-          id: "wheat",
-          labelKey: "BUILD_WHEAT",
-          cost: 1,
-          kind: "entity",
-          species: "wheat",
-          spawn: { preset: "plant", species: "wheat", progress: 0 },
-        },
-        {
-          id: "berry_bush",
-          labelKey: "BUILD_BERRY_BUSH",
-          cost: 2,
-          kind: "entity",
-          species: "berry_bush",
-          spawn: { preset: "plant", species: "berry_bush", progress: 0 },
-        },
-      ],
+      id: "table_coffee",
+      labelKey: "BUILD_TABLE_COFFEE",
+      kind: "entity",
+      spawn: { furn: "table_coffee" },
+    },
+    {
+      id: "table_small",
+      labelKey: "BUILD_TABLE_SMALL",
+      kind: "entity",
+      spawn: { furn: "table_small" },
+    },
+    {
+      id: "dresser",
+      labelKey: "BUILD_DRESSER",
+      kind: "entity",
+      spawn: { furn: "dresser" },
+    },
+    {
+      id: "dresser_double",
+      labelKey: "BUILD_DRESSER_DOUBLE",
+      kind: "entity",
+      spawn: { furn: "dresser_double" },
+    },
+    {
+      id: "stool",
+      labelKey: "BUILD_STOOL",
+      kind: "entity",
+      spawn: { furn: "stool" },
+    },
+    {
+      id: "stool_round",
+      labelKey: "BUILD_STOOL_ROUND",
+      kind: "entity",
+      spawn: { furn: "stool_round" },
+    },
+    {
+      id: "nightstand",
+      labelKey: "BUILD_NIGHTSTAND",
+      kind: "entity",
+      spawn: { furn: "nightstand" },
+    },
+
+    {
+      id: "torch",
+      labelKey: "BUILD_TORCH",
+      kind: "entity",
+      spawn: { preset: "torch", color: "#ff9a3c" },
+    },
+    // steadier, wider, whiter light than the torch
+    {
+      id: "lantern",
+      labelKey: "BUILD_LANTERN",
+      kind: "entity",
+      spawn: { preset: "lantern" },
+    },
+
+    {
+      id: "chest",
+      labelKey: "BUILD_CHEST",
+      kind: "entity",
+      spawn: { preset: "chest" },
+    },
+    {
+      id: "workbench",
+      labelKey: "BUILD_WORKBENCH",
+      kind: "entity",
+      spawn: { kind: "workbench", tags: ["basic"], color: "#6b8caa" },
+    },
+    {
+      id: "medical_bench",
+      labelKey: "BUILD_MEDICAL_BENCH",
+      kind: "entity",
+      spawn: {
+        kind: "workbench",
+        tags: ["medical"],
+        title: "CRAFT_TITLE_MEDICAL",
+        color: "#6b8caa",
+      },
+    },
+    {
+      id: "cooking_bench",
+      labelKey: "BUILD_COOKING_BENCH",
+      kind: "entity",
+      spawn: {
+        kind: "workbench",
+        tags: ["cooking"],
+        title: "CRAFT_TITLE_COOKING",
+        color: "#6b8caa",
+      },
+    },
+    {
+      id: "machining_bench",
+      labelKey: "BUILD_MACHINING_BENCH",
+      kind: "entity",
+      spawn: {
+        kind: "workbench",
+        tags: ["machining"],
+        title: "CRAFT_TITLE_MACHINING",
+        color: "#6b8caa",
+      },
+    },
+    {
+      id: "mod_bench",
+      labelKey: "BUILD_MOD_BENCH",
+      kind: "entity",
+      spawn: { kind: "modbench", color: "#6b8caa" },
+    },
+
+    {
+      id: "turret",
+      labelKey: "BUILD_TURRET",
+      kind: "entity",
+      spawn: { preset: "turret" },
+    },
+    {
+      id: "light_machine_gun",
+      labelKey: "BUILD_LIGHT_MACHINE_GUN",
+      kind: "entity",
+      spawn: { preset: "light_machine_gun" },
+    },
+
+    // props whose Interaction acts on the player
+    {
+      id: "watertank",
+      labelKey: "BUILD_WATERTANK",
+      kind: "entity",
+      spawn: { kind: "hydrate" },
+    },
+    {
+      id: "rationbox",
+      labelKey: "BUILD_RATIONBOX",
+      kind: "entity",
+      spawn: { kind: "feed" },
+    },
+    {
+      id: "shrine",
+      labelKey: "BUILD_SHRINE",
+      kind: "entity",
+      spawn: { kind: "buff" },
+    },
+
+    // crops, put down as a seedling
+    {
+      id: "wheat",
+      labelKey: "BUILD_WHEAT",
+      kind: "entity",
+      species: "wheat",
+      spawn: { preset: "plant", species: "wheat", progress: 0 },
+    },
+    {
+      id: "berry_bush",
+      labelKey: "BUILD_BERRY_BUSH",
+      kind: "entity",
+      species: "berry_bush",
+      spawn: { preset: "plant", species: "berry_bush", progress: 0 },
     },
   ],
 
@@ -345,6 +301,8 @@ globalThis.contentBuild = {
       for (let i = 0; i < items.length; i++)
         if (items[i].id === id) return items[i];
     }
+    const props = contentBuild.PROPS;
+    for (let i = 0; i < props.length; i++) if (props[i].id === id) return props[i];
     return undefined;
   },
 

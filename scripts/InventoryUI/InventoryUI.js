@@ -932,6 +932,8 @@ globalThis.InventoryUI = {
       return page.sel.worn ? I18n.text("INV_UNEQUIP") : I18n.text("INV_EQUIP");
     if (it !== undefined && it.hasComponent(Consumable))
       return I18n.text("INV_USE");
+    if (it !== undefined && it.hasComponent(Placeable))
+      return I18n.text("INV_PLACE");
     return I18n.text("INV_NOACTION");
   },
 

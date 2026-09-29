@@ -1,9 +1,10 @@
 /**
- * Player construction on a level: placing and deconstructing catalog items, their cost in the
- * build resource, and founding a settlement over a map. A level builds when its Settlement's owner
- * is FACTION or an ally; an unsettled level is founded through claim(). Every paid verb takes the
- * level and the acting body, whose Inventory pays and is refunded, and a refusal comes back as an
- * i18n key for the caller to show.
+ * Player construction on a level: placing and deconstructing catalog items — a palette entry paid
+ * in the build resource, a prop paid with the Placeable item it is set down from — and founding a
+ * settlement over a map. A level builds when its Settlement's owner is FACTION or an ally; an
+ * unsettled level is founded through claim(). Every paid verb takes the level and the acting body,
+ * whose Inventory pays and is refunded, and a refusal comes back as an i18n key for the caller to
+ * show.
  *
  * The build record under KEY — the player-built tiles and entities by "gx,gy", the
  * deconstructable set — is seeded blank on first use and saved with the level.
@@ -53,7 +54,7 @@ globalThis.Build = {
     return true;
   },
 
-  /** fits plus the cost of one placement. */
+  /** fits plus the cost of one palette placement. */
   canPlace(level, actorId, item, gx, gy) {
     if (!Build.fits(level, actorId, item, gx, gy)) return false;
     if (Build.free) return true;
@@ -85,8 +86,27 @@ globalThis.Build = {
   },
 
   /**
-   * Deconstruct what the player built on each `[gx, gy]` cell, refunding the actor. Returns the
-   * number of cells cleared.
+   * Set one `itemId` from the actor's bag down at (gx, gy) as its Placeable's catalog entry,
+   * spending the unit. "" when placed, else the refusal's i18n key.
+   */
+  install(level, actorId, itemId, gx, gy) {
+    const it = Item.get(itemId);
+    const pc = it !== undefined ? it.getComponent(Placeable) : undefined;
+    if (pc === undefined) return "INV_NOT_USABLE";
+    const entry = contentBuild.item(pc.build);
+    if (!Build.fits(level, actorId, entry, gx, gy)) return "BUILD_BLOCKED";
+    if (!Build.free) {
+      const inv = level.entities.require(actorId, Inventory);
+      if (Bag.remove(inv, itemId, 1) < 1) return "INV_NOT_OWNED";
+    }
+    Build.put(level, gx, gy, entry);
+    Log.info(`installed ${itemId} at ${gx},${gy}`);
+    return "";
+  },
+
+  /**
+   * Deconstruct what the player built on each `[gx, gy]` cell, refunding the actor; a refund the
+   * bag can't hold drops on the cell. Returns the number of cells cleared.
    */
   remove(level, actorId, cells) {
     let n = 0;
@@ -163,7 +183,7 @@ globalThis.Build = {
         Loot.spill(entities, ent.ent);
         entities.remove(ent.ent);
       }
-      Build._refund(entities, actorId, ent.itemId);
+      Build._refund(level, actorId, ent.itemId, gx, gy);
       delete rec.builtEnts[key];
       Log.info(`removed ${ent.itemId} at ${gx},${gy}`);
       return true;
@@ -173,17 +193,39 @@ globalThis.Build = {
     const item = contentBuild.item(tileId);
     const lkey = item !== undefined ? item.layer : "floor"; // a stale id clears the floor
     ColonyMap.runtime(level)[lkey + "Layer"].clear(gx, gy);
-    Build._refund(entities, actorId, tileId);
+    Build._refund(level, actorId, tileId, gx, gy);
     delete rec.built[key];
     Log.info(`removed ${tileId} at ${gx},${gy}`);
     return true;
   },
 
-  _refund(entities, actorId, itemId) {
+  /** A prop returns the item it is set down from, a palette entry its cost. */
+  _refund(level, actorId, buildId, gx, gy) {
     if (Build.free) return; // nothing was paid
-    const item = contentBuild.item(itemId);
-    if (item !== undefined)
-      Bag.add(entities.require(actorId, Inventory), Build.RESOURCE, item.cost);
+    let itemId = Build._source(buildId);
+    let qty = 1;
+    if (itemId === undefined) {
+      const item = contentBuild.item(buildId);
+      if (item === undefined || item.cost === undefined) return;
+      itemId = Build.RESOURCE;
+      qty = item.cost;
+    }
+    const entities = level.entities;
+    const left = Bag.add(entities.require(actorId, Inventory), itemId, qty);
+    if (left > 0) {
+      const wp = level.grid.gridToWorld(gx, gy);
+      Loot.drop(entities, itemId, left, wp.x, wp.y);
+    }
+  },
+
+  /** The Placeable item that sets `buildId` down, or undefined for a palette entry. */
+  _source(buildId) {
+    const all = Item.all();
+    for (let i = 0; i < all.length; i++) {
+      const pc = all[i].getComponent(Placeable);
+      if (pc !== undefined && pc.build === buildId) return all[i].id;
+    }
+    return undefined;
   },
 
   /**

@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Placeable",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Placeable",
+  "parent":{
+    "name":"Component",
+    "path":"folders/Game/Item/Component.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Placeable.js",
+}

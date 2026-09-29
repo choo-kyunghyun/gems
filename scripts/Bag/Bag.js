@@ -288,6 +288,12 @@ globalThis.Bag = {
       test: (it) => it.hasComponent(Consumable),
     },
     {
+      code: "furniture",
+      key: "INV_CAT_FURNITURE",
+      icon: pixIconWrench,
+      test: (it) => it.hasComponent(Placeable),
+    },
+    {
       code: "material",
       key: "INV_CAT_MATERIAL",
       icon: pixIconGear,

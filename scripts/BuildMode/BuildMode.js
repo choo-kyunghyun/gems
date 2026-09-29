@@ -3,6 +3,9 @@
  * cell it spans over as ONE build; an entity item is always single-cell. A drag pressed on the
  * grid stays the grid's until its release, wherever the cursor goes.
  *
+ * A Placeable item used from the bag is HELD: build mode opens on it, over any window, with the
+ * palette put away, and each click sets one unit down until the bag runs out of it.
+ *
  * build() returns the panel handle holding the mode's whole state. `active` (armed AND the build
  * context owning input) is the flag anything gating on build mode reads; update() recomputes it
  * each frame, before any draw.
@@ -30,9 +33,12 @@ globalThis.BuildMode = {
       armed: false,
       active: false, // see the header
       item: contentBuild.CATEGORIES[0].items[0],
+      held: "", // the Placeable item id in hand; "" = the palette's item
+      prop: undefined, // the held item's catalog entry
       shape: "cell", // SHAPES id
       drag: undefined, // { x, y, remove } — the anchor cell while a shape drag is held
       cell: undefined, // last hovered cell
+      shapeRow: null,
     };
 
     // Placement reads the build actions, which Input mutes while the HUD holds the pointer, so a
@@ -73,6 +79,7 @@ globalThis.BuildMode = {
       );
     }
     col.insertChild(shapeRow);
+    panel.shapeRow = shapeRow;
 
     const statusRow = new UIElement({ width: "100%", height: 22 });
     statusRow.insertChild(
@@ -93,6 +100,7 @@ globalThis.BuildMode = {
           label: () => I18n.text(it.labelKey) + "  (" + it.cost + ")",
           onSelect: () => {
             panel.item = it;
+            panel.held = "";
           },
         });
       }
@@ -111,6 +119,14 @@ globalThis.BuildMode = {
 
   _statusText(scene, panel) {
     const inv = scene.level.entities.require(scene.playerId, Inventory);
+    if (panel.held !== "") {
+      const held = I18n.text(
+        "BUILD_STATUS_HELD",
+        I18n.text(Item.get(panel.held).name),
+        Bag.count(inv, panel.held),
+      );
+      return Build.free ? I18n.text("BUILD_FREE") + "   ·   " + held : held;
+    }
     const wood = Bag.count(inv, Build.RESOURCE);
     const it = panel.item;
     const text = I18n.text(
@@ -145,6 +161,20 @@ globalThis.BuildMode = {
       else if (Build.free || Build.allied(scene.level)) panel.armed = true;
       else Toast.push(I18n.text("BUILD_NEED_SETTLEMENT"), { type: "info" });
     }
+    const pl = scene.level.entities.require(scene.playerId, Playable);
+    if (pl.place !== "") {
+      BuildMode._hold(scene, panel, pl.place);
+      pl.place = "";
+    }
+    // the last unit set down, or gone from the bag, hands the grid back
+    if (panel.held !== "" && !Build.free) {
+      const inv = scene.level.entities.require(scene.playerId, Inventory);
+      if (!Bag.has(inv, panel.held, 1)) panel.armed = false;
+    }
+    if (!panel.armed) panel.held = "";
+    const bare = panel.held === "";
+    panel.shapeRow.enabled = bare;
+    panel.bar.enabled = bare;
     // a higher-priority input context (an open window) pauses building
     const on = panel.armed && InputContext.is("build");
     panel.active = on;
@@ -194,6 +224,20 @@ globalThis.BuildMode = {
     else BuildMode._place(scene, panel, cells);
   },
 
+  /** Take up a bag item to set down, where building is allowed. */
+  _hold(scene, panel, itemId) {
+    if (!Build.free && !Build.allied(scene.level)) {
+      Toast.push(I18n.text("BUILD_NEED_SETTLEMENT"), { type: "info" });
+      return;
+    }
+    panel.held = itemId;
+    panel.prop = contentBuild.item(Item.get(itemId).getComponent(Placeable).build);
+    panel.armed = true;
+    panel.drag = undefined;
+    panel.bar.catbar.close();
+    if (scene.window.isOpen()) scene.window.close();
+  },
+
   /** The grid owns its press, so this reads true over the HUD too. */
   _dragHeld(drag) {
     return drag.remove
@@ -203,6 +247,7 @@ globalThis.BuildMode = {
 
   /** An entity item never tiles a shape. */
   _single(panel) {
+    if (panel.held !== "") return true;
     const shape = panel.shape;
     if (shape === "cell") return true;
     if (shape === "capture") return false;
@@ -251,8 +296,20 @@ globalThis.BuildMode = {
     return out;
   },
 
-  /** One build over the cells, its refusal shown. */
+  /** One build over the cells, or the held item on the first, its refusal shown. */
   _place(scene, panel, cells) {
+    if (panel.held !== "") {
+      const why = Build.install(
+        scene.level,
+        scene.playerId,
+        panel.held,
+        cells[0][0],
+        cells[0][1],
+      );
+      if (why !== "") Toast.push(I18n.text(why), { type: "warn" });
+      else scene.window.dirty = true;
+      return;
+    }
     const r = Build.place(scene.level, scene.playerId, panel.item, cells);
     if (r.reason !== "")
       Toast.push(I18n.text(r.reason, r.cost), { type: "warn" });
@@ -342,10 +399,13 @@ globalThis.BuildMode = {
     const rec = Build.of(scene.level);
     if (rec.built[key] !== undefined || rec.builtEnts[key] !== undefined)
       col = c_yellow;
-    else
-      col = Build.canPlace(scene.level, scene.playerId, panel.item, cell.x, cell.y)
-        ? c_lime
-        : c_red;
+    else {
+      const ok =
+        panel.held !== ""
+          ? Build.fits(scene.level, scene.playerId, panel.prop, cell.x, cell.y)
+          : Build.canPlace(scene.level, scene.playerId, panel.item, cell.x, cell.y);
+      col = ok ? c_lime : c_red;
+    }
 
     draw_set_color(col);
     draw_set_alpha(0.3);

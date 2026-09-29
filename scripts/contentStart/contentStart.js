@@ -12,6 +12,8 @@ globalThis.contentStart = {
     { itemId: "iron_pipe", qty: 1, equip: true },
     { itemId: "bandage", qty: 3 },
     { itemId: "water_bottle", qty: 1 },
+    { itemId: "workbench", qty: 1 }, // the bench every other set-down item is made at
+    { itemId: "wheat_seed", qty: 4 },
     { itemId: "coin", qty: 1000 }, // carried across maps with the inventory
   ],
 

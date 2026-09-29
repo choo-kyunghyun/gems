@@ -10,6 +10,7 @@
  *                   covers, not the ground cursor
  * @property {number} cursorY
  * @property {string} toss     the Throwable item id the next ready frame throws; "" = none
+ * @property {string} place    the Placeable item id build mode takes up next; "" = none
  */
 globalThis.Playable = "Playable";
 // any script may load first (docs/GMRT.md)
@@ -20,4 +21,5 @@ globalThis.Playable = "Playable";
   cursorX: 0,
   cursorY: 0,
   toss: "",
+  place: "",
 };

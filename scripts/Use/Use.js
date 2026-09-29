@@ -1,7 +1,7 @@
 /**
  * Using an item from a body's bag, the one rule every use gesture shares: gear toggles on its
- * wearer, a consumable spends one unit, a throwable readies the player's next throw, anything else
- * is refused. A refusal is stated, never folded into false: "" when used, else the i18n key of why.
+ * wearer, a consumable spends one unit, a throwable readies the player's next throw, a placeable
+ * readies the player's next placement, anything else is refused. A refusal is stated, never folded into false: "" when used, else the i18n key of why.
  */
 globalThis.Use = {
   /** Gear given no `uid` resolves to its worn instance, else to the first one owned. */
@@ -30,6 +30,14 @@ globalThis.Use = {
       if (!Bag.has(entities.require(id, Inventory), itemId, 1))
         return "INV_NOT_OWNED";
       pl.toss = itemId;
+      return "";
+    }
+    if (item.hasComponent(Placeable)) {
+      const pl = entities.get(id, Playable);
+      if (pl === undefined) return "INV_NOT_USABLE";
+      if (!Bag.has(entities.require(id, Inventory), itemId, 1))
+        return "INV_NOT_OWNED";
+      pl.place = itemId;
       return "";
     }
     return "INV_NOT_USABLE";
