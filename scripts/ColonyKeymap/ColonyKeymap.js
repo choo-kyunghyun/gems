@@ -36,6 +36,7 @@ globalThis.ColonyKeymap = {
     Input.get("inventory").bindButton(GP, gp_face4); // Y
     Input.get("interact").bindButton(GP, gp_face1); // A
     Input.get("build").bindButton(GP, gp_face3); // X
+    Input.get("reload").bindButton(GP, gp_stickr); // R3
     Input.register(
       "moveX",
       new InputAction()
