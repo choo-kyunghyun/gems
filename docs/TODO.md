@@ -20,5 +20,3 @@
 - World map — a trip costs in-game hours but no survival needs; a site's extraction point is its arrival beacon (a separate extraction site is the extraction-shooter tension knob); site codenames from word pools (WORLD_KO) instead of fixed i18n names
 - Killfeed UI
 - Blueprint UI — stamp a captured or registered plan (`Blueprint.stamp`) for its wood
-- Markers in the DEV capture — `entry`/`reach` placed in-game instead of hand-added to the exported literal
-- A `DEV_MODE` section timer around `sceneColony.update`'s phases, logging the colony frame profile (sim, renderer, GUI) as a `[BENCH]` line in place of the hand probe
