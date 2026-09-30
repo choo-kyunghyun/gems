@@ -411,9 +411,14 @@ class _SceneColonyClass {
   /**
    * One E press pages an open dialogue, else closes a page standing over a target, else activates
    * the frame's pick, so E only acts on what is highlighted. The bag stands over nothing, so E
-   * under it opens the pick's page in its place. Interact is muted in build mode.
+   * under it opens the pick's page in its place. Interact is muted in build mode. F runs the
+   * pick's secondary action in play, and in build mode leaves it.
    */
   _dispatchInteract() {
+    if (Input.get("interactAlt").pressed()) {
+      if (this.build.armed) this.build.armed = false;
+      else Interactable.activateAlt(this, this.interact);
+    }
     if (!Input.get("interact").pressed()) return;
     if (Dialogue.isOpen(this.dialogue)) DialogueUI.advance(this.dialogueView);
     else if (this.window.target !== -1) this.window.close();

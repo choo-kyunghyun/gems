@@ -7,8 +7,8 @@
   "INPUT_FIRE": "Attack",
   "INPUT_RELOAD": "Reload",
   "INPUT_INTERACT": "Interact",
+  "INPUT_INTERACT_ALT": "Secondary Interact",
   "INPUT_INVENTORY": "Bag",
-  "INPUT_BUILD": "Build",
   "INPUT_HOTBAR": "Hotbar {0}",
 
   "HINT_MOVE": "Move",
@@ -18,7 +18,6 @@
   "HINT_HOTBAR": "Hotbar",
   "HINT_TALK": "Talk",
   "HINT_NEXT": "Next",
-  "HINT_BUILD": "Build",
   "HINT_COMPANION": "Companion",
   "HINT_PLACE": "Place",
   "HINT_REMOVE": "Remove",

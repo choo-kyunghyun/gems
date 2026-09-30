@@ -10,8 +10,10 @@
  * context owning input) is the flag anything gating on build mode reads; update() recomputes it
  * each frame, before any draw.
  *
- * DEV: F6 toggles free build and adds a `capture` shape that writes the dragged rect out as a
- * prefab literal.
+ * Build mode closes wherever building is no longer allowed.
+ *
+ * DEV: F6 toggles free build, which opens build mode anywhere, and adds a `capture` shape that
+ * writes the dragged rect out as a prefab literal.
  *
  * Scene contract: level, playerId, ui, window, mouseWorld.
  */
@@ -150,17 +152,13 @@ globalThis.BuildMode = {
   update(scene, panel) {
     if (DEV_MODE && Input.keyPressed(vk_f6)) {
       Build.free = !Build.free;
+      if (Build.free) BuildMode.arm(scene, panel);
       Toast.push(
         I18n.text(Build.free ? "BUILD_FREE_ON" : "BUILD_FREE_OFF"),
         { type: "info" },
       );
     }
-    // opens only where building is allowed or under free build; closing is free
-    if (Input.get("build").pressed()) {
-      if (panel.armed) panel.armed = false;
-      else if (Build.free || Build.allied(scene.level)) panel.armed = true;
-      else Toast.push(I18n.text("BUILD_NEED_SETTLEMENT"), { type: "info" });
-    }
+    if (!BuildMode._allowed(scene)) panel.armed = false;
     const pl = scene.level.entities.require(scene.playerId, Playable);
     if (pl.place !== "") {
       BuildMode._hold(scene, panel, pl.place);
@@ -224,9 +222,24 @@ globalThis.BuildMode = {
     else BuildMode._place(scene, panel, cells);
   },
 
+  /** Open build mode on the palette, where building is allowed. */
+  arm(scene, panel) {
+    if (!BuildMode._allowed(scene)) {
+      Toast.push(I18n.text("BUILD_NEED_SETTLEMENT"), { type: "info" });
+      return;
+    }
+    panel.armed = true;
+    panel.held = "";
+    panel.drag = undefined;
+  },
+
+  _allowed(scene) {
+    return Build.free || Build.allied(scene.level);
+  },
+
   /** Take up a bag item to set down, where building is allowed. */
   _hold(scene, panel, itemId) {
-    if (!Build.free && !Build.allied(scene.level)) {
+    if (!BuildMode._allowed(scene)) {
       Toast.push(I18n.text("BUILD_NEED_SETTLEMENT"), { type: "info" });
       return;
     }

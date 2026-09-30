@@ -6,7 +6,8 @@ globalThis.ColonyKeymap = {
   /**
    * Idempotent. Context tags split actions sharing a key — fire and the build brush share the
    * mouse buttons — and mute play actions while building, in a window or in a dialogue, so no
-   * action needs a per-frame mode check. Interact alone stays live in a dialogue, which it pages.
+   * action needs a per-frame mode check. Interact alone stays live in a dialogue, which it pages,
+   * and its secondary alone in build mode, which it leaves.
    */
   bind() {
     const ANYWHERE = ["play", "build", "window"];
@@ -21,7 +22,7 @@ globalThis.ColonyKeymap = {
       buildRemove: [INPUT_SOURCE.MOUSE, mb_right, ["build"]],
       inventory: [INPUT_SOURCE.KEYBOARD, ord("I"), ANYWHERE],
       interact: [INPUT_SOURCE.KEYBOARD, ord("E"), ["play", "window", "dialogue"]],
-      build: [INPUT_SOURCE.KEYBOARD, ord("B"), ["play", "build"]],
+      interactAlt: [INPUT_SOURCE.KEYBOARD, ord("F"), ["play", "build"]],
       reload: [INPUT_SOURCE.KEYBOARD, ord("R"), ["play"]],
     });
 
@@ -35,7 +36,7 @@ globalThis.ColonyKeymap = {
     Input.get("fire").bindButton(GP, gp_shoulderrb); // RT
     Input.get("inventory").bindButton(GP, gp_face4); // Y
     Input.get("interact").bindButton(GP, gp_face1); // A
-    Input.get("build").bindButton(GP, gp_face3); // X
+    Input.get("interactAlt").bindButton(GP, gp_face3); // X
     Input.get("reload").bindButton(GP, gp_stickr); // R3
     Input.register(
       "moveX",
@@ -96,8 +97,8 @@ globalThis.ColonyKeymap = {
       ["fire", "INPUT_FIRE"],
       ["reload", "INPUT_RELOAD"],
       ["interact", "INPUT_INTERACT"],
+      ["interactAlt", "INPUT_INTERACT_ALT"],
       ["inventory", "INPUT_INVENTORY"],
-      ["build", "INPUT_BUILD"],
     ].map((r) => ({ action: r[0], label: I18n.textRef(r[1]) }));
     for (let i = 0; i < HOTBAR_SIZE; i++)
       rows.push({

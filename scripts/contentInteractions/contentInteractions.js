@@ -161,7 +161,8 @@ globalThis.contentInteractions = {
         },
       },
       {
-        // the settlement's centre: its management page, only on a settlement the player's side holds
+        // the settlement's centre: its management page, and build mode on its secondary, only on a
+        // settlement the player's side holds
         id: "settlement",
         prompt(ctx) {
           return Build.allied(ctx.scene.level) ? "SETTLEMENT_MANAGE_PROMPT" : "";
@@ -169,6 +170,14 @@ globalThis.contentInteractions = {
         run(ctx) {
           if (Build.allied(ctx.scene.level))
             ctx.scene.window.open("settlement", { target: ctx.id });
+        },
+        alt: {
+          prompt(ctx) {
+            return Build.allied(ctx.scene.level) ? "SETTLEMENT_BUILD_PROMPT" : "";
+          },
+          run(ctx) {
+            if (Build.allied(ctx.scene.level)) BuildMode.arm(ctx.scene, ctx.scene.build);
+          },
         },
       },
       {

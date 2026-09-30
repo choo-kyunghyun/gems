@@ -67,5 +67,6 @@
   "SETTLEMENT_HUB_NAME": "식민지 전초기지",
   "SETTLEMENT_FOUNDED": "정착지를 건설했습니다",
   "SETTLEMENT_MANAGE_PROMPT": "[E] 정착지 관리",
+  "SETTLEMENT_BUILD_PROMPT": "[F] 건설 모드",
   "SETTLEMENT_TITLE": "정착지"
 }

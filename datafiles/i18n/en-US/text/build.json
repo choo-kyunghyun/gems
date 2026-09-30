@@ -67,5 +67,6 @@
   "SETTLEMENT_HUB_NAME": "Colony Outpost",
   "SETTLEMENT_FOUNDED": "Settlement founded",
   "SETTLEMENT_MANAGE_PROMPT": "[E] Manage settlement",
+  "SETTLEMENT_BUILD_PROMPT": "[F] Build mode",
   "SETTLEMENT_TITLE": "Settlement"
 }

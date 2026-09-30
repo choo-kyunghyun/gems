@@ -7,10 +7,11 @@
  * two picks, what is highlighted and what E does can disagree.
  *
  * The action is data in the InteractAction registry, so this is generic dispatch, not a per-kind
- * switch. Activation is E; the mouse only chooses the target. build() returns the pick handle
- * holding the engine's whole per-frame state, which the scene hands back to every member. An open
- * station page closes when its target leaves reach, and a riding player's one pick is what it
- * rides, so E steps it off.
+ * switch. Activation is E, or F for the def's secondary action; the mouse only chooses the target.
+ * build() returns the pick handle
+ * holding the engine's whole per-frame state, which the scene hands back to every member. An
+ * open station page closes when its target leaves reach, and a riding player's one pick is what
+ * it rides, so E steps it off.
  */
 globalThis.Interactable = {
   RADIUS: 72, // px
@@ -22,6 +23,8 @@ globalThis.Interactable = {
       target: -1,
       kind: "",
       text: "", // "" = no pill
+      altText: "", // "" = no secondary line
+      altEl: null,
     };
 
     const prompt = new UIElement({
@@ -33,7 +36,8 @@ globalThis.Interactable = {
     });
     const pill = new UIElement({
       width: 240,
-      height: 42,
+      padding: 10,
+      gap: 4,
       justifyContent: "center",
       alignItems: "center",
     });
@@ -52,6 +56,11 @@ globalThis.Interactable = {
         color: FacetTheme.text,
       }),
     );
+    pick.altEl = facetLabel(() => pick.altText, {
+      halign: fa_center,
+      color: FacetTheme.textMuted,
+    });
+    pill.insertChild(pick.altEl);
     prompt.insertChild(pill);
     prompt.enabled = false;
     pick.el = prompt;
@@ -59,9 +68,10 @@ globalThis.Interactable = {
     return pick;
   },
 
-  /** "" for no pick, or a def that shows no prompt. */
-  _promptText(scene, pick) {
-    const def = InteractAction.get(pick.kind);
+  /** "" for no pick, or a def (or its `alt`) that shows no prompt. */
+  _promptText(scene, pick, alt) {
+    let def = InteractAction.get(pick.kind);
+    if (def !== undefined && alt) def = def.alt;
     if (def === undefined) return "";
     const key =
       typeof def.prompt === "function"
@@ -94,13 +104,20 @@ globalThis.Interactable = {
     }
 
     // hidden under build mode too: E is not bound there, and its HUD stands where the prompt does.
-    pick.text = Interactable._promptText(scene, pick);
+    pick.text = Interactable._promptText(scene, pick, false);
+    pick.altText = Interactable._promptText(scene, pick, true);
+    pick.altEl.enabled = pick.altText !== "";
     pick.el.enabled = pick.text !== "" && !scene.build.active;
   },
 
   /** A no-op with nothing picked. */
   activate(scene, pick) {
-    Interactable._open(scene, pick);
+    Interactable._open(scene, pick, false);
+  },
+
+  /** The pick's secondary action; a no-op with nothing picked or no `alt` on its def. */
+  activateAlt(scene, pick) {
+    Interactable._open(scene, pick, true);
   },
 
   /**
@@ -177,10 +194,11 @@ globalThis.Interactable = {
   },
 
   /** Instant vs window is the def's concern, not the engine's. */
-  _open(scene, pick) {
+  _open(scene, pick, alt) {
     const ctx = Interactable._ctx(scene, pick);
     if (ctx.comp === undefined) return;
-    const def = InteractAction.get(ctx.comp.kind);
+    let def = InteractAction.get(ctx.comp.kind);
+    if (def !== undefined && alt) def = def.alt;
     if (def === undefined) return;
     def.run(ctx);
   },
