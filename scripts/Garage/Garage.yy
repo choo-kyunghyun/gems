@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Garage",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Garage",
+  "parent":{
+    "name":"Mount",
+    "path":"folders/Game/Mount.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Garage.js",
+}

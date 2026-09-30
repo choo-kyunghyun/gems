@@ -4,5 +4,7 @@
   "MOUNT_RIDE": "[E] Get in",
   "MOUNT_LEAVE": "[E] Get off",
   "MOUNT_FULL": "No free seat",
-  "MOUNT_BLOCKED": "No room to get off"
+  "MOUNT_BLOCKED": "No room to get off",
+  "MOUNT_OCCUPIED": "Someone is aboard",
+  "MOUNT_NO_ROOM": "No room for the vehicle"
 }

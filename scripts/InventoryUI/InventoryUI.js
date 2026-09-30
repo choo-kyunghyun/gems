@@ -857,6 +857,8 @@ globalThis.InventoryUI = {
       return page.sel.worn ? I18n.text("INV_UNEQUIP") : I18n.text("INV_EQUIP");
     if (it !== undefined && it.hasComponent(Consumable))
       return I18n.text("INV_USE");
+    if (it !== undefined && it.hasComponent(VehicleKey))
+      return I18n.text("INV_USE");
     if (it !== undefined && it.hasComponent(Placeable))
       return I18n.text("INV_PLACE");
     return I18n.text("INV_NOACTION");
@@ -905,7 +907,7 @@ globalThis.InventoryUI = {
 
   /** The use gesture's view: one call into Use, then its refusal or its sound. */
   use(scene, itemId, uid) {
-    const why = Use.item(scene.level.entities, scene.playerId, itemId, uid);
+    const why = Use.item(scene.level, scene.playerId, itemId, uid);
     scene.window.dirty = true;
     if (why !== "") {
       Toast.push(I18n.text(why), { type: "warn" });

@@ -820,6 +820,18 @@ globalThis.contentItems = {
         rarity: "uncommon",
       },
 
+      // a key to one vehicle, summoned beside its holder and stowed again
+      {
+        id: "buggy_key",
+        name: "ITEM_BUGGY_KEY",
+        description: "ITEM_BUGGY_KEY_DESC",
+        sprite: pixIconKeycard,
+        weight: 0,
+        value: 0,
+        rarity: "rare",
+        components: [new VehicleKey({ preset: "buggy" })],
+      },
+
       // the currency; stacks high so a large balance occupies one slot
       {
         id: "coin",

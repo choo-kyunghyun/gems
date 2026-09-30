@@ -1,11 +1,16 @@
 /**
  * Using an item from a body's bag, the one rule every use gesture shares: gear toggles on its
  * wearer, a consumable spends one unit, a throwable readies the player's next throw, a placeable
- * readies the player's next placement, anything else is refused. A refusal is stated, never folded into false: "" when used, else the i18n key of why.
+ * readies the player's next placement, a vehicle key summons or stows its vehicle, anything else
+ * is refused. A refusal is stated, never folded into false: "" when used, else the i18n key of why.
  */
 globalThis.Use = {
-  /** Gear given no `uid` resolves to its worn instance, else to the first one owned. */
-  item(entities, id, itemId, uid) {
+  /**
+   * Gear given no `uid` resolves to its worn instance, else to the first one owned; a key given
+   * none to the first one owned.
+   */
+  item(level, id, itemId, uid) {
+    const entities = level.entities;
     const item = Item.get(itemId);
     if (item === undefined) return "INV_UNKNOWN_ITEM";
     const eqp = item.getComponent(Equippable);
@@ -40,6 +45,7 @@ globalThis.Use = {
       pl.place = itemId;
       return "";
     }
+    if (item.hasComponent(VehicleKey)) return Garage.use(level, id, itemId, uid);
     return "INV_NOT_USABLE";
   },
 };

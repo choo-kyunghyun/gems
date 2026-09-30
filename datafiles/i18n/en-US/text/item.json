@@ -1,4 +1,6 @@
 {
+  "ITEM_BUGGY_KEY": "Buggy Key",
+  "ITEM_BUGGY_KEY_DESC": "Summons the buggy it belongs to beside you, or stows it away.",
   "ITEM_COIN": "Credits",
   "ITEM_BANDAGE": "Bandage",
   "ITEM_BANDAGE_DESC": "A roll of gauze. Stops the bleeding and restores a little health.",

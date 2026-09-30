@@ -36,11 +36,13 @@ globalThis.Item = class Item {
   }
 
   /**
-   * Unique gear (uid + mods on its slot) vs fungible stacks; equippable is always instanced,
-   * since two of one itemId can differ by mods.
+   * Unique instances (uid + mods on its slot) vs fungible stacks; equippable is always instanced,
+   * since two of one itemId can differ by mods, and a vehicle key, since its uid names its
+   * vehicle.
    */
   isInstanced() {
-    return this.hasComponent(Equippable);
+    if (this.hasComponent(Equippable)) return true;
+    return this.hasComponent(VehicleKey);
   }
 
   // statics, since a def is itself an Item instance

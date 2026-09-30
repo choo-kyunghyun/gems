@@ -300,6 +300,12 @@ globalThis.Bag = {
       test: (it) => it.hasComponent(Material),
     },
     {
+      code: "key",
+      key: "INV_CAT_KEY",
+      icon: pixIconKeycard,
+      test: (it) => it.hasComponent(VehicleKey),
+    },
+    {
       code: "misc",
       key: "INV_CAT_MISC",
       icon: pixIconBackpack,

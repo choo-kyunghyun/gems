@@ -1,4 +1,6 @@
 {
+  "ITEM_BUGGY_KEY": "버기 열쇠",
+  "ITEM_BUGGY_KEY_DESC": "짝이 되는 버기를 곁으로 불러내거나 다시 넣어 둔다.",
   "ITEM_COIN": "크레딧",
   "ITEM_BANDAGE": "붕대",
   "ITEM_BANDAGE_DESC": "거즈 한 롤. 출혈을 막고 체력을 조금 회복한다.",

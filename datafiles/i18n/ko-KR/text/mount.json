@@ -4,5 +4,7 @@
   "MOUNT_RIDE": "[E] 탑승하기",
   "MOUNT_LEAVE": "[E] 내리기",
   "MOUNT_FULL": "빈 자리가 없다",
-  "MOUNT_BLOCKED": "내릴 공간이 없다"
+  "MOUNT_BLOCKED": "내릴 공간이 없다",
+  "MOUNT_OCCUPIED": "누군가 타고 있다",
+  "MOUNT_NO_ROOM": "차량을 둘 공간이 없다"
 }
