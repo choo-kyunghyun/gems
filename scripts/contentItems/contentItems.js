@@ -352,6 +352,40 @@ globalThis.contentItems = {
           }),
         ],
       },
+      {
+        id: "iron_axe",
+        name: "ITEM_IRON_AXE",
+        description: "ITEM_IRON_AXE_DESC",
+        sprite: pixItemIronAxe,
+        weight: 3,
+        value: 18,
+        rarity: "common",
+        components: [
+          new Equippable({ slot: "weapon", mods: { attack: 1 } }),
+          new Weapon({
+            damage: 5,
+            fireCd: 0.45,
+            hitbox: { width: 80, height: 24, xoffset: 40, yoffset: 0 },
+          }),
+        ],
+      },
+      {
+        id: "iron_pickaxe",
+        name: "ITEM_IRON_PICKAXE",
+        description: "ITEM_IRON_PICKAXE_DESC",
+        sprite: pixItemIronPickaxe,
+        weight: 4,
+        value: 20,
+        rarity: "common",
+        components: [
+          new Equippable({ slot: "weapon", mods: { attack: 1 } }),
+          new Weapon({
+            damage: 4,
+            fireCd: 0.5,
+            hitbox: { width: 80, height: 24, xoffset: 40, yoffset: 0 },
+          }),
+        ],
+      },
 
       // ---- clothing: worn on the doll, one piece per slot
       {

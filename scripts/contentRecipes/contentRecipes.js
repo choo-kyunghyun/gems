@@ -57,6 +57,24 @@ globalThis.contentRecipes = {
         ],
         output: { itemId: "kitchen_knife", qty: 1 },
       },
+      {
+        id: "craft_iron_axe",
+        tag: "machining",
+        inputs: [
+          { itemId: "scrap_metal", qty: 3 },
+          { itemId: "plank", qty: 1 },
+        ],
+        output: { itemId: "iron_axe", qty: 1 },
+      },
+      {
+        id: "craft_iron_pickaxe",
+        tag: "machining",
+        inputs: [
+          { itemId: "scrap_metal", qty: 4 },
+          { itemId: "plank", qty: 1 },
+        ],
+        output: { itemId: "iron_pickaxe", qty: 1 },
+      },
 
       // hand-loaded rounds: the guns themselves are issue-only
       {

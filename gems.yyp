@@ -690,6 +690,8 @@
     {"id":{"name":"pixItemGrenadeHe","path":"sprites/pixItemGrenadeHe/pixItemGrenadeHe.yy",},},
     {"id":{"name":"pixItemHeadphones","path":"sprites/pixItemHeadphones/pixItemHeadphones.yy",},},
     {"id":{"name":"pixItemHelmet","path":"sprites/pixItemHelmet/pixItemHelmet.yy",},},
+    {"id":{"name":"pixItemIronAxe","path":"sprites/pixItemIronAxe/pixItemIronAxe.yy",},},
+    {"id":{"name":"pixItemIronPickaxe","path":"sprites/pixItemIronPickaxe/pixItemIronPickaxe.yy",},},
     {"id":{"name":"pixItemJungleHat","path":"sprites/pixItemJungleHat/pixItemJungleHat.yy",},},
     {"id":{"name":"pixItemKitchenKnife","path":"sprites/pixItemKitchenKnife/pixItemKitchenKnife.yy",},},
     {"id":{"name":"pixItemMedkit","path":"sprites/pixItemMedkit/pixItemMedkit.yy",},},
