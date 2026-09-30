@@ -396,7 +396,7 @@ globalThis.contentPresets = {
           Attributes: StatModel.defaults(),
           // seeds only: post's recompute overwrites them from the attributes; speed in world px/s
           Stats: { maxHp: 10, maxStamina: 100, attack: 1, defense: 0, speed: 220 },
-          Inventory: { maxWeight: 50 },
+          Inventory: { maxWeight: 100 },
           Encumbrance: {},
           Equipment: {},
           Hotbar: {},
