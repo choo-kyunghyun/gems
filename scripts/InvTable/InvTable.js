@@ -169,7 +169,7 @@ globalThis.InvTable = {
   },
 
   /**
-   * Body `id`'s hotbar as slot-grid cells, one per slot, an empty one included: its key number in
+   * Body `id`'s hotbar as slot-grid cells, one per slot, an empty one included: its bound key in
    * the corner, lit while the bound gear is worn, and the icon dimmed while the bag holds none.
    */
   beltCells(entities, id) {
@@ -197,7 +197,7 @@ globalThis.InvTable = {
           : it !== undefined
             ? InvTable.rarityColor(itemId)
             : null,
-        badge: string(i + 1),
+        badge: Input.get("hotbar" + (i + 1)).label(),
         badgeColor: worn ? accent : muted,
       });
     }

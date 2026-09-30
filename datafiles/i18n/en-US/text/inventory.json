@@ -65,7 +65,7 @@
   "INV_FAVORITE": "Favorite",
   "INV_UNFAVORITE": "Unfavorite",
   "INV_HOTBAR": "Hotbar",
-  "INV_HOTBAR_HINT": "Select an item and click a slot, or point at one and press 1-5",
+  "INV_HOTBAR_HINT": "Select an item and click a slot, or point at one and press its slot key",
   "INV_SELECT_NONE": "Select an item",
   "INV_NOT_OWNED": "You do not carry that item",
   "INV_PROTECTED": "Its gear can't be changed",

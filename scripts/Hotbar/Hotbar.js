@@ -8,7 +8,7 @@
  */
 globalThis.Hotbar = "Hotbar";
 
-globalThis.HOTBAR_SIZE = 5;
+globalThis.HOTBAR_SIZE = 12;
 // any script may load first (docs/GMRT.md)
 (globalThis.Blank ??= {})[Hotbar] = {
   slots: new Array(HOTBAR_SIZE).fill(""),

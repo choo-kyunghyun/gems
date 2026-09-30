@@ -14,7 +14,7 @@ globalThis.contentHud = {
     { actions: ["buildPlace"], label: "HINT_PLACE", contexts: ["build"] },
     { actions: ["buildRemove"], label: "HINT_REMOVE", contexts: ["build"] },
     { actions: ["inventory"], label: "HINT_BAG", contexts: ["play", "build"] },
-    { text: "1-5", label: "HINT_HOTBAR", contexts: ["play"] },
+    { text: "1-9, 0, -, =", label: "HINT_HOTBAR", contexts: ["play"] },
     { actions: ["interact"], label: "HINT_TALK", contexts: ["play"] },
     { actions: ["interact"], label: "HINT_NEXT", contexts: ["dialogue"] },
     { actions: ["interactAlt"], label: "HINT_EXIT_BUILD", contexts: ["build"] },

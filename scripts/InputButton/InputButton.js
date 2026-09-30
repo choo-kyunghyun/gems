@@ -89,6 +89,8 @@ globalThis.InputButton = class InputButton {
     if (code >= vk_f1 && code <= vk_f12) return "F" + (code - vk_f1 + 1);
     if ((code >= 48 && code <= 57) || (code >= 65 && code <= 90))
       return chr(code);
+    if (code === 189) return "-";
+    if (code === 187) return "=";
     return string(code);
   }
 };

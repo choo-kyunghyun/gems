@@ -63,12 +63,16 @@ globalThis.ColonyKeymap = {
         .inContext(["play"]),
     );
 
-    // a key per slot, live in a window, where a key binds its slot
+    // a key per slot along the number row, live in a window, where a key binds its slot; "-" and
+    // "=" have no vk_ constant, so they take their keycodes
+    const row = [];
+    for (let i = 1; i <= 9; i++) row.push(ord(String(i)));
+    row.push(ord("0"), 189, 187);
     for (let i = 0; i < HOTBAR_SIZE; i++) {
       Input.register(
         "hotbar" + (i + 1),
         new InputAction()
-          .bindButton(INPUT_SOURCE.KEYBOARD, ord(String(i + 1)))
+          .bindButton(INPUT_SOURCE.KEYBOARD, row[i])
           .inContext(["play", "window"]),
       );
     }

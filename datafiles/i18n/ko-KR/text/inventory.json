@@ -65,7 +65,7 @@
   "INV_FAVORITE": "즐겨찾기",
   "INV_UNFAVORITE": "즐겨찾기 해제",
   "INV_HOTBAR": "단축바",
-  "INV_HOTBAR_HINT": "아이템을 선택하고 칸을 누르거나, 아이템에 마우스를 올리고 1-5를 누르세요",
+  "INV_HOTBAR_HINT": "아이템을 선택하고 칸을 누르거나, 아이템에 마우스를 올리고 칸의 키를 누르세요",
   "INV_SELECT_NONE": "아이템 선택",
   "INV_NOT_OWNED": "소지하지 않은 아이템입니다",
   "INV_PROTECTED": "장비를 변경할 수 없습니다",

@@ -1,4 +1,4 @@
-// Core/UI cases: the live text refs, the style door, the scroll, the slot drag, the menu
+// Core/UI cases: the live text refs, the key names, the style door, the scroll, the slot drag, the menu
 // navigation, the widgets' edge states and the GUI frame's costs. Every case references Core only.
 
 Test.register(Test.CHECK, [
@@ -21,6 +21,16 @@ Test.register(Test.CHECK, [
         "TEST_ABSENT a b c",
         "values alone",
       );
+    },
+  },
+  {
+    // the number row's punctuation has no vk_ constant, so it is named from its keycode
+    id: "input.keyName",
+    setup(ctx) {},
+    verify(ctx, t) {
+      t.eq(InputButton.keyName(ord("0")), "0", "a digit");
+      t.eq(InputButton.keyName(189), "-", "minus");
+      t.eq(InputButton.keyName(187), "=", "equals");
     },
   },
   {
