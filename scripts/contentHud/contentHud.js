@@ -9,7 +9,7 @@ globalThis.contentHud = {
       label: "HINT_MOVE",
       contexts: ["play", "build", "window"],
     },
-    { actions: ["sprint"], label: "HINT_SPRINT", contexts: ["play", "build"] },
+    { actions: ["dodge"], label: "HINT_DODGE", contexts: ["play", "build"] },
     { actions: ["fire"], label: "HINT_ATTACK", contexts: ["play"] },
     { actions: ["buildPlace"], label: "HINT_PLACE", contexts: ["build"] },
     { actions: ["buildRemove"], label: "HINT_REMOVE", contexts: ["build"] },

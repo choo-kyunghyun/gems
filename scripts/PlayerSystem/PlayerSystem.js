@@ -1,4 +1,6 @@
-const SPRINT_MULT = 1.6;
+const DODGE_SECS = 0.42; // s a roll lasts
+const DODGE_DIST = 150; // px a roll covers on open ground
+const DODGE_REST = 0.15; // s after a roll before the next
 const FIRE_CD = 0.13; // s
 const ATTACK_ANIM = 0.3; // s — 3 frames @ 10fps
 const KICK_ANIM = 0.38; // s — 5 frames @ 13fps, fits the fist's cadence
@@ -60,23 +62,32 @@ globalThis.PlayerSystem = {
     const stats = entities.require(id, Stats);
     const pp = entities.get(id, Position);
     // status and terrain scale apply here, not on Stats.speed, so the derived sheet stays clean
-    const speed =
-      stats.speed *
+    const scale =
       Effects.scale(entities, id, "speed") *
       PathFollow.speedScale(level.grid, pp.x, pp.y);
+    const speed = stats.speed * scale;
     const len = Math.sqrt(dx * dx + dy * dy);
-    // BUG: [#15549] `len > 0` is recomputed, never cached in a local (docs/GMRT.md).
-    const sprinting = Endurance.sprint(
-      entities,
-      id,
-      len > 0 && Input.get("sprint").down(),
-    );
-    const moveSpeed = speed * (sprinting ? SPRINT_MULT : 1);
-    if (len > 0) {
+
+    Endurance.regen(entities, id);
+    if (pl.dodge > 0) pl.dodge -= Time.step;
+    if (pl.dodgeCd > 0) pl.dodgeCd -= Time.step;
+    if (
+      Input.get("dodge").pressed() &&
+      pl.dodgeCd <= 0 &&
+      Endurance.spend(entities, id)
+    )
+      PlayerSystem._roll(entities, id, pl, dir, dx, dy, len);
+
+    if (pl.dodge > 0) {
+      // the roll holds its heading and outruns the walk
+      const roll = (DODGE_DIST / DODGE_SECS) * scale;
+      vel.x = pl.dodgeX * roll;
+      vel.y = pl.dodgeY * roll;
+    } else if (len > 0) {
       // a partly-tilted stick walks slower
       const mag = Math.min(len, 1);
-      vel.x = (dx / len) * moveSpeed * mag;
-      vel.y = (dy / len) * moveSpeed * mag;
+      vel.x = (dx / len) * speed * mag;
+      vel.y = (dy / len) * speed * mag;
       dir.x = dx / len;
       dir.y = dy / len;
     } else {
@@ -101,8 +112,8 @@ globalThis.PlayerSystem = {
 
     if (Input.get("reload").pressed()) Loadout.reload(entities, id);
 
-    // "play"-only actions read false while another input context owns the keys
-    if (Input.get("fire").down() && pl.fireCd <= 0) {
+    // "play"-only actions read false while another input context owns the keys; a roll holds fire
+    if (pl.dodge <= 0 && Input.get("fire").down() && pl.fireCd <= 0) {
       // the live slot, since a gun mutates `rounds`
       const slot = Loadout.weaponSlot(entities, id);
       const wpn =
@@ -132,16 +143,44 @@ globalThis.PlayerSystem = {
     }
 
     // shares fireCd so a throw never overlaps a shot
-    if (pl.toss !== "" && pl.fireCd <= 0)
+    if (pl.toss !== "" && pl.fireCd <= 0 && pl.dodge <= 0)
       PlayerSystem._toss(entities, id, pl, dir);
 
     // attackCd is read live, never cached (docs/GMRT.md)
     let state = "idle";
-    if (pl.attackCd > 0) state = pl.attackAnim === "kick" ? "kick" : "attack";
+    if (pl.dodge > 0) state = "dodge";
+    else if (pl.attackCd > 0) state = pl.attackAnim === "kick" ? "kick" : "attack";
     else if (len > 0) state = "walk";
     Doll.setState(entities, id, state);
 
-    Doll.face(entities, id, dir.x, 0.01);
+    Doll.face(entities, id, pl.dodge > 0 ? pl.dodgeX : dir.x, 0.01);
+  },
+
+  /**
+   * Start a roll along the move input, else along the facing; it cancels a swing in progress.
+   */
+  _roll(entities, id, pl, dir, dx, dy, len) {
+    let hx = len > 0 ? dx / len : dir.x;
+    let hy = len > 0 ? dy / len : dir.y;
+    const hl = Math.sqrt(hx * hx + hy * hy);
+    if (hl > 0) {
+      hx /= hl;
+      hy /= hl;
+    } else {
+      hx = entities.get(id, Sprite).xscale < 0 ? -1 : 1;
+      hy = 0;
+    }
+    pl.dodge = DODGE_SECS;
+    pl.dodgeCd = DODGE_SECS + DODGE_REST;
+    pl.dodgeX = hx;
+    pl.dodgeY = hy;
+    pl.attackCd = 0;
+  },
+
+  /** Whether `id` is mid-roll, where no hit lands. */
+  evading(entities, id) {
+    const pl = entities.get(id, Playable);
+    return pl !== undefined && pl.dodge > 0;
   },
 
   /**
@@ -154,7 +193,8 @@ globalThis.PlayerSystem = {
     const dir = entities.get(id, Direction);
     const carrier = Ride.carrier(entities, id);
     pl.toss = ""; // nothing is thrown from a seat
-    Endurance.sprint(entities, id, false);
+    pl.dodge = 0; // nor rolled
+    Endurance.regen(entities, id);
     if (pl.fireCd > 0) pl.fireCd -= Time.step;
     if (pl.attackCd > 0) pl.attackCd -= Time.step;
 

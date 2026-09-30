@@ -19,7 +19,10 @@ class _SceneColonyClass {
     Tracker.rules = contentAchievements;
 
     // static hooks: they survive map reloads
-    Combat.mitigate = StatModel.mitigate;
+    Combat.mitigate = (entities, id, amount, penetration) =>
+      PlayerSystem.evading(entities, id)
+        ? 0
+        : StatModel.mitigate(entities, id, amount, penetration);
     Consumption.grantAttr = StatModel.grant;
     Effects.onStatsChanged = StatModel.recompute;
     // progress shows as toasts, a reward as a refreshed bag

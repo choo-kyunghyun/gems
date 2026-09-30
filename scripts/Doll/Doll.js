@@ -9,20 +9,20 @@ globalThis.Doll = {
    * rig lacks leaves its current set playing. `down` is the fallen pose, a one-shot
    * holding its last frame. `pace` marks a locomotion set: the world speed (px/s) its cycle was
    * authored for, so playback can scale to the doll's actual speed and one set serves every gait.
+   * `rate` plays a set at that multiple of its authored time.
    */
   RIGS: {
     spineHuman: {
       idle: { anim: "idle0", loop: true },
       walk: { anim: "walk0", loop: true, pace: 110 },
-      run: { anim: "run0", loop: true, pace: 45 },
       attack: { anim: "attack0", loop: false },
       kick: { anim: "attack1", loop: false },
+      dodge: { anim: "dodge0", loop: false, rate: 4 },
       down: { anim: "down0", loop: false },
     },
     spineRat: {
       idle: { anim: "idle", loop: true },
       walk: { anim: "walk", loop: true, pace: 60 },
-      run: { anim: "walk", loop: true, pace: 60 },
       attack: { anim: "attack", loop: false },
       down: { anim: "down", loop: false },
     },
@@ -64,20 +64,21 @@ globalThis.Doll = {
 
   /**
    * Stride-match every moving doll's locomotion set to its actual speed, once per frame; any
-   * other set plays authored time. A doll without Velocity is never touched.
+   * other set plays its `rate`, else authored time. A doll without Velocity is never touched.
    */
   pace(entities) {
     entities.forEach([Velocity, Sprite], (id, vel, spr) => {
       const rig = Doll.RIGS[sprite_get_name(spr.sprite)];
       if (rig === undefined) return;
       let pace = 0;
+      let r = 1;
       for (const state in rig) {
         const st = rig[state];
         if (st.anim === spr.anim) {
           if (st.pace !== undefined) pace = st.pace;
+          if (st.rate !== undefined) r = st.rate;
         }
       }
-      let r = 1;
       if (pace > 0) {
         const v = Math.sqrt(vel.x * vel.x + vel.y * vel.y) / pace;
         r = Math.min(Math.max(v, Doll.PACE_MIN), Doll.PACE_MAX);

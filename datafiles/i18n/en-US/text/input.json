@@ -3,7 +3,7 @@
   "INPUT_MOVE_LEFT": "Move Left",
   "INPUT_MOVE_DOWN": "Move Down",
   "INPUT_MOVE_RIGHT": "Move Right",
-  "INPUT_SPRINT": "Sprint",
+  "INPUT_DODGE": "Dodge",
   "INPUT_FIRE": "Attack",
   "INPUT_RELOAD": "Reload",
   "INPUT_INTERACT": "Interact",
@@ -12,7 +12,7 @@
   "INPUT_HOTBAR": "Hotbar {0}",
 
   "HINT_MOVE": "Move",
-  "HINT_SPRINT": "Sprint",
+  "HINT_DODGE": "Dodge",
   "HINT_ATTACK": "Attack",
   "HINT_BAG": "Bag",
   "HINT_HOTBAR": "Hotbar",

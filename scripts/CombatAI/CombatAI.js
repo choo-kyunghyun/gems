@@ -97,7 +97,7 @@ globalThis.CombatAI = {
               );
             }
           }
-          CombatAI._animate(entities, id, false, false);
+          CombatAI._animate(entities, id, false);
         },
       },
 
@@ -151,7 +151,7 @@ globalThis.CombatAI = {
             PathFollow.clear(entities, id);
             brain.pathCd = 0; // replan immediately the next time a wall gets in the way
             CombatAI._seek(level, id, tp.x, tp.y);
-            CombatAI._animate(entities, id, false, true);
+            CombatAI._animate(entities, id, false);
             return;
           }
           const mp = PathFollow.target(
@@ -164,7 +164,7 @@ globalThis.CombatAI = {
             tp.y,
           );
           CombatAI._seek(level, id, mp.x, mp.y);
-          CombatAI._animate(entities, id, false, true);
+          CombatAI._animate(entities, id, false);
         },
         finish(level, id) {
           PathFollow.clear(level.entities, id);
@@ -208,7 +208,6 @@ globalThis.CombatAI = {
             entities,
             id,
             brain.cd === brain.cdMax || !Anim.finished(entities, id),
-            false,
           );
         },
       },
@@ -265,12 +264,11 @@ globalThis.CombatAI = {
   },
 
   /** Rig animation and facing from the actor's motion; a no-op for an actor without a rig. */
-  _animate(entities, id, attacking, running) {
+  _animate(entities, id, attacking) {
     const vel = entities.get(id, Velocity);
     let st = "idle";
     if (attacking) st = "attack";
-    else if (vel !== undefined && Doll.moving(vel))
-      st = running ? "run" : "walk";
+    else if (vel !== undefined && Doll.moving(vel)) st = "walk";
     Doll.setState(entities, id, st);
     if (vel !== undefined) Doll.face(entities, id, vel.x);
   },

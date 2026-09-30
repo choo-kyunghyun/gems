@@ -16,7 +16,7 @@ globalThis.ColonyKeymap = {
       moveRight: [INPUT_SOURCE.KEYBOARD, ord("D"), ANYWHERE],
       moveUp: [INPUT_SOURCE.KEYBOARD, ord("W"), ANYWHERE],
       moveDown: [INPUT_SOURCE.KEYBOARD, ord("S"), ANYWHERE],
-      sprint: [INPUT_SOURCE.KEYBOARD, vk_shift, ANYWHERE],
+      dodge: [INPUT_SOURCE.KEYBOARD, vk_shift, ["play", "build"]],
       fire: [INPUT_SOURCE.MOUSE, mb_left, ["play"]],
       buildPlace: [INPUT_SOURCE.MOUSE, mb_left, ["build"]],
       buildRemove: [INPUT_SOURCE.MOUSE, mb_right, ["build"]],
@@ -32,7 +32,7 @@ globalThis.ColonyKeymap = {
     Input.get("moveRight").bindButton(GP, gp_padr);
     Input.get("moveUp").bindButton(GP, gp_padu);
     Input.get("moveDown").bindButton(GP, gp_padd);
-    Input.get("sprint").bindButton(GP, gp_shoulderl); // LB (hold)
+    Input.get("dodge").bindButton(GP, gp_shoulderl); // LB
     Input.get("fire").bindButton(GP, gp_shoulderrb); // RT
     Input.get("inventory").bindButton(GP, gp_face4); // Y
     Input.get("interact").bindButton(GP, gp_face1); // A
@@ -97,7 +97,7 @@ globalThis.ColonyKeymap = {
       ["moveLeft", "INPUT_MOVE_LEFT"],
       ["moveDown", "INPUT_MOVE_DOWN"],
       ["moveRight", "INPUT_MOVE_RIGHT"],
-      ["sprint", "INPUT_SPRINT"],
+      ["dodge", "INPUT_DODGE"],
       ["fire", "INPUT_FIRE"],
       ["reload", "INPUT_RELOAD"],
       ["interact", "INPUT_INTERACT"],

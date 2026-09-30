@@ -391,8 +391,8 @@ globalThis.contentPresets = {
           Faction: { id: "player" },
           Health: { hp: 10 },
           Mortal: { kind: "respawn" },
-          // ~3 s from full, ~4.5 s back
-          Stamina: { value: 100, exhausted: false, drain: 34, regen: 22, recover: 0.3 },
+          // four dodges from full, ~4.5 s back
+          Stamina: { value: 100, cost: 25, regen: 22 },
           Attributes: StatModel.defaults(),
           // seeds only: post's recompute overwrites them from the attributes; speed in world px/s
           Stats: { maxHp: 10, maxStamina: 100, attack: 1, defense: 0, speed: 220 },

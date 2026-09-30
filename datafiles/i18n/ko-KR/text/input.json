@@ -3,7 +3,7 @@
   "INPUT_MOVE_LEFT": "왼쪽으로 이동",
   "INPUT_MOVE_DOWN": "아래로 이동",
   "INPUT_MOVE_RIGHT": "오른쪽으로 이동",
-  "INPUT_SPRINT": "질주",
+  "INPUT_DODGE": "회피",
   "INPUT_FIRE": "공격",
   "INPUT_RELOAD": "재장전",
   "INPUT_INTERACT": "상호작용",
@@ -12,7 +12,7 @@
   "INPUT_HOTBAR": "단축바 {0}",
 
   "HINT_MOVE": "이동",
-  "HINT_SPRINT": "질주",
+  "HINT_DODGE": "회피",
   "HINT_ATTACK": "공격",
   "HINT_BAG": "가방",
   "HINT_HOTBAR": "단축바",

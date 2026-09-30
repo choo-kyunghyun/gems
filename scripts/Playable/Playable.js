@@ -11,6 +11,10 @@
  * @property {number} cursorY
  * @property {string} toss     the Throwable item id the next ready frame throws; "" = none
  * @property {string} place    the Placeable item id build mode takes up next; "" = none
+ * @property {number} dodge    seconds left in the current roll, which no hit lands through
+ * @property {number} dodgeCd  seconds until the next roll
+ * @property {number} dodgeX   the roll's heading, a unit vector
+ * @property {number} dodgeY
  */
 globalThis.Playable = "Playable";
 // any script may load first (docs/GMRT.md)
@@ -22,4 +26,8 @@ globalThis.Playable = "Playable";
   cursorY: 0,
   toss: "",
   place: "",
+  dodge: 0,
+  dodgeCd: 0,
+  dodgeX: 0,
+  dodgeY: 0,
 };
