@@ -324,6 +324,8 @@ globalThis.contentPresets = {
           Collision: { solid: true, kinematic: true },
           Name: { name: "Pine" },
           Sprite: { sprite: pixPine, index: 3, speed: 0 }, // a frame per growth stage
+          Health: { hp: 20 },
+          Mortal: { kind: "break", sound: sndChop },
         },
         adapt: ColonySpawn.adaptFlora,
         post: ColonySpawn.postFlora,
@@ -340,13 +342,15 @@ globalThis.contentPresets = {
         post: ColonySpawn.postFlora,
       },
       {
-        // One immovable boulder per cluster of w×h cells.
+        // One immovable boulder per cluster of w×h cells; its toughness and stone scale with
+        // the cells it covers.
         id: "rock",
         components: {
           BBox: { x: -16, y: -16, width: 32, height: 32 }, // always overridden per cluster
           Collision: { solid: true, kinematic: true },
           Name: { name: "Rock" },
           Sprite: { sprite: pixRock, speed: 0 },
+          Mortal: { kind: "break", sound: sndHitsoundRock },
         },
         adapt(s, over, ctx) {
           // centered on the cluster's rect; the sheet carries one frame per cluster shape
@@ -363,6 +367,8 @@ globalThis.contentPresets = {
             height: ch * grid.cellHeight,
           };
           over.Sprite = { sprite: pixRock, index: cw - 1 + (ch - 1) * 2 };
+          over.Health = { hp: 12 * cw * ch };
+          over.Inventory = { slots: [{ itemId: "stone", qty: 2 * cw * ch }] };
         },
         post(entities, id, ctx) {
           ColonySpawn.mirror(entities, id, ctx.opts.descriptor);

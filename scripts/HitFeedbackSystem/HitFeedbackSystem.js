@@ -12,7 +12,7 @@ globalThis.HitFeedbackSystem = {
     HitFeedbackSystem._diff(entities, playerId, true);
     // Faction joins the query: hostility needs one on both sides, so this skips the
     // factionless majority (docs/ARCHITECTURE.md).
-    entities.forEach([Health, Faction], (id) => {
+    entities.forEach([Faction, Health], (id) => {
       if (Diplomacy.hostile(entities, playerId, id))
         HitFeedbackSystem._diff(entities, id, false);
     });
@@ -20,12 +20,17 @@ globalThis.HitFeedbackSystem = {
       HitFeedbackSystem._diff(entities, id, true);
     });
     // Built structures are otherwise untracked; a double-diffed id is harmless.
-    entities.forEach([Health, Mesh], (id) => {
+    entities.forEach([Mesh, Health], (id) => {
       HitFeedbackSystem._diff(entities, id, true);
+    });
+    // A breakable prop answers each hit in its own sound.
+    entities.forEach([Health, Mortal], (id, hp, m) => {
+      if (m.kind === "break") HitFeedbackSystem._diff(entities, id, false, m.sound);
     });
   },
 
-  _diff(entities, id, isAlly) {
+  /** `sound` is a non-ally's hit sound, flesh when absent. */
+  _diff(entities, id, isAlly, sound) {
     if (!entities.isValid(id)) return;
     const hp = entities.get(id, Health);
     if (hp === undefined) return;
@@ -51,7 +56,7 @@ globalThis.HitFeedbackSystem = {
           else if (isAlly)
             Audio.play({ sound: sndHitsoundArmor, position: at });
           else if (hp.hp > 0)
-            Audio.play({ sound: sndHitsoundFlesh, position: at });
+            Audio.play({ sound: sound ?? sndHitsoundFlesh, position: at });
         } else {
           FloatingText.push(pos.x, pos.y - POP_Y, "+" + d, { type: "heal" });
         }

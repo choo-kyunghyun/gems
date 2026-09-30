@@ -1,4 +1,4 @@
-const SPILL = { yBase: 0, ySpread: 28 }; // loot scatter for a "despawn" kill
+const SPILL = { yBase: 0, ySpread: 28 }; // loot scatter for a "despawn" kill or a "break"
 
 /**
  * Death, resolved only here: damage just subtracts hp, and this is the sole authority that
@@ -42,6 +42,12 @@ globalThis.MortalSystem = {
         if (base !== undefined) base.hp = hp.hp; // don't pop a "+heal" for the refill
       } else if (m.kind === "down") {
         MortalSystem._goDown(entities, id, m);
+      } else if (m.kind === "break") {
+        Loot.spill(entities, id, SPILL);
+        const pos = entities.get(id, Position);
+        if (m.sound !== undefined && pos !== undefined)
+          Audio.play({ sound: m.sound, position: { x: pos.x, y: pos.y } });
+        entities.remove(id);
       }
     }
   },

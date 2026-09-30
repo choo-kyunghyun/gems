@@ -25,14 +25,22 @@ globalThis.Flora = {
     col.solid = stage >= def.solidFrom;
   },
 
-  /** A ripe plant carries its species' Interaction. */
+  /** A ripe plant carries its species' Interaction, or without one, its yield to spill. */
   ripen(entities, id) {
     if (entities.has(id, Interaction)) return;
+    if (entities.has(id, Inventory)) return;
     const def = Flora.species(entities.get(id, Growth).species);
-    entities.add(id, Interaction, { kind: def.action });
+    if (def.action !== undefined) {
+      entities.add(id, Interaction, { kind: def.action });
+      return;
+    }
+    const slots = [];
+    for (let i = 0; i < def.yield.length; i++)
+      slots.push({ itemId: def.yield[i].itemId, qty: def.yield[i].qty });
+    entities.add(id, Inventory, { slots: slots });
   },
 
-  /** Set up a freshly spawned plant: its stage frame and, if already ripe, its Interaction. */
+  /** Set up a freshly spawned plant: its stage frame and, if already ripe, what ripeness adds. */
   attach(entities, id) {
     const g = entities.get(id, Growth);
     const def = Flora.species(g.species);

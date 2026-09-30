@@ -5,7 +5,7 @@
  * @typedef {Object} Interaction
  * @property {string} kind      registered action id: "storage" | "workbench" | "modbench" |
  *   "corpse" | "turret" | "pickup" | "door" | "rehire" | "claim" | "settlement" | "bed" |
- *   "hydrate" | "feed" | "buff" | "harvest" | "chop" | "talk" | "trade" | "companion" | "mount"
+ *   "hydrate" | "feed" | "buff" | "harvest" | "talk" | "trade" | "companion" | "mount"
  * @property {string[]} [tags]  workbench only: the recipe tags it offers (absent = none)
  * @property {string} [title]   workbench only: its page title's I18n key
  * @property {boolean} [open]   door only: current leaf state

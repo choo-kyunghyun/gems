@@ -708,6 +708,7 @@
     {"id":{"name":"pixItemSnack","path":"sprites/pixItemSnack/pixItemSnack.yy",},},
     {"id":{"name":"pixItemSniperRifle","path":"sprites/pixItemSniperRifle/pixItemSniperRifle.yy",},},
     {"id":{"name":"pixItemSoda","path":"sprites/pixItemSoda/pixItemSoda.yy",},},
+    {"id":{"name":"pixItemStone","path":"sprites/pixItemStone/pixItemStone.yy",},},
     {"id":{"name":"pixItemTarp","path":"sprites/pixItemTarp/pixItemTarp.yy",},},
     {"id":{"name":"pixItemTunaCan","path":"sprites/pixItemTunaCan/pixItemTunaCan.yy",},},
     {"id":{"name":"pixItemVinyl","path":"sprites/pixItemVinyl/pixItemVinyl.yy",},},

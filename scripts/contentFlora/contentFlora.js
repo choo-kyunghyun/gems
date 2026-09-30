@@ -12,8 +12,9 @@
  *   fertility  the least ground fertility it roots on, the placement test for generation, spread
  *              and build alike
  *   solidFrom? "tree" only: the stage from which the trunk collides
- *   action     the interaction a ripe plant carries ("harvest" | "chop")
- *   yield      [{ itemId, qty }] the harvest gives, all or nothing
+ *   action?    the interaction a ripe plant carries ("harvest"); absent = the yield is what
+ *              breaking it spills
+ *   yield      [{ itemId, qty }] a ripe plant gives, all or nothing
  *   regrow?    progress a perennial falls back to after a harvest; absent = the harvest removes it
  */
 globalThis.contentFlora = {
@@ -28,7 +29,6 @@ globalThis.contentFlora = {
       season: { spring: 1.2, summer: 1, autumn: 0.6, winter: 0.1 },
       fertility: 0.2,
       solidFrom: 1,
-      action: "chop",
       yield: [{ itemId: "plank", qty: 4 }],
     },
     // a perennial shrub, dormant through winter

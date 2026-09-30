@@ -179,16 +179,9 @@ globalThis.contentInteractions = {
         },
       },
       {
-        // a ripe plant; one action under two prompts (a crop is picked, a tree felled)
+        // a ripe plant
         id: "harvest",
         prompt: "FLORA_HARVEST_PROMPT",
-        run(ctx) {
-          contentInteractions._harvest(ctx);
-        },
-      },
-      {
-        id: "chop",
-        prompt: "FLORA_CHOP_PROMPT",
         run(ctx) {
           contentInteractions._harvest(ctx);
         },

@@ -750,6 +750,15 @@ globalThis.contentItems = {
         components: [new Material({ color: "#8b93af" })],
       },
       {
+        id: "stone",
+        name: "ITEM_STONE",
+        sprite: pixItemStone,
+        weight: 2,
+        value: 1,
+        rarity: "common",
+        components: [new Material({ color: "#6d758d" })],
+      },
+      {
         id: "cloth",
         name: "ITEM_CLOTH",
         sprite: pixItemCloth,
