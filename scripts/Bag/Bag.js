@@ -53,6 +53,16 @@ globalThis.Bag = {
   },
 
   /**
+   * A fresh weightless inventory holding `list`'s `{ itemId, qty }`, added item by item so an
+   * instance mints its uid and a stack merges.
+   */
+  from(list) {
+    const inv = { slots: [] };
+    for (let i = 0; i < list.length; i++) Bag.add(inv, list[i].itemId, list[i].qty);
+    return inv;
+  },
+
+  /**
    * Insert a pre-existing slot by reference, preserving uid/mods; a fungible slot falls back to
    * add(). Returns the qty that did NOT fit, like add() — a boolean would misreport a partial
    * fungible add as total failure while units were already moved.

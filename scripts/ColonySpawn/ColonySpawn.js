@@ -79,19 +79,15 @@ globalThis.ColonySpawn = {
       over.Health = { hp: s.hp };
       over.Stats = { maxHp: s.hp };
     }
-    if (s.loot !== undefined) over.Inventory = { slots: s.loot };
+    if (s.loot !== undefined) over.Inventory = Bag.from(s.loot);
   },
 
   /**
-   * A merchant's `merchant` descriptor: the trade config and a stock of its own goods, added item
-   * by item so instanced gear is minted; weightless, so a vendor is never encumbered.
+   * A merchant's `merchant` descriptor: the trade config and a stock of its own goods;
+   * weightless, so a vendor is never encumbered.
    */
   merchant(entities, id, mc) {
-    const mInv = { slots: [] };
-    const stock = mc.stock ?? [];
-    for (let i = 0; i < stock.length; i++)
-      Bag.add(mInv, stock[i].itemId, stock[i].qty);
-    entities.add(id, Inventory, mInv);
+    entities.add(id, Inventory, Bag.from(mc.stock ?? []));
     entities.add(id, Merchant, {
       currencyId: mc.currencyId,
       buyMargin: mc.buyMargin,

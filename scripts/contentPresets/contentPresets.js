@@ -148,7 +148,7 @@ globalThis.contentPresets = {
           Mesh: { model: "militaryCrate" },
         },
         adapt(s, over) {
-          if (s.items !== undefined) over.Inventory = { slots: s.items };
+          if (s.items !== undefined) over.Inventory = Bag.from(s.items);
         },
       },
       {
