@@ -408,29 +408,10 @@ globalThis.UIInput = class UIInput {
       const halfH = string_height("|") * 0.5;
       const winL = this._scroll; // text-pixel space
 
-      // clipped by substring rather than scissor, touching no global render state.
-      let start = 0;
-      while (start < disp.length && string_width(disp.slice(0, start)) < winL)
-        start++;
-      let end = start;
-      while (
-        end < disp.length &&
-        string_width(disp.slice(0, end + 1)) - winL <= tr.w
-      )
-        end++;
-      const startX = tr.x + string_width(disp.slice(0, start)) - winL;
-
+      const clip = UIDraw.clipBegin(tr.x, pos.top, tr.w, pos.height);
       if (this._editing && this._hasSel()) {
-        const sx = clamp(
-          string_width(disp.slice(0, this._selLow())) - winL,
-          0,
-          tr.w,
-        );
-        const ex = clamp(
-          string_width(disp.slice(0, this._selHigh())) - winL,
-          0,
-          tr.w,
-        );
+        const sx = string_width(disp.slice(0, this._selLow())) - winL;
+        const ex = string_width(disp.slice(0, this._selHigh())) - winL;
         if (ex > sx) {
           draw_set_color(this.colorSelection);
           draw_set_alpha(this.alphaSelection);
@@ -446,7 +427,8 @@ globalThis.UIInput = class UIInput {
       }
 
       draw_set_color(this.color);
-      draw_text(startX, tr.cy, disp.slice(start, end));
+      draw_text(tr.x - winL, tr.cy, disp);
+      UIDraw.clipEnd(clip);
 
       if (this._editing && this._cursorVis) {
         const cx = string_width(disp.slice(0, this._cursor)) - winL;

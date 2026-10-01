@@ -260,4 +260,46 @@ globalThis.UIDraw = {
     draw_set_color(st.color);
     draw_set_alpha(st.alpha);
   },
+
+  /**
+   * Scissors to a GUI rect on the back buffer, intersected with any enclosing clip so nested
+   * clips both apply; returns what `clipEnd` restores.
+   */
+  clipBegin(x, y, w, h) {
+    // the scissor is in render-target pixels, sized never to exceed the back buffer (docs/GMRT.md).
+    const gw = display_get_gui_width();
+    const gh = display_get_gui_height();
+    const tw = Display.clipW();
+    const th = Display.clipH();
+    const kx = gw > 0 ? tw / gw : 1;
+    const ky = gh > 0 ? th / gh : 1;
+
+    // clamped so an off-canvas or stale rect never exceeds the target.
+    let x1 = Math.floor(x) * kx;
+    let y1 = Math.floor(y) * ky;
+    let x2 = x1 + Math.ceil(w) * kx;
+    let y2 = y1 + Math.ceil(h) * ky;
+    if (x1 < 0) x1 = 0;
+    if (y1 < 0) y1 = 0;
+    if (x2 > tw) x2 = tw;
+    if (y2 > th) y2 = th;
+
+    // an unset scissor reads as {0,0,0,0} (docs/GMRT.md).
+    const prev = gpu_get_scissor();
+    const nested = prev.w > 0 && prev.h > 0;
+    if (nested) {
+      if (x1 < prev.x) x1 = prev.x;
+      if (y1 < prev.y) y1 = prev.y;
+      if (x2 > prev.x + prev.w) x2 = prev.x + prev.w;
+      if (y2 > prev.y + prev.h) y2 = prev.y + prev.h;
+    }
+    gpu_set_scissor(x1, y1, Math.max(0, x2 - x1), Math.max(0, y2 - y1));
+    return nested ? prev : null;
+  },
+
+  /** An unset scissor is never replayed (docs/GMRT.md). */
+  clipEnd(prev) {
+    if (prev !== null) gpu_set_scissor(prev);
+    else gpu_set_scissor(0, 0, Display.clipW(), Display.clipH());
+  },
 };

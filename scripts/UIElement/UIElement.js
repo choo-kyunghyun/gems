@@ -151,49 +151,15 @@ globalThis.UIElement = class UIElement {
     return 0;
   }
 
-  /**
-   * Scissors children on the back buffer (no off-screen surface), intersected with any enclosing
-   * clip so nested clips both apply (docs/GMRT.md).
-   */
+  /** Scissors children on the back buffer, no off-screen surface. */
   _drawClipped() {
     const pos = this.getLayoutPosition();
     const w = Math.ceil(pos.width - this.clipInsetRight);
     const h = Math.ceil(pos.height);
     if (!(w > 0) || !(h > 0)) return; // unlaid-out (NaN) or zero-size
-
-    // the scissor is in render-target pixels, sized never to exceed the back buffer (docs/GMRT.md).
-    const gw = display_get_gui_width();
-    const gh = display_get_gui_height();
-    const tw = Display.clipW();
-    const th = Display.clipH();
-    const kx = gw > 0 ? tw / gw : 1;
-    const ky = gh > 0 ? th / gh : 1;
-
-    // clamped so an off-canvas or stale rect never exceeds the target.
-    let x1 = Math.floor(pos.left) * kx;
-    let y1 = Math.floor(pos.top) * ky;
-    let x2 = x1 + w * kx;
-    let y2 = y1 + h * ky;
-    if (x1 < 0) x1 = 0;
-    if (y1 < 0) y1 = 0;
-    if (x2 > tw) x2 = tw;
-    if (y2 > th) y2 = th;
-
-    // an unset scissor reads as {0,0,0,0} (docs/GMRT.md).
-    const prev = gpu_get_scissor();
-    const nested = prev.w > 0 && prev.h > 0;
-    if (nested) {
-      if (x1 < prev.x) x1 = prev.x;
-      if (y1 < prev.y) y1 = prev.y;
-      if (x2 > prev.x + prev.w) x2 = prev.x + prev.w;
-      if (y2 > prev.y + prev.h) y2 = prev.y + prev.h;
-    }
-
-    gpu_set_scissor(x1, y1, Math.max(0, x2 - x1), Math.max(0, y2 - y1));
+    const prev = UIDraw.clipBegin(pos.left, pos.top, w, h);
     this._drawChildren();
-    // an unset scissor is never replayed (docs/GMRT.md).
-    if (nested) gpu_set_scissor(prev);
-    else gpu_set_scissor(0, 0, tw, th);
+    UIDraw.clipEnd(prev);
   }
 
   insertChild(element, index = this.children.length) {
