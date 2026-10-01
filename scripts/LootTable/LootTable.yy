@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"LootTable",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"LootTable",
+  "parent":{
+    "name":"Inventory",
+    "path":"folders/Game/Inventory.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"LootTable.js",
+}

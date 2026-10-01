@@ -71,7 +71,7 @@ globalThis.OverworldGen = {
             opts.defaultLoot ??
             ((s, rng) =>
               s.preset === "raider" && s.loot === undefined
-                ? OverworldGen.rollLoot(rng)
+                ? LootTable.roll("raider", rng)
                 : undefined),
         }),
       );
@@ -161,7 +161,7 @@ globalThis.OverworldGen = {
             gx: gx,
             gy: gy,
             hp: 2,
-            loot: ctx.rng() > 0.5 ? [{ itemId: "raw_meat", qty: 1 }] : [],
+            loot: LootTable.roll("rat", ctx.rng),
           };
         },
       });
@@ -208,15 +208,5 @@ globalThis.OverworldGen = {
         };
       },
     });
-  },
-
-  /** Wilderness raider loot table. */
-  rollLoot(rng) {
-    const loot = [{ itemId: "cloth", qty: 1 + Math.floor(rng() * 2) }];
-    const roll = rng();
-    if (roll > 0.85) loot.push({ itemId: "floppy_disk", qty: 1 });
-    else if (roll > 0.6)
-      loot.push({ itemId: "coin", qty: 1 + Math.floor(rng() * 3) });
-    return loot;
   },
 };

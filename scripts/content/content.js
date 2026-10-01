@@ -14,6 +14,7 @@ globalThis.content = {
     contentNeeds.register();
     contentWeather.register();
     contentRecipes.register();
+    contentLoot.register();
     contentPrefabs.register();
     contentInteractions.register();
     CombatAI.register();
