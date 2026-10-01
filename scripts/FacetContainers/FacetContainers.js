@@ -399,8 +399,7 @@ globalThis.facetColumn = function facetColumn(title, content, opts = {}) {
 
 /**
  * Master-detail row: a fixed-width `.list` column beside a `.detail` column that takes the
- * rest. Neither clips — a scissored column beside a non-clipped sibling breaks batching
- * (docs/GMRT.md) — so a page sizes its content to the card.
+ * rest. Neither clips, so a page sizes its content to the card.
  */
 globalThis.facetListDetail = function facetListDetail(opts = {}) {
   const row = new UIElement({

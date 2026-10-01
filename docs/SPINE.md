@@ -3,7 +3,7 @@
 The Spine (skeletal sprite) half of the GMRT deny-list, split out of `GMRT.md` because it bites only
 the skeletal area — `Sprite` (the component), `SpriteSystem` (playback), `Anim` (the verbs, sheet
 metadata), `AppearanceSystem` (dressing), `RenderBillboard` (the draw). GMRT.md's rules apply here
-unchanged: an entry is a DEFECT of the pinned 0.21 — the rule, its ticket as [#00000], and the safe idiom — never
+unchanged: an entry is a DEFECT of the pinned 0.22 — the rule, its ticket as [#00000], and the safe idiom — never
 a ticket's state. What the manual documents, and what the classic runtime does the same, is not an
 entry: the manual and the owning code's comments carry it. "A/B-run" means checked against the
 classic runtime on a minimal GML repro; a defect A/B-run gets its own ticket ([#15998] the

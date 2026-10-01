@@ -1,6 +1,6 @@
 // Files on disk, as text or as bytes. A bare name lands in the save dir
-// (docs/GMRT.md → working_directory), an included file reads by its project path, and there is
-// no existence check: a missing file reads as undefined (docs/GMRT.md #15733).
+// (docs/GMRT.md → working_directory), an included file reads by its project path, and a missing
+// file reads as undefined.
 globalThis.File = {
   /** The names matching `mask`. */
   find(mask) {
@@ -32,7 +32,7 @@ globalThis.File = {
     return buffer === -1 ? undefined : buffer;
   },
 
-  /** Returns nothing: a read-back is the only check (docs/GMRT.md #15733). */
+  /** Returns nothing. */
   write(fname, text) {
     const buffer = buffer_create(0, buffer_grow, 1);
     buffer_write(buffer, buffer_text, text);

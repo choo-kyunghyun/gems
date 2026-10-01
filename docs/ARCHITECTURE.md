@@ -170,8 +170,8 @@ and are cited from here, never restated):
   a method handed out as a hook or callback keeps its owner — the form the systems and namespaces
   already use (`Log`, `Combat`, `WorldClock`, every `*System`).
     - A static-only class buys nothing here (no instances, no `instanceof`, inheritance broken
-      regardless) and takes on two class-only GMRT defects (#15065 and the `static` initializer
-      trap, GMRT.md): write no new ones. A class with one live instance that owns a lifecycle is
+      regardless) and takes on a class-only GMRT defect (the `static` initializer trap,
+      GMRT.md): write no new ones. A class with one live instance that owns a lifecycle is
       NOT a singleton — `LevelGen` is an instance class, shaped and named as such.
     - A family of singletons stays FLAT, grouped by a name prefix and composed by its head at
       boot/reset (`Audio`/`Music`, `Render*`), and callers reach the leaf directly; a member

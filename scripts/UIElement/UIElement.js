@@ -191,13 +191,6 @@ globalThis.UIElement = class UIElement {
 
     gpu_set_scissor(x1, y1, Math.max(0, x2 - x1), Math.max(0, y2 - y1));
     this._drawChildren();
-    // BUG: [#6523] the scissor does not flush the batch: flush, then re-arm with an untextured
-    // draw, both still inside this clip (docs/GMRT.md).
-    draw_flush();
-    const a0 = draw_get_alpha();
-    draw_set_alpha(0);
-    draw_rectangle_color(0, 0, 1, 1, c_black, c_black, c_black, c_black, false);
-    draw_set_alpha(a0);
     // an unset scissor is never replayed (docs/GMRT.md).
     if (nested) gpu_set_scissor(prev);
     else gpu_set_scissor(0, 0, tw, th);
@@ -278,8 +271,7 @@ globalThis.UIElement = class UIElement {
   /**
    * Any flexpanel style setter applied to this node, then a reflow:
    * `style(flexpanel_node_style_set_margin, flexpanel_edge.left, 8)`; a getter reads `flexpanel`
-   * directly. BUG: [#15065] one door for every setter, as a method apiece would breach the class
-   * method ceiling; and a built-in takes no spread, so the arity is dispatched (docs/GMRT.md).
+   * directly. BUG: a built-in takes no spread, so the arity is dispatched (docs/GMRT.md).
    */
   style(set, ...args) {
     const node = this.flexpanel;

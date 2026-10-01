@@ -161,12 +161,6 @@ globalThis.UITabs = class UITabs {
       );
     }
 
-    // BUG: re-stroke the rule as a trailing untextured draw, so the last label is flushed out of
-    // the pending batch before a clip drawn right after can capture it (docs/GMRT.md #6523).
-    // Redundant with the rule above, so free.
-    draw_set_alpha(1);
-    this._rule(pos, right, bottom);
-
     UIDraw.restore(st);
   }
 
