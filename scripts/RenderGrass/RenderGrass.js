@@ -3,9 +3,9 @@
  * Placement is deterministic — a position hash decides each cell's clumps — so a regenerated or
  * reloaded layer strews the same field with no entity and no save state. Clumps are depth-written
  * alpha-cut uprights with billboard pitch compensation; a `flat` def lies on the ground plane
- * instead. The sheet is a white tint mask, so one sheet colors every biome. Insert right after the
- * terrain passes, so the clumps are in the depth pool before the entities draw. Baked per chunk
- * (`Chunks`), so a terrain write rebakes only the chunks it reaches, once they are in view.
+ * instead. Insert right after the terrain passes, so the clumps are in the depth pool before the
+ * entities draw. Baked per chunk (`Chunks`), so a terrain write rebakes only the chunks it
+ * reaches, once they are in view.
  * @implements {RenderPass}
  */
 globalThis.RenderGrass = class RenderGrass {
@@ -89,7 +89,6 @@ globalThis.RenderGrass = class RenderGrass {
       const sMin = def.scaleMin !== undefined ? def.scaleMin : 1;
       const sMax = def.scaleMax !== undefined ? def.scaleMax : 1;
       const chance = def.chance !== undefined ? def.chance : 1;
-      const tint = def.tint !== undefined ? def.tint : c_white;
       const flat = def.flat === true;
       const salt = this.seed + k * 131;
       const id = def.id;
@@ -131,8 +130,8 @@ globalThis.RenderGrass = class RenderGrass {
             const qx = mirror ? px - (w - a) : px - a;
             const u0 = mirror ? uv[2] : uv[0];
             const u1 = mirror ? uv[0] : uv[2];
-            if (flat) batch.addQuad(qx, py + z0, w, h, u0, uv[1], u1, uv[3], tint);
-            else batch.addUpright(qx, py, z0, w, h, u0, uv[1], u1, uv[3], tint);
+            if (flat) batch.addQuad(qx, py + z0, w, h, u0, uv[1], u1, uv[3]);
+            else batch.addUpright(qx, py, z0, w, h, u0, uv[1], u1, uv[3]);
           }
         }
       }

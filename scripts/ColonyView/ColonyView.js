@@ -34,9 +34,9 @@ globalThis.ColonyView = {
     return ColonyView._renderer(level);
   },
 
-  /** Grass clump defs for a material table; the biome profile's tint and extras override. */
+  /** Grass clump defs for a material table; the biome profile's clump sheet and extras override. */
   _clumpDefs(mats, profile) {
-    const tintHex = profile !== undefined ? profile.clumpTint : undefined;
+    const clumpSprite = profile !== undefined ? profile.clumpSprite : undefined;
     const extra = profile !== undefined ? profile.clutter : undefined;
     const defs = [];
     for (let i = 0; i < mats.length; i++) {
@@ -47,26 +47,25 @@ globalThis.ColonyView = {
       if (def.clump !== undefined)
         rows.push({
           src: def.clump,
-          tint: tintHex !== undefined ? tintHex : def.clump.tint,
+          sprite: clumpSprite !== undefined ? clumpSprite : def.clump.sprite,
         });
       if (def.clutter !== undefined)
         for (let k = 0; k < def.clutter.length; k++)
-          rows.push({ src: def.clutter[k], tint: def.clutter[k].tint });
+          rows.push({ src: def.clutter[k], sprite: def.clutter[k].sprite });
       const own = extra !== undefined ? extra[mat] : undefined;
       if (own !== undefined)
         for (let k = 0; k < own.length; k++)
-          rows.push({ src: own[k], tint: own[k].tint });
+          rows.push({ src: own[k], sprite: own[k].sprite });
       for (let k = 0; k < rows.length; k++) {
         const src = rows[k].src;
         defs.push({
           id: mats[i].type.id,
-          sprite: src.sprite,
+          sprite: rows[k].sprite,
           min: src.min,
           max: src.max,
           chance: src.chance,
           scaleMin: src.scaleMin,
           scaleMax: src.scaleMax,
-          tint: rows[k].tint !== undefined ? Color.parse(rows[k].tint) : undefined,
           edge: src.edge,
           flat: src.flat,
         });

@@ -47,7 +47,6 @@ globalThis.contentBiomes = {
       clutter: [
         {
           sprite: pixGrassWeeds,
-          tint: "#a08662", // dry scrub, apart from the living field's green
           chance: 0.1,
           min: 1,
           max: 1,
@@ -65,19 +64,18 @@ globalThis.contentBiomes = {
       pathCost: 1,
       fertility: 1.4,
     },
-    // `clump` grows a volume layer dense enough to carry the green itself over the soil sheet,
-    // so grass needs no tile set of its own. `clutter` entries are sparse accents of the same
-    // shape plus `chance` (share of cells that carry any); a white-mask sheet takes a `tint`,
-    // and `flat` lays an entry on the ground plane instead of standing it.
+    // `clump` stands a volume layer over a ground sheet darker than its blades, so the field
+    // reads green between the clumps. `clutter` entries are sparse accents of the same shape
+    // plus `chance` (share of cells that carry any), and `flat` lays an entry on the ground
+    // plane instead of standing it.
     grass: {
       name: "Grass",
       color: "#5d8a46",
-      tileset: tsSoil,
+      tileset: tsGrass,
       clump: {
         sprite: pixGrass,
-        tint: "#328464", // the sheet is a white mask, so this is the field's green
-        min: 4,
-        max: 6,
+        min: 3,
+        max: 4,
         scaleMin: 0.7,
         scaleMax: 1.35,
         edge: true,
@@ -123,7 +121,7 @@ globalThis.contentBiomes = {
   //   name       i18n key
   //   indoor?    true for a sealed map with no sky
   //   extras?    [material] — materials no band paints but a stamp may, painted above the bands
-  //   clumpTint? "#hex" — the biome's grass color over the white clump mask
+  //   clumpSprite? sprite — the biome's grass sheet in place of the material's clump sheet
   //   clutter?   { <material>: [entry] } — this biome's own accents, appended to the material's
   //   wind?      0..1 — constant whole-map wind strength; absent = still
   //   ground     { lattice, bands } — [material, threshold] pairs ascending over the ground noise,
@@ -176,7 +174,7 @@ globalThis.contentBiomes = {
     // trees, little game — under constant snow
     frost: {
       name: "BIOME_FROST",
-      clumpTint: "#477d85", // grass gone cold
+      clumpSprite: pixGrassFrost, // grass gone cold
       wind: 0.9,
       ground: {
         lattice: 5,
