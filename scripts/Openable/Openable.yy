@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Openable",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Openable",
+  "parent":{
+    "name":"Component",
+    "path":"folders/Game/Item/Component.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Openable.js",
+}

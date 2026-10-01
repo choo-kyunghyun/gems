@@ -1,6 +1,7 @@
 /**
  * Items on the ground: an ItemDrop entity the player picks up like any station. An instance slot
- * keeps its uid and mods through the drop, so pickup re-inserts the same one.
+ * keeps its uid and mods through the drop, so pickup re-inserts the same one. An opened item's
+ * haul lands in the bag, and what the bag can't take on the ground.
  */
 globalThis.Loot = {
   // world px a spilled slot lands off the body: across, alternating sides, and the default down
@@ -74,6 +75,53 @@ globalThis.Loot = {
     const pos = entities.require(id, Position);
     Loot.drop(entities, s.itemId, s.qty, pos.x, pos.y, s);
     return "";
+  },
+
+  /**
+   * Opens one of a body's Openable items: its table is rolled, the unit spent, the bag takes what
+   * fits and the rest drops at the body's feet. Returns `{ reason, items, dropped }`: `reason` ""
+   * when opened, else the i18n key of why; `items` what the bag took and `dropped` what went to
+   * the ground, one entry per item.
+   */
+  open(entities, id, itemId) {
+    const out = { reason: "", items: [], dropped: [] };
+    const it = Item.get(itemId);
+    if (it === undefined) {
+      out.reason = "INV_UNKNOWN_ITEM";
+      return out;
+    }
+    const op = it.getComponent(Openable);
+    if (op === undefined) {
+      out.reason = "INV_NOT_USABLE";
+      return out;
+    }
+    const inv = entities.require(id, Inventory);
+    if (!Bag.has(inv, itemId, 1)) {
+      out.reason = "INV_NOT_OWNED";
+      return out;
+    }
+    const haul = LootTable.roll(op.table, Math.random);
+    // spent before the haul lands, so its own room goes to what it held
+    Bag.remove(inv, itemId, 1);
+    const pos = entities.require(id, Position);
+    for (let i = 0; i < haul.length; i++) {
+      const h = haul[i];
+      const left = Bag.add(inv, h.itemId, h.qty);
+      if (left < h.qty) Loot._tally(out.items, h.itemId, h.qty - left);
+      if (left === 0) continue;
+      Loot.drop(entities, h.itemId, left, pos.x, pos.y);
+      Loot._tally(out.dropped, h.itemId, left);
+    }
+    return out;
+  },
+
+  _tally(list, itemId, qty) {
+    for (let i = 0; i < list.length; i++)
+      if (list[i].itemId === itemId) {
+        list[i].qty += qty;
+        return;
+      }
+    list.push({ itemId: itemId, qty: qty });
   },
 
   /**

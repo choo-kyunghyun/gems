@@ -121,5 +121,7 @@
   "ITEM_VINYL": "바이닐",
   "ITEM_VINYL_DESC": "붕괴 이전의 음악. 틀 기계만 찾는다면.",
   "ITEM_FLOPPY_DISK": "플로피디스크",
-  "ITEM_FLOPPY_DISK_DESC": "옛 매체에 담긴 옛 데이터. 누군가는 아직 읽을지도."
+  "ITEM_FLOPPY_DISK_DESC": "옛 매체에 담긴 옛 데이터. 누군가는 아직 읽을지도.",
+  "ITEM_SUPPLY_CRATE": "보급 상자",
+  "ITEM_SUPPLY_CRATE_DESC": "단단히 봉인된 상자. 열어 봐야 안에 든 걸 안다."
 }

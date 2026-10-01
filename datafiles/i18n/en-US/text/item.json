@@ -121,5 +121,7 @@
   "ITEM_VINYL": "Vinyl Record",
   "ITEM_VINYL_DESC": "Music from before the collapse, if you can find a player.",
   "ITEM_FLOPPY_DISK": "Floppy Disk",
-  "ITEM_FLOPPY_DISK_DESC": "Old data on old media. Someone might still read it."
+  "ITEM_FLOPPY_DISK_DESC": "Old data on old media. Someone might still read it.",
+  "ITEM_SUPPLY_CRATE": "Supply Crate",
+  "ITEM_SUPPLY_CRATE_DESC": "Sealed tight. Open it to see what's inside."
 }

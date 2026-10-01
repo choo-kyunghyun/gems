@@ -861,6 +861,8 @@ globalThis.InventoryUI = {
       return I18n.text("INV_USE");
     if (it !== undefined && it.hasComponent(Placeable))
       return I18n.text("INV_PLACE");
+    if (it !== undefined && it.hasComponent(Openable))
+      return I18n.text("INV_OPEN");
     return I18n.text("INV_NOACTION");
   },
 
@@ -905,20 +907,49 @@ globalThis.InventoryUI = {
     return row;
   },
 
-  /** The use gesture's view: one call into Use, then its refusal or its sound. */
+  /** The use gesture's view: one call into Use, then its refusal, its haul or its sound. */
   use(scene, itemId, uid) {
-    const why = Use.item(scene.level, scene.playerId, itemId, uid);
+    const got = { items: [], dropped: [] };
+    const why = Use.item(scene.level, scene.playerId, itemId, uid, got);
     scene.window.dirty = true;
     if (why !== "") {
       Toast.push(I18n.text(why), { type: "warn" });
       return;
     }
     Log.info(`used ${itemId}`);
+    if (Item.get(itemId).hasComponent(Openable)) {
+      InventoryUI._haul(scene, got);
+      return;
+    }
     const c = Item.get(itemId).getComponent(Consumable);
     if (c === undefined) return;
     if ((c.needs[Thirst] ?? 0) > 0 || (c.needs[Hunger] ?? 0) > 0)
       Audio.play({ sound: sndDrink });
     else if (c.heal > 0) Audio.play({ sound: sndBandage });
     else Audio.play({ sound: sndMagic });
+  },
+
+  /** An opening's view: credit and toast what the bag took, and name what hit the ground. */
+  _haul(scene, got) {
+    if (got.items.length > 0) {
+      Progression.collectAll(scene.level.entities, got.items);
+      Toast.push(I18n.text("INV_FOUND", InventoryUI._list(got.items)), { type: "success" });
+    }
+    if (got.dropped.length > 0)
+      Toast.push(I18n.text("INV_OPEN_DROPPED", InventoryUI._list(got.dropped)), {
+        type: "info",
+      });
+    if (got.items.length === 0 && got.dropped.length === 0)
+      Toast.push(I18n.text("INV_OPEN_EMPTY"), { type: "info" });
+  },
+
+  /** `[{ itemId, qty }]` as one localized line. */
+  _list(items) {
+    const parts = [];
+    for (let i = 0; i < items.length; i++)
+      parts.push(
+        I18n.text("INV_COUNT", items[i].qty, I18n.text(Item.get(items[i].itemId).name)),
+      );
+    return parts.join(", ");
   },
 };

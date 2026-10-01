@@ -102,6 +102,7 @@ globalThis.contentPrefabs = {
               { itemId: "tactical_headphones", qty: 1 },
               { itemId: "plank", qty: 5 },
               { itemId: "scrap_metal", qty: 3 },
+              { itemId: "supply_crate", qty: 2 },
             ],
           },
           {
@@ -156,6 +157,7 @@ globalThis.contentPrefabs = {
                 { itemId: "cooked_meat", qty: 1 },
                 { itemId: "canned_pork", qty: 1 },
                 { itemId: "canned_tuna", qty: 1 },
+                { itemId: "supply_crate", qty: 1 },
                 { itemId: "pistol_ammo", qty: 1 },
                 { itemId: "rifle_ammo", qty: 1 },
                 { itemId: "kitchen_knife", qty: 1 },

@@ -820,6 +820,19 @@ globalThis.contentItems = {
         rarity: "uncommon",
       },
 
+      // sealed; opening it rolls its loot table
+      {
+        id: "supply_crate",
+        name: "ITEM_SUPPLY_CRATE",
+        description: "ITEM_SUPPLY_CRATE_DESC",
+        sprite: pixItemCrate,
+        weight: 3,
+        value: 30,
+        rarity: "uncommon",
+        stack: 10,
+        components: [new Openable({ table: "supply_crate" })],
+      },
+
       // a key to one vehicle, summoned beside its holder and stowed again
       {
         id: "buggy_key",
