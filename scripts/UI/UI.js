@@ -103,8 +103,8 @@ globalThis.UI = {
   },
 
   draw() {
-    // BUG: the scissor persists across frames; after a resolution shrink the stale rect exceeds
-    // the back buffer and a nested clip replays it every frame. Re-anchor to the live target.
+    // BUG: gpu_get_scissor keeps the last rect across frames, so after a resize a clip would read
+    // and restore the stale size every frame (docs/GMRT.md). Re-anchor to the live target.
     if (Display.renderW > 0) {
       gpu_set_scissor(0, 0, Display.clipW(), Display.clipH());
     }
@@ -118,7 +118,5 @@ globalThis.UI = {
         root.draw();
       }
     }
-    // a grow only clips from next frame, once the back buffer catches up
-    Display.advanceFrame();
   },
 };

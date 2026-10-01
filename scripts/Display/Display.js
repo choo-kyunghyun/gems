@@ -12,33 +12,13 @@ globalThis.Display = {
   // the size is tracked here; authoritative because the window isn't drag-resizable.
   renderW: 0,
   renderH: 0,
-  // renderW/H aged one frame: the back buffer shrinks the same frame but grows a frame late
-  _prevW: 0,
-  _prevH: 0,
 
-  /**
-   * Crash-safe clip size: mid-transition the back buffer equals one of the two sizes, so their
-   * min never exceeds it (a grow just under-clips one frame).
-   */
+  /** The clip target size; the window's until a size is applied. */
   clipW() {
-    if (Display.renderW <= 0) return window_get_width();
-    return Display._prevW > 0
-      ? Math.min(Display.renderW, Display._prevW)
-      : Display.renderW;
+    return Display.renderW > 0 ? Display.renderW : window_get_width();
   },
   clipH() {
-    if (Display.renderH <= 0) return window_get_height();
-    return Display._prevH > 0
-      ? Math.min(Display.renderH, Display._prevH)
-      : Display.renderH;
-  },
-
-  /**
-   * Call once at frame end, so a grow takes clip effect only after the back buffer catches up.
-   */
-  advanceFrame() {
-    Display._prevW = Display.renderW;
-    Display._prevH = Display.renderH;
+    return Display.renderH > 0 ? Display.renderH : window_get_height();
   },
 
   /**
