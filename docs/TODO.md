@@ -15,4 +15,4 @@
 - Killfeed UI
 - Blueprint UI — stamp a captured or registered plan (`Blueprint.stamp`) for its wood
 - [C#] Separating Pathfinding into a different thread
-- [Runtime] Runtime upgrade: re-audit every GMRT.md and SPINE.md entry — a fixed defect leaves its workaround as silent dead weight — and re-run the full test on the candidate; a `perf.*` ratio that moved names the `TODO` at the site citing it, a `testGame` case that flipped names its retirement in its FAIL line, and a JIT (the absolute ns/op collapsing toward V8) makes every hot-path idiom advisory (docs/ARCHITECTURE.md)
+- [Runtime] Runtime upgrade: re-audit every GMRT.md and SPINE.md entry, retiring a fixed one's workaround, and re-run the full test — a flipped `testGame` case or a moved `perf.*` ratio names what to retire
