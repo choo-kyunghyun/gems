@@ -398,8 +398,8 @@ globalThis.facetColumn = function facetColumn(title, content, opts = {}) {
 };
 
 /**
- * Master-detail row: a fixed-width `.list` column beside a `.detail` column that takes the
- * rest. Neither clips, so a page sizes its content to the card.
+ * Master-detail row: a fixed-width `.list` column, scrolled once it outgrows the row, beside a
+ * `.detail` column that takes the rest.
  */
 globalThis.facetListDetail = function facetListDetail(opts = {}) {
   const row = new UIElement({
@@ -408,11 +408,9 @@ globalThis.facetListDetail = function facetListDetail(opts = {}) {
     flexDirection: "row",
     gap: opts.gap ?? FacetTheme.gap,
   });
-  const list = new UIElement({
+  const scroll = facetScroll({
     width: opts.listWidth ?? 210,
     height: "100%",
-    flexShrink: 0,
-    gap: FacetTheme.gapSm,
   });
   const detail = new UIElement({
     flexGrow: 1,
@@ -420,9 +418,9 @@ globalThis.facetListDetail = function facetListDetail(opts = {}) {
     height: "100%",
     gap: FacetTheme.gapSm,
   });
-  row.insertChild(list);
+  row.insertChild(scroll);
   row.insertChild(detail);
-  row.list = list;
+  row.list = scroll.scrollBody;
   row.detail = detail;
   return row;
 };
