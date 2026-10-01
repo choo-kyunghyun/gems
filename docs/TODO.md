@@ -9,11 +9,8 @@
 
 - Mine and Mine Detector
 - Settlement
-    - Farming
-        - More seed sources
     - Fishing
     - Raid event
-- Gacha capsule
 - World map: a trip costs in-game hours but no survival needs; a site's extraction point is its arrival beacon (a separate extraction site is the extraction-shooter tension knob); site codenames from word pools (WORLD_KO) instead of fixed i18n names
 - Killfeed UI
 - Blueprint UI — stamp a captured or registered plan (`Blueprint.stamp`) for its wood
