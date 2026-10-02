@@ -6,21 +6,17 @@
  * whose Inventory pays and is refunded, and a refusal comes back as an i18n key for the caller to
  * show.
  *
- * The build record under KEY — the player-built tiles and entities by "gx,gy", the
- * deconstructable set — is seeded blank on first use and saved with the level.
+ * What a level holds of the catalog is read off the map itself, whoever set it down: an entity
+ * stands as its entry through its Structure, a tile as the entry painting its layer and material.
+ * On a level that builds, all of it deconstructs for a refund.
  */
 globalThis.Build = {
-  KEY: "build", // a data key: a save holds it
   RESOURCE: "plank",
   FACTION: "player",
   // DEV free build: no gate, no cost, no refund — structures built to be captured, not paid for.
   // Session-wide, so it outlives any one map.
   free: false,
   _lost: [], // reap's collector
-
-  of(level) {
-    return level.entities.of(level.self, Build.KEY, () => ({ built: {}, builtEnts: {} }));
-  },
 
   /** Whether the level's settlement is owned by FACTION or an ally. */
   allied(level) {
@@ -36,7 +32,7 @@ globalThis.Build = {
     const lkeys = contentBuild.tileLayers();
     for (let i = 0; i < lkeys.length; i++)
       if (rt[lkeys[i] + "Layer"].occupied(gx, gy)) return false;
-    if (Build.of(level).builtEnts[gx + "," + gy] !== undefined) return false;
+    if (Build.at(level, gx, gy) !== -1) return false;
     // a crop only where its species can root
     if (item.species !== undefined) {
       if (!Flora.canRoot(level, contentFlora.get(item.species), gx, gy))
@@ -105,10 +101,11 @@ globalThis.Build = {
   },
 
   /**
-   * Deconstruct what the player built on each `[gx, gy]` cell, refunding the actor; a refund the
-   * bag can't hold drops on the cell. Returns the number of cells cleared.
+   * Deconstruct the catalog entry on each `[gx, gy]` cell of a level that builds, refunding the
+   * actor; a refund the bag can't hold drops on the cell. Returns the number of cells cleared.
    */
   remove(level, actorId, cells) {
+    if (!Build.free && !Build.allied(level)) return 0;
     let n = 0;
     for (let i = 0; i < cells.length; i++)
       if (Build._remove(level, actorId, cells[i][0], cells[i][1])) n++;
@@ -120,7 +117,7 @@ globalThis.Build = {
    * defaults. An `orient` item turns vertical between walls above and below, the run it closes.
    */
   descriptor(level, item, gx, gy) {
-    const s = { preset: "prop", gx, gy, label: I18n.text(item.labelKey) };
+    const s = { preset: "prop", gx, gy, label: I18n.text(item.labelKey), item: item.id };
     const spawn = item.spawn;
     for (const k in spawn) s[k] = spawn[k];
     if (item.orient === true) {
@@ -130,14 +127,11 @@ globalThis.Build = {
     return s;
   },
 
-  // The placement core: no cost or validity gate, no inventory — the caller decides. Records the
-  // cell in the build record.
+  // The placement core: no cost or validity gate, no inventory — the caller decides.
   //   opts.record  restore this captured row instead of a fresh descriptor, moved to the cell.
   // Returns the entity id for an entity, else undefined.
   put(level, gx, gy, item, opts = {}) {
     const grid = level.grid;
-    const key = gx + "," + gy;
-    const rec = Build.of(level);
     if (item.kind === "tile") {
       // `mat` picks a per-cell material type
       const rt = ColonyMap.runtime(level);
@@ -148,7 +142,6 @@ globalThis.Build = {
           : rt[item.layer + "Type"];
       layer.set(gx, gy, type);
       Grassland.cut(level, gx, gy);
-      rec.built[key] = item.id;
       return;
     }
     // a built entity is an ordinary one: it persists like any other
@@ -157,6 +150,7 @@ globalThis.Build = {
       const wp = grid.gridToWorld(gx, gy);
       id = level.entities.restore(opts.record, {
         [Position]: { x: wp.x, y: wp.y, z: 0 },
+        [Structure]: { item: item.id },
       });
     } else {
       id = ColonySpawn.spawnEntity(
@@ -168,37 +162,71 @@ globalThis.Build = {
       const eq = level.entities.get(id, Equipment);
       if (eq !== undefined) eq.protected = false;
     }
-    rec.builtEnts[key] = { ent: id, itemId: item.id };
     Grassland.cut(level, gx, gy);
     return id;
   },
 
-  /** Deconstruct what the player built at (gx, gy); returns whether anything was removed. */
+  /** The Structure standing on (gx, gy), or -1. */
+  at(level, gx, gy) {
+    const cw = level.grid.cellWidth;
+    const ch = level.grid.cellHeight;
+    let found = -1;
+    level.entities.forEach([Structure, Position], (id, _st, pos) => {
+      if (found !== -1) return; // forEach has no break
+      if (Math.floor(pos.x / cw) === gx && Math.floor(pos.y / ch) === gy) found = id;
+    });
+    return found;
+  },
+
+  /** Whether remove() would clear anything at (gx, gy), the level's gate aside. */
+  removable(level, gx, gy) {
+    if (Build.at(level, gx, gy) !== -1) return true;
+    return Build._tile(level, gx, gy) !== undefined;
+  },
+
+  /**
+   * The catalog entry painting the topmost build layer at (gx, gy); undefined on bare ground or
+   * under a tile no entry paints.
+   */
+  _tile(level, gx, gy) {
+    const rt = ColonyMap.runtime(level);
+    const lkeys = contentBuild.tileLayers();
+    const layers = contentTiles.LAYERS;
+    for (let l = layers.length - 1; l >= 0; l--) {
+      const key = layers[l].key;
+      if (lkeys.indexOf(key) === -1) continue;
+      const layer = rt[key + "Layer"];
+      if (!layer.occupied(gx, gy)) continue;
+      const mats = layers[l].materials;
+      if (mats === undefined) return contentBuild.tileItem(key, undefined);
+      const types = rt[key + "Types"];
+      const type = layer.get(gx, gy);
+      for (let m = 0; m < mats.length; m++)
+        if (types[mats[m].key] === type) return contentBuild.tileItem(key, mats[m].key);
+      return undefined;
+    }
+    return undefined;
+  },
+
+  /** Deconstruct the catalog entry at (gx, gy); returns whether anything was removed. */
   _remove(level, actorId, gx, gy) {
-    const key = gx + "," + gy;
     const entities = level.entities;
-    const rec = Build.of(level);
     // an entity sits on top of a tile, so it goes first
-    const ent = rec.builtEnts[key];
-    if (ent !== undefined) {
-      if (entities.isValid(ent.ent)) {
-        // spill the contents first, else removing the entity deletes them
-        Loot.spill(entities, ent.ent);
-        entities.remove(ent.ent);
-      }
-      Build._refund(level, actorId, ent.itemId, gx, gy);
-      delete rec.builtEnts[key];
-      Log.info(`removed ${ent.itemId} at ${gx},${gy}`);
+    const id = Build.at(level, gx, gy);
+    if (id !== -1) {
+      const itemId = entities.require(id, Structure).item;
+      // spill the contents first, else removing the entity deletes them
+      Loot.spill(entities, id);
+      entities.remove(id);
+      Build._refund(level, actorId, itemId, gx, gy);
+      Log.info(`removed ${itemId} at ${gx},${gy}`);
       return true;
     }
-    const tileId = rec.built[key];
-    if (tileId === undefined) return false; // only player-built cells are deconstructable
-    const item = contentBuild.item(tileId);
-    const lkey = item !== undefined ? item.layer : "floor"; // a stale id clears the floor
-    ColonyMap.runtime(level)[lkey + "Layer"].clear(gx, gy);
-    Build._refund(level, actorId, tileId, gx, gy);
-    delete rec.built[key];
-    Log.info(`removed ${tileId} at ${gx},${gy}`);
+    const item = Build._tile(level, gx, gy);
+    if (item === undefined) return false;
+    ColonyMap.runtime(level)[item.layer + "Layer"].clear(gx, gy);
+    Build._refund(level, actorId, item.id, gx, gy);
+    Log.info(`removed ${item.id} at ${gx},${gy}`);
     return true;
   },
 
@@ -232,32 +260,21 @@ globalThis.Build = {
   },
 
   /**
-   * Per frame: drop built entities destroyed in combat from the build record, freeing the cell
-   * and keeping a dead handle out of the save. Their contents spill; no refund. Returns the
-   * destroyed item ids in a buffer reused by the next call.
+   * Per frame: remove the structures destroyed in combat, their contents spilled, no refund.
+   * Returns the item ids lost on a level that builds, in a buffer reused by the next call.
    */
   reap(level) {
     const lost = Build._lost;
     let w = 0;
     const entities = level.entities;
-    const builtEnts = Build.of(level).builtEnts;
-    const keys = Object.keys(builtEnts);
-    for (let i = 0; i < keys.length; i++) {
-      const k = keys[i];
-      const e = builtEnts[k];
-      if (!entities.isValid(e.ent)) {
-        delete builtEnts[k];
-        continue;
-      }
-      const hp = entities.get(e.ent, Health);
-      if (hp !== undefined && hp.hp <= 0) {
-        Loot.spill(entities, e.ent);
-        entities.remove(e.ent);
-        delete builtEnts[k];
-        lost[w++] = e.itemId;
-        Log.info(`built ${e.itemId} destroyed at ${k}`);
-      }
-    }
+    const own = Build.free || Build.allied(level);
+    entities.forEach([Structure, Health], (id, st, hp) => {
+      if (hp.hp > 0) return;
+      Loot.spill(entities, id);
+      entities.remove(id);
+      if (own) lost[w++] = st.item;
+      Log.info(`built ${st.item} destroyed`);
+    });
     lost.length = w;
     return lost;
   },

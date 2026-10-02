@@ -67,8 +67,7 @@ globalThis.Flora = {
 
   /**
    * Can `def` take root at a cell: inside the border margin, on fertile enough ground, under no
-   * build layer or built entity, and with nothing standing on the cell — a body, a prop, another
-   * plant.
+   * build layer, and with nothing standing on the cell — a body, a prop, another plant.
    */
   canRoot(level, def, gx, gy) {
     const grid = level.grid;
@@ -81,8 +80,6 @@ globalThis.Flora = {
     const lkeys = contentBuild.tileLayers();
     for (let i = 0; i < lkeys.length; i++)
       if (rt[lkeys[i] + "Layer"].occupied(gx, gy)) return false;
-    if (Build.of(level).builtEnts[gx + "," + gy] !== undefined)
-      return false;
     const w = grid.gridToWorld(gx, gy);
     const hw = grid.cellWidth / 2;
     const hh = grid.cellHeight / 2;

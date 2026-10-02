@@ -9,7 +9,8 @@
  *
  * Every descriptor takes `preset` and grid coords `gx/gy`, plus `label?` (its Name), `size?` (a
  * per-spawn scalar on the def's scale), `settlement?` (the map whose settlement it is a Resident
- * of) and, on mesh spawns, `yaw?` (a visual turn in degrees; the collider stays axis-aligned).
+ * of), `item?` (the build catalog entry it stands as, its Structure) and, on mesh spawns, `yaw?`
+ * (a visual turn in degrees; the collider stays axis-aligned).
  *
  * The helpers below `_spawn` are the hooks' vocabulary, so a preset states its rule in one line.
  */
@@ -52,6 +53,7 @@ globalThis.ColonySpawn = {
     const def = EntityPreset.get(s.preset);
     const over = {};
     if (s.label !== undefined) over.Name = { name: s.label };
+    if (s.item !== undefined) over[Structure] = { item: s.item };
     if (def.adapt !== undefined) def.adapt(s, over, { grid, w });
     // mesh-bearing spawns only: a bare Mesh on a sprite entity has no dims. The collider stays
     // axis-aligned, so a 90° turn of oblong furniture authors the swapped footprint.

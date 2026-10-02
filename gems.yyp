@@ -466,6 +466,7 @@
     {"id":{"name":"StatusEffects","path":"scripts/StatusEffects/StatusEffects.yy",},},
     {"id":{"name":"StatusSystem","path":"scripts/StatusSystem/StatusSystem.yy",},},
     {"id":{"name":"StorageUI","path":"scripts/StorageUI/StorageUI.yy",},},
+    {"id":{"name":"Structure","path":"scripts/Structure/Structure.yy",},},
     {"id":{"name":"Table","path":"scripts/Table/Table.yy",},},
     {"id":{"name":"Talk","path":"scripts/Talk/Talk.yy",},},
     {"id":{"name":"Temperature","path":"scripts/Temperature/Temperature.yy",},},

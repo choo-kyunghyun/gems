@@ -29,7 +29,6 @@ globalThis.GrassSystem = {
     if (grass === undefined || host === undefined) return;
     const grid = level.grid;
     const rt = ColonyMap.runtime(level);
-    const builtEnts = Build.of(level).builtEnts;
     const layer = rt.terrainLayer;
     const cap = Math.floor(grid.cols * grid.rows * GrassSystem.CAP_SHARE);
     let count = 0;
@@ -53,10 +52,11 @@ globalThis.GrassSystem = {
         layer.get(gx, gy - 1) === grass ||
         layer.get(gx, gy + 1) === grass;
       if (!front) continue;
-      let covered = builtEnts[gx + "," + gy] !== undefined;
+      let covered = false;
       for (let k = 0; k < lkeys.length; k++)
         if (rt[lkeys[k] + "Layer"].occupied(gx, gy)) covered = true;
       if (covered) continue;
+      if (Build.at(level, gx, gy) !== -1) continue;
       layer.set(gx, gy, grass);
       count++;
     }

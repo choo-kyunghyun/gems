@@ -2,7 +2,7 @@
  * A plan is a LevelData, so a captured plan is a prefab body.
  *
  * capture() reads a plan off a cell rect of the live map — every tile layer but the terrain, plus
- * the built entities as catalog descriptors carrying the `item` id stamp() rebuilds them from, and
+ * the Structures as catalog descriptors carrying the `item` id stamp() rebuilds them from, and
  * optionally each one's exact record. export() writes a plan as a pretty prefab literal.
  *
  * stamp() places a plan through the build path, so a stamped build is identical to a hand-placed
@@ -44,25 +44,21 @@ globalThis.Blueprint = {
       }
     }
     const spawns = [];
-    const builtEnts = Build.of(level).builtEnts;
-    const ek = Object.keys(builtEnts);
-    for (let i = 0; i < ek.length; i++) {
-      const c = ek[i].split(",");
-      const gx = Number(c[0]);
-      const gy = Number(c[1]);
-      if (gx < x1 || gx > x2 || gy < y1 || gy > y2) continue;
-      const e = builtEnts[ek[i]];
-      const item = contentBuild.item(e.itemId);
-      if (item === undefined) continue; // stale catalog id
+    const cw = level.grid.cellWidth;
+    const ch = level.grid.cellHeight;
+    level.entities.forEach([Structure, Position], (id, st, pos) => {
+      const gx = Math.floor(pos.x / cw);
+      const gy = Math.floor(pos.y / ch);
+      if (gx < x1 || gx > x2 || gy < y1 || gy > y2) return;
+      const item = contentBuild.item(st.item);
+      if (item === undefined) return; // stale catalog id
       // described at the live cell (a door orients off its neighbours), then localised
       const s = Build.descriptor(level, item, gx, gy);
       s.gx = gx - x1;
       s.gy = gy - y1;
-      s.item = e.itemId;
-      if (opts.withState === true && level.entities.isValid(e.ent))
-        s.record = level.entities.capture(e.ent);
+      if (opts.withState === true) s.record = level.entities.capture(id);
       spawns.push(s);
-    }
+    });
     return { cols: cols, rows: rows, tiles: tiles, spawns: spawns };
   },
 

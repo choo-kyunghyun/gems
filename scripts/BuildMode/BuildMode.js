@@ -405,13 +405,10 @@ globalThis.BuildMode = {
     if (cell.x < 0 || cell.y < 0 || cell.x >= grid.cols || cell.y >= grid.rows)
       return;
 
-    const key = cell.x + "," + cell.y;
     const wx = cell.x * grid.cellWidth;
     const wy = cell.y * grid.cellHeight;
     let col;
-    const rec = Build.of(scene.level);
-    if (rec.built[key] !== undefined || rec.builtEnts[key] !== undefined)
-      col = c_yellow;
+    if (Build.removable(scene.level, cell.x, cell.y)) col = c_yellow;
     else {
       const ok =
         panel.held !== ""

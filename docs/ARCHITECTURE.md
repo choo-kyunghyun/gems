@@ -231,9 +231,9 @@ and are cited from here, never restated):
   identity. A consumer re-derives the entity it wants by component-presence query at use
   (`scene.playerId` from `Playable`, the camera target and the audio listener's body from
   `CameraFocus`, NPCs/beacons/enemies by `entities.query`/`Query`); one that must hold an id across
-  frames (a built entity in `Build`'s build record, a `Window` page's `target`) validates it
-  through `entities.isValid` before every use, and no id ever crosses a map — it names a slot in
-  one store. Markers are components, not tag strings.
+  frames (a `Window` page's `target`) validates it through `entities.isValid` before every use,
+  and no id ever crosses a map — it names a slot in one store. Markers are components, not tag
+  strings.
 - Collision is the runtime's, over each collider's mirror instance (`PuppetSystem`) and the
   level's blocking cells as a tile map (`SolidTiles`): a query or a move goes through
   `Puppet`/`Solid` and the tile map, never a JS sweep; a cast walks the cells in JS, since the

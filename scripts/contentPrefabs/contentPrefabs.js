@@ -85,17 +85,18 @@ globalThis.contentPrefabs = {
           { preset: "prop", gx: 2, gy: 3, kind: "travel", label: "Beacon" },
           { preset: "prop", gx: 4, gy: 2, kind: "settlement", label: "Command Post" },
           // walls left and right, so the leaf lies flat
-          { preset: "prop", gx: 12, gy: 12, kind: "door", label: "Door" },
-          { preset: "lantern", gx: 14, gy: 11 },
-          { preset: "prop", gx: 37, gy: 20, kind: "door", label: "Door" },
-          { preset: "prop", gx: 32, gy: 23, kind: "bed", furn: "cot", label: "Cot" },
-          { preset: "prop", gx: 35, gy: 23, kind: "bed", furn: "cot", label: "Cot" },
-          { preset: "lantern", gx: 42, gy: 27 },
+          { preset: "prop", gx: 12, gy: 12, kind: "door", label: "Door", item: "door" },
+          { preset: "lantern", gx: 14, gy: 11, item: "lantern" },
+          { preset: "prop", gx: 37, gy: 20, kind: "door", label: "Door", item: "door" },
+          { preset: "prop", gx: 32, gy: 23, kind: "bed", furn: "cot", label: "Cot", item: "cot" },
+          { preset: "prop", gx: 35, gy: 23, kind: "bed", furn: "cot", label: "Cot", item: "cot" },
+          { preset: "lantern", gx: 42, gy: 27, item: "lantern" },
           {
             preset: "chest",
             gx: 10,
             gy: 9,
             settlement: "hub",
+            item: "chest",
             items: [
               { itemId: "first_aid_kit", qty: 2 },
               { itemId: "floppy_disk", qty: 1 },
@@ -113,6 +114,7 @@ globalThis.contentPrefabs = {
             color: "#966e46",
             kind: "workbench",
             tags: ["basic"],
+            item: "workbench",
           },
           {
             preset: "prop",
@@ -123,6 +125,7 @@ globalThis.contentPrefabs = {
             kind: "workbench",
             tags: ["machining"],
             title: "CRAFT_TITLE_MACHINING",
+            item: "machining_bench",
           },
           {
             preset: "prop",
@@ -131,6 +134,7 @@ globalThis.contentPrefabs = {
             label: "Mod Bench",
             color: "#966e46",
             kind: "modbench",
+            item: "mod_bench",
           },
           {
             preset: "npc",
@@ -321,6 +325,7 @@ globalThis.contentPrefabs = {
             preset: "chest",
             gx: 2,
             gy: 2,
+            item: "chest",
             items: [
               { itemId: "coin", qty: 5 },
               { itemId: "scrap_metal", qty: 2 },
@@ -352,6 +357,7 @@ globalThis.contentPrefabs = {
             preset: "chest",
             gx: 1,
             gy: 2,
+            item: "chest",
             items: [
               { itemId: "gold", qty: 1 },
               { itemId: "scrap_metal", qty: 2 },
