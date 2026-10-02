@@ -412,7 +412,7 @@ globalThis.BuildMode = {
     else {
       const ok =
         panel.held !== ""
-          ? Build.fits(scene.level, scene.playerId, panel.prop, cell.x, cell.y)
+          ? Build.fits(scene.level, panel.prop, cell.x, cell.y)
           : Build.canPlace(scene.level, scene.playerId, panel.item, cell.x, cell.y);
       col = ok ? c_lime : c_red;
     }

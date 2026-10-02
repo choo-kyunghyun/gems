@@ -25,7 +25,7 @@ globalThis.Build = {
   },
 
   /** Can `item` stand at (gx, gy), cost aside — the per-cell test a shape runs. */
-  fits(level, actorId, item, gx, gy) {
+  fits(level, item, gx, gy) {
     const grid = level.grid;
     if (!Build.free && !Build.allied(level)) return false;
     const rt = ColonyMap.runtime(level);
@@ -38,21 +38,24 @@ globalThis.Build = {
       if (!Flora.canRoot(level, contentFlora.get(item.species), gx, gy))
         return false;
     }
-    // a solid item never lands on the actor's own cell
+    // a solid item never lands on a solid body, the builder's own included; inset a pixel so a
+    // neighbour touching the cell's edge stays clear
     const solid = !(
       item.kind === "tile" && contentTiles.get(item.layer).solid !== true
     );
     if (solid) {
-      const pp = level.entities.require(actorId, Position);
-      const pc = grid.worldToGrid(pp.x, pp.y);
-      if (pc.x === gx && pc.y === gy) return false;
+      const x1 = gx * grid.cellWidth + 1;
+      const y1 = gy * grid.cellHeight + 1;
+      const x2 = x1 + grid.cellWidth - 2;
+      const y2 = y1 + grid.cellHeight - 2;
+      if (Query.maskRect(level.entities, x1, y1, x2, y2).length > 0) return false;
     }
     return true;
   },
 
   /** fits plus the cost of one palette placement. */
   canPlace(level, actorId, item, gx, gy) {
-    if (!Build.fits(level, actorId, item, gx, gy)) return false;
+    if (!Build.fits(level, item, gx, gy)) return false;
     if (Build.free) return true;
     const inv = level.entities.require(actorId, Inventory);
     return Bag.has(inv, Build.RESOURCE, item.cost);
@@ -66,7 +69,7 @@ globalThis.Build = {
   place(level, actorId, item, cells) {
     const todo = [];
     for (let i = 0; i < cells.length; i++)
-      if (Build.fits(level, actorId, item, cells[i][0], cells[i][1]))
+      if (Build.fits(level, item, cells[i][0], cells[i][1]))
         todo.push(cells[i]);
     if (todo.length === 0) return { placed: 0, cost: 0, reason: "" };
     const cost = todo.length * item.cost;
@@ -90,7 +93,7 @@ globalThis.Build = {
     const pc = it !== undefined ? it.getComponent(Placeable) : undefined;
     if (pc === undefined) return "INV_NOT_USABLE";
     const entry = contentBuild.item(pc.build);
-    if (!Build.fits(level, actorId, entry, gx, gy)) return "BUILD_BLOCKED";
+    if (!Build.fits(level, entry, gx, gy)) return "BUILD_BLOCKED";
     if (!Build.free) {
       const inv = level.entities.require(actorId, Inventory);
       if (Bag.remove(inv, itemId, 1) < 1) return "INV_NOT_OWNED";
