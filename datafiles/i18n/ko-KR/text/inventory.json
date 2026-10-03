@@ -33,6 +33,7 @@
   "STAT_SPD": "속도",
   "STAT_HP": "최대 체력",
   "STAT_STA": "최대 기력",
+  "STAT_WARMTH": "보온",
   "INV_ATTRIBUTES": "능력치",
   "ATTR_POW": "힘",
   "ATTR_VIT": "활력",

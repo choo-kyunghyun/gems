@@ -1,6 +1,6 @@
 /**
- * The on-demand verbs over a need meter, and the meter-plus-critical-debuff core every need
- * driver shares; the clock rise is not here. Stat-model-agnostic: a critical need's consequence
+ * The on-demand verbs over a need meter, and its meter-plus-critical-debuff core; the clock rise
+ * is not here. Stat-model-agnostic: a critical need's consequence
  * is a Status.
  */
 globalThis.Needs = {
@@ -24,17 +24,6 @@ globalThis.Needs = {
     c.value = value < 0 ? 0 : value > c.max ? c.max : value;
     Needs.refresh(entities, id, c);
     return true;
-  },
-
-  /**
-   * Per tick for an environmental need: a signed `rate` per second — rising in a hostile place,
-   * recovering in a safe one — clamped 0..max.
-   */
-  step(entities, id, comp, rate) {
-    comp.value += rate * Time.step;
-    if (comp.value > comp.max) comp.value = comp.max;
-    else if (comp.value < 0) comp.value = 0;
-    Needs.refresh(entities, id, comp);
   },
 
   /** Idempotent and cheap, so fine each tick; "" status = no debuff. */

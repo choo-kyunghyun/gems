@@ -1,5 +1,5 @@
-// How warm a world point stands, read off the level's room mirror and temperature record. It
-// reads them only; it keeps neither.
+// How warm a world point stands, read off the level's room mirror and temperature record, and how
+// warm a body there feels. It reads them only; it keeps neither.
 globalThis.Shelter = {
   /** Kelvin: the point's room's, or the outside's. */
   tempAt(level, wx, wy) {
@@ -10,5 +10,12 @@ globalThis.Shelter = {
     if (rec === undefined) return Temperature.now();
     const t = rec.temps[String(map.zones[r].first)];
     return t !== undefined ? t : Temperature.now();
+  },
+
+  /** Kelvin: where the body stands, plus its gear's warmth. */
+  felt(level, id) {
+    const pos = level.entities.require(id, Position);
+    const stats = level.entities.get(id, Stats);
+    return Shelter.tempAt(level, pos.x, pos.y) + (stats !== undefined ? stats.warmth : 0);
   },
 };

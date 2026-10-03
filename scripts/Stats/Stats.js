@@ -8,5 +8,6 @@
  * @property {number} attack
  * @property {number} defense
  * @property {number} speed
+ * @property {number} warmth Kelvin the gear adds to the temperature the body feels
  */
 globalThis.Stats = "Stats";

@@ -4,8 +4,8 @@
 globalThis.contentNeeds = {
   register() {
     Need.register([
-      // clock needs: rising meters, the named debuff applying at `critical`; rate per second,
-      // tuned to deplete over minutes
+      // rising meters, the named debuff applying at `critical`; rate per second, tuned to deplete
+      // over minutes
       {
         id: Thirst,
         name: "SURVIVAL_THIRST",
@@ -20,22 +20,6 @@ globalThis.contentNeeds = {
         id: Drowsiness,
         name: "SURVIVAL_DROWSINESS",
         seed: { value: 0, max: 100, rate: 0.4, critical: 0.85, status: "drowsy" },
-      },
-      // environmental need: the rate is signed by where the body stands
-      {
-        id: Cold,
-        name: "SURVIVAL_COLD",
-        system: ColdSystem,
-        seed: {
-          value: 0,
-          max: 100,
-          rate: 1.0,
-          recover: 3,
-          critical: 0.8,
-          status: "hypothermic",
-          comfort: Temperature.ZERO_C + 5,
-          span: 15,
-        },
       },
     ]);
   },

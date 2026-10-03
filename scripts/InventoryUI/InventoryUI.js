@@ -84,6 +84,7 @@ globalThis.InventoryUI = {
     speed: "STAT_SPD",
     maxHp: "STAT_HP",
     maxStamina: "STAT_STA",
+    warmth: "STAT_WARMTH",
   },
 
   _buildItemsTab(scene, page) {
@@ -477,6 +478,7 @@ globalThis.InventoryUI = {
     tab.insertChild(statRow("STAT_ATK", (st) => st.attack));
     tab.insertChild(statRow("STAT_DEF", (st) => st.defense));
     tab.insertChild(statRow("STAT_SPD", (st) => Math.round(st.speed)));
+    tab.insertChild(statRow("STAT_WARMTH", (st) => st.warmth));
 
     // primary attributes: the inputs the derived stats come from
     tab.insertChild(facetDivider());

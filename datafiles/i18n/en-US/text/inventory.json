@@ -33,6 +33,7 @@
   "STAT_SPD": "Speed",
   "STAT_HP": "Max HP",
   "STAT_STA": "Max Stamina",
+  "STAT_WARMTH": "Warmth",
   "INV_ATTRIBUTES": "Attributes",
   "ATTR_POW": "Power",
   "ATTR_VIT": "Vitality",

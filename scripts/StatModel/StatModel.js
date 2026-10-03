@@ -31,6 +31,7 @@ globalThis.StatModel = {
       defense: Math.floor(a.vit / 4),
       speed: StatModel.SPEED + a.agi * StatModel.SPEED_AGI,
       maxStamina: 40 + a.end * 10,
+      warmth: 0,
     };
   },
 
@@ -50,6 +51,7 @@ globalThis.StatModel = {
     stats.defense = d.defense;
     stats.speed = d.speed;
     stats.maxStamina = d.maxStamina;
+    stats.warmth = d.warmth;
     // a raised maximum doesn't free-heal
     const hp = entities.get(id, Health);
     if (hp !== undefined && hp.hp > stats.maxHp) hp.hp = stats.maxHp;

@@ -240,13 +240,12 @@ globalThis.Hud = {
       ),
     );
     card.insertChild(timeRow);
-    // the temperature where the player stands, indoors or out
+    // the temperature the player feels, indoors or out, gear included
     const tempRow = new UIElement({ width: "100%", height: 20 });
     tempRow.insertChild(
       facetLabel(
         () => {
-          const pos = scene.level.entities.require(scene.playerId, Position);
-          const k = Shelter.tempAt(scene.level, pos.x, pos.y);
+          const k = Shelter.felt(scene.level, scene.playerId);
           return I18n.text(
             "HUD_CONDITION",
             I18n.text(Weather.current().name),

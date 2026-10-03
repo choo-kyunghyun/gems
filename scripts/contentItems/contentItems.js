@@ -396,7 +396,7 @@ globalThis.contentItems = {
         weight: 1,
         value: 6,
         rarity: "common",
-        components: [new Equippable({ slot: "body", worn: pixShirtBlue })],
+        components: [new Equippable({ slot: "body", mods: { warmth: 2 }, worn: pixShirtBlue })],
       },
       {
         id: "pants",
@@ -406,7 +406,7 @@ globalThis.contentItems = {
         weight: 1,
         value: 6,
         rarity: "common",
-        components: [new Equippable({ slot: "legs", worn: pixPantsKhaki })],
+        components: [new Equippable({ slot: "legs", mods: { warmth: 2 }, worn: pixPantsKhaki })],
       },
       {
         id: "beanie",
@@ -416,7 +416,7 @@ globalThis.contentItems = {
         weight: 0,
         value: 8,
         rarity: "common",
-        components: [new Equippable({ slot: "head", worn: pixHatBeanie })],
+        components: [new Equippable({ slot: "head", mods: { warmth: 3 }, worn: pixHatBeanie })],
       },
       {
         id: "jungle_hat",
@@ -461,7 +461,7 @@ globalThis.contentItems = {
         components: [
           new Equippable({
             slot: "outer",
-            mods: { defense: 2, maxHp: 5 },
+            mods: { defense: 2, maxHp: 5, warmth: 3 },
             worn: pixOuterArmoredVest,
           }),
         ],
@@ -474,7 +474,7 @@ globalThis.contentItems = {
         weight: 3,
         value: 35,
         rarity: "uncommon",
-        components: [new Equippable({ slot: "outer", worn: pixOuterDuster })],
+        components: [new Equippable({ slot: "outer", mods: { warmth: 8 }, worn: pixOuterDuster })],
       },
       {
         id: "work_gloves",
@@ -484,7 +484,7 @@ globalThis.contentItems = {
         weight: 1,
         value: 10,
         rarity: "common",
-        components: [new Equippable({ slot: "hands", worn: pixGloveLeather })],
+        components: [new Equippable({ slot: "hands", mods: { warmth: 2 }, worn: pixGloveLeather })],
       },
       {
         id: "work_boots",
@@ -494,7 +494,7 @@ globalThis.contentItems = {
         weight: 2,
         value: 20,
         rarity: "common",
-        components: [new Equippable({ slot: "feet", worn: pixShoeBoot })],
+        components: [new Equippable({ slot: "feet", mods: { warmth: 2 }, worn: pixShoeBoot })],
       },
       {
         id: "backpack",

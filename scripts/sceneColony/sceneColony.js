@@ -264,7 +264,7 @@ class _SceneColonyClass {
    * frame.
    */
   _simulate() {
-    // before the needs read shelter
+    // before the cold reads shelter
     RoomSystem.update(this.level);
     FloraSystem.update(this.level);
     GrassSystem.update(this.level);
@@ -273,6 +273,7 @@ class _SceneColonyClass {
     StatusSystem.update(this.level);
     EncumbranceSystem.update(this.level);
     NeedSystem.update(this.level);
+    ColdSystem.update(this.level);
     Sleep.rest(this.sleep, this.level.entities, this.playerId);
     PuppetSystem.update(this.level);
     FollowerSystem.update(this.level);

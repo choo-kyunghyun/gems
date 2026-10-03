@@ -48,7 +48,7 @@ globalThis.contentStatuses = {
         beneficial: false,
         mult: { speed: 0.6 },
       },
-      // the environmental need's critical debuff
+      // the cold's debuff
       {
         id: "hypothermic",
         name: "STATUS_HYPOTHERMIC",

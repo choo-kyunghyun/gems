@@ -2,7 +2,6 @@
   "SURVIVAL_THIRST": "갈증",
   "SURVIVAL_HUNGER": "허기",
   "SURVIVAL_DROWSINESS": "휴식",
-  "SURVIVAL_COLD": "체온",
 
   "SURVIVAL_DRINK_PROMPT": "[E] 마시기",
   "SURVIVAL_DRINK_DONE": "갈증이 해소되었습니다",

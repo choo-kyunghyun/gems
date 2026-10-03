@@ -395,7 +395,8 @@ globalThis.contentPresets = {
           Stamina: { value: 100, cost: 25, regen: 22 },
           Attributes: StatModel.defaults(),
           // seeds only: post's recompute overwrites them from the attributes; speed in world px/s
-          Stats: { maxHp: 10, maxStamina: 100, attack: 1, defense: 0, speed: 220 },
+          Stats: { maxHp: 10, maxStamina: 100, attack: 1, defense: 0, speed: 220, warmth: 0 },
+          Cold: { threshold: Temperature.ZERO_C + 5, status: "hypothermic" },
           Inventory: { maxWeight: 100 },
           Encumbrance: {},
           Equipment: {},
