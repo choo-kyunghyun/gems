@@ -1,4 +1,4 @@
-// Runs an entity's buffs/debuffs per tick — dot/hot over time, duration countdown/expiry.
+// Runs an entity's buffs/debuffs per tick — hot over time, duration countdown/expiry.
 globalThis.StatusSystem = {
   /**
    * Iterates BACKWARDS for the in-place splice on expiry. Stats re-derive once per entity if any
@@ -16,7 +16,7 @@ globalThis.StatusSystem = {
           eff.list.splice(j, 1); // unknown id (content unloaded)
           continue;
         }
-        if (def.dot > 0 || def.hot > 0) {
+        if (def.hot > 0) {
           inst.accum += dt;
           while (inst.accum >= def.interval) {
             inst.accum -= def.interval;
@@ -35,20 +35,14 @@ globalThis.StatusSystem = {
     });
   },
 
-  /**
-   * DoT bypasses mitigation — poison ignores armor; HoT clamps to max hp. Only changes hp — the
-   * reaction to <=0 is not here.
-   */
+  /** HoT clamps to max hp. */
   _applyTick(entities, id, def) {
     const hp = entities.get(id, Health);
     if (hp === undefined) return;
-    if (def.dot > 0) hp.hp -= def.dot * def.interval;
-    if (def.hot > 0) {
-      const stats = entities.get(id, Stats);
-      const cap =
-        stats !== undefined ? stats.maxHp : hp.hp + def.hot * def.interval;
-      hp.hp += def.hot * def.interval;
-      if (hp.hp > cap) hp.hp = cap;
-    }
+    const stats = entities.get(id, Stats);
+    const cap =
+      stats !== undefined ? stats.maxHp : hp.hp + def.hot * def.interval;
+    hp.hp += def.hot * def.interval;
+    if (hp.hp > cap) hp.hp = cap;
   },
 };

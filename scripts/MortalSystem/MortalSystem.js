@@ -62,19 +62,9 @@ globalThis.MortalSystem = {
     Log.info(`${kind} killed — kills=${Tracker.count("enemiesKilled")}`);
   },
 
-  /**
-   * Back to the map's spawn, stopped, every need at mid-meter so the death clears the critical
-   * debuff that caused it.
-   */
+  /** Back to the map's spawn, stopped. */
   _respawn(level, id) {
-    const entities = level.entities;
     MortalSystem._toSpawn(level, id);
-    const needs = Need.all();
-    for (let i = 0; i < needs.length; i++) {
-      const need = entities.get(id, needs[i].id);
-      if (need === undefined) continue; // a save from before the need
-      Needs.set(entities, id, needs[i].id, need.max * 0.5);
-    }
     Log.info("player died — respawned at spawn");
   },
 

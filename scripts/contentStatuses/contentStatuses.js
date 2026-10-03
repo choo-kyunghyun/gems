@@ -32,16 +32,14 @@ globalThis.contentStatuses = {
         name: "STATUS_DEHYDRATED",
         color: "#4aa3d6",
         beneficial: false,
-        dot: 1,
-        interval: 2,
+        mult: { speed: 0.8 },
       },
       {
         id: "starving",
         name: "STATUS_STARVING",
         color: "#c98a3a",
         beneficial: false,
-        dot: 1,
-        interval: 2,
+        mult: { speed: 0.8 },
       },
       {
         id: "drowsy",
@@ -56,8 +54,6 @@ globalThis.contentStatuses = {
         name: "STATUS_HYPOTHERMIC",
         color: "#9fc4e8",
         beneficial: false,
-        dot: 1,
-        interval: 3,
         mult: { speed: 0.7 },
       },
     ]);
