@@ -3,8 +3,8 @@
  * Quest tracker — a live list bound to an injected quest source, so the widget stays
  * genre-agnostic. The source exposes `activeIds()`,
  * `def(id) → { name, objLabel, objectives:[{count}] }`, `status(id) → { ready, progress:[] }`.
- * Immediate-mode over one element, reading the source live each frame — no child rebuild. A null
- * source renders empty.
+ * Immediate-mode over one element, reading the source live each frame — no child rebuild — and
+ * fitting the element's height to the list. A null source renders empty.
  */
 globalThis.UIQuestTracker = class UIQuestTracker {
   constructor(t = {}) {
@@ -15,6 +15,7 @@ globalThis.UIQuestTracker = class UIQuestTracker {
     this.bodyFontKey = t.bodyFontKey ?? null;
     this.padX = t.padX ?? 14;
     this.padY = t.padY ?? 12;
+    // row heights are floors: a taller font grows its row
     this.titleH = t.titleH ?? 24;
     this.objH = t.objH ?? 20;
     this.objIndent = t.objIndent ?? 10;
@@ -26,19 +27,37 @@ globalThis.UIQuestTracker = class UIQuestTracker {
     this.pendColor = t.pendColor ?? make_colour_rgb(154, 163, 178);
     this.emptyColor = t.emptyColor ?? make_colour_rgb(154, 163, 178);
     this.emptyText = t.emptyText ?? ""; // string or () => string
+    this.titleRow = this.titleH;
+    this.objRow = this.objH;
   }
 
-  /** Total pixel height of the list, for sizing the element to scroll. */
-  contentHeight() {
+  _rowH(font, floor) {
+    if (font === -1) return Math.max(floor, string_height("0"));
+    const prev = draw_get_font();
+    draw_set_font(font);
+    const h = Math.max(floor, string_height("0"));
+    draw_set_font(prev);
+    return h;
+  }
+
+  onUpdate(element, block) {
+    this.titleRow = this._rowH(this._font(this.titleFontKey), this.titleH);
+    this.objRow = this._rowH(this._font(this.bodyFontKey), this.objH);
     const ids = this.source ? this.source.activeIds() : [];
-    if (ids.length === 0) return this.padY * 2 + this.objH;
     let h = this.padY * 2;
+    if (ids.length === 0) h += this.objRow;
     for (let i = 0; i < ids.length; i++) {
       const def = this.source.def(ids[i]);
-      h += this.titleH + def.objectives.length * this.objH;
+      h += this.titleRow + def.objectives.length * this.objRow;
       if (i < ids.length - 1) h += this.questGap;
     }
-    return h;
+    if (element.getHeight().value != h)
+      element.setHeight(h, flexpanel_unit.point);
+    return block;
+  }
+
+  _font(key) {
+    return key !== null ? I18n.font(key) : -1;
   }
 
   onDraw(element) {
@@ -51,10 +70,8 @@ globalThis.UIQuestTracker = class UIQuestTracker {
     const x = pos.left + this.padX;
     let y = pos.top + this.padY;
 
-    const titleFont =
-      this.titleFontKey !== null ? I18n.font(this.titleFontKey) : -1;
-    const bodyFont =
-      this.bodyFontKey !== null ? I18n.font(this.bodyFontKey) : -1;
+    const titleFont = this._font(this.titleFontKey);
+    const bodyFont = this._font(this.bodyFontKey);
 
     const ids = this.source ? this.source.activeIds() : [];
     if (ids.length === 0) {
@@ -74,7 +91,7 @@ globalThis.UIQuestTracker = class UIQuestTracker {
         if (titleFont !== -1) draw_set_font(titleFont);
         draw_set_color(status.ready ? this.readyColor : this.titleColor);
         draw_text(x, y, I18n.text(def.name));
-        y += this.titleH;
+        y += this.titleRow;
 
         if (bodyFont !== -1) draw_set_font(bodyFont);
         const markW = 16;
@@ -97,7 +114,7 @@ globalThis.UIQuestTracker = class UIQuestTracker {
             y,
             I18n.text(def.objLabel, prog, obj.count),
           );
-          y += this.objH;
+          y += this.objRow;
         }
         y += this.questGap;
       }

@@ -42,10 +42,7 @@ globalThis.facetRichText = function facetRichText(markup, opts = {}) {
   return facetAttachTooltip(el, opts);
 };
 
-/**
- * Live quest list bound to `opts.source`, a quest log. Without `opts.height` it measures the
- * active quests at construction, so build it after they are accepted.
- */
+/** Live quest list bound to `opts.source`, a quest log; its box fits the active quests. */
 globalThis.facetQuestTracker = function facetQuestTracker(opts = {}) {
   const tracker = new UIQuestTracker({
     source: opts.source ?? null,
@@ -60,7 +57,6 @@ globalThis.facetQuestTracker = function facetQuestTracker(opts = {}) {
   });
   const el = new UIElement({
     width: opts.width ?? "100%",
-    height: opts.height ?? tracker.contentHeight(),
     flexShrink: 0,
   });
   el.addComponent(
