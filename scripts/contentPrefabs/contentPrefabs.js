@@ -11,9 +11,8 @@ globalThis.contentPrefabs = {
     Prefab.register([
       // ---- anchors ----
 
-      // The home site's hand-built ground. Both buildings are closed rooms, sheltered from the air
-      // and the cold; the quarters hold the only safe beds on the planet. No raider — the site is
-      // safe.
+      // The home site's hand-built ground. Both buildings are closed rooms, sheltered from the cold;
+      // the quarters hold the only safe beds on the planet. No raider — the site is safe.
       {
         id: "colony_hub",
         cols: 45,

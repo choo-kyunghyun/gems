@@ -21,20 +21,7 @@ globalThis.contentNeeds = {
         name: "SURVIVAL_DROWSINESS",
         seed: { value: 0, max: 100, rate: 0.4, critical: 0.85, status: "drowsy" },
       },
-      // environmental needs: the rate is signed by where the body stands
-      {
-        id: Exposure,
-        name: "SURVIVAL_EXPOSURE",
-        system: ExposureSystem,
-        seed: {
-          value: 0,
-          max: 100,
-          rate: 1.2,
-          recover: 4,
-          critical: 0.8,
-          status: "hypoxic",
-        },
-      },
+      // environmental need: the rate is signed by where the body stands
       {
         id: Cold,
         name: "SURVIVAL_COLD",

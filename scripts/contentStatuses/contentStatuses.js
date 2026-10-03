@@ -50,16 +50,7 @@ globalThis.contentStatuses = {
         beneficial: false,
         mult: { speed: 0.6 },
       },
-      // the environmental needs' critical debuffs
-      {
-        id: "hypoxic",
-        name: "STATUS_HYPOXIC",
-        color: "#7fb8c8",
-        beneficial: false,
-        dot: 1,
-        interval: 2,
-        mult: { speed: 0.8 },
-      },
+      // the environmental need's critical debuff
       {
         id: "hypothermic",
         name: "STATUS_HYPOTHERMIC",

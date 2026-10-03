@@ -23,7 +23,6 @@
   "STATUS_DEHYDRATED": "Dehydrated",
   "STATUS_STARVING": "Starving",
   "STATUS_DROWSY": "Drowsy",
-  "STATUS_HYPOXIC": "Hypoxic",
   "STATUS_HYPOTHERMIC": "Hypothermic",
 
   "REC_KILLS": "Kills",

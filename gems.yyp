@@ -289,8 +289,6 @@
     {"id":{"name":"EntityPreset","path":"scripts/EntityPreset/EntityPreset.yy",},},
     {"id":{"name":"Equipment","path":"scripts/Equipment/Equipment.yy",},},
     {"id":{"name":"Equippable","path":"scripts/Equippable/Equippable.yy",},},
-    {"id":{"name":"Exposure","path":"scripts/Exposure/Exposure.yy",},},
-    {"id":{"name":"ExposureSystem","path":"scripts/ExposureSystem/ExposureSystem.yy",},},
     {"id":{"name":"FacetContainers","path":"scripts/FacetContainers/FacetContainers.yy",},},
     {"id":{"name":"FacetControls","path":"scripts/FacetControls/FacetControls.yy",},},
     {"id":{"name":"FacetSettings","path":"scripts/FacetSettings/FacetSettings.yy",},},

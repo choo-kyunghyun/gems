@@ -23,7 +23,6 @@
   "STATUS_DEHYDRATED": "탈수",
   "STATUS_STARVING": "굶주림",
   "STATUS_DROWSY": "졸림",
-  "STATUS_HYPOXIC": "저산소",
   "STATUS_HYPOTHERMIC": "저체온",
 
   "REC_KILLS": "처치",

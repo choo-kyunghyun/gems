@@ -2,7 +2,6 @@
   "SURVIVAL_THIRST": "Thirst",
   "SURVIVAL_HUNGER": "Hunger",
   "SURVIVAL_DROWSINESS": "Rest",
-  "SURVIVAL_EXPOSURE": "Air",
   "SURVIVAL_COLD": "Warmth",
 
   "SURVIVAL_DRINK_PROMPT": "[E] Drink",
