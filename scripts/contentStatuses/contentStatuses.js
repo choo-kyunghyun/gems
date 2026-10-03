@@ -15,7 +15,7 @@ globalThis.contentStatuses = {
         color: "#5fd08a",
         beneficial: true,
         duration: 8,
-        hot: 1,
+        hp: 1,
         interval: 1,
       },
       {

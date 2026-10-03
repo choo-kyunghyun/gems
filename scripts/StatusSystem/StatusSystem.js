@@ -1,4 +1,4 @@
-// Runs an entity's buffs/debuffs per tick — hot over time, duration countdown/expiry.
+// Runs an entity's buffs/debuffs per tick — hp over time, duration countdown/expiry.
 globalThis.StatusSystem = {
   /**
    * Iterates BACKWARDS for the in-place splice on expiry. Stats re-derive once per entity if any
@@ -16,7 +16,7 @@ globalThis.StatusSystem = {
           eff.list.splice(j, 1); // unknown id (content unloaded)
           continue;
         }
-        if (def.hot > 0) {
+        if (def.hp !== 0) {
           inst.accum += dt;
           while (inst.accum >= def.interval) {
             inst.accum -= def.interval;
@@ -35,14 +35,16 @@ globalThis.StatusSystem = {
     });
   },
 
-  /** HoT clamps to max hp. */
+  /**
+   * A gain clamps to max hp; a drain bypasses mitigation and only lowers hp — the reaction to <=0
+   * is not here.
+   */
   _applyTick(entities, id, def) {
     const hp = entities.get(id, Health);
     if (hp === undefined) return;
+    hp.hp += def.hp * def.interval;
+    if (def.hp < 0) return;
     const stats = entities.get(id, Stats);
-    const cap =
-      stats !== undefined ? stats.maxHp : hp.hp + def.hot * def.interval;
-    hp.hp += def.hot * def.interval;
-    if (hp.hp > cap) hp.hp = cap;
+    if (stats !== undefined && hp.hp > stats.maxHp) hp.hp = stats.maxHp;
   },
 };
