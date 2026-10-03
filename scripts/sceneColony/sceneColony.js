@@ -100,8 +100,7 @@ class _SceneColonyClass {
     }
     const c = contentStart.COMPANION;
     const pp = entities.require(this.playerId, Position);
-    const companion = ColonySpawn.spawnFollower(entities, pp.x + c.x, pp.y + c.y, c.follower);
-    Companions.hire(entities, this.playerId, companion);
+    ColonySpawn.spawnFollower(entities, pp.x + c.x, pp.y + c.y, c.follower);
   }
 
   /**

@@ -1,7 +1,8 @@
 /**
  * A new colony's starting state: the quests open from the start, what the player carries (an
- * `equip` entry is worn, so the attack is item-driven from frame one), the companion hired
- * beside it (`x`/`y` its offset from the player, `follower` the follower descriptor's fields).
+ * `equip` entry is worn, so the attack is item-driven from frame one), the companion waiting
+ * beside it to be recruited (`x`/`y` its offset from the player, `follower` the follower
+ * descriptor's fields).
  * Read on a new game only; a load restores all of it.
  */
 globalThis.contentStart = {
