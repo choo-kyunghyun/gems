@@ -96,6 +96,8 @@
   "FACET_TIP_CHECK": "A box + tick toggle (click anywhere on the row)",
   "FACET_TIP_SWITCH": "A pill + sliding-knob toggle",
   "FACET_SLIDER": "Slider",
+  "FACET_STEPPER": "Stepper",
+  "FACET_TIP_STEPPER": "Type an amount, or step it with - and +",
   "FACET_SELECT": "Select",
   "FACET_DROPDOWN": "Dropdown",
   "FACET_TIP_DROPDOWN": "Click to drop a list of options — pick one (keyboard / gamepad navigable)",

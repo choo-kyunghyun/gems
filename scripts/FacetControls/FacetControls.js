@@ -335,6 +335,7 @@ globalThis.facetInput = function facetInput(opts = {}) {
       filter: opts.filter,
       readOnly: opts.readOnly ?? false,
       padX: FacetTheme.padSm,
+      halign: opts.halign,
       color: facetColor(FacetTheme.text),
       colorPlaceholder: facetColor(FacetTheme.textDim),
       colorCursor: facetColor(FacetTheme.accent),
@@ -342,8 +343,66 @@ globalThis.facetInput = function facetInput(opts = {}) {
       onChange: opts.onChange,
       onConfirm: opts.onConfirm,
       onCancel: opts.onCancel,
+      onBlur: opts.onBlur,
     }),
   );
+  return facetAttachTooltip(el, opts);
+};
+
+/**
+ * Whole-number field between -/+ buttons that step it by `opts.step`. A typed amount commits,
+ * clamped to [min, max], when the field is left; one that is no number reverts. `opts.key` binds
+ * it to Settings; without a key it starts at `opts.value`. `el.stepper` is the handle — `value`,
+ * `min`, `max` and a `setValue` that clamps and fires onChange only on a change — so a new range
+ * is a write to `min`/`max` and a `setValue`.
+ */
+globalThis.facetStepper = function facetStepper(opts = {}) {
+  const bind = facetBindValue(opts, opts.min ?? 0);
+  const h = opts.height ?? FacetTheme.rowH;
+  const step = opts.step ?? 1;
+  const stepper = { min: opts.min ?? 0, max: opts.max ?? Infinity, value: 0 };
+  const fit = (n) => Math.min(stepper.max, Math.max(stepper.min, Math.round(n)));
+  stepper.value = fit(bind.value);
+
+  const fieldEl = facetInput({
+    value: String(stepper.value),
+    height: h,
+    halign: fa_center,
+    maxLength: 9, // past any quantity, inside the integer range
+    filter: (ch) => (ch === "-" ? stepper.min < 0 : ch >= "0" && ch <= "9"),
+    onCancel: () => field.setValue(stepper.value),
+    onBlur: (text) =>
+      stepper.setValue(/^-?[0-9]+$/.test(text) ? Number(text) : stepper.value),
+  });
+  const field = fieldEl.getComponent(UIInput);
+  stepper.setValue = (n) => {
+    const v = fit(n);
+    field.setValue(v);
+    if (v === stepper.value) return;
+    stepper.value = v;
+    bind.onChange(v);
+  };
+
+  const button = (dir) =>
+    facetButton(dir < 0 ? "-" : "+", () => stepper.setValue(stepper.value + dir * step), {
+      width: h,
+      height: h,
+      disabled: () =>
+        dir < 0 ? stepper.value <= stepper.min : stepper.value >= stepper.max,
+    });
+  const el = new UIElement({
+    width: opts.width ?? "100%",
+    height: h,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: FacetTheme.gapSm,
+  });
+  const cell = new UIElement({ flexGrow: 1, flexBasis: 0 });
+  cell.insertChild(fieldEl);
+  el.insertChild(button(-1));
+  el.insertChild(cell);
+  el.insertChild(button(1));
+  el.stepper = stepper;
   return facetAttachTooltip(el, opts);
 };
 
