@@ -333,13 +333,12 @@ class _SceneColonyClass {
   }
 
   /**
-   * The world's own time — the clock, then the sky and the events due by it. Every passage of
-   * world time goes through here, so no world ticker is left behind.
+   * The world's own time — the clock, then the sky. Every passage of world time goes through here,
+   * so no world ticker is left behind.
    */
   tickWorld(dt) {
     WorldClock.update(dt);
     Weather.update(dt);
-    WorldEvents.update(WorldClock.absHours());
   }
 
   /**
@@ -464,7 +463,6 @@ class _SceneColonyClass {
     Radio.reset();
     Progression.reset();
     Mortality.reset();
-    WorldEvents.reset();
     ColonyTravel.suspend(this); // release the view before its camera is freed with the level
     for (const id in this.stages) this.stages[id].renderer.destroy();
     World.active = null;

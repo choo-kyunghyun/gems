@@ -532,7 +532,6 @@
     {"id":{"name":"Window","path":"scripts/Window/Window.yy",},},
     {"id":{"name":"World","path":"scripts/World/World.yy",},},
     {"id":{"name":"WorldClock","path":"scripts/WorldClock/WorldClock.yy",},},
-    {"id":{"name":"WorldEvents","path":"scripts/WorldEvents/WorldEvents.yy",},},
     {"id":{"name":"WorldMapUI","path":"scripts/WorldMapUI/WorldMapUI.yy",},},
     {"id":{"name":"WorldOverlay","path":"scripts/WorldOverlay/WorldOverlay.yy",},},
     {"id":{"name":"ZoneMap","path":"scripts/ZoneMap/ZoneMap.yy",},},

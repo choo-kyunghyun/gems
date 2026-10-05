@@ -246,32 +246,25 @@ Test.register(Test.CHECK, [
   },
   {
     id: "world.carry",
-    // an entity in no level rides a queued event's payload through the save codec into a level
+    // a whole entity leaves one level as plain data and lands whole in another
     setup(ctx) {
-      ctx.prev = World.active;
       ctx.world = new World();
-      World.active = ctx.world; // the event queue is a record of the installed world
       ctx.world.add("test_a", new Level({ id: "test_a", capacity: 4 }));
+      ctx.world.add("test_b", new Level({ id: "test_b", capacity: 4 }));
     },
     verify(ctx, t) {
       const w = ctx.world;
       const a = w.get("test_a");
       const id = a.entities.create();
       a.entities.add(id, Position, { x: 3, y: 4, z: 0 });
-      WorldEvents.schedule(1, "test_carry", { rec: w.take("test_a", id) });
+      const rec = Json.decode(Json.encode(w.take("test_a", id)));
       a.entities.flush();
       t.eq(a.entities.count(), 1, "the take left only the level's own entity");
-      w.table.import(Json.decode(Json.encode(w.table.export())));
-      const b = new Level({ id: "test_b", capacity: 4 });
-      w.add("test_b", b);
-      const held = WorldEvents.queued("test_carry");
-      t.eq(held.length, 1, "the event rides the save");
-      const p = b.entities.get(w.put("test_b", held[0].rec), Position);
+      const p = w.get("test_b").entities.get(w.put("test_b", rec), Position);
       t.ok(p !== undefined, "the carried entity lands");
       if (p !== undefined) t.ok(p.x === 3 && p.y === 4, "with its components whole");
     },
     teardown(ctx) {
-      World.active = ctx.prev;
       ctx.world.destroy();
     },
   },

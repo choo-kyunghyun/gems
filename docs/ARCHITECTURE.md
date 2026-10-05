@@ -147,11 +147,11 @@ and are cited from here, never restated):
   them. A `Level` is one map — its store, whose own entity (`self`) carries the grid, the map's
   records and its derived entries, the camera an entity of that store — and it never updates or
   draws. `World` is the store one layer up: its records on `self`, and each pooled map an entity
-  carrying its id and its Level. An entity that belongs to no level is a whole-entity record in a
-  queued world event's payload until it is moved into a level. A `Scene` is the behaviour: it
+  carrying its id and its Level. An entity moves between levels whole, as a record its caller
+  holds from `take` to `put`. A `Scene` is the behaviour: it
   owns its world, which level is active and a renderer per map it has shown, composes systems,
   camera policy and UI, and runs them over the level and the world from `update()`/`draw()`, the
-  world's own tickers (`WorldClock`, `WorldEvents`) included. A scene makes its world and installs
+  world's own tickers (`WorldClock`, `Weather`) included. A scene makes its world and installs
   it as `World.active`, the one a world record's accessor reads (a read with none installed
   throws), and clears and frees it with itself, so no world outlives its scene; what holds the
   scene reaches the pool through `scene.world`. A pooled map keeps its derived entries and the
