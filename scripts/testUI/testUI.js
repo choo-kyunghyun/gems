@@ -763,6 +763,54 @@ Test.register(Test.CHECK, [
     },
   },
   {
+    // editing ends once however it ends — Enter, Esc or a click away — and a click on a centred
+    // text lands where that text is drawn, not where a left-aligned one would be
+    id: "ui.inputBlur",
+    setup(ctx) {
+      Test.ui(ctx);
+      ctx.blurs = [];
+      ctx.field = new UIInput({
+        value: "1111",
+        halign: fa_center,
+        padX: 0,
+        onBlur: (v) => ctx.blurs.push(v),
+      });
+      ctx.fieldEl = new UIElement({ width: 200, height: 40 }).addComponent(ctx.field);
+      UI.insert(new UIElement().insertChild(ctx.fieldEl));
+      UINav.focused = ctx.fieldEl;
+      UINav.engaged = true;
+      Test.uiFrame(ctx, []);
+    },
+    verify(ctx, t) {
+      Test.uiFrame(ctx, [vk_enter]);
+      Test.uiFrame(ctx, [vk_enter]);
+      t.eq(ctx.blurs.length, 1, "Enter ends editing once");
+      Test.uiFrame(ctx, [vk_enter]);
+      Test.uiFrame(ctx, [vk_escape]);
+      t.eq(ctx.blurs.length, 2, "and so does Esc");
+
+      const pos = ctx.fieldEl.getLayoutPosition();
+      const click = (x) => {
+        Input.pointer.x = pos.left + x;
+        Input.pointer.y = pos.top + 20;
+        Input.pointer.left.pressed = true;
+        Test.uiFrame(ctx, []);
+        Input.pointer.left.pressed = false;
+        Test.uiFrame(ctx, []);
+      };
+      click(100);
+      t.eq(ctx.field._cursor, 2, "the field's centre is the centred text's middle");
+      click(300);
+      t.eq(ctx.blurs.length, 3, "a click away ends it too");
+      t.eq(ctx.blurs[2], "1111", "with the value it left");
+      click(300);
+      t.eq(ctx.blurs.length, 3, "a field not editing never reports an end");
+    },
+    teardown(ctx) {
+      Test.uiRestore(ctx);
+    },
+  },
+  {
     // read-only is live: set after construction, it stops the pointer as it stops the nav
     id: "ui.readOnly",
     setup(ctx) {

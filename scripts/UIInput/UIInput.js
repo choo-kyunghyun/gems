@@ -27,10 +27,12 @@ globalThis.UIInput = class UIInput {
     this.alphaSelection = input.alphaSelection ?? 0.35;
     this.font = input.font ?? -1;
     this.padX = input.padX ?? 6;
+    this.halign = input.halign ?? fa_left; // where a text narrower than the field sits
 
     this.onConfirm = input.onConfirm ?? noop; // Enter
     this.onCancel = input.onCancel ?? noop; // Escape
     this.onChange = input.onChange ?? noop;
+    this.onBlur = input.onBlur ?? noop; // editing ended, however it ended
 
     this.focusable = true;
     this._editing = false;
@@ -60,6 +62,7 @@ globalThis.UIInput = class UIInput {
     if (!this._editing) return this;
     this._editing = false;
     this._dragging = false;
+    this.onBlur(this.value);
     return this;
   }
 
@@ -232,11 +235,18 @@ globalThis.UIInput = class UIInput {
     };
   }
 
+  /** The x the text starts at. Assumes the field font is the active draw font. */
+  _textX(tr, disp) {
+    if (this.halign === fa_left) return tr.x;
+    const slack = Math.max(0, tr.w - string_width(disp));
+    return tr.x + (this.halign === fa_center ? slack * 0.5 : slack);
+  }
+
   /** Assumes the field font is the active draw font. */
   _indexAtX(pos, mx) {
     const tr = this._textRegion(pos);
     const disp = this._display();
-    const local = mx - tr.x + this._scroll;
+    const local = mx - this._textX(tr, disp) + this._scroll;
     if (local <= 0) return 0;
     let best = 0;
     let bestD = Math.abs(local);
@@ -402,23 +412,23 @@ globalThis.UIInput = class UIInput {
 
     if (disp === "" && !this._editing) {
       draw_set_color(this.colorPlaceholder);
-      draw_text(tr.x, tr.cy, this.placeholder);
+      draw_text(this._textX(tr, this.placeholder), tr.cy, this.placeholder);
     } else {
       this._clampScroll(tr, disp);
       const halfH = string_height("|") * 0.5;
-      const winL = this._scroll; // text-pixel space
+      const ox = this._textX(tr, disp) - this._scroll;
 
       const clip = UIDraw.clipBegin(tr.x, pos.top, tr.w, pos.height);
       if (this._editing && this._hasSel()) {
-        const sx = string_width(disp.slice(0, this._selLow())) - winL;
-        const ex = string_width(disp.slice(0, this._selHigh())) - winL;
+        const sx = ox + string_width(disp.slice(0, this._selLow()));
+        const ex = ox + string_width(disp.slice(0, this._selHigh()));
         if (ex > sx) {
           draw_set_color(this.colorSelection);
           draw_set_alpha(this.alphaSelection);
           draw_rectangle(
-            tr.x + sx,
+            sx,
             tr.cy - halfH,
-            tr.x + ex,
+            ex,
             tr.cy + halfH,
             false,
           );
@@ -427,17 +437,17 @@ globalThis.UIInput = class UIInput {
       }
 
       draw_set_color(this.color);
-      draw_text(tr.x - winL, tr.cy, disp);
+      draw_text(ox, tr.cy, disp);
       UIDraw.clipEnd(clip);
 
       if (this._editing && this._cursorVis) {
-        const cx = string_width(disp.slice(0, this._cursor)) - winL;
-        if (cx >= 0 && cx <= tr.w) {
+        const cx = ox + string_width(disp.slice(0, this._cursor));
+        if (cx >= tr.x && cx <= tr.x + tr.w) {
           draw_set_color(this.colorCursor);
           draw_rectangle(
-            tr.x + cx,
+            cx,
             tr.cy - halfH,
-            tr.x + cx + 2,
+            cx + 2,
             tr.cy + halfH,
             false,
           );
