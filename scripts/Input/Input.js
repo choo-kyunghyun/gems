@@ -96,8 +96,19 @@ globalThis.Input = {
     Input._latch(p.right, mb_right);
     Input._latch(p.middle, mb_middle);
 
-    Input.typed = keyboard_string;
-    keyboard_string = "";
+    Input.typed = Input._typed();
+  },
+
+  /** No text while a modifier makes the press a shortcut. */
+  _typed() {
+    if (!keyboard_check_pressed(vk_anykey)) return "";
+    if (keyboard_check(vk_control)) return "";
+    if (keyboard_check(vk_alt)) return "";
+    const map = keyboard_check(vk_shift) ? _TYPED_SHIFT : _TYPED_PLAIN;
+    let out = "";
+    for (let i = 0; i < _TYPED_CODES.length; i++)
+      if (keyboard_check_pressed(_TYPED_CODES[i])) out += map[i];
+    return out;
   },
 
   _latch(b, mb) {
@@ -335,3 +346,14 @@ globalThis.Input = {
     for (let i = 0; i < keys.length; i++) Input.unregister(keys[i]);
   },
 };
+
+// BUG: keyboard_string carries garbage for every typed key (docs/GMRT.md), so the typed text is
+// rebuilt from the frame's presses over a US layout. TODO: back to keyboard_string once it reads.
+const _TYPED_CODES = [
+  32, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57,
+  65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90,
+  96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 109, 110, 111,
+  186, 187, 188, 189, 190, 191, 192, 219, 220, 221, 222,
+];
+const _TYPED_PLAIN = " 0123456789abcdefghijklmnopqrstuvwxyz0123456789*+-./;=,-./`[\\]'";
+const _TYPED_SHIFT = " )!@#$%^&*(ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789*+-./:+<_>?~{|}\"";
