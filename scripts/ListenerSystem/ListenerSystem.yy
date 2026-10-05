@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"ListenerSystem",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"ListenerSystem",
+  "parent":{
+    "name":"Audio",
+    "path":"folders/Core/Audio.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"ListenerSystem.js",
+}

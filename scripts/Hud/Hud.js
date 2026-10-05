@@ -45,7 +45,8 @@ globalThis.Hud = {
       hud.cells.items = InvTable.beltCells(scene.level.entities, scene.playerId);
       hud.cells.selected = hud.slot;
     }
-    hud.sleep.enabled = scene.sleep.on;
+    hud.sleep.enabled =
+      scene.playerId !== undefined ? scene.level.entities.has(scene.playerId, Asleep) : false;
     hud.radar.enabled = Settings.get("hudRadar");
   },
 

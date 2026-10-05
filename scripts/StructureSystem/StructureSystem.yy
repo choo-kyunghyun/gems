@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"StructureSystem",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"StructureSystem",
+  "parent":{
+    "name":"Settlement",
+    "path":"folders/Game/Settlement.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"StructureSystem.js",
+}

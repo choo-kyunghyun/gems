@@ -16,8 +16,8 @@ globalThis.Time = {
   scale: 1,
   /**
    * The music's factor on sim time (1 = none), composed with `scale` so a pause or fast-forward
-   * stays orthogonal to it: a timed track runs the whole world at its beat. The scene that sets it
-   * resets it on destroy.
+   * stays orthogonal to it: a timed track runs the whole world at its beat. A scene switch resets
+   * it.
    */
   tempo: 1,
   delta: 0,

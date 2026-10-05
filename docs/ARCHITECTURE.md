@@ -178,8 +178,8 @@ and are cited from here, never restated):
       mirroring a singleton (`X.sub = Sub`) is a second name for one object plus a boot-wiring
       dependency, so a member only ever holds data.
 - The clock split (pause/dilation rule): `Time.delta` is `Time.raw` scaled by `Time.scale` and
-  `Time.tempo`, both the active scene's to set (`Time` owns the contract; what drives the colony's
-  tempo is `Radio`'s), so anything on it freezes/slows with the sim — gameplay motion wants exactly
+  `Time.tempo`, both set from the active scene's frame (`Time` owns the contract; what drives the
+  colony's tempo is `Radio`'s), so anything on it freezes/slows with the sim — gameplay motion wants exactly
   that, but UI timers/easing must use `Time.raw` (hover/press fades, caret blink, key-repeat, toggle
   easing — `UIButton`/`UIInput`/`UICheckbox`; likewise the GUI singletons
   `Toast`/`SceneTransition` and `DialogueUI`'s reveal), else menus freeze while the game is paused. World-space

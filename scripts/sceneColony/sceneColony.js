@@ -19,10 +19,7 @@ class _SceneColonyClass {
     Tracker.rules = contentAchievements;
 
     // static hooks: they survive map reloads
-    Combat.mitigate = (entities, id, amount, penetration) =>
-      PlayerSystem.evading(entities, id)
-        ? 0
-        : StatModel.mitigate(entities, id, amount, penetration);
+    Combat.mitigate = PlayerSystem.mitigate;
     Consumption.grantAttr = StatModel.grant;
     Effects.onStatsChanged = StatModel.recompute;
     // progress shows as toasts, a reward as a refreshed bag
@@ -33,7 +30,8 @@ class _SceneColonyClass {
     Progression.onReward = () => {
       this.window.dirty = true;
     };
-    // a squad member's knock-out and recovery show as toasts
+    // a lost build, a squad member's knock-out and its recovery show as toasts
+    StructureSystem.onLost = BuildMode.lost;
     Mortality.onDown = (entities, id) => {
       Toast.push(I18n.text("FOLLOWER_DOWN", this._followerName(entities, id)), {
         type: "warn",
@@ -51,7 +49,6 @@ class _SceneColonyClass {
     Radio.reset();
     Radio.ambient = () => ColonyMap.bed(this.level);
 
-    this.sleep = Sleep.make(); // resting in a bed, time fast-forwarded
     this.dialogue = Dialogue.make(); // what an NPC is saying
 
     // marks a gameplay scene, which suspends menu navigation while playing
@@ -60,22 +57,12 @@ class _SceneColonyClass {
     this._buildUI();
 
     this.stages = {}; // map id -> its ColonyStage, built on the map's first activation
-    // a pending save replaces the fresh map, loadout and seeding below
-    const loaded = SaveGame.pending();
-    if (loaded) {
+    // a pending save replaces a new game's map, kit and companion
+    if (SaveGame.pending()) {
       // the player is already in the restored map's store, so nothing lands or moves
       ColonyTravel.go(this, SaveGame.restore(this), "default");
       if (this.playerId === undefined) Log.error("SaveGame: no player in the restored map");
-    } else {
-      for (let i = 0; i < contentStart.QUESTS.length; i++)
-        Tracker.accept(contentStart.QUESTS[i]);
-      ColonyTravel.go(this, ColonyLevel.START, "default");
-    }
-    // the restored station, else the map's bed; it carries across map changes
-    const station = Radio.station();
-    Music.play(station !== -1 ? station : ColonyMap.bed(this.level));
-
-    if (!loaded) this._seed();
+    } else ColonyStart.begin(this);
 
     // the base context; _resolveContext sets each frame's own
     InputContext.push("play");
@@ -84,23 +71,6 @@ class _SceneColonyClass {
       `colony ready — items=${Item.all().length} quests=${QuestLog.all().length} ` +
         `achievements=${Achievement.all().length} kills=${Tracker.count("enemiesKilled")}`,
     );
-  }
-
-  /**
-   * A new game's player kit and companion. Seeded in code, not the map file, so a
-   * persistent-map reload can't duplicate them; a load restores their records instead.
-   */
-  _seed() {
-    const entities = this.level.entities;
-    const inv = entities.require(this.playerId, Inventory);
-    const kit = contentStart.KIT;
-    for (let i = 0; i < kit.length; i++) {
-      Bag.add(inv, kit[i].itemId, kit[i].qty);
-      if (kit[i].equip === true) Loadout.equipFirst(entities, this.playerId, kit[i].itemId);
-    }
-    const c = contentStart.COMPANION;
-    const pp = entities.require(this.playerId, Position);
-    ColonySpawn.spawnFollower(entities, pp.x + c.x, pp.y + c.y, c.follower);
   }
 
   /**
@@ -181,7 +151,7 @@ class _SceneColonyClass {
    * then rebuild the UI so it bakes the new palette. World state is untouched.
    */
   retheme() {
-    Sleep.wake(this.sleep);
+    Sleep.wake(this.level.entities, this.playerId);
     Dialogue.clear(this.dialogue);
     this.window.close();
     if (this.ui) {
@@ -199,6 +169,8 @@ class _SceneColonyClass {
   update() {
     // no pause gate: a paused scene is not updated
     this._input();
+    // the dial's track sets the tempo the next frame runs at
+    Radio.update();
     // the world first, on sim time so it pauses with the game: every system below reads one
     // now, and what a due event spawns simulates this frame
     this.tickWorld(Time.delta);
@@ -217,24 +189,9 @@ class _SceneColonyClass {
     // derived each frame, the self-heal after a store swap
     this.playerId = ColonyPlayer.id(this.level.entities);
 
-    // before the sim, so the waking press wakes instead of moving this frame; any press wakes,
-    // claimed or not — not an action
-    if (Input.anyPressed()) Sleep.wake(this.sleep);
-    else Sleep.ramp(this.sleep, this.level.entities);
-
-    // a timed track runs the whole world at its beat, from the next frame on
-    Time.tempo = Radio.tempo(Music.track());
-
     // latched once per frame, as the mouse is sampled live; on the ground plane, since cells
     // and footprints are what it names
-    const view = CameraSystem.view(this.level);
-    this.mouseWorld = view.cursorWorld();
-    // the aim: the same cursor resolved against what it visibly covers, so a shot at a body
-    // reaches the footprint the sim tests
-    const aim = ColonyPlayer.aim(this.level.entities, this.playerId, view);
-    const pl = this.level.entities.get(this.playerId, Playable);
-    pl.cursorX = aim.x;
-    pl.cursorY = aim.y;
+    this.mouseWorld = CameraSystem.view(this.level).cursorWorld();
 
     // the bag closes on its own key, and opens over whatever page shows; on a gun seat it is the
     // carrier's gear instead, since E there steps off
@@ -268,7 +225,7 @@ class _SceneColonyClass {
     EncumbranceSystem.update(this.level);
     NeedSystem.update(this.level);
     ColdSystem.update(this.level);
-    Sleep.rest(this.sleep, this.level.entities, this.playerId);
+    SleepSystem.update(this.level);
     PuppetSystem.update(this.level);
     FollowerSystem.update(this.level);
     PlayerSystem.update(this.level);
@@ -285,12 +242,13 @@ class _SceneColonyClass {
 
     HitFeedbackSystem.update(this.level);
     MortalSystem.update(this.level);
-    Progression.reach(this.level);
+    StructureSystem.update(this.level);
+    ReachSystem.update(this.level);
   }
 
   /** The bodies' poses for this frame, which the pick tests against. */
   _animate() {
-    Doll.pace(this.level.entities);
+    DollSystem.update(this.level);
     SpriteSystem.update(this.level);
     AppearanceSystem.update(this.level);
   }
@@ -303,7 +261,6 @@ class _SceneColonyClass {
     Interactable.update(this, this.interact);
     this._dispatchInteract();
     BuildMode.update(this, this.build);
-    BuildMode.reapDestroyed(this);
     Hud.update(this, this.hud);
   }
 
@@ -313,23 +270,9 @@ class _SceneColonyClass {
     // the sim-clock camera policies; the wall-clock one runs from draw() so it keeps moving
     // while the sim is paused
     CameraSystem.update(this.level);
-    this._listen();
+    ListenerSystem.update(this.level);
     SoundEmitterSystem.update(this.level);
     ParticleEmitterSystem.update(this.level);
-  }
-
-  /**
-   * Hear from the tracked body, not the view: the view clamps at map edges and a free camera
-   * flies away from it; the view's look-at is the fallback without a tracked body.
-   */
-  _listen() {
-    const entities = this.level.entities;
-    const ep = entities.get(entities.first(CameraFocus), Position);
-    if (ep !== undefined) Audio.listen(ep.x, ep.y);
-    else {
-      const view = CameraSystem.view(this.level);
-      Audio.listen(view.toX, view.toY);
-    }
   }
 
   /**
@@ -343,18 +286,12 @@ class _SceneColonyClass {
 
   /**
    * A map arrival: the scene's per-map transients reset, kept off the level so a resume can't
-   * restore a stale one; the previous map's world-space effects drop, as their coordinates are
-   * map-local; and the new map's bed, unless the radio plays through it, and its climate take over.
+   * restore a stale one.
    */
   arrive() {
     this.build.armed = false;
     this.build.active = false;
     this.window.dirty = true;
-    if (!Radio.on()) Music.play(ColonyMap.bed(this.level));
-    Weather.setClimate(this.level.entities.get(this.level.self, ColonyMap.CLIMATE));
-    FloatingText.clear();
-    ParticleFx.clear();
-    WorldOverlay.clearTracers();
   }
 
   /**
@@ -427,7 +364,7 @@ class _SceneColonyClass {
    * Returns whether the press was consumed.
    */
   handleEscape() {
-    if (Sleep.wake(this.sleep)) return true;
+    if (Sleep.wake(this.level.entities, this.playerId)) return true;
     if (this.window.back()) return true;
     if (this.build.armed) {
       this.build.armed = false;
@@ -441,21 +378,11 @@ class _SceneColonyClass {
     // then this frame's matrices — before the renderer reads the view
     const stage = this.stages[this.level.id];
     CameraSystem.apply(this.level);
-    const camera = CameraSystem.view(this.level);
     stage.bbox.enabled = Settings.get("debugBBox");
     stage.renderer.draw(this.level.entities);
-    // after the renderer: the ground passes paint an opaque fill that would cover it
-    WorldOverlay.drawWorld(this);
+    // the pick and the build cursor over the world
     Interactable.drawTarget(this, this.interact);
     BuildMode.drawWorld(this, this.build);
-    // additive, so bright over the day/night tint
-    ParticleEmitterSystem.draw(
-      this.level.entities,
-      (camera.pitch * 180) / Math.PI,
-    );
-    ParticleFx.draw((camera.pitch * 180) / Math.PI);
-    // pitch in degrees, so the numbers stand up under a pitched camera
-    FloatingText.draw((camera.pitch * 180) / Math.PI);
   }
 
   /** Release only what this scene wired. */
@@ -463,6 +390,7 @@ class _SceneColonyClass {
     Radio.reset();
     Progression.reset();
     Mortality.reset();
+    StructureSystem.reset();
     ColonyTravel.suspend(this); // release the view before its camera is freed with the level
     for (const id in this.stages) this.stages[id].renderer.destroy();
     World.active = null;

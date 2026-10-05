@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"ColonyStart",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"ColonyStart",
+  "parent":{
+    "name":"Colony",
+    "path":"folders/Game/Colony.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"ColonyStart.js",
+}

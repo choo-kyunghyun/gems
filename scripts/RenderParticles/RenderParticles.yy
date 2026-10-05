@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"RenderParticles",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"RenderParticles",
+  "parent":{
+    "name":"Particle",
+    "path":"folders/Core/Render/Particle.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"RenderParticles.js",
+}

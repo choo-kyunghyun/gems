@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"RenderWorldOverlay",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"RenderWorldOverlay",
+  "parent":{
+    "name":"Colony",
+    "path":"folders/Game/Colony.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"RenderWorldOverlay.js",
+}

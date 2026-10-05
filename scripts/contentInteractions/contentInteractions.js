@@ -184,7 +184,7 @@ globalThis.contentInteractions = {
         id: "bed",
         prompt: "SURVIVAL_SLEEP_PROMPT",
         run(ctx) {
-          Sleep.start(ctx.scene.sleep);
+          Sleep.start(ctx.entities, ctx.playerId);
         },
       },
       {

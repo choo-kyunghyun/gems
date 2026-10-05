@@ -20,7 +20,7 @@ const PLAYER_FIST = {
   hitbox: { width: 34, height: 24, xoffset: 17, yoffset: 0 },
 };
 
-// The player brain: turns input into every Playable entity's Velocity, Direction, attacks and
+// The player brain: turns input into every Playable entity's aim, Velocity, Direction, attacks and
 // animation state, ahead of the integration of the Velocity it writes; a seated player's input
 // works its seat instead. Per-frame state lives in the Playable component, so it travels with the
 // player.
@@ -34,6 +34,11 @@ globalThis.PlayerSystem = {
   _drive(level, id) {
     const entities = level.entities;
     const pl = entities.get(id, Playable);
+    // the cursor resolved against what it visibly covers, so a shot at a body reaches the
+    // footprint the sim tests
+    const aim = ColonyPlayer.aim(entities, id, CameraSystem.view(level));
+    pl.cursorX = aim.x;
+    pl.cursorY = aim.y;
     let dx =
       (Input.get("moveRight").down() ? 1 : 0) -
       (Input.get("moveLeft").down() ? 1 : 0);
@@ -177,10 +182,11 @@ globalThis.PlayerSystem = {
     pl.attackCd = 0;
   },
 
-  /** Whether `id` is mid-roll, where no hit lands. */
-  evading(entities, id) {
+  /** A hit's damage after mitigation: none lands mid-roll, else the stat model's cut. */
+  mitigate(entities, id, amount, penetration) {
     const pl = entities.get(id, Playable);
-    return pl !== undefined && pl.dodge > 0;
+    if (pl !== undefined) if (pl.dodge > 0) return 0;
+    return StatModel.mitigate(entities, id, amount, penetration);
   },
 
   /**

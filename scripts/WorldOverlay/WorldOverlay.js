@@ -31,10 +31,8 @@ globalThis.WorldOverlay = {
     return "[c=" + tint + "][spr=" + sprite_get_name(Bag.icon(it)) + "][/c] ";
   },
 
-  drawWorld(scene) {
-    const entities = scene.level.entities;
-
-    const pitch = CameraSystem.view(scene.level).pitch;
+  /** `pitch` is the camera's, in radians; 0 is flat top-down. */
+  draw(entities, pitch) {
     if (pitch !== 0) WorldOverlay._hiddenDrops(entities, pitch);
     // in-air cues lift off the ground so they read as flying, with no depth test so a body they
     // pass can't hide them.

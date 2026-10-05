@@ -94,7 +94,7 @@ globalThis.ColonyView = {
   /**
    * The renderer pass stack, inserted in draw order: the ground, the resident tiles, the overlays
    * under the bodies, the meshes and lit walls of a pitched map, the bodies, the overlays over
-   * them, the sky and the lighting over everything.
+   * them, the sky and the lighting, then the world-space cues bright above its tint.
    */
   _renderer(level) {
     const pitch = ColonyView.BB_PITCH;
@@ -126,6 +126,10 @@ globalThis.ColonyView = {
         camera: ctx.camera,
       }),
     );
+    ctx.renderer.insert(new RenderWorldOverlay({ camera: ctx.camera }));
+    // additive, so bright over the day/night tint
+    ctx.renderer.insert(new RenderParticles({ camera: ctx.camera }));
+    ctx.renderer.insert(new RenderFloatingText({ camera: ctx.camera }));
     return { renderer: ctx.renderer, bbox };
   },
 

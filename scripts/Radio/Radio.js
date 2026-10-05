@@ -66,6 +66,17 @@ globalThis.Radio = {
     return bpm > 0 ? bpm / Radio.BEAT : 1;
   },
 
+  /**
+   * Per frame: the tuned station plays, else the bed, and the playing track sets the sim tempo
+   * from the next frame on.
+   */
+  update() {
+    const station = Radio.station();
+    if (station !== -1) Music.play(station);
+    else if (Radio.ambient !== null) Music.play(Radio.ambient());
+    Time.tempo = Radio.tempo(Music.track());
+  },
+
   /** The map's bed resumes through the `ambient` hook. A no-op when already off. */
   off() {
     const w = Radio.state();

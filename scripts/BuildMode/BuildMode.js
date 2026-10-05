@@ -334,14 +334,11 @@ globalThis.BuildMode = {
       scene.window.dirty = true;
   },
 
-  /** Per frame, whether armed or not: reap the destroyed builds, each one shown. */
-  reapDestroyed(scene) {
-    const lost = Build.reap(scene.level);
-    for (let i = 0; i < lost.length; i++) {
-      const item = contentBuild.item(lost[i]);
-      const label = item !== undefined ? I18n.text(item.labelKey) : lost[i];
-      Toast.push(I18n.text("BUILD_DESTROYED", label), { type: "warn" });
-    }
+  /** A destroyed build, shown. */
+  lost(itemId) {
+    const item = contentBuild.item(itemId);
+    const label = item !== undefined ? I18n.text(item.labelKey) : itemId;
+    Toast.push(I18n.text("BUILD_DESTROYED", label), { type: "warn" });
   },
 
   /** DEV: write the dragged rect to the save dir as a prefab literal. */

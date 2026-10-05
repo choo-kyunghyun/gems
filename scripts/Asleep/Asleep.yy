@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Asleep",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Asleep",
+  "parent":{
+    "name":"Survival",
+    "path":"folders/Game/Survival.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Asleep.js",
+}

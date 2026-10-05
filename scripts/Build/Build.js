@@ -16,7 +16,6 @@ globalThis.Build = {
   // DEV free build: no gate, no cost, no refund — structures built to be captured, not paid for.
   // Session-wide, so it outlives any one map.
   free: false,
-  _lost: [], // reap's collector
 
   /** Whether the level's settlement is owned by FACTION or an ally. */
   allied(level) {
@@ -260,26 +259,6 @@ globalThis.Build = {
       if (pc !== undefined && pc.build === buildId) return all[i].id;
     }
     return undefined;
-  },
-
-  /**
-   * Per frame: remove the structures destroyed in combat, their contents spilled, no refund.
-   * Returns the item ids lost on a level that builds, in a buffer reused by the next call.
-   */
-  reap(level) {
-    const lost = Build._lost;
-    let w = 0;
-    const entities = level.entities;
-    const own = Build.free || Build.allied(level);
-    entities.forEach([Structure, Health], (id, st, hp) => {
-      if (hp.hp > 0) return;
-      Loot.spill(entities, id);
-      entities.remove(id);
-      if (own) lost[w++] = st.item;
-      Log.info(`built ${st.item} destroyed`);
-    });
-    lost.length = w;
-    return lost;
   },
 
   /**

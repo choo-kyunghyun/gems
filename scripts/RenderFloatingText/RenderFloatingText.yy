@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"RenderFloatingText",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"RenderFloatingText",
+  "parent":{
+    "name":"Overlay",
+    "path":"folders/Core/UI/Overlay.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"RenderFloatingText.js",
+}
