@@ -7,10 +7,9 @@
  * together, and kicked/unhired companions stay as map residents. A crossing costs in-game hours by
  * chart distance.
  *
- * Contract: the scene owns `world`, `level`, `playerId`, `stages` (map id → its ColonyStage),
- * `tickWorld(dt)` and `arrive()`; this engine pools through `world`, spends a crossing's hours
- * through `tickWorld`, writes the rest on arrival, then calls `arrive()` for what the scene resets
- * per map, and reads nothing else of it.
+ * Contract: the scene owns `world`, `level`, `playerId`, `tickWorld(dt)` and `arrive()`; this
+ * engine pools through `world`, spends a crossing's hours through `tickWorld`, writes the rest on
+ * arrival, then calls `arrive()` for what the scene resets per map, and reads nothing else of it.
  */
 globalThis.ColonyTravel = {
   // in-game hours per world-map chart unit (corner to corner is ~1.4 units)
@@ -48,7 +47,7 @@ globalThis.ColonyTravel = {
         squad.push(scene.world.take(scene.level.id, members[i]));
       }
       scene.level.entities.flush(); // commit the taken members' removals before parking
-      if (ColonyMap.persistent(scene.level)) ColonyTravel.suspend(scene);
+      if (ColonyMap.persistent(scene.level)) Maps.park(scene.level);
       else ColonyTravel._free(scene);
     }
     if (scene.world.get(mapId) !== null) ColonyTravel.resume(scene, mapId, entryId, squad);
@@ -83,26 +82,13 @@ globalThis.ColonyTravel = {
   },
 
   /**
-   * Park the live map: its level stays in the pool untouched, runtime and all. The camera view is
-   * released, not destroyed — the parked map keeps it for resume, and its later teardown must not
-   * tear down the live view.
-   */
-  suspend(scene) {
-    CameraSystem.view(scene.level).release();
-    PuppetSystem.park(scene.level); // its mirrors leave the room-global queries
-  },
-
-  /**
-   * Free the live transient map. Never parked on the way: a parked instance outlives its free
-   * (docs/GMRT.md).
+   * Free the live transient map, stage and all. Never parked on the way: a parked instance
+   * outlives its free (docs/GMRT.md).
    */
   _free(scene) {
-    const level = scene.level;
-    CameraSystem.view(level).release();
-    scene.stages[level.id].renderer.destroy();
-    delete scene.stages[level.id];
-    scene.world.remove(level.id);
-    Log.info(`colony map: ${level.id} [freed]`);
+    const id = scene.level.id;
+    scene.world.remove(id);
+    Log.info(`colony map: ${id} [freed]`);
   },
 
   /**
@@ -119,11 +105,7 @@ globalThis.ColonyTravel = {
       else ColonyTravel.build(scene, home, "default", squad);
       return;
     }
-    scene.level = level;
-    ColonyTravel._arriveSquad(scene, squad, ColonyMap.of(level).spawn); // already entry-resolved
-    ColonyTravel._latch(scene);
-    scene.stages[level.id] = ColonyView.stage(level);
-    ColonyTravel._land(scene);
+    ColonyTravel._enter(scene, level, ColonyMap.of(level).spawn, squad); // already entry-resolved
   },
 
   /**
@@ -139,25 +121,23 @@ globalThis.ColonyTravel = {
     scene.arrive();
   },
 
-  /**
-   * Resume a pooled level — parked earlier, or restored from a save and not yet staged, in which
-   * case its stage is built here as on a first visit.
-   */
+  /** Resume a pooled level — parked earlier, or restored from a save and not yet entered. */
   resume(scene, mapId, entryId, squad) {
     const level = scene.world.get(mapId);
-    scene.level = level;
-    PuppetSystem.thaw(level); // activates every mirror in the room, so the other pooled maps park again
-    const pooled = scene.world.ids();
-    for (let i = 0; i < pooled.length; i++) {
-      if (pooled[i] !== mapId) PuppetSystem.park(scene.world.get(pooled[i]));
-    }
     const data = ColonyMap.of(level);
-    const sp = data.entries[entryId] ?? data.spawn;
+    ColonyTravel._enter(scene, level, data.entries[entryId] ?? data.spawn, squad);
+  },
+
+  /**
+   * Make a pooled level the live map, its camera and stage set up on its first entry, and land
+   * the squad at `sp`.
+   */
+  _enter(scene, level, sp, squad) {
+    ColonyView.camera(level);
+    ColonyView.stage(level);
+    scene.level = Maps.enter(scene.world, level.id);
     ColonyTravel._arriveSquad(scene, squad, sp);
     ColonyTravel._latch(scene);
-
-    if (scene.stages[mapId] === undefined) scene.stages[mapId] = ColonyView.stage(level);
-    else CameraSystem.view(level).assign(0);
     // snap the look-at to the player so it doesn't pan in from where the map was left — a restored
     // player stands where it was saved, not at the entry; the target needs no re-aim, as the
     // player carries its focus marker

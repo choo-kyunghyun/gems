@@ -1,14 +1,15 @@
 /**
- * The colony's presentation over a mounted level: a pass stack its caller owns and frees.
+ * The colony's presentation over a mounted level: its stage, a pass stack derived on the level's
+ * own entity and freed with it, and its camera.
  *
- * Only reads the level, save its camera — an entity of the level's store, seeded before the
- * passes because every view-dependent pass takes its view at construction. No map state lives
- * here. The atmosphere constants are this engine's tuning of the pitched 2.5D framing that every
- * pass and the camera agree on.
+ * Only reads the level, save its camera — an entity of the level's store under this engine's
+ * follow policy. No map state lives here. The atmosphere constants are this engine's tuning of
+ * the pitched 2.5D framing that every pass and the camera agree on.
  *
  * @typedef {Object} ColonyStage
  * @property {Renderer} renderer  the pass stack
  * @property {RenderDebugEntity} bbox  the bounding-box overlay, toggled per frame by its owner
+ * @property {function(): void} destroy  frees the pass stack
  */
 globalThis.ColonyView = {
   // Camera pitch in degrees (0 = flat, debug only — front-view art reads wrong flat): the
@@ -18,6 +19,7 @@ globalThis.ColonyView = {
   PITCH_CURVE: { pitchLo: 42, pitchHi: 58, zoomLo: 1.25, zoomHi: 2.625 },
   // Clip depth either side of the look-at, world px: past any ground the widest view shows.
   DEPTH: 8000,
+  KEY: "colony_stage", // the stage's derived token on the level's own entity
 
   /**
    * The world's albedo chroma this frame, pulled toward 1 (the authored colours) by the
@@ -28,10 +30,9 @@ globalThis.ColonyView = {
     return 1 - (1 - k) * Settings.get("worldChroma");
   },
 
-  /** The level's stage, built once per level on its first activation. */
+  /** The level's stage, built on the first ask. */
   stage(level) {
-    ColonyView._camera(level);
-    return ColonyView._renderer(level);
+    return level.entities.derive(level.self, ColonyView.KEY, () => ColonyView._renderer(level));
   },
 
   /** Grass clump defs for a material table; the biome profile's clump sheet and extras override. */
@@ -130,7 +131,8 @@ globalThis.ColonyView = {
     // additive, so bright over the day/night tint
     ctx.renderer.insert(new RenderParticles({ camera: ctx.camera }));
     ctx.renderer.insert(new RenderFloatingText({ camera: ctx.camera }));
-    return { renderer: ctx.renderer, bbox };
+    const renderer = ctx.renderer;
+    return { renderer, bbox, destroy: () => renderer.destroy() };
   },
 
   /**
@@ -364,11 +366,11 @@ globalThis.ColonyView = {
   },
 
   /**
-   * The level's camera entity under the follow policy. A restored save keeps its entity; the
-   * policy is minted either way — its tuning is this engine's, not the save's — seeded so the
-   * zoom resumes where it was. Zoom snaps through fixed stops.
+   * Put the level's camera entity under the follow policy, once. A restored save keeps its
+   * entity; the policy is minted either way — its tuning is this engine's, not the save's — seeded
+   * so the zoom resumes where it was. Zoom snaps through fixed stops.
    */
-  _camera(level) {
+  camera(level) {
     const pitch = ColonyView.BB_PITCH;
     const baseZoom = pitch > 0 ? 2 : 1;
     const entities = level.entities;
@@ -388,7 +390,7 @@ globalThis.ColonyView = {
         zfar: ColonyView.DEPTH,
         zoom: baseZoom,
       });
-    }
+    } else if (entities.has(id, CameraFollow)) return;
     const curve = ColonyView.PITCH_CURVE;
     entities.add(
       id,
@@ -416,6 +418,5 @@ globalThis.ColonyView = {
       },
       { mint: true },
     );
-    CameraSystem.view(level).assign(0);
   },
 };

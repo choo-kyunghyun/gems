@@ -56,7 +56,6 @@ class _SceneColonyClass {
 
     this._buildUI();
 
-    this.stages = {}; // map id -> its ColonyStage, built on the map's first activation
     // a pending save replaces a new game's map, kit and companion
     if (SaveGame.pending()) {
       // the player is already in the restored map's store, so nothing lands or moves
@@ -376,7 +375,7 @@ class _SceneColonyClass {
   draw() {
     // the camera's wall-clock policy, so a free camera keeps moving while the sim is paused,
     // then this frame's matrices — before the renderer reads the view
-    const stage = this.stages[this.level.id];
+    const stage = ColonyView.stage(this.level);
     CameraSystem.apply(this.level);
     stage.bbox.enabled = Settings.get("debugBBox");
     stage.renderer.draw(this.level.entities);
@@ -391,10 +390,8 @@ class _SceneColonyClass {
     Progression.reset();
     Mortality.reset();
     StructureSystem.reset();
-    ColonyTravel.suspend(this); // release the view before its camera is freed with the level
-    for (const id in this.stages) this.stages[id].renderer.destroy();
     World.active = null;
-    this.world.destroy();
+    Maps.close(this.world);
     if (this.ui) {
       UI.remove(this.ui);
       this.ui.destroy();
