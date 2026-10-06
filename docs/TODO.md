@@ -10,8 +10,7 @@
 - Mine and Mine Detector
 - Settlement
     - Fishing
-    - Raid event
-- World map: a trip costs in-game hours but no survival needs; a site's extraction point is its arrival beacon (a separate extraction site is the extraction-shooter tension knob); site codenames from word pools (WORLD_KO) instead of fixed i18n names
+- World map: a trip costs in-game hours but no survival needs; a site's extraction point is its arrival beacon (a separate extraction site is the extraction-shooter tension knob); site codenames from word pools instead of fixed i18n names
 - Killfeed UI
 - Blueprint UI — stamp a captured or registered plan (`Blueprint.stamp`) for its wood
 - [C#] Separating Pathfinding into a different thread
