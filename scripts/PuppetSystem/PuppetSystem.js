@@ -20,8 +20,9 @@
  * x/y; a rig without a collider follows its Position at scale 1.
  *
  * The built-ins are room-global, so a parked level's mirrors leave every query through `park`
- * and return through `thaw`, which activates every instance (docs/GMRT.md) — the caller re-parks
- * the other pooled levels. A puppet released while parked waits for that thaw to be destroyed.
+ * and return through `thaw`, which activates every instance in the room (docs/GMRT.md) — the
+ * caller re-parks the other pooled levels. A puppet released while parked waits for that thaw to
+ * be destroyed.
  *
  * `list` is the one runtime hit list, drained by its caller before the next ask; `move` is the
  * one way a body displaces — one axis at a time, the other capped to 0 so the runtime's
@@ -160,9 +161,13 @@ globalThis.PuppetSystem = {
     });
   },
 
-  /** Also reactivates every other parked level's mirrors. */
-  thaw(level) {
+  /** Bring every parked mirror back into the queries. */
+  thaw() {
     instance_activate_all();
+    // BUG: a mirror parked with a stale box drops out of the area queries until a box read
+    // (docs/GMRT.md)
+    const n = instance_number(Puppet);
+    for (let i = 0; i < n; i++) instance_find(Puppet, i).bbox_left;
     PuppetSystem.reap();
   },
 };

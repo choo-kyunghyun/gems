@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Maps",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Maps",
+  "parent":{
+    "name":"Scene",
+    "path":"folders/Core/Scene.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"Maps.js",
+}

@@ -236,7 +236,7 @@ Test.register(Test.CHECK, [
       t.ok(at(190, 30, 210, 50, Puppet), "solid on: it answers again");
       PuppetSystem.park(ctx.level);
       t.ok(!at(110, 10, 120, 20, Solid), "a parked level's mirrors answer nothing");
-      PuppetSystem.thaw(ctx.level);
+      PuppetSystem.thaw();
       t.ok(at(110, 10, 120, 20, Solid), "thawed, they answer");
       ctx.level.destroy();
       ctx.level = null;

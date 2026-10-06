@@ -1,10 +1,24 @@
 // Level, world and nav cases: a level's own entity and its rebuild, the grid and its blob, the
-// world pool, a ticker over a level, the nav grid's sync, an edit cursor's answers, the nav grid's
-// restamp, a wall cell's replan, the zone map's labeling, the generator's salted seeds, level
-// data's footprint and copies, and perf.plan, what one A* expansion costs. Every case references
-// Core only.
+// world pool and the map switch over it, a ticker over a level, the nav grid's sync, an edit
+// cursor's answers, the nav grid's restamp, a wall cell's replan, the zone map's labeling, the
+// generator's salted seeds, level data's footprint and copies, and perf.plan, what one A*
+// expansion costs. Every case references Core only.
 
 const PLAN_COLS = 128; // an overworld's side
+
+/** A world pooling `test_p` and `test_q`, each a level with one mirrored wall: p's at x 0, q's at 64. */
+const twoMaps = () => {
+  const world = new World();
+  const xs = [0, 64];
+  const ids = ["test_p", "test_q"];
+  for (let i = 0; i < ids.length; i++) {
+    const c = Test.level(4, 4);
+    Test.box(c.entities, xs[i], 0, 32, 32);
+    world.add(ids[i], c.level);
+    PuppetSystem.update(c.level);
+  }
+  return world;
+};
 
 Test.register(Test.CHECK, [
   {
@@ -269,6 +283,50 @@ Test.register(Test.CHECK, [
     },
   },
   {
+    id: "maps.enter",
+    // the live level alone answers a collision query and holds the viewport; entering another
+    // swaps both
+    setup(ctx) {
+      ctx.world = twoMaps();
+    },
+    verify(ctx, t) {
+      const w = ctx.world;
+      const probe = PuppetSystem.probe();
+      const at = (x) => instance_exists(probe.collision_rectangle(x + 8, 8, x + 24, 24, Solid, false, true));
+      Maps.enter(w, "test_p");
+      t.ok(at(0), "the entered level's mirror answers");
+      t.ok(!at(64), "a parked level's answers nothing");
+      t.eq(CameraSystem.view(w.get("test_p")).viewport, 0, "the entered level's view holds the viewport");
+      t.eq(CameraSystem.view(w.get("test_q")).viewport, -1, "a parked level's holds none");
+      Maps.enter(w, "test_q");
+      t.ok(at(64), "entering another makes its mirror answer");
+      t.ok(!at(0), "and parks the one left");
+      t.eq(CameraSystem.view(w.get("test_q")).viewport, 0, "the viewport moves to the entered level");
+      t.eq(CameraSystem.view(w.get("test_p")).viewport, -1, "and leaves the one left");
+    },
+    teardown(ctx) {
+      Maps.close(ctx.world);
+    },
+  },
+  {
+    id: "maps.close",
+    // closing the pool destroys every level's mirrors, a parked level's included
+    setup(ctx) {
+      ctx.base = instance_number(Solid);
+      ctx.world = twoMaps();
+    },
+    verify(ctx, t) {
+      Maps.enter(ctx.world, "test_p");
+      Maps.close(ctx.world);
+      ctx.world = null;
+      instance_activate_all(); // a mirror left deactivated counts again
+      t.eq(instance_number(Solid), ctx.base, "no mirror outlives the pool");
+    },
+    teardown(ctx) {
+      if (ctx.world !== null) Maps.close(ctx.world);
+    },
+  },
+  {
     id: "level.self.rebuild",
     // the derived rule itself: every derived entry is rebuilt from the level's data, so a level
     // whose derived entries are all freed mid-run ends where its untouched twin does
@@ -302,7 +360,7 @@ Test.register(Test.CHECK, [
         s.add(c.w, PathRequest, { startX: 0, startY: 0, goalX: 7, goalY: 0 }, { mint: true });
         PathfindingSystem.update(c.level);
         // the twins share the room: only the stepping level's mirrors may answer
-        PuppetSystem.thaw(c.level);
+        PuppetSystem.thaw();
         PuppetSystem.park(c === ctx.p ? ctx.q.level : ctx.p.level);
         PuppetSystem.update(c.level);
         SolidSystem.update(c.level);

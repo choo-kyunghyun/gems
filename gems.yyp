@@ -358,6 +358,7 @@
     {"id":{"name":"Looks","path":"scripts/Looks/Looks.yy",},},
     {"id":{"name":"Loot","path":"scripts/Loot/Loot.yy",},},
     {"id":{"name":"LootTable","path":"scripts/LootTable/LootTable.yy",},},
+    {"id":{"name":"Maps","path":"scripts/Maps/Maps.yy",},},
     {"id":{"name":"Material","path":"scripts/Material/Material.yy",},},
     {"id":{"name":"Melee","path":"scripts/Melee/Melee.yy",},},
     {"id":{"name":"Merchant","path":"scripts/Merchant/Merchant.yy",},},
