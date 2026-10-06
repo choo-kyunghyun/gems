@@ -3,7 +3,9 @@
  * the solid pass in the same tick: each solid body sums half of every overlap's shallower axis
  * against each other moving body (a static solid is the solid pass's) — the whole of it against
  * an unpushable one, which sums nothing — and every push is summed before any body moves, so a
- * pair reads one overlap from both sides and separates by the whole of it. The move runs against the solids, so a push never lands a body inside a wall. A
+ * pair reads one overlap from both sides and separates by the whole of it. A push against a
+ * body's own Velocity also turns it as far to its right, so two bodies meeting head-on step aside
+ * opposite ways rather than cancel each other's stride. The move runs against the solids, so a push never lands a body inside a wall. A
  * solid-off body wears the empty mask, so it neither lists nor is pushed, and a rider belongs to
  * its seat, so it neither pushes nor is pushed.
  */
@@ -21,6 +23,7 @@ globalThis.SeparationSystem = {
     const held = entities.column(Instance);
     const cols = entities.column(Collision);
     const riding = entities.column(Rider);
+    const vels = entities.column(Velocity);
     const slots = Handle.SLOTS;
     const against = SolidSystem.tiles(level).against;
 
@@ -65,6 +68,14 @@ globalThis.SeparationSystem = {
           else py += (ay1 + ay2 < by1 + by2 ? -1 : 1) * oy * share;
         }
         if (px === 0 && py === 0) return;
+        const vel = vels[id % slots];
+        if (vel !== undefined) {
+          // y grows downward, so the right of (vx, vy) is (-vy, vx)
+          const toY = px * vel.x < 0 ? -px : 0;
+          const toX = py * vel.y < 0 ? py : 0;
+          px += toX;
+          py += toY;
+        }
         hs[n] = h;
         ps[n] = pos;
         pxs[n] = px;

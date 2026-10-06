@@ -7,8 +7,106 @@ const BENCH_STATICS = 200;
 const BENCH_BODIES = 500; // a colony's body count
 const BENCH_BODY = 12; // a body's box side
 const BENCH_RADIUS = 160; // an aggro scan's size
+const CROWD_SPEED = 90; // px/s, a walker's pace
+const CROWD_ARRIVE = 16; // px
+
+/**
+ * A grid level whose rock cells are the `#` of `rows`, and a path walker per `[fromX, fromY, toX,
+ * toY]` cell pair: a 16 px body that steers for its path's current waypoint.
+ */
+function _crowdLevel(rows, walks) {
+  const c = Test.level(rows[0].length, rows.length);
+  Test.types(c);
+  for (let y = 0; y < rows.length; y++)
+    for (let x = 0; x < rows[y].length; x++) if (rows[y][x] === "#") c.layer.set(x, y, c.rock);
+  const s = c.entities;
+  c.walkers = [];
+  for (let i = 0; i < walks.length; i++) {
+    const w = walks[i];
+    const at = c.grid.gridToWorld(w[0], w[1]);
+    const to = c.grid.gridToWorld(w[2], w[3]);
+    const id = s.create();
+    s.add(id, Position, { x: at.x, y: at.y, z: 0 });
+    s.add(id, BBox, { x: -8, y: -8, width: 16, height: 16 });
+    s.add(id, Collision, { solid: true });
+    s.add(id, Velocity, { x: 0, y: 0, z: 0 });
+    c.walkers.push({ id, tx: to.x, ty: to.y, pathCd: 0, pathRate: 0.2, done: false });
+  }
+  return c;
+}
+
+/** Steps the frame's systems until every walker arrives or `frames` run out; the arrivals. */
+function _crowdRun(c, frames) {
+  const s = c.entities;
+  const level = c.level;
+  let arrived = 0;
+  for (let f = 0; f < frames; f++) {
+    PuppetSystem.update(level);
+    for (let i = 0; i < c.walkers.length; i++) {
+      const w = c.walkers[i];
+      const pos = s.get(w.id, Position);
+      const vel = s.get(w.id, Velocity);
+      vel.x = 0;
+      vel.y = 0;
+      if (w.done) continue;
+      if ((w.tx - pos.x) ** 2 + (w.ty - pos.y) ** 2 < CROWD_ARRIVE * CROWD_ARRIVE) {
+        w.done = true;
+        arrived++;
+        PathFollow.clear(s, w.id);
+        continue;
+      }
+      const mp = PathFollow.target(s, c.grid, w.id, w, pos, w.tx, w.ty);
+      const dx = mp.x - pos.x;
+      const dy = mp.y - pos.y;
+      const d = Math.sqrt(dx * dx + dy * dy) || 1;
+      vel.x = (dx / d) * CROWD_SPEED;
+      vel.y = (dy / d) * CROWD_SPEED;
+    }
+    PathfindingSystem.update(level);
+    SolidSystem.update(level);
+    SeparationSystem.update(level);
+    s.flush();
+    if (arrived === c.walkers.length) return arrived;
+  }
+  return arrived;
+}
 
 Test.register(Test.CHECK, [
+  {
+    id: "separation.crowd",
+    // path walkers that meet pass each other: head-on in the open, in a corridor two bodies wide,
+    // and two flows crossing through one door
+    setup(ctx) {
+      ctx.step = Time.step;
+      Time.step = 1 / 60;
+      ctx.levels = [];
+    },
+    verify(ctx, t) {
+      const runs = [
+        ["open", ["............", "............", "............", "............", "............"],
+          [[1, 2, 10, 2], [10, 2, 1, 2]]],
+        ["corridor", ["############", "............", "............", "############"],
+          [[1, 1, 10, 1], [10, 1, 1, 1]]],
+        ["queue", ["############", "............", "############"],
+          [[1, 1, 10, 1], [2, 1, 9, 1], [3, 1, 8, 1]]],
+        ["door", ["....#....", "....#....", "....#....", "....#....", ".........", "....#....", "....#....", "....#....", "....#...."],
+          [[1, 3, 7, 3], [1, 4, 7, 4], [1, 5, 7, 5], [7, 3, 1, 3], [7, 4, 1, 4], [7, 5, 1, 5]]],
+      ];
+      for (let r = 0; r < runs.length; r++) {
+        const run = runs[r];
+        const c = _crowdLevel(run[1], run[2]);
+        ctx.levels.push(c.level);
+        const got = _crowdRun(c, 900);
+        t.eq(got, run[2].length, run[0] + ": every walker arrives");
+        c.level.destroy();
+        ctx.levels.pop();
+      }
+    },
+    teardown(ctx) {
+      Time.step = ctx.step;
+      for (let i = 0; i < ctx.levels.length; i++) ctx.levels[i].destroy();
+    },
+  },
   {
     id: "system.solid",
     setup(ctx) {
