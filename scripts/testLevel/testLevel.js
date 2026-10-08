@@ -12,9 +12,9 @@ const twoMaps = () => {
   const xs = [0, 64];
   const ids = ["test_p", "test_q"];
   for (let i = 0; i < ids.length; i++) {
-    const c = Test.level(4, 4);
+    const c = Test.level(4, 4, ids[i]);
     Test.box(c.entities, xs[i], 0, 32, 32);
-    world.add(ids[i], c.level);
+    world.add(c.level);
     PuppetSystem.update(c.level);
   }
   return world;
@@ -158,38 +158,33 @@ Test.register(Test.CHECK, [
   },
   {
     id: "world.pool",
-    // the world's store: a pooled level is an entity carrying its map id and the Level (minted,
-    // freed with it), and the roster survives an import without the Levels
+    // the world's levels are its resident maps by id, freed as they leave the pool; its store
+    // holds its own records alone
     setup(ctx) {
       ctx.world = new World();
     },
     verify(ctx, t) {
       const w = ctx.world;
       const lv = new Level({ id: "test_a", capacity: 4 });
-      w.add("test_a", lv);
+      w.add(lv);
       t.ok(w.get("test_a") === lv, "get resolves the pooled level");
       t.eq(w.get("test_b"), null, "a map not pooled reads null");
-      t.eq(w.ids().join(","), "test_a", "ids lists the resident maps");
+      t.eq(w.levels.length, 1, "levels lists the resident maps");
+      w.of("test_rec", () => ({ n: 1 }));
       const exp = w.table.export();
-      t.eq(exp.components.level, undefined, "the Level is minted — no export carries it");
-      t.eq(exp.components.map.length, 1, "the map entity rides the export");
-      w.table.import(exp);
-      t.ok(w.table.isValid(w.self), "self survives the import");
-      t.eq(lv.entities.count(), 0, "the import released the pooled Level");
-      t.eq(w.get("test_a"), null, "an imported map entity has no Level yet");
-      t.eq(w.ids().length, 0, "ids lists none");
+      t.eq(exp.components.test_rec.length, 1, "a record rides the store's export");
+      t.eq(w.table.count(), 1, "and the store holds self alone");
       const lv2 = new Level({ id: "test_a", capacity: 4 });
-      w.add("test_a", lv2);
-      t.ok(w.get("test_a") === lv2, "add hands the map entity its Level back");
-      t.eq(w.table.count(), 2, "add re-used the imported map entity");
+      w.add(lv2);
+      t.ok(w.get("test_a") === lv2, "a level added under a pooled id takes its place");
+      t.eq(lv.entities.count(), 0, "and frees the one it replaced");
       w.remove("test_a");
       t.eq(lv2.entities.count(), 0, "remove destroyed the pooled level");
       t.eq(w.get("test_a"), null, "a removed map reads null");
-      t.eq(w.table.count(), 1, "remove took the map entity with it");
       w.remove("test_a"); // a map not pooled is a no-op
       const other = new World();
       const lv3 = new Level({ id: "test_a", capacity: 4 });
-      other.add("test_a", lv3);
+      other.add(lv3);
       other.destroy();
       t.eq(lv3.entities.count(), 0, "destroy freed the pooled level");
     },
@@ -200,7 +195,8 @@ Test.register(Test.CHECK, [
   {
     id: "world.active",
     // a record is read off the installed world alone: each world keeps its own, and with none
-    // installed the read throws rather than reach a world that is gone
+    // installed — a destroyed world uninstalls itself — the read throws rather than reach a world
+    // that is gone
     setup(ctx) {
       ctx.prev = World.active;
       ctx.a = new World();
@@ -214,7 +210,10 @@ Test.register(Test.CHECK, [
       t.eq(WorldClock.state().day, 1, "another world's clock starts blank");
       World.active = ctx.a;
       t.eq(WorldClock.state().day, 2, "reinstalling a world reads its own record");
-      World.active = null;
+      const c = World.open();
+      t.ok(World.active === c, "open installs the world it makes");
+      c.destroy();
+      t.eq(World.active, null, "destroy uninstalls it");
       let threw = false;
       try {
         WorldClock.state();
@@ -263,8 +262,8 @@ Test.register(Test.CHECK, [
     // a whole entity leaves one level as plain data and lands whole in another
     setup(ctx) {
       ctx.world = new World();
-      ctx.world.add("test_a", new Level({ id: "test_a", capacity: 4 }));
-      ctx.world.add("test_b", new Level({ id: "test_b", capacity: 4 }));
+      ctx.world.add(new Level({ id: "test_a", capacity: 4 }));
+      ctx.world.add(new Level({ id: "test_b", capacity: 4 }));
     },
     verify(ctx, t) {
       const w = ctx.world;
@@ -324,6 +323,24 @@ Test.register(Test.CHECK, [
     },
     teardown(ctx) {
       if (ctx.world !== null) Maps.close(ctx.world);
+    },
+  },
+  {
+    id: "maps.free",
+    // a level freed while parked leaves no mirror once the next enter thaws the room
+    setup(ctx) {
+      ctx.base = instance_number(Solid);
+      ctx.world = twoMaps();
+    },
+    verify(ctx, t) {
+      Maps.enter(ctx.world, "test_p");
+      ctx.world.remove("test_q");
+      Maps.enter(ctx.world, "test_p");
+      instance_activate_all(); // a mirror left deactivated counts again
+      t.eq(instance_number(Solid), ctx.base + 1, "only the live level's mirror remains");
+    },
+    teardown(ctx) {
+      Maps.close(ctx.world);
     },
   },
   {

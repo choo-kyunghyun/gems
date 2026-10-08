@@ -1,31 +1,32 @@
 /**
- * THE WORLD — the level pool and the world's own data, the one write place above a Level: one
- * Table, `table`. Its row `self` carries the world-scope records, each as a component under its
- * owner's key, and every pooled level is an entity carrying its map id (`MAP`, saved) and the
- * minted `Level`, so a save's world half is `table.export()`. World is data: it holds no screen
- * state — which map is active is the scene's — and runs no logic of its own.
+ * THE WORLD — the level pool and the world's own data, one layer above a Level. Its records are
+ * components of `self`, the one entity of its store `table`, each under its owner's key, so a
+ * save's world half is `table.export()`; its `levels` are the resident maps, each pooled under its
+ * own id. World is data: it holds no screen state — which map is active is the scene's — and runs
+ * no logic of its own.
  *
- * A world lives as long as the scene that made it: installed as `active`, it is the one a record
- * owner's accessor reads, and `destroy` frees every pooled level with it. With none installed a
- * record read throws rather than reach a world that is gone.
+ * A world lives as long as the scene that opened it: `open` installs it as `active`, the one a
+ * record owner's accessor reads, and `destroy` uninstalls it and frees every pooled level. With
+ * none installed a record read throws rather than reach a world that is gone.
  *
- * A pooled level stays alive until the caller removes it, freed with its entity; while pooled it
- * only parks and thaws. take/put move a WHOLE entity between two resident levels; a map id with no
- * resident level throws, since the caller names a pooled map it owns.
- *
- * A store import restores the pooled levels' entities without their Levels (minted data is not
- * saved); `add` hands each its Level back by map id. `self` is index 0 of a store holding nothing
- * else yet, so it keeps its id across that import.
+ * A pooled level stays alive until the caller removes it; take/put move a WHOLE entity between two
+ * resident levels, and a map id with no resident level throws, since the caller names a pooled map
+ * it owns.
  */
 globalThis.World = class World {
-  static CAPACITY = 64; // self plus one entity per resident map
-  static LEVEL = "level"; // minted, freed with the entity
-  static MAP = "map"; // { id: mapId }; saved
   static active = null; // the live scene's world, or null
 
+  /** A fresh world, installed as `active`. */
+  static open() {
+    const w = new World();
+    World.active = w;
+    return w;
+  }
+
   constructor() {
-    this.table = new Table(World.CAPACITY);
-    this.self = this.table.create(); // the entity carrying the world-scope records
+    this.table = new Table(1); // `self` alone
+    this.self = this.table.create();
+    this.levels = []; // in pooling order: read it, never reorder it
   }
 
   /** The world-scope record under `key`, seeded by `make` on a miss. */
@@ -33,50 +34,36 @@ globalThis.World = class World {
     return this.table.of(this.self, key, make);
   }
 
-  /** The pooled level's entity under `mapId`, or -1. */
-  _find(mapId) {
-    let found = -1;
-    this.table.forEach([World.MAP], (id, m) => {
-      if (m.id === mapId) found = id;
-    });
-    return found;
+  _index(mapId) {
+    const levels = this.levels;
+    for (let i = 0; i < levels.length; i++) if (levels[i].id === mapId) return i;
+    return -1;
   }
 
-  /** Pool a level under its map id, freeing any Level that map entity already held. */
-  add(mapId, level) {
-    let id = this._find(mapId);
-    if (id === -1) {
-      id = this.table.create();
-      this.table.add(id, World.MAP, { id: mapId });
+  /** Pool a level under its id, freeing any level that id already held. */
+  add(level) {
+    const i = this._index(level.id);
+    if (i === -1) {
+      this.levels.push(level);
+      return;
     }
-    this.table.add(id, World.LEVEL, level, { mint: true, destroy: World._free });
+    const prev = this.levels[i];
+    this.levels[i] = level;
+    if (prev !== level) prev.destroy();
   }
 
   /** The resident level under `mapId`, or null. */
   get(mapId) {
-    const id = this._find(mapId);
-    if (id === -1) return null;
-    const lv = this.table.get(id, World.LEVEL);
-    return lv === undefined ? null : lv;
+    const i = this._index(mapId);
+    return i === -1 ? null : this.levels[i];
   }
 
-  /** Drop a map from the pool, freeing its Level; a map not pooled is a no-op. */
+  /** Drop a map from the pool, freeing its level; a map not pooled is a no-op. */
   remove(mapId) {
-    const id = this._find(mapId);
-    if (id === -1) return;
-    this.table.remove(id);
-    this.table.flush();
-  }
-
-  ids() {
-    const out = [];
-    this.table.forEach([World.MAP, World.LEVEL], (_id, m) => {
-      out.push(m.id);
-    });
-    return out;
-  }
-
-  static _free(level) {
+    const i = this._index(mapId);
+    if (i === -1) return;
+    const level = this.levels[i];
+    this.levels.splice(i, 1);
     level.destroy();
   }
 
@@ -99,8 +86,12 @@ globalThis.World = class World {
     return lv.entities.restore(record, overrides);
   }
 
-  /** Frees the store — every pooled level with it, every record gone. */
+  /** Uninstalls the world and frees every pooled level and record with it. */
   destroy() {
+    if (World.active === this) World.active = null;
+    const levels = this.levels;
+    for (let i = 0; i < levels.length; i++) levels[i].destroy();
+    levels.length = 0;
     this.table.destroy();
   }
 };

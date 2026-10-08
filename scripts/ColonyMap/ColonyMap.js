@@ -79,7 +79,7 @@ globalThis.ColonyMap = {
     }
     Log.info(`colony map: ${mapId} (entry ${entryId}, seed ${data.meta.seed})`);
     const r = ColonyMap._buildLevel(data, mapId, entryId, player);
-    world.add(mapId, r.level); // pooled before populate so arrivals can land through the pool
+    world.add(r.level); // pooled before populate so arrivals can land through the pool
     ColonyMap.populate(r.level, r.built.spawns);
     return r.level;
   },
@@ -100,7 +100,7 @@ globalThis.ColonyMap = {
       const grid = ColonyLevel.restore(cells, rec.terrain);
       if (grid !== null) {
         level.grid = grid;
-        world.add(m.id, level);
+        world.add(level);
         Log.info(`colony map: ${m.id} [restored]`);
         return level;
       }

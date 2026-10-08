@@ -35,12 +35,12 @@ globalThis.Test = {
     return out;
   },
 
-  /** A level with its own store. */
-  level(cols, rows) {
+  /** A level with its own store, pooled under `id`. */
+  level(cols, rows, id = "test") {
     const grid = new LevelGrid({ cols, rows });
     const layer = new TileLayer(grid, { emptyCost: 1 });
     grid.insert(layer);
-    const level = new Level({ id: "test", grid, capacity: 64 });
+    const level = new Level({ id, grid, capacity: 64 });
     return { level, grid, layer, entities: level.entities };
   },
 

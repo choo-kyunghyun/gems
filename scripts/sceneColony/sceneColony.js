@@ -43,8 +43,7 @@ class _SceneColonyClass {
       });
     };
     // a fresh session starts from a blank world; a load imports its records below
-    this.world = new World();
-    World.active = this.world;
+    this.world = World.open();
     // the BGM fallback is the active map's bed, read live so one hook serves every map
     Radio.reset();
     Radio.ambient = () => ColonyMap.bed(this.level);
@@ -390,7 +389,6 @@ class _SceneColonyClass {
     Progression.reset();
     Mortality.reset();
     StructureSystem.reset();
-    World.active = null;
     Maps.close(this.world);
     if (this.ui) {
       UI.remove(this.ui);

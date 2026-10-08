@@ -30,10 +30,9 @@ globalThis.Garage = {
 
   /** Where the vehicle key `uid` names stands, as `{ level, id }`, or null while it is stowed. */
   find(uid) {
-    const world = World.active;
-    const maps = world.ids();
-    for (let i = 0; i < maps.length; i++) {
-      const lv = world.get(maps[i]);
+    const levels = World.active.levels;
+    for (let i = 0; i < levels.length; i++) {
+      const lv = levels[i];
       let found = -1;
       lv.entities.forEach([Vehicle], (vid, v) => {
         if (v.key === uid) found = vid;

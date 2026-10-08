@@ -81,10 +81,7 @@ globalThis.ColonyTravel = {
     scene.playerId = pid !== -1 ? pid : undefined;
   },
 
-  /**
-   * Free the live transient map, stage and all. Never parked on the way: a parked instance
-   * outlives its free (docs/GMRT.md).
-   */
+  /** Free the live transient map, stage and all. */
   _free(scene) {
     const id = scene.level.id;
     scene.world.remove(id);

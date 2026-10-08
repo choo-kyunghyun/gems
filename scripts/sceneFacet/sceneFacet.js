@@ -294,8 +294,7 @@ class _SceneFacetClass {
     // no achievement content here: drop any rules hook a prior scene left
     Tracker.rules = null;
     // the demo progression starts blank
-    this.world = new World();
-    World.active = this.world;
+    this.world = World.open();
     Tracker.accept("uikit_q1");
     Tracker.accept("uikit_q2");
     Tracker.accept("uikit_q3");
@@ -703,7 +702,6 @@ class _SceneFacetClass {
     Input.unbindAll(["uikit_jump", "uikit_fire"]);
     UI.remove(this.ui);
     this.ui.destroy();
-    World.active = null;
     this.world.destroy();
   }
 }

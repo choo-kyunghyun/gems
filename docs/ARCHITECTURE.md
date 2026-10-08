@@ -106,9 +106,8 @@ and are cited from here, never restated):
       (`Settlement.of(level)`, `WorldClock.state()`), which seeds the record blank on a miss
       (`entities.of(self, KEY, make)`), so a fresh level or world starts every record blank. The
       grid is that entity's pure cells record (`Level.CELLS`) with the live grid over it minted
-      beside it (`Level.GRID`, the `grid` accessor), and a pooled map is an
-      entity of the world's store (`World.MAP` + a minted `World.LEVEL`). A save holds a Level's
-      store and the world's store and nothing else, so a new per-level or per-world fact rides
+      beside it (`Level.GRID`, the `grid` accessor). A save holds each pooled Level's store and
+      the world's store and nothing else, so a new per-level or per-world fact rides
       along unlisted; what is dense (the cells) crosses as a blob through the store's codec
       channel (`entities.codec` — pack/unpack per token, the sink and source the save's).
     - SCENE data is a field of the live scene instance (or a handle it holds — `hud`, `window`,
@@ -145,19 +144,19 @@ and are cited from here, never restated):
 - Level / Scene / World: `Level` and `World` are data and run no logic; the scene interprets
   them. A `Level` is one map — its store, whose own entity (`self`) carries the grid, the map's
   records and its derived entries, the camera an entity of that store — and it never updates or
-  draws. `World` is the store one layer up: its records on `self`, and each pooled map an entity
-  carrying its id and its Level. An entity moves between levels whole, as a record its caller
+  draws. `World` is the store one layer up, its records on `self`, plus the pool: each resident
+  Level under its own id. An entity moves between levels whole, as a record its caller
   holds from `take` to `put`. A `Scene` is the behaviour: it
   owns its world and which level is active, composes systems, camera policy and UI, and runs them
   over the level and the world from `update()`/`draw()`, the world's own tickers (`WorldClock`,
-  `Weather`) included. A scene makes its world and installs it as `World.active`, the one a world
-  record's accessor reads (a read with none installed throws), and clears and frees it with
-  itself, so no world outlives its scene; what holds the scene reaches the pool through
+  `Weather`) included. A scene opens its world, which installs it as `World.active`, the one a
+  world record's accessor reads (a read with none installed throws), and frees it with itself,
+  which uninstalls it, so no world outlives its scene; what holds the scene reaches the pool through
   `scene.world`. A map's renderer is a derived entry of its level like any other, so a pooled map
   keeps it, and the switch is `Maps`': `enter` makes a pooled level live and parks the rest,
   `park` takes one out of the room's queries and viewport, and `close` frees the pool — a park is
   a camera unassign and a resume a pointer swap. Which map stays pooled is the scene's policy, and
-  the world's `remove` frees one live, renderer and all. There is no scene manager: the `Game` object holds the one
+  the world's `remove` frees one, live or parked, renderer and all. There is no scene manager: the `Game` object holds the one
   active scene pointer and drives it from its own events (its Create_0 owns the switch/pause
   contract). Exactly one scene is live and a switch destroys it — a scene is never frozen, so it
   carries no state across a swap.

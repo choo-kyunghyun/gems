@@ -10,7 +10,7 @@
  * VERSION is refused — no migration.
  */
 globalThis.SaveGame = {
-  VERSION: 40, // bump when the manifest/blob layout changes incompatibly
+  VERSION: 41, // bump when the manifest/blob layout changes incompatibly
   DIR: "saves/",
   INDEX: "saves/index.json",
   _index: null,
@@ -189,11 +189,11 @@ globalThis.SaveGame = {
    * saves.
    */
   _maps(world, sink) {
-    const ids = world.ids();
+    const levels = world.levels;
     const maps = [];
-    for (let m = 0; m < ids.length; m++) {
-      const mapId = ids[m];
-      const entities = world.get(mapId).entities;
+    for (let m = 0; m < levels.length; m++) {
+      const mapId = levels[m].id;
+      const entities = levels[m].entities;
       const exp = entities.export((token, index, buffer) =>
         sink(mapId + "." + token + "." + index, buffer),
       );
