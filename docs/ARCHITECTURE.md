@@ -279,7 +279,7 @@ and are cited from here, never restated):
   exception — lives at `Input`.
 - Serialization-safe data: persisted blobs (Settings/InputPreset, `entities.export`/
   `capture`) may nest — serialize them with GML `json_stringify` or, when the data carries
-  sprite refs or can cycle, the `Json` codec, never JS `JSON.stringify` (#15565, GMRT.md). A
+  sprite or sound refs or can cycle, the `Json` codec, never JS `JSON.stringify` (#15565, GMRT.md). A
   serialized field holds plain arrays/objects only — no `Set`/`Map` (both cross the boundary empty
   — GMRT.md) and no asset ref outside the codec's tagging. Dense/large arrays still go to binary
   blobs, not JSON — a store token with a codec (`Codec[token]`) crosses its export as buffers the

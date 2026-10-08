@@ -649,8 +649,8 @@ Test.register(Test.CHECK, [
   },
   {
     id: "json.roundtrip",
-    // the codec's promises: nesting, a sprite ref, a GML constant as a number, NaN and Infinity
-    // as null, a cycle as null, invalid text as undefined, and the inline pretty form
+    // the codec's promises: nesting, a sprite and a sound ref, a GML constant as a number, NaN
+    // and Infinity as null, a cycle as null, invalid text as undefined, and the inline pretty form
     setup() {},
     verify(ctx, t) {
       const v = {
@@ -659,6 +659,7 @@ Test.register(Test.CHECK, [
         s: 'x"y',
         arr: [1, 2, { a: true }],
         spr: pixMissing,
+        snd: sndChop,
         key: vk_left,
         col: c_white,
         nul: null,
@@ -670,7 +671,7 @@ Test.register(Test.CHECK, [
       const bs = String.fromCharCode(92); // a literal backslash miscompiles (docs/GMRT.md)
       t.eq(
         text,
-        '{"n":1,"f":0.5,"s":"x' + bs + '"y","arr":[1,2,{"a":true}],"spr":{"$spr":"pixMissing"},"key":37,"col":16777215,"nul":null,"nan":null,"inf":null}',
+        '{"n":1,"f":0.5,"s":"x' + bs + '"y","arr":[1,2,{"a":true}],"spr":{"$spr":"pixMissing"},"snd":{"$snd":"sndChop"},"key":37,"col":16777215,"nul":null,"nan":null,"inf":null}',
         "the compact form",
       );
       const d = Json.decode(text);
@@ -678,6 +679,7 @@ Test.register(Test.CHECK, [
       if (d !== undefined) {
         t.eq(d.arr[2].a, true, "nesting round-trips");
         t.ok(sprite_exists(d.spr) && sprite_get_name(d.spr) === "pixMissing", "a sprite ref revives");
+        t.ok(audio_exists(d.snd) && audio_get_name(d.snd) === "sndChop", "a sound ref revives");
         t.ok(d.key === vk_left && d.col === c_white, "a GML constant comes back as its number");
         t.eq(d.nan, null, "NaN lands as null");
       }

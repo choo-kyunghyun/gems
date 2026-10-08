@@ -1,12 +1,12 @@
 /**
  * JSON codec for save data, walking the value itself because neither built-in serializer
- * survives the pinned runtime (docs/GMRT.md #15565). A sprite ref is tagged {"$spr": name} and
- * revived on decode.
+ * survives the pinned runtime (docs/GMRT.md #15565). An asset ref is tagged by its name —
+ * {"$spr": name} a sprite, {"$snd": name} a sound — and revived on decode.
  *
- * Contract: plain-JSON data (scalars, arrays, object literals) plus sprite refs. Anything else,
- * and a cycle, encodes as null with a warning; an undefined field is dropped and NaN/Infinity
- * become null, as native JSON does. A step cap aborts a runaway walk. The guards are a net:
- * a save passes clean, durable data.
+ * Contract: plain-JSON data (scalars, arrays, object literals) plus sprite and sound refs.
+ * Anything else, and a cycle, encodes as null with a warning; an undefined field is dropped and
+ * NaN/Infinity become null, as native JSON does. A step cap aborts a runaway walk. The guards are
+ * a net: a save passes clean, durable data.
  */
 globalThis.Json = {
   _MAX_STEPS: 4000000, // orders of magnitude above any real save, well under an OOM
@@ -127,10 +127,16 @@ globalThis.Json = {
         ctx.path.pop();
         return;
       }
-      // an asset ref; sprites are tagged by name so decode can re-resolve them
+      // an asset ref, tagged by name so decode can re-resolve it
       if (sprite_exists(v)) {
         out.push('{"$spr":');
         out.push(JSON.stringify(sprite_get_name(v)));
+        out.push("}");
+        return;
+      }
+      if (audio_exists(v)) {
+        out.push('{"$snd":');
+        out.push(JSON.stringify(audio_get_name(v)));
         out.push("}");
         return;
       }
@@ -150,8 +156,8 @@ globalThis.Json = {
   },
 
   /**
-   * A missing sprite revives as -1, so a save whose art was since removed degrades rather than
-   * faulting. Parsed JSON is a tree, so no cycle guard.
+   * A missing asset revives as -1, so a save whose art or sound was since removed degrades rather
+   * than faulting. Parsed JSON is a tree, so no cycle guard.
    */
   _revive(v) {
     if (v === null || typeof v !== "object") return v;
@@ -160,6 +166,7 @@ globalThis.Json = {
       return v;
     }
     if (v.$spr !== undefined) return asset_get_index(v.$spr);
+    if (v.$snd !== undefined) return asset_get_index(v.$snd);
     for (const k in v) v[k] = Json._revive(v[k]);
     return v;
   },
