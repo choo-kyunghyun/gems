@@ -9,3 +9,5 @@
  * @property {number} unit  world px per asset px, off the asset's declared density
  */
 globalThis.ParticleStream = "ParticleStream";
+// any script may load first (docs/GMRT.md)
+(globalThis.Mint ??= {})[ParticleStream] = (data) => ParticleEmitterSystem.release(data); // rebuilt at runtime, never saved

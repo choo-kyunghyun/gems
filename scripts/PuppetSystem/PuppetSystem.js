@@ -42,7 +42,7 @@ globalThis.PuppetSystem = {
     const col = entities.get(id, Collision);
     const obj = col !== undefined && col.kinematic === true ? Solid : Puppet;
     const data = { inst: instance_create_depth(0, 0, 0, obj) };
-    entities.add(id, Instance, data, { mint: true, destroy: PuppetSystem._release });
+    entities.add(id, Instance, data);
     return data;
   },
 
@@ -57,7 +57,7 @@ globalThis.PuppetSystem = {
   },
 
   /** A deactivated puppet cannot be destroyed (docs/GMRT.md), so it waits for `reap`. */
-  _release(data) {
+  release(data) {
     if (instance_exists(data.inst)) instance_destroy(data.inst);
     else PuppetSystem._doomed.push(data.inst);
   },

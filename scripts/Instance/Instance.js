@@ -33,3 +33,4 @@ globalThis.Instance = "Instance";
   ox: 0,
   oy: 0,
 };
+(globalThis.Mint ??= {})[Instance] = (data) => PuppetSystem.release(data); // rebuilt at runtime, never saved

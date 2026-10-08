@@ -35,7 +35,6 @@ globalThis.ParticleEmitterSystem = {
         id,
         ParticleStream,
         { sys: s, unit: AssetMeta.fit(asset, 1) },
-        { mint: true, destroy: ParticleEmitterSystem._release },
       );
     });
     entities.forEach([ParticleStream], (id, st) => {
@@ -66,7 +65,7 @@ globalThis.ParticleEmitterSystem = {
     matrix_set(matrix_world, matrix_build_identity());
   },
 
-  _release(st) {
+  release(st) {
     part_system_destroy(st.sys);
   },
 };

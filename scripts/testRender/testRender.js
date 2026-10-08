@@ -87,7 +87,6 @@ Test.register(Test.CHECK, [
           zoomHi: 3,
           bounds: { x1: 0, y1: 0, x2: 4000, y2: 4000 },
         },
-        { mint: true },
       );
     },
     verify(ctx, t) {
@@ -141,8 +140,8 @@ Test.register(Test.CHECK, [
         pitch: (50 * Math.PI) / 180,
         dist: 2000,
       });
-      s.add(ctx.cam, CameraFollow, { lerp: 1, pitch: 50 }, { mint: true });
-      s.add(ctx.cam, CameraFly, {}, { mint: true });
+      s.add(ctx.cam, CameraFollow, { lerp: 1, pitch: 50 });
+      s.add(ctx.cam, CameraFly, {});
     },
     verify(ctx, t) {
       const s = ctx.level.entities;

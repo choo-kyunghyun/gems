@@ -34,3 +34,4 @@ globalThis.CameraFollow = "CameraFollow";
   zoomLerp: 0.2,
   zoomButton: mb_middle,
 };
+(globalThis.Mint ??= {})[CameraFollow] = true; // rebuilt at runtime, never saved

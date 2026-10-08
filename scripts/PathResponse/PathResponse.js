@@ -6,3 +6,4 @@
 globalThis.PathResponse = "PathResponse";
 // any script may load first (docs/GMRT.md)
 (globalThis.Blank ??= {})[PathResponse] = { index: 0 };
+(globalThis.Mint ??= {})[PathResponse] = true; // rebuilt at runtime, never saved

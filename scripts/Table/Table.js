@@ -24,19 +24,21 @@
  * defer the swap-remove until the outermost walk ends, so a callback may detach the lead token
  * from any entity. A carrier added mid-walk is visited from the next walk.
  *
- * Persistence: a set is transient once an add mints its token — rebuilt at runtime, so `export`
- * and `capture` skip it. An add may hand the set a release hook, `destroy(data)`, called as
- * data leaves its slot by any path, so a component holding a native handle frees it with no reap
- * pass.
- *
- * A set may carry a binary codec (`pack(data)` → buffer, `unpack(buffer)` → data): its entries
- * cross `export`/`import` as buffers through the caller's sink and source, for what is dense and
- * what JSON can't carry (docs/GMRT.md #15565). An import fills the codec sets last, so an unpack
- * may read a record the same import restored.
+ * Traits: like its blank, a token's persistence is declared once, beside it, and holds in every
+ * store. `Mint[token]` marks a token rebuilt at runtime, which `export` and `capture` skip;
+ * declared as a function, it is the token's release hook, called as a datum leaves its slot by
+ * any path, so a component holding a native handle frees it with no reap pass. `Codec[token]`
+ * (`pack(data)` → buffer, `unpack(buffer)` → data) carries a token's entries across
+ * `export`/`import` as buffers through the caller's sink and source, for what is dense and what
+ * JSON can't carry (docs/GMRT.md #15565); an import fills the codec sets last, so an unpack may
+ * read a record the same import restored. A derived entry's token needs no declaration: `derive`
+ * mints it and releases each datum through its own `destroy()`.
  */
 /** @typedef {Object} RowRecord @property {Object<string,Object>} components token -> data */
-// scripts load by name (docs/GMRT.md), so a component script may open it first
+// scripts load by name (docs/GMRT.md), so a component script may open them first
 globalThis.Blank ??= {};
+globalThis.Mint ??= {};
+globalThis.Codec ??= {};
 
 globalThis.Table = class Table {
   /** The lead size below which a walk's order costs too little to warn about. */
@@ -66,12 +68,12 @@ globalThis.Table = class Table {
 
   /** Run a set's release hook over every carried datum — the store or the set is going whole. */
   _release(set) {
-    if (set.destroy === undefined) return;
+    if (set.release === undefined) return;
     const dense = set.dense;
     const column = set.column;
     for (let p = 0; p < dense.length; p++) {
       const data = column[dense[p]];
-      if (data !== undefined) set.destroy(data);
+      if (data !== undefined) set.release(data);
     }
   }
 
@@ -120,15 +122,16 @@ globalThis.Table = class Table {
   register(token) {
     if (!this._byToken.has(token)) {
       const blank = Blank[token];
+      const mint = Mint[token];
       const set = {
         column: new Array(this.maxEntities).fill(undefined),
         dense: [],
         sparse: new Array(this.maxEntities).fill(-1),
         walking: 0, // forEach nesting depth with this token as the lead
         pending: [], // indices whose swap-remove waits for the walk to end
-        transient: false, // minted: skipped by export/capture
-        destroy: undefined, // release hook, called as data leaves a slot
-        codec: undefined, // { pack, unpack }
+        transient: mint !== undefined, // minted: skipped by export/capture
+        release: typeof mint === "function" ? mint : undefined, // called as data leaves a slot
+        codec: Codec[token], // { pack, unpack }
         blank: blank,
         fill: blank === undefined ? undefined : Object.keys(blank),
       };
@@ -141,11 +144,9 @@ globalThis.Table = class Table {
 
   /**
    * The one way data enters a row: filled from the token's blank, then stored. Per-entity
-   * accessors are entity-first: a swapped pair reads as a miss, not an error. `opts.mint` marks a
-   * runtime-rebuilt token, which no export or whole-entity snapshot carries from then on;
-   * `opts.destroy(data)` is the set's release hook — one per token, the first given.
+   * accessors are entity-first: a swapped pair reads as a miss, not an error.
    */
-  add(id, token, data, opts) {
+  add(id, token, data) {
     let set = this._byToken.get(token);
     if (set === undefined) {
       this.register(token);
@@ -153,18 +154,15 @@ globalThis.Table = class Table {
     }
     if (set.fill !== undefined) Table._fill(set, data);
     const i = id % Handle.SLOTS;
-    if (set.destroy !== undefined) {
+    if (set.release !== undefined) {
       const prev = set.column[i];
-      if (prev !== undefined) if (prev !== data) set.destroy(prev); // replaced: the old data is released
+      if (prev !== undefined) if (prev !== data) set.release(prev); // replaced: the old data is released
     }
     set.column[i] = data;
     if (set.sparse[i] === -1) {
       set.sparse[i] = set.dense.length;
       set.dense.push(i);
     }
-    if (opts === undefined) return;
-    if (opts.mint === true) set.transient = true;
-    if (opts.destroy !== undefined) if (set.destroy === undefined) set.destroy = opts.destroy;
   }
 
   static _fill(set, data) {
@@ -174,13 +172,6 @@ globalThis.Table = class Table {
       const key = keys[k];
       if (data[key] === undefined) data[key] = Plain.copy(blank[key]);
     }
-  }
-
-  /** `c` is `{ pack(data) → buffer, unpack(buffer) → data }`; the token's entries cross
-   *  export/import as blobs. Set before the store is exported or imported. */
-  codec(token, c) {
-    this.register(token);
-    this._byToken.get(token).codec = c;
   }
 
   /** The token's column, registered if new — a per-tick reader hoists it once and indexes it by
@@ -210,12 +201,22 @@ globalThis.Table = class Table {
 
   /** `of` for what a consumer derives from the layer's data and keeps between frames: minted,
    *  so no export carries it, and freed through its own `destroy()` when it has one as it leaves
-   *  its slot. Never a source of truth; a miss is never an error. */
+   *  its slot. Never a source of truth; a miss is never an error. Throws on a token that holds
+   *  persistent data, which no derive may turn transient. */
   derive(id, token, make) {
-    let data = this.get(id, token);
+    let set = this._byToken.get(token);
+    if (set === undefined) {
+      this.register(token);
+      set = this._byToken.get(token);
+      set.transient = true;
+      set.release = Table._free;
+    } else if (set.transient !== true) {
+      throw new Error(`Table.derive: "${token}" is a persistent token`);
+    }
+    let data = set.column[id % Handle.SLOTS];
     if (data === undefined) {
       data = make();
-      this.add(id, token, data, { mint: true, destroy: Table._free });
+      this.add(id, token, data);
     }
     return data;
   }
@@ -254,7 +255,7 @@ globalThis.Table = class Table {
     if (set.sparse[i] === -1) return;
     const data = set.column[i];
     set.column[i] = undefined;
-    if (set.destroy !== undefined) if (data !== undefined) set.destroy(data);
+    if (set.release !== undefined) if (data !== undefined) set.release(data);
     if (set.walking > 0) set.pending.push(i);
     else this._compact(set, i);
   }

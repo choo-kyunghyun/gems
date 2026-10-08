@@ -38,7 +38,6 @@ globalThis.PathFollow = {
         id,
         PathRequest,
         { startX: s.x, startY: s.y, goalX: g.x, goalY: g.y },
-        { mint: true },
       );
       state.pathCd = state.pathRate;
     }

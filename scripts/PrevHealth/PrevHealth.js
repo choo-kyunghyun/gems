@@ -5,3 +5,5 @@
  * @property {number} hp
  */
 globalThis.PrevHealth = "PrevHealth";
+// any script may load first (docs/GMRT.md)
+(globalThis.Mint ??= {})[PrevHealth] = true; // rebuilt at runtime, never saved

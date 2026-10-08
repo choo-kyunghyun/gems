@@ -433,7 +433,8 @@ Test.register(Test.CHECK, [
       ctx.src = s.create();
       s.add(ctx.src, Position, { x: 1, y: 2, z: 0 });
       s.add(ctx.src, "TestBag", { slots: [{ itemId: "a", qty: 1 }] });
-      s.add(ctx.src, "TestRuntime", { n: 0 }, { mint: true });
+      Mint.TestRuntime = true;
+      s.add(ctx.src, "TestRuntime", { n: 0 });
     },
     verify(ctx, t) {
       const s = ctx.entities;
@@ -450,6 +451,7 @@ Test.register(Test.CHECK, [
       t.eq(rec.components.TestBag.slots[0].qty, 1, "the record itself is untouched");
     },
     teardown(ctx) {
+      delete Mint.TestRuntime;
       ctx.entities.destroy();
     },
   },
@@ -461,8 +463,8 @@ Test.register(Test.CHECK, [
       ctx.dst = new Table(8);
       ctx.a = s.create();
       s.add(ctx.a, Position, { x: 1, y: 2, z: 3 });
-      s.add(ctx.a, PathResponse, { path: [], index: 0 }, { mint: true });
-      s.add(ctx.a, PathResponse, { path: [], index: 1 }); // a later add keeps the token minted
+      s.add(ctx.a, PathResponse, { path: [], index: 0 });
+      s.add(ctx.a, "TestRecord", { n: 1 });
     },
     verify(ctx, t) {
       const s = ctx.src;
@@ -497,6 +499,14 @@ Test.register(Test.CHECK, [
         ctx.dst.get(ctx.a, Position) !== undefined,
         "a round trip keeps the added token",
       );
+      let threw = false;
+      try {
+        s.derive(ctx.a, "TestRecord", () => ({ n: 2 }));
+      } catch (e) {
+        threw = true;
+      }
+      t.ok(threw, "a derive never turns a persistent token transient");
+      t.ok(s.export().components.TestRecord !== undefined, "so it still rides the export");
     },
     teardown(ctx) {
       ctx.src.destroy();
@@ -561,7 +571,7 @@ Test.register(Test.CHECK, [
           return { n: buffer_read(b, buffer_u32) };
         },
       };
-      s.codec("TestBlob", codec);
+      Codec.TestBlob = codec; // a store takes a token's codec as it first meets the token
       const a = s.create();
       s.add(a, "TestBlob", { n: 7 });
       s.add(a, Position, { x: 1, y: 2, z: 0 });
@@ -575,13 +585,13 @@ Test.register(Test.CHECK, [
       t.eq(exp.components.TestBlob[0][1], "blob0", "the export holds the sink's name");
       t.eq(exp.components.Position[0][1].x, 1, "a plain component stays JSON");
       const d = ctx.dst;
-      d.codec("TestBlob", {
+      Codec.TestBlob = {
         pack: codec.pack,
         unpack(b) {
           ctx.seen = d.get(a, Position) !== undefined;
           return codec.unpack(b);
         },
-      });
+      };
       d.import(exp, (name) => ctx.bufs[Number(name.slice(4))]);
       t.eq(d.get(a, "TestBlob").n, 7, "the source's buffer unpacks");
       t.ok(ctx.seen, "unpack runs after the plain components are in");
@@ -594,13 +604,14 @@ Test.register(Test.CHECK, [
       t.ok(buffer_exists(b2), "without a sink the export holds the buffer");
       ctx.bufs.push(b2);
       const d2 = new Table(8);
-      d2.codec("TestBlob", codec);
+      Codec.TestBlob = codec;
       d2.import(raw);
       t.eq(d2.get(a, "TestBlob").n, 7, "without a source the buffer unpacks as is");
       d2.destroy();
     },
     teardown(ctx) {
       for (let i = 0; i < ctx.bufs.length; i++) buffer_delete(ctx.bufs[i]);
+      delete Codec.TestBlob;
       ctx.src.destroy();
       ctx.dst.destroy();
     },
@@ -689,16 +700,16 @@ Test.register(Test.CHECK, [
     setup(ctx) {
       ctx.s = new Table(8);
       ctx.freed = [];
+      Mint.TestHandle = (d) => ctx.freed.push(d.tag);
     },
     verify(ctx, t) {
       const s = ctx.s;
-      const hook = (d) => ctx.freed.push(d.tag);
       const a = s.create();
       const b = s.create();
       const c = s.create();
-      s.add(a, "TestHandle", { tag: "a" }, { mint: true, destroy: hook });
-      s.add(b, "TestHandle", { tag: "b" }, { mint: true, destroy: hook });
-      s.add(c, "TestHandle", { tag: "c" }, { mint: true, destroy: hook });
+      s.add(a, "TestHandle", { tag: "a" });
+      s.add(b, "TestHandle", { tag: "b" });
+      s.add(c, "TestHandle", { tag: "c" });
       t.eq(s.export().components["TestHandle"], undefined, "a hooked token is transient");
       s.detach(a, "TestHandle");
       t.eq(ctx.freed.join(""), "a", "detach releases the handle");
@@ -710,9 +721,12 @@ Test.register(Test.CHECK, [
       t.eq(ctx.freed.join(""), "abc", "a replacing add releases the old handle");
       s.forEach(["TestHandle"], (id) => s.detach(id, "TestHandle"));
       t.eq(ctx.freed.join(""), "abcc2", "a detach mid-walk releases at once");
-      s.add(c, "TestHandle", { tag: "d" }, { mint: true, destroy: hook });
+      s.add(c, "TestHandle", { tag: "d" });
       s.destroy();
       t.eq(ctx.freed.join(""), "abcc2d", "the store's destroy releases what is left");
+    },
+    teardown() {
+      delete Mint.TestHandle;
     },
   },
   {

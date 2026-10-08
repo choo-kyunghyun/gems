@@ -374,7 +374,7 @@ Test.register(Test.CHECK, [
     verify(ctx, t) {
       const step = (c) => {
         const s = c.entities;
-        s.add(c.w, PathRequest, { startX: 0, startY: 0, goalX: 7, goalY: 0 }, { mint: true });
+        s.add(c.w, PathRequest, { startX: 0, startY: 0, goalX: 7, goalY: 0 });
         PathfindingSystem.update(c.level);
         // the twins share the room: only the stepping level's mirrors may answer
         PuppetSystem.thaw();
@@ -607,18 +607,18 @@ Test.register(Test.CHECK, [
       ctx.wall = Test.box(s, 3 * cell, 0, cell, 7 * cell); // column 3, rows 0..6: a detour through row 7
       ctx.walker = s.create();
       s.add(ctx.walker, Position, { x: 16, y: 16, z: 0 });
-      s.add(ctx.walker, PathRequest, { startX: 0, startY: 0, goalX: 7, goalY: 0 }, { mint: true });
+      s.add(ctx.walker, PathRequest, { startX: 0, startY: 0, goalX: 7, goalY: 0 });
       ctx.other = s.create();
       // a held path a restamp drops
-      s.add(ctx.other, PathResponse, { path: [{ x: 0, y: 0 }], index: 0 }, { mint: true });
+      s.add(ctx.other, PathResponse, { path: [{ x: 0, y: 0 }], index: 0 });
     },
     verify(ctx, t) {
       const s = ctx.entities;
       const level = ctx.level;
       const hold = () =>
-        s.add(ctx.other, PathResponse, { path: [{ x: 0, y: 0 }], index: 0 }, { mint: true });
+        s.add(ctx.other, PathResponse, { path: [{ x: 0, y: 0 }], index: 0 });
       const ask = () =>
-        s.add(ctx.walker, PathRequest, { startX: 0, startY: 0, goalX: 7, goalY: 0 }, { mint: true });
+        s.add(ctx.walker, PathRequest, { startX: 0, startY: 0, goalX: 7, goalY: 0 });
       PuppetSystem.update(level);
       PathfindingSystem.update(level);
       const r1 = s.get(ctx.walker, PathResponse);
@@ -676,7 +676,7 @@ Test.register(Test.CHECK, [
       const level = ctx.level;
       const layer = ctx.layer;
       const ask = () =>
-        s.add(ctx.walker, PathRequest, { startX: 0, startY: 0, goalX: 7, goalY: 0 }, { mint: true });
+        s.add(ctx.walker, PathRequest, { startX: 0, startY: 0, goalX: 7, goalY: 0 });
       ask();
       PuppetSystem.update(level);
       PathfindingSystem.update(level);

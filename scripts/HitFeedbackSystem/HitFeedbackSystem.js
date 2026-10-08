@@ -37,7 +37,7 @@ globalThis.HitFeedbackSystem = {
     const base = entities.get(id, PrevHealth);
     if (base === undefined) {
       // first sight seeds, pops nothing
-      entities.add(id, PrevHealth, { hp: hp.hp }, { mint: true });
+      entities.add(id, PrevHealth, { hp: hp.hp });
       return;
     }
     const prev = base.hp;

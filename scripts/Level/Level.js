@@ -34,7 +34,6 @@ globalThis.Level = class Level {
     this.id = opt.id ?? "";
     this.entities = new Table(opt.capacity ?? 256);
     this.self = this.entities.create();
-    this.entities.codec(Level.CELLS, { pack: LevelGrid.pack, unpack: LevelGrid.unpack });
     if (opt.grid !== undefined) this.grid = opt.grid;
   }
 
@@ -52,16 +51,17 @@ globalThis.Level = class Level {
       s.detach(this.self, Level.CELLS);
       return;
     }
-    s.add(this.self, Level.GRID, g, { mint: true, destroy: Level._free });
+    s.add(this.self, Level.GRID, g);
     s.add(this.self, Level.CELLS, g.cells);
-  }
-
-  static _free(grid) {
-    grid.destroy();
   }
 
   /** Frees the store, the grid and every derived entry with it. */
   destroy() {
     this.entities.destroy();
   }
+};
+(globalThis.Mint ??= {})[Level.GRID] = (grid) => grid.destroy();
+(globalThis.Codec ??= {})[Level.CELLS] = {
+  pack: (cells) => LevelGrid.pack(cells),
+  unpack: (buf) => LevelGrid.unpack(buf),
 };

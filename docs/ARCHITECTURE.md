@@ -78,6 +78,8 @@ and are cited from here, never restated):
       of every field whose absence means nothing. Every datum enters a store through ONE door,
       `entities.add` (an import included), which fills what the datum leaves undefined from the
       blank — so a default lives in the blank alone, never at a call site or a reader's `??`.
+      A token's persistence is declared beside it the same way (`Mint[PathResponse]`,
+      `Codec[Level.CELLS]`, contract at `Table`) and holds in every store, never per call.
         - Systems are TICKERS: plain objects `{ update(level) }` — plus a draw-phase `apply`/`draw`
       where the frame's other clock needs one (`CameraSystem.apply`, `ParticleEmitterSystem.draw`)
       — the level in hand is the whole context (its store, its grid, its own entity), a system
@@ -109,7 +111,7 @@ and are cited from here, never restated):
       beside it (`Level.GRID`, the `grid` accessor). A save holds each pooled Level's store and
       the world's store and nothing else, so a new per-level or per-world fact rides
       along unlisted; what is dense (the cells) crosses as a blob through the store's codec
-      channel (`entities.codec` — pack/unpack per token, the sink and source the save's).
+      channel (`Codec[token]` — pack/unpack per token, the sink and source the save's).
     - SCENE data is a field of the live scene instance (or a handle it holds — `hud`, `window`,
       `build`) and dies with it.
     - APP data is the run's own — the device, the session, the settings — held by the app
@@ -275,10 +277,10 @@ and are cited from here, never restated):
   sprite refs or can cycle, the `Json` codec, never JS `JSON.stringify` (#15565, GMRT.md). A
   serialized field holds plain arrays/objects only — no `Set`/`Map` (both cross the boundary empty
   — GMRT.md) and no asset ref outside the codec's tagging. Dense/large arrays still go to binary
-  blobs, not JSON — a store token with a codec (`entities.codec`) crosses its export as buffers the
+  blobs, not JSON — a store token with a codec (`Codec[token]`) crosses its export as buffers the
   save names as blobs (`File` moves the bytes). A runtime-rebuilt component (a diff baseline, a
-  path, a live handle) is minted — `entities.add(…, { mint: true })` at the system that rebuilds it — so no export
+  path, a live handle) is minted — declared `Mint[token]` beside its token — so no export
   or whole-entity snapshot carries it, and a save or a transfer names no component. One
-  that holds a native handle (`Instance`, `ParticleStream`) mints with its RELEASE hook, which
+  that holds a native handle (`Instance`, `ParticleStream`) is declared with its RELEASE hook, which
   the store runs as the datum leaves its slot (a detach, the entity's flush, a level's teardown),
   so no module keeps a roster of ids to reap.

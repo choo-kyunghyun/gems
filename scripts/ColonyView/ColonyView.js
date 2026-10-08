@@ -366,7 +366,7 @@ globalThis.ColonyView = {
 
   /**
    * Put the level's camera entity under the follow policy, once. A restored save keeps its
-   * entity; the policy is minted either way — its tuning is this engine's, not the save's — seeded
+   * entity; the policy is rebuilt either way — its tuning is this engine's, not the save's — seeded
    * so the zoom resumes where it was. Zoom snaps through fixed stops.
    */
   camera(level) {
@@ -415,7 +415,6 @@ globalThis.ColonyView = {
           y2: level.grid.rows * level.grid.cellHeight,
         },
       },
-      { mint: true },
     );
   },
 };

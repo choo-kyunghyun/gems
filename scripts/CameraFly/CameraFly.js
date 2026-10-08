@@ -12,3 +12,4 @@
 globalThis.CameraFly = "CameraFly";
 // any script may load first (docs/GMRT.md)
 (globalThis.Blank ??= {})[CameraFly] = { speed: 600, sens: 0.002, looking: false };
+(globalThis.Mint ??= {})[CameraFly] = true; // rebuilt at runtime, never saved
