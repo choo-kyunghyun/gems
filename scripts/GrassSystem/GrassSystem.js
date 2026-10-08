@@ -28,8 +28,7 @@ globalThis.GrassSystem = {
     const host = Grassland.type(level, Grassland.HOST);
     if (grass === undefined || host === undefined) return;
     const grid = level.grid;
-    const rt = ColonyMap.runtime(level);
-    const layer = rt.terrainLayer;
+    const layer = grid.layer("terrain");
     const cap = Math.floor(grid.cols * grid.rows * GrassSystem.CAP_SHARE);
     let count = 0;
     for (let gy = 0; gy < grid.rows; gy++)
@@ -40,7 +39,7 @@ globalThis.GrassSystem = {
     let rolls = Math.min(Math.floor(want), GrassSystem.MAX_ROLLS);
     if (rolls < GrassSystem.MAX_ROLLS && random(1) < want - Math.floor(want))
       rolls++;
-    const lkeys = contentBuild.tileLayers();
+    const built = Grassland.built(grid);
     for (let i = 0; i < rolls; i++) {
       if (count >= cap) break;
       const gx = irandom(grid.cols - 1);
@@ -53,8 +52,8 @@ globalThis.GrassSystem = {
         layer.get(gx, gy + 1) === grass;
       if (!front) continue;
       let covered = false;
-      for (let k = 0; k < lkeys.length; k++)
-        if (rt[lkeys[k] + "Layer"].occupied(gx, gy)) covered = true;
+      for (let k = 0; k < built.length; k++)
+        if (built[k].occupied(gx, gy)) covered = true;
       if (covered) continue;
       if (Build.at(level, gx, gy) !== -1) continue;
       layer.set(gx, gy, grass);

@@ -1,7 +1,7 @@
 /**
  * @typedef {Object} LevelTiles
- * @property {string} layer       tile-layer key, resolved through paint()'s `opts.layers` bag
- * @property {string} [material]  material key on a materials-bearing layer
+ * @property {string} layer       the key of a layer in the painted grid's stack
+ * @property {string} [material]  the layer's material key; omitted, the layer's default type
  * @property {number[]} cells     flat [x0, y0, x1, y1, ...] cells in the data's local coords
  */
 /**
@@ -13,13 +13,6 @@
  * @property {Object[]} [spawns]  entity descriptors at gx/gy; the shape is consumer-defined and Core
  *                                never reads past those two keys
  * @property {Object} [meta]      whole levels only
- */
-/**
- * @typedef {Object} LevelPaintOpts
- * @property {Object<string, *>} layers      handles bag keyed `<key>Layer` / `<key>Type` /
- *                                           `<key>Types`
- * @property {number} [ox]                   cell offset of the data's origin
- * @property {number} [oy]
  */
 /**
  * The one shape authored map content takes: a cols×rows footprint plus two optional channels —
@@ -98,21 +91,18 @@ globalThis.LevelData = {
   },
 
   /**
-   * Write the tiles into a level at the cell offset. Returns `{ spawns }`, translated but not
-   * spawned.
+   * Write the tiles into a grid's layers at the cell offset (ox, oy). Returns `{ spawns }`,
+   * translated but not spawned.
    */
-  paint(data, opts) {
-    const ox = opts.ox ?? 0;
-    const oy = opts.oy ?? 0;
-    const layers = opts.layers ?? {};
-
+  paint(data, grid, ox = 0, oy = 0) {
     const tiles = data.tiles ?? [];
     for (let i = 0; i < tiles.length; i++) {
       const t = tiles[i];
-      const layer = layers[t.layer + "Layer"];
-      if (layer === undefined)
-        throw new Error(`LevelData: no '${t.layer}' layer passed to paint()`);
-      const type = LevelData._type(layers, t);
+      const layer = grid.layer(t.layer);
+      const type = layer.type(t.material);
+      // fails loud — a typo'd material would otherwise read as a palette bug much later
+      if (type === undefined)
+        throw new Error(`LevelData: layer '${t.layer}' has no material '${t.material}'`);
       const c = t.cells;
       for (let j = 0; j < c.length; j += 2)
         layer.set(ox + c[j], oy + c[j + 1], type);
@@ -121,25 +111,6 @@ globalThis.LevelData = {
     return {
       spawns: LevelData._shiftSpawns(data.spawns ?? [], ox, oy),
     };
-  },
-
-  /**
-   * A tiles entry's TileType out of the handles bag. Fails loud — a typo'd material would otherwise
-   * paint the default and read as a palette bug much later.
-   */
-  _type(layers, t) {
-    if (t.material === undefined) return layers[t.layer + "Type"];
-    const types = layers[t.layer + "Types"];
-    if (types === undefined)
-      throw new Error(
-        `LevelData: layer '${t.layer}' carries no materials (asked for '${t.material}')`,
-      );
-    const type = types[t.material];
-    if (type === undefined)
-      throw new Error(
-        `LevelData: layer '${t.layer}' has no material '${t.material}'`,
-      );
-    return type;
   },
 
   _shiftCells(cells, ox, oy) {

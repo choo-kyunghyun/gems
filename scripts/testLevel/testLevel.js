@@ -830,9 +830,62 @@ Test.register(Test.CHECK, [
       s.items.push({ itemId: "test_c", qty: 1 });
       const own = src.spawns[0].items;
       t.ok(own.length === 1 && own[0].qty === 2, "an edit to a moved spawn leaves the source");
-      const painted = LevelData.paint({ cols: 4, rows: 3, spawns: src.spawns }, { layers: {} });
+      const painted = LevelData.paint({ cols: 4, rows: 3, spawns: src.spawns }, new LevelGrid({ cols: 4, rows: 3 }));
       painted.spawns[0].items[0].qty = 9;
       t.eq(own[0].qty, 2, "so does an edit to a painted one");
+    },
+  },
+  {
+    id: "level.paint",
+    // a tiles entry finds its layer on the grid by key and its type on the layer by material, the
+    // lowest id standing in for an entry that names none
+    setup(ctx) {
+      ctx.grid = new LevelGrid({ cols: 4, rows: 3 });
+      ctx.wall = new TileLayer(ctx.grid, { key: "test_wall" });
+      ctx.grid.insert(ctx.wall);
+      ctx.brick = new TileType({ id: 1, key: "test_brick" });
+      ctx.metal = new TileType({ id: 3, key: "test_metal" });
+      ctx.wall.bind(ctx.metal);
+      ctx.wall.bind(ctx.brick);
+    },
+    verify(ctx, t) {
+      const grid = ctx.grid;
+      const wall = ctx.wall;
+      t.ok(grid.layer("test_wall") === wall, "a layer is found by its key");
+      t.ok(wall.type("test_metal") === ctx.metal, "a type by its material key");
+      t.ok(wall.type() === ctx.brick, "the lowest id is the default");
+      t.eq(wall.type("test_none"), undefined, "an unbound material is undefined");
+      LevelData.paint(
+        {
+          cols: 2,
+          rows: 1,
+          tiles: [
+            { layer: "test_wall", cells: [0, 0] },
+            { layer: "test_wall", material: "test_metal", cells: [1, 0] },
+          ],
+        },
+        grid,
+        1,
+        2,
+      );
+      t.ok(wall.get(1, 2) === ctx.brick, "an entry with no material paints the default");
+      t.ok(wall.get(2, 2) === ctx.metal, "a material entry its own type, at the offset");
+      const throws = (data) => {
+        try {
+          LevelData.paint(data, grid);
+        } catch (e) {
+          return true;
+        }
+        return false;
+      };
+      t.ok(throws({ cols: 1, rows: 1, tiles: [{ layer: "test_none", cells: [0, 0] }] }), "an unknown layer throws");
+      t.ok(
+        throws({ cols: 1, rows: 1, tiles: [{ layer: "test_wall", material: "test_none", cells: [0, 0] }] }),
+        "and an unknown material",
+      );
+    },
+    teardown(ctx) {
+      ctx.grid.destroy();
     },
   },
   // What one A* expansion costs, on the shape a far plan has: a weighted field corner to corner,

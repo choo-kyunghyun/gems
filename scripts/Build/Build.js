@@ -27,10 +27,9 @@ globalThis.Build = {
   fits(level, item, gx, gy) {
     const grid = level.grid;
     if (!Build.free && !Build.allied(level)) return false;
-    const rt = ColonyMap.runtime(level);
     const lkeys = contentBuild.tileLayers();
     for (let i = 0; i < lkeys.length; i++)
-      if (rt[lkeys[i] + "Layer"].occupied(gx, gy)) return false;
+      if (grid.layer(lkeys[i]).occupied(gx, gy)) return false;
     if (Build.at(level, gx, gy) !== -1) return false;
     // a crop only where its species can root
     if (item.species !== undefined) {
@@ -123,7 +122,7 @@ globalThis.Build = {
     const spawn = item.spawn;
     for (const k in spawn) s[k] = spawn[k];
     if (item.orient === true) {
-      const wall = ColonyMap.runtime(level).wallLayer;
+      const wall = level.grid.layer("wall");
       s.vertical = wall.occupied(gx, gy - 1) && wall.occupied(gx, gy + 1);
     }
     return s;
@@ -136,13 +135,8 @@ globalThis.Build = {
     const grid = level.grid;
     if (item.kind === "tile") {
       // `mat` picks a per-cell material type
-      const rt = ColonyMap.runtime(level);
-      const layer = rt[item.layer + "Layer"];
-      const type =
-        item.mat !== undefined
-          ? rt[item.layer + "Types"][item.mat]
-          : rt[item.layer + "Type"];
-      layer.set(gx, gy, type);
+      const layer = grid.layer(item.layer);
+      layer.set(gx, gy, layer.type(item.mat));
       Grassland.cut(level, gx, gy);
       return;
     }
@@ -191,21 +185,14 @@ globalThis.Build = {
    * under a tile no entry paints.
    */
   _tile(level, gx, gy) {
-    const rt = ColonyMap.runtime(level);
     const lkeys = contentBuild.tileLayers();
-    const layers = contentTiles.LAYERS;
+    const layers = level.grid.layers;
     for (let l = layers.length - 1; l >= 0; l--) {
-      const key = layers[l].key;
-      if (lkeys.indexOf(key) === -1) continue;
-      const layer = rt[key + "Layer"];
-      if (!layer.occupied(gx, gy)) continue;
-      const mats = layers[l].materials;
-      if (mats === undefined) return contentBuild.tileItem(key, undefined);
-      const types = rt[key + "Types"];
+      const layer = layers[l];
+      if (lkeys.indexOf(layer.key) === -1) continue;
       const type = layer.get(gx, gy);
-      for (let m = 0; m < mats.length; m++)
-        if (types[mats[m].key] === type) return contentBuild.tileItem(key, mats[m].key);
-      return undefined;
+      if (!type) continue;
+      return contentBuild.tileItem(layer.key, type.key === "" ? undefined : type.key);
     }
     return undefined;
   },
@@ -226,7 +213,7 @@ globalThis.Build = {
     }
     const item = Build._tile(level, gx, gy);
     if (item === undefined) return false;
-    ColonyMap.runtime(level)[item.layer + "Layer"].clear(gx, gy);
+    level.grid.layer(item.layer).clear(gx, gy);
     Build._refund(level, actorId, item.id, gx, gy);
     Log.info(`removed ${item.id} at ${gx},${gy}`);
     return true;

@@ -130,8 +130,7 @@ and are cited from here, never restated):
       testLevel `level.self.rebuild`), MINTED so no export carries it, and freed as it leaves its
       slot through its own `destroy` (a detach, the level's teardown). The token is the owner —
       two modules on one KEY share one entry, as two on one component token would — so an owner
-      with both a record and a derived entry keys them apart (`ColonyMap.KEY`/`RUNTIME`,
-      `RoomSystem.KEY`/`MIRROR`). An entry is a class of its own that owns the queries over it
+      with both a record and a derived entry keys them apart (`RoomSystem.KEY`/`MIRROR`). An entry is a class of its own that owns the queries over it
       (`View`, `NavGrid`, `Rooms`), or a bare record where it holds only a count
       (`PuppetSystem.colliders`); a mirror of another entry refreshes off a GENERATION it polls
       by number (`NavGrid.stamp` off `PuppetSystem.colliders`' `gen`), never a hook the scene

@@ -2,28 +2,22 @@
  * The colony's maps.
  *
  * A map IS a Level in the World pool, and everything the colony holds of it is a component of
- * that Level's own entity (`level.self`): the saved data record under KEY and the runtime under
- * RUNTIME, derived when the level is mounted and freed with it. Nothing of a map lives here, so
- * parking and resuming a map cost no rebuild.
+ * that Level's own entity (`level.self`), its tile layers found on its grid by content key.
+ * Nothing of a map lives here, so parking and resuming a map cost no rebuild.
  *
  * A Level comes to be one of two ways: build() on a visit to a map not pooled (the only place
  * procedural content is made) and restoreLevel() for a saved map (no seed or spawn). Both
- * pool the Level mounted but not activated. A PERSISTENT map builds once and a revisit resumes
+ * pool the Level but do not activate it. A PERSISTENT map builds once and a revisit resumes
  * it; any other is transient, freed on departure and built afresh from a new seed next visit.
  *
  * @typedef {Object} ColonyMapData
  * @property {{x:number,y:number}} spawn  the point the map was entered at (world) — the respawn point
  * @property {Object<string,{x:number,y:number}>} entries  the named arrival points (world)
- * @property {Array|undefined} terrainMats  the terrain material table as rows; undefined with one fill type
- *
- * The runtime also holds, per layer key, `<key>Layer` (the TileLayer), `<key>Type` (its default
- * TileType) and, on a materials-bearing layer, `<key>Types` (material key → TileType).
- * @typedef {Object} ColonyMapRuntime
- * @property {Array|undefined} terrainMats  the material table as live rows
+ * @property {string[]|undefined} terrain  the ground's material keys, id = index + 1; undefined
+ *   with the terrain layer's lone type
  */
 globalThis.ColonyMap = {
   KEY: "colony_map", // saved
-  RUNTIME: "colony_map_runtime", // derived, never saved
   // Saved whole-map records on the level's own entity.
   INDOOR: "indoor",
   CLIMATE: "climate",
@@ -56,21 +50,12 @@ globalThis.ColonyMap = {
     return world.of(ColonyMap.VISITS, () => ({}));
   },
 
-  /** Undefined before the level is mounted. */
-  runtime(level) {
-    return level.entities.get(level.self, ColonyMap.RUNTIME);
-  },
-
   _data() {
     return {
       spawn: undefined,
       entries: undefined,
-      terrainMats: undefined,
+      terrain: undefined,
     };
-  },
-
-  _runtime() {
-    return { terrainMats: undefined };
   },
 
   /** Grid-coord entries converted to world coords, so a resume can reposition without a rebuild. */
@@ -100,7 +85,7 @@ globalThis.ColonyMap = {
   },
 
   /**
-   * Pool a saved map in `world` with no seed or spawn, mounted but not activated. `source(name)`
+   * Pool a saved map in `world` with no seed or spawn, not activated. `source(name)`
    * yields its blobs (the source's to free). Returns the level, or null when the entry is unusable
    * (logged, nothing pooled) — the map's first visit then builds it fresh.
    */
@@ -112,10 +97,9 @@ globalThis.ColonyMap = {
     if (rec === undefined) Log.error(`map "${m.id}": save entry carries no map record`);
     else if (cells === undefined) Log.error(`map "${m.id}": save carries no grid`);
     else {
-      const h = ColonyLevel.restore(cells, rec.terrainMats);
-      if (h !== null) {
-        level.grid = h.grid;
-        ColonyMap._mount(level, h);
+      const grid = ColonyLevel.restore(cells, rec.terrain);
+      if (grid !== null) {
+        level.grid = grid;
         world.add(m.id, level);
         Log.info(`colony map: ${m.id} [restored]`);
         return level;
@@ -123,17 +107,6 @@ globalThis.ColonyMap = {
     }
     level.destroy(); // logged above
     return null;
-  },
-
-  _mount(level, h) {
-    const rt = level.entities.derive(level.self, ColonyMap.RUNTIME, ColonyMap._runtime);
-    rt.terrainMats = h.terrainMats;
-    for (let i = 0; i < contentTiles.LAYERS.length; i++) {
-      const key = contentTiles.LAYERS[i].key;
-      rt[key + "Layer"] = h[key + "Layer"];
-      rt[key + "Type"] = h[key + "Type"];
-      if (h[key + "Types"] !== undefined) rt[key + "Types"] = h[key + "Types"];
-    }
   },
 
   /** Counts a build that loads against its map; null for a site that fails to load. */
@@ -145,7 +118,7 @@ globalThis.ColonyMap = {
   },
 
   /**
-   * The Level with its data record filled and runtime mounted; returns { level, built }. A map is
+   * The Level with its data record filled; returns { level, built }. A map is
    * fully resident, so its entity cap scales with the grid.
    */
   _buildLevel(data, mapId, entryId, player) {
@@ -159,8 +132,7 @@ globalThis.ColonyMap = {
     level.entities.add(level.self, ColonyMap.KEY, rec);
     rec.spawn = built.spawn;
     rec.entries = ColonyMap._entryTable(level.grid, built.entries);
-    rec.terrainMats = ColonyLevel.terrainRows(built.terrainMats);
-    ColonyMap._mount(level, built);
+    rec.terrain = built.terrain;
     Grassland.clearBuilt(level);
     // A trip arrival transfers the existing player instead.
     if (player) EntityPreset.spawn(level.entities, "player", built.spawn.x, built.spawn.y);

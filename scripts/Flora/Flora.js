@@ -48,15 +48,10 @@ globalThis.Flora = {
     if (g.progress >= 1) Flora.ripen(entities, id);
   },
 
-  /** The terrain material id under a cell; undefined off-grid or on a map with no material table. */
+  /** The terrain material id under a cell; undefined off-grid, "" on a ground of one type. */
   materialAt(level, gx, gy) {
-    const rt = ColonyMap.runtime(level);
-    const mats = rt.terrainMats;
-    if (mats === undefined) return undefined;
-    const t = rt.terrainLayer.get(gx, gy);
-    for (let i = 0; i < mats.length; i++)
-      if (mats[i].type === t) return mats[i].material;
-    return undefined;
+    const t = level.grid.layer("terrain").get(gx, gy);
+    return t ? t.key : undefined;
   },
 
   /** Is material `mat` fertile enough for `def`; an unknown or absent material is barren. */
@@ -76,10 +71,9 @@ globalThis.Flora = {
     if (gx >= grid.cols - 1) return false;
     if (gy >= grid.rows - 1) return false;
     if (!Flora.roots(def, Flora.materialAt(level, gx, gy))) return false;
-    const rt = ColonyMap.runtime(level);
     const lkeys = contentBuild.tileLayers();
     for (let i = 0; i < lkeys.length; i++)
-      if (rt[lkeys[i] + "Layer"].occupied(gx, gy)) return false;
+      if (grid.layer(lkeys[i]).occupied(gx, gy)) return false;
     const w = grid.gridToWorld(gx, gy);
     const hw = grid.cellWidth / 2;
     const hh = grid.cellHeight / 2;

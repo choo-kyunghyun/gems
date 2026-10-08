@@ -15,17 +15,15 @@ globalThis.Blueprint = {
     const cols = x2 - x1 + 1;
     const rows = y2 - y1 + 1;
     const tiles = [];
-    const rt = ColonyMap.runtime(level);
     for (let l = 0; l < contentTiles.LAYERS.length; l++) {
       const cfg = contentTiles.LAYERS[l];
       if (cfg.key === "terrain") continue; // the biome ground is the generator's, never content
-      const layer = rt[cfg.key + "Layer"];
+      const layer = level.grid.layer(cfg.key);
       if (cfg.materials !== undefined) {
         // one entry per material present
-        const types = rt[cfg.key + "Types"];
         for (let m = 0; m < cfg.materials.length; m++) {
           const key = cfg.materials[m].key;
-          const type = types[key];
+          const type = layer.type(key);
           const cells = Blueprint._cells(
             cols,
             rows,

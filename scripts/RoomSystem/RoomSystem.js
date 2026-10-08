@@ -28,7 +28,7 @@ globalThis.RoomSystem = {
     return level.entities.derive(
       level.self,
       RoomSystem.MIRROR,
-      () => new Rooms(level.grid, [ColonyMap.runtime(level).wallLayer]),
+      () => new Rooms(level.grid, [level.grid.layer("wall")]),
     );
   },
 

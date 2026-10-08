@@ -2,8 +2,8 @@ const LOG_CAP = 256; // cell writes the log holds at most
 const LOG_KEEP = 128; // the newest writes a full log keeps, so a reader that recent still replays
 
 /**
- * A level layer of TileType cells. `emptyCost` controls empty-cell nav: undefined passes through
- * to lower layers; Infinity makes a blocking base.
+ * A level layer of TileType cells, named by `key` in its grid's stack. `emptyCost` controls
+ * empty-cell nav: undefined passes through to lower layers; Infinity makes a blocking base.
  * `edits` counts every cell write and is a reader's cursor: `log` holds the cells of writes
  * `base`+1..`edits` in order, so a reader replays only what it missed and a single paint costs it
  * one resample, not the level's. The log is shared and never drained — any number of readers keep
@@ -19,9 +19,11 @@ const LOG_KEEP = 128; // the newest writes a full log keeps, so a reader that re
 globalThis.TileLayer = class TileLayer {
   /**
    * @param {LevelGrid} tiles the grid whose shape the layer takes
+   * @param {string} [opt.key] the name the grid finds it by
    * @param {Grid} [opt.ids] a saved id channel to adopt in place of a fresh one
    */
   constructor(tiles, opt = {}) {
+    this.key = opt.key ?? "";
     this.cols = tiles.cols;
     this.rows = tiles.rows;
     this.ids = opt.ids ?? tiles.alloc();
@@ -49,6 +51,17 @@ globalThis.TileLayer = class TileLayer {
       throw new Error(`TileLayer.bind: id ${id} is held by another type`);
     this.types[id] = type;
     return id;
+  }
+
+  /** The bound type under material `key`; with no key, the lowest-id one — the layer's default. */
+  type(key) {
+    const types = this.types;
+    for (let id = 1; id < types.length; id++) {
+      const t = types[id];
+      if (t === undefined) continue;
+      if (key === undefined || t.key === key) return t;
+    }
+    return undefined;
   }
 
   set(x, y, type) {

@@ -65,153 +65,118 @@ globalThis.ColonyLevel = {
   },
 
   /**
-   * Insert the tile layers bottom→top and return a handles bag keyed `<key>Layer`/`<key>Type`; a
-   * materials-bearing layer also gets `<key>Types` by material key, with `<key>Type` the default
-   * (first) material. With `cells`, each layer adopts its saved id channel.
+   * Insert the tile layers bottom→top, each under its content key with every type it may hold
+   * bound, a materials layer's first material its default. `terrain` (TileTypes) stands in for
+   * the terrain layer's lone type; with `cells`, each layer adopts its saved id channel.
    */
-  _makeLayers(grid, cells) {
-    const h = {};
+  _makeLayers(grid, terrain, cells) {
     for (let i = 0; i < contentTiles.LAYERS.length; i++) {
       const cfg = contentTiles.LAYERS[i];
       const layer = new TileLayer(grid, {
+        key: cfg.key,
         emptyCost: cfg.emptyCost,
         ids: cells === undefined ? undefined : cells.layers[i],
       });
       grid.insert(layer);
-      h[cfg.key + "Layer"] = layer;
-      if (cfg.materials !== undefined) {
-        const types = {};
+      if (cfg.key === "terrain" && terrain !== undefined) {
+        for (let t = 0; t < terrain.length; t++) layer.bind(terrain[t]);
+      } else if (cfg.materials !== undefined) {
         for (let m = 0; m < cfg.materials.length; m++) {
           const mat = cfg.materials[m];
-          types[mat.key] = new TileType({
-            id: mat.id,
-            name: I18n.text(mat.name),
-            pathCost: cfg.pathCost,
-          });
+          layer.bind(
+            new TileType({ id: mat.id, key: mat.key, name: I18n.text(mat.name), pathCost: cfg.pathCost }),
+          );
         }
-        h[cfg.key + "Types"] = types;
-        h[cfg.key + "Type"] = types[cfg.materials[0].key];
       } else {
-        h[cfg.key + "Type"] = new TileType({
-          id: cfg.id,
-          name: I18n.text(cfg.name),
-          pathCost: cfg.pathCost,
-        });
+        layer.bind(new TileType({ id: cfg.id, name: I18n.text(cfg.name), pathCost: cfg.pathCost }));
       }
     }
-    return h;
+  },
+
+  /** An empty grid of `shape`'s cell size, cols and rows. */
+  _grid(shape) {
+    return new LevelGrid({
+      cellWidth: shape.cellWidth,
+      cellHeight: shape.cellHeight,
+      cols: shape.cols,
+      rows: shape.rows,
+    });
   },
 
   /**
    * Generate and paint a level; the caller owns grid.destroy(). `entryId` picks the arrival entry,
-   * falling back to `default`. `spawns` are translated but not spawned.
+   * falling back to `default`. `spawns` are translated but not spawned; `terrain` is the ground's
+   * material keys, id = index + 1.
    */
   build(data, entryId = "default") {
     const cell = data.cell ?? LevelGrid.CELL;
-    const grid = new LevelGrid({
-      cellWidth: cell,
-      cellHeight: cell,
-      cols: data.cols,
-      rows: data.rows,
-    });
-    const h = ColonyLevel._makeLayers(grid);
+    const grid = ColonyLevel._grid({ cellWidth: cell, cellHeight: cell, cols: data.cols, rows: data.rows });
+    const gen = ColonyLevel._generator(data);
+    const terrain = [];
+    for (let i = 0; i < gen.palette.length; i++) terrain.push(gen.palette[i].id);
+    const types = ColonyLevel._terrainTypes(terrain);
+    ColonyLevel._makeLayers(grid, types);
 
-    const gen = ColonyLevel._generate(grid, h, data);
-    const painted = LevelData.paint(gen.out, { layers: h });
+    const out = ColonyLevel._generate(gen, grid, types, data);
+    const painted = LevelData.paint(out, grid);
 
-    const entries = ColonyLevel._entries(gen.out.spawns);
+    const entries = ColonyLevel._entries(out.spawns);
     const spawn = ColonyLevel._resolveSpawn(grid, entries, entryId);
-    return {
-      grid,
-      spawn,
-      entries,
-      spawns: painted.spawns,
-      terrainMats: gen.mats,
-      ...h,
-    };
+    return { grid, spawn, entries, spawns: painted.spawns, terrain };
   },
 
-  /**
-   * Run the generator and lay down what is not LevelData: the terrain base as ordinary per-cell
-   * tile data. Returns `{ out, mats }` — the accumulated LevelData (anchor content merged) and the
-   * terrain material table. A `danger` of 0 marks a safe site: no raider spawns.
-   */
-  _generate(grid, h, data) {
-    const t0 = current_time;
-    const biomeId = data.meta.biome;
-    const gen = OverworldGen.create({
+  /** The site's generator. A `danger` of 0 marks a safe site: no raider spawns. */
+  _generator(data) {
+    return OverworldGen.create({
       seed: data.meta.seed,
-      biome: contentBiomes.BIOMES[biomeId],
+      biome: contentBiomes.BIOMES[data.meta.biome],
       anchor: data.meta.anchor,
       clear: data.meta.clear,
       spawnFilter:
         data.meta.danger === 0 ? (s) => s.preset !== "raider" : undefined,
     });
+  },
+
+  /**
+   * Run the generator and lay down what is not LevelData: the terrain base as ordinary per-cell
+   * tile data. Returns the accumulated LevelData, anchor content merged.
+   */
+  _generate(gen, grid, types, data) {
+    const t0 = current_time;
     const out = gen.generate(grid.cols, grid.rows);
     // only a claimable site keeps the anchor's Survey Post
     if (data.meta.claimable !== true)
       out.spawns = out.spawns.filter((s) => s.kind !== "claim");
-    const terrain = ColonyLevel._terrainTypes(gen.palette);
-    gen.paint(out, h.terrainLayer, terrain.types);
-    // terrain types by material id, so content can paint the terrain layer by material
-    h.terrainTypes = {};
-    for (let i = 0; i < terrain.mats.length; i++)
-      h.terrainTypes[terrain.mats[i].material] = terrain.mats[i].type;
+    gen.paint(out, grid.layer("terrain"), types);
     let cells = 0;
     for (let i = 0; i < out.tiles.length; i++)
       cells += out.tiles[i].cells.length / 2;
     Log.info(
-      `ColonyLevel: generated ${grid.cols}x${grid.rows} ${biomeId} in ${current_time - t0}ms — ` +
+      `ColonyLevel: generated ${grid.cols}x${grid.rows} ${data.meta.biome} in ${current_time - t0}ms — ` +
         `${cells} tile cell(s), ${out.spawns.length} spawn(s)`,
     );
-    return { out: out, mats: terrain.mats };
+    return out;
   },
 
   /**
-   * A material table as plain save rows, in order so id = index + 1 survives the round trip: the
-   * sprite by name (a record holds no handles), a blocking cost as Infinity (null through JSON,
-   * still blocking). undefined when there is no table.
+   * Terrain TileTypes for a ground's material keys, id = index + 1 (0 is an empty cell); the order
+   * is the paint order, so render passes can threshold on the id. A key gone from the content
+   * keeps its id and costs 1.
    */
-  terrainRows(mats) {
-    if (mats === undefined) return undefined;
-    const rows = [];
-    for (let i = 0; i < mats.length; i++)
-      rows.push({
-        name: mats[i].type.name,
-        pathCost: mats[i].type.pathCost,
-        tileset: tileset_get_name(mats[i].tileset),
-        material: mats[i].material,
-      });
-    return rows;
-  },
-
-  /**
-   * Terrain TileTypes for a material table, id = index + 1 (0 is an empty cell); the order is the
-   * paint order, so render passes can threshold on the id. `defs` is a generator palette (tile set
-   * refs) or saved rows (tile set names, undefined once the asset is gone). Returns
-   * `{ types, mats }`.
-   */
-  _terrainTypes(defs) {
+  _terrainTypes(keys) {
     const types = [];
-    const mats = [];
-    for (let i = 0; i < defs.length; i++) {
-      const d = defs[i];
-      const type = new TileType({
-        id: i + 1,
-        name: d.name,
-        pathCost: d.pathCost,
-      });
-      types.push(type);
-      // BUG: a gone name is told by the index alone, as asset_get_type never answers asset_tiles
-      // for a tile set (docs/GMRT.md)
-      const found = typeof d.tileset === "string" ? asset_get_index(d.tileset) : d.tileset;
-      mats.push({
-        type: type,
-        tileset: found === -1 ? undefined : found,
-        material: d.material ?? d.id,
-      });
+    for (let i = 0; i < keys.length; i++) {
+      const m = contentBiomes.MATERIALS[keys[i]];
+      types.push(
+        new TileType({
+          id: i + 1,
+          key: keys[i],
+          name: m !== undefined ? m.name : keys[i],
+          pathCost: m !== undefined ? m.pathCost : undefined,
+        }),
+      );
     }
-    return { types: types, mats: mats };
+    return types;
   },
 
   /**
@@ -231,11 +196,11 @@ globalThis.ColonyLevel = {
 
   /**
    * Rebuild a saved map's grid over its cells record: the layers come up as build() makes them,
-   * each adopting its saved cells — no seed, no generator, nothing spawned. Returns null when the
-   * record doesn't fit the layer stack.
+   * each adopting its saved cells — no seed, no generator, nothing spawned. `terrain` is the
+   * ground's material keys build() returned. Null when the record doesn't fit the layer stack.
    * @param {LevelCells} cells
    */
-  restore(cells, terrainMats) {
+  restore(cells, terrain) {
     if (cells.layers.length !== contentTiles.LAYERS.length) {
       Log.error(
         `ColonyLevel.restore: the save holds ${cells.layers.length} layer(s), ` +
@@ -243,32 +208,11 @@ globalThis.ColonyLevel = {
       );
       return null;
     }
-    const grid = new LevelGrid({
-      cellWidth: cells.cellWidth,
-      cellHeight: cells.cellHeight,
-      cols: cells.cols,
-      rows: cells.rows,
-    });
-    const h = ColonyLevel._makeLayers(grid, cells);
-    // every type a saved id may name, bound before the prune
-    let mats;
-    for (let i = 0; i < contentTiles.LAYERS.length; i++) {
-      const cfg = contentTiles.LAYERS[i];
-      const layer = h[cfg.key + "Layer"];
-      if (cfg.key === "terrain" && terrainMats !== undefined) {
-        const terrain = ColonyLevel._terrainTypes(terrainMats);
-        mats = terrain.mats;
-        for (let t = 0; t < terrain.types.length; t++) layer.bind(terrain.types[t]);
-      } else if (cfg.materials !== undefined) {
-        const types = h[cfg.key + "Types"];
-        for (let m = 0; m < cfg.materials.length; m++)
-          layer.bind(types[cfg.materials[m].key]);
-      } else {
-        layer.bind(h[cfg.key + "Type"]);
-      }
-    }
+    const grid = ColonyLevel._grid(cells);
+    const types = terrain !== undefined ? ColonyLevel._terrainTypes(terrain) : undefined;
+    ColonyLevel._makeLayers(grid, types, cells);
     grid.prune();
-    return { grid, terrainMats: mats, ...h };
+    return grid;
   },
 
   /** The player spawn in world coords, falling back to the `default` entry. */

@@ -1,11 +1,14 @@
 /**
  * A layer's cell value is a `TileType` instance, stored as its id.
  * @typedef {Object} LevelLayer
+ * @property {string} key  the name the grid finds it by
  * @property {number} cols
  * @property {number} rows
  * @property {Grid} ids  the cells' TileType ids, 0 = empty
  * @property {Array<TileType|0>} types  id → TileType; `types[0]` is 0
  * @property {function(TileType): number} bind  enters a type under its id, returned
+ * @property {function(string=): TileType | undefined} type  the bound type under a material key,
+ *   or the default with none
  * @property {function(): void} touchAll  marks every cell edited after a bulk write into `ids`
  * @property {function(number, number): TileType | undefined} get
  * @property {function(number, number, TileType | undefined): LevelLayer} set
@@ -87,6 +90,13 @@ globalThis.LevelGrid = class LevelGrid {
       this.cells.layers.splice(i, 1);
     }
     return this;
+  }
+
+  /** The layer under `key`; throws on a key the stack lacks. */
+  layer(key) {
+    const layers = this.layers;
+    for (let i = 0; i < layers.length; i++) if (layers[i].key === key) return layers[i];
+    throw new Error(`LevelGrid.layer: no layer "${key}"`);
   }
 
   /**

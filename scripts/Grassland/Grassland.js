@@ -14,7 +14,7 @@ globalThis.Grassland = {
     const grass = Grassland.type(level, "grass");
     const host = Grassland.type(level, Grassland.HOST);
     if (grass === undefined || host === undefined) return false;
-    const layer = ColonyMap.runtime(level).terrainLayer;
+    const layer = level.grid.layer("terrain");
     if (layer.get(gx, gy) !== grass) return false;
     layer.set(gx, gy, host);
     return true;
@@ -26,14 +26,13 @@ globalThis.Grassland = {
     const host = Grassland.type(level, Grassland.HOST);
     if (grass === undefined || host === undefined) return;
     const grid = level.grid;
-    const rt = ColonyMap.runtime(level);
-    const layer = rt.terrainLayer;
-    const lkeys = contentBuild.tileLayers();
+    const layer = grid.layer("terrain");
+    const built = Grassland.built(grid);
     for (let gy = 0; gy < grid.rows; gy++)
       for (let gx = 0; gx < grid.cols; gx++) {
         if (layer.get(gx, gy) !== grass) continue;
-        for (let k = 0; k < lkeys.length; k++)
-          if (rt[lkeys[k] + "Layer"].occupied(gx, gy)) {
+        for (let k = 0; k < built.length; k++)
+          if (built[k].occupied(gx, gy)) {
             layer.set(gx, gy, host);
             break;
           }
@@ -42,10 +41,14 @@ globalThis.Grassland = {
 
   /** The map's TileType for a material id; undefined off-palette. */
   type(level, material) {
-    const mats = ColonyMap.runtime(level).terrainMats;
-    if (mats === undefined) return undefined;
-    for (let i = 0; i < mats.length; i++)
-      if (mats[i].material === material) return mats[i].type;
-    return undefined;
+    return level.grid.layer("terrain").type(material);
+  },
+
+  /** The grid's layers a build edits — what covers the ground. */
+  built(grid) {
+    const lkeys = contentBuild.tileLayers();
+    const out = [];
+    for (let i = 0; i < lkeys.length; i++) out.push(grid.layer(lkeys[i]));
+    return out;
   },
 };

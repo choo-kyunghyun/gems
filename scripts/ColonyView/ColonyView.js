@@ -35,14 +35,14 @@ globalThis.ColonyView = {
     return level.entities.derive(level.self, ColonyView.KEY, () => ColonyView._renderer(level));
   },
 
-  /** Grass clump defs for a material table; the biome profile's clump sheet and extras override. */
-  _clumpDefs(mats, profile) {
+  /** Grass clump defs for the ground's types; the biome profile's clump sheet and extras override. */
+  _clumpDefs(types, profile) {
     const clumpSprite = profile !== undefined ? profile.clumpSprite : undefined;
     const extra = profile !== undefined ? profile.clutter : undefined;
     const defs = [];
-    for (let i = 0; i < mats.length; i++) {
-      const mat = mats[i].material;
-      const def = mat !== undefined ? contentBiomes.MATERIALS[mat] : undefined;
+    for (let i = 0; i < types.length; i++) {
+      const mat = types[i].key;
+      const def = contentBiomes.MATERIALS[mat];
       if (def === undefined) continue;
       const rows = [];
       if (def.clump !== undefined)
@@ -60,7 +60,7 @@ globalThis.ColonyView = {
       for (let k = 0; k < rows.length; k++) {
         const src = rows[k].src;
         defs.push({
-          id: mats[i].type.id,
+          id: types[i].id,
           sprite: rows[k].sprite,
           min: src.min,
           max: src.max,
@@ -101,7 +101,6 @@ globalThis.ColonyView = {
     const pitch = ColonyView.BB_PITCH;
     const ctx = {
       level: level,
-      rt: ColonyMap.runtime(level),
       camera: CameraSystem.view(level),
       renderer: new Renderer(),
       lit: [], // the flat passes that share the mesh pass's light gather on a pitched map
@@ -142,34 +141,34 @@ globalThis.ColonyView = {
    */
   _ground(ctx) {
     const level = ctx.level;
-    const rt = ctx.rt;
-    const mats = rt.terrainMats;
-    if (mats === undefined) return;
+    const keys = ColonyMap.of(level).terrain;
+    if (keys === undefined) return;
+    const layer = level.grid.layer("terrain");
+    const types = [];
     const stack = [];
-    for (let i = 0; i < mats.length; i++) {
-      if (mats[i].tileset === undefined) {
-        // a saved row whose tile set is gone since
-        Log.warn(`terrain tile set missing: ${mats[i].material}`);
+    for (let i = 0; i < keys.length; i++) {
+      const type = layer.type(keys[i]);
+      types.push(type);
+      const m = contentBiomes.MATERIALS[keys[i]];
+      if (m === undefined) {
+        // a saved material gone from the content since
+        Log.warn(`terrain material missing: ${keys[i]}`);
         continue;
       }
-      stack.push({
-        type: mats[i].type,
-        tileset: mats[i].tileset,
-        wave: ColonyView._wave(mats[i].material),
-      });
+      stack.push({ type: type, tileset: m.tileset, wave: ColonyView._wave(keys[i]) });
     }
-    const pass = new RenderTerrain(rt.terrainLayer, level.grid, stack);
+    const pass = new RenderTerrain(layer, level.grid, stack);
     ctx.lit.push(pass);
     ctx.renderer.insert(pass);
     // Upright grass clumps enter the depth pool over the finished ground, before the entities.
     const profile = contentBiomes.BIOMES[level.entities.get(level.self, ColonyMap.BIOME)];
-    const cdefs = ColonyView._clumpDefs(mats, profile);
+    const cdefs = ColonyView._clumpDefs(types, profile);
     if (cdefs.length === 0) return;
     // a save without the wind record falls back to the biome profile
     let wind = level.entities.get(level.self, ColonyMap.WIND);
     if (wind === undefined)
       wind = profile !== undefined && profile.wind !== undefined ? profile.wind : 0;
-    const grass = new RenderGrass(rt.terrainLayer, level.grid, cdefs, {
+    const grass = new RenderGrass(layer, level.grid, cdefs, {
       wind: wind,
       time: () => Weather.time(),
       camera: ctx.camera,
@@ -188,8 +187,8 @@ globalThis.ColonyView = {
       const cfg = contentTiles.LAYERS[i];
       if (cfg.key === "wall") continue; // lit boxes; no flat fallback
       if (cfg.key === "fence" && pitch > 0) continue; // lit boxes
-      if (cfg.key === "terrain" && ctx.rt.terrainMats !== undefined) continue; // the ground's stack
-      const layer = ctx.rt[cfg.key + "Layer"];
+      if (cfg.key === "terrain" && ColonyMap.of(level).terrain !== undefined) continue; // the ground's stack
+      const layer = level.grid.layer(cfg.key);
       if (cfg.materials === undefined) {
         const pass = new RenderTileMap(layer, level.grid, cfg.sprite, {
           autotile: cfg.type,
@@ -289,7 +288,7 @@ globalThis.ColonyView = {
         color: Color.parse(m.color),
       });
     }
-    ctx.wall = new RenderWalls(grid, ctx.rt.wallLayer, {
+    ctx.wall = new RenderWalls(grid, grid.layer("wall"), {
       color: wallMats[0].color,
       sprite: wallMats[0].sprite,
       frame: 0,
@@ -300,7 +299,7 @@ globalThis.ColonyView = {
     ctx.renderer.insert(ctx.wall);
     // the flat fence config stays for the editor
     ctx.renderer.insert(
-      new RenderFence(grid, ctx.rt.fenceLayer, {
+      new RenderFence(grid, grid.layer("fence"), {
         color: Color.parse(contentTiles.get("fence").color),
         lights: meshPass,
         camera: ctx.camera,
