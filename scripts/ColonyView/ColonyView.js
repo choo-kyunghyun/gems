@@ -161,13 +161,10 @@ globalThis.ColonyView = {
     ctx.lit.push(pass);
     ctx.renderer.insert(pass);
     // Upright grass clumps enter the depth pool over the finished ground, before the entities.
-    const profile = contentBiomes.BIOMES[level.entities.get(level.self, ColonyMap.BIOME)];
+    const profile = ColonyMap.biome(level);
     const cdefs = ColonyView._clumpDefs(types, profile);
     if (cdefs.length === 0) return;
-    // a save without the wind record falls back to the biome profile
-    let wind = level.entities.get(level.self, ColonyMap.WIND);
-    if (wind === undefined)
-      wind = profile !== undefined && profile.wind !== undefined ? profile.wind : 0;
+    const wind = profile.wind ?? 0;
     const grass = new RenderGrass(layer, level.grid, cdefs, {
       wind: wind,
       time: () => Weather.time(),
@@ -346,7 +343,7 @@ globalThis.ColonyView = {
    */
   _sky(ctx) {
     const level = ctx.level;
-    if (level.entities.get(level.self, ColonyMap.INDOOR) === true) return;
+    if (ColonyMap.biome(level).indoor === true) return;
     const clouds = new RenderCloudShadow({ camera: ctx.camera });
     clouds.enabled = false; // the flat look
     const weather = new RenderWeather({ camera: ctx.camera });

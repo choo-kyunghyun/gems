@@ -108,7 +108,7 @@ globalThis.ColonyTravel = {
   /** The map's climate takes over; then the scene resets its own. */
   _land(scene) {
     const level = scene.level;
-    Weather.setClimate(level.entities.get(level.self, ColonyMap.CLIMATE));
+    Weather.setClimate(ColonyMap.biome(level).climate);
     scene.arrive();
   },
 

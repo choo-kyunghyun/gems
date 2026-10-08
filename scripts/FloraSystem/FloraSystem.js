@@ -87,10 +87,7 @@ globalThis.FloraSystem = {
 
   /** The level biome's flora pool, or undefined. */
   _pool(level) {
-    const id = level.entities.get(level.self, ColonyMap.BIOME);
-    if (id === undefined) return undefined;
-    const biome = contentBiomes.BIOMES[id];
-    return biome === undefined ? undefined : biome.flora;
+    return ColonyMap.biome(level).flora;
   },
 
   _spread(level, season, dh, wild, m) {

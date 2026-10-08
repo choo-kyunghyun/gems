@@ -43,8 +43,6 @@ globalThis.ColonyLevel = {
       clear: site.clear ?? ANCHOR_CLEAR,
       danger: site.danger,
     };
-    if (biome.indoor === true) meta.indoor = true;
-    if (biome.climate !== undefined) meta.climate = biome.climate;
     if (site.settlement !== undefined) meta.settlement = site.settlement;
     if (site.claimable === true) meta.claimable = true;
     if (site.id === ColonyLevel.START) meta.persistent = true; // the home is never rebuilt

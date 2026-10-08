@@ -15,34 +15,35 @@
  * @property {Object<string,{x:number,y:number}>} entries  the named arrival points (world)
  * @property {string[]|undefined} terrain  the ground's material keys, id = index + 1; undefined
  *   with the terrain layer's lone type
+ * @property {string} biome  the biome profile id; what the profile states — indoor, climate, wind —
+ *   is read from it, never copied here
+ * @property {boolean} persistent  kept pooled across departures
  */
 globalThis.ColonyMap = {
   KEY: "colony_map", // saved
-  // Saved whole-map records on the level's own entity.
-  INDOOR: "indoor",
-  CLIMATE: "climate",
-  BIOME: "biome",
-  WIND: "wind", // constant wind strength
-  PERSISTENT: "persistent", // true: kept pooled across departures
   VISITS: "colony_visits", // saved, on the world's own entity
 
   of(level) {
     return level.entities.get(level.self, ColonyMap.KEY);
   },
 
+  /** The map's biome profile. */
+  biome(level) {
+    return contentBiomes.BIOMES[ColonyMap.of(level).biome];
+  },
+
   persistent(level) {
-    return level.entities.get(level.self, ColonyMap.PERSISTENT) === true;
+    return ColonyMap.of(level).persistent === true;
   },
 
   /** Keep the map pooled from now on. */
   persist(level) {
-    level.entities.add(level.self, ColonyMap.PERSISTENT, true);
+    ColonyMap.of(level).persistent = true;
   },
 
   /** The map's ambient bed, playing whenever the radio is off. */
   bed(level) {
-    const indoor = level.entities.get(level.self, ColonyMap.INDOOR) === true;
-    return indoor ? musAmbientCozy : musAmbientTense;
+    return ColonyMap.biome(level).indoor === true ? musAmbientCozy : musAmbientTense;
   },
 
   /** `{ mapId -> builds so far }` */
@@ -55,6 +56,8 @@ globalThis.ColonyMap = {
       spawn: undefined,
       entries: undefined,
       terrain: undefined,
+      biome: "",
+      persistent: false,
     };
   },
 
@@ -96,6 +99,8 @@ globalThis.ColonyMap = {
     const cells = level.entities.get(level.self, Level.CELLS);
     if (rec === undefined) Log.error(`map "${m.id}": save entry carries no map record`);
     else if (cells === undefined) Log.error(`map "${m.id}": save carries no grid`);
+    else if (contentBiomes.BIOMES[rec.biome] === undefined)
+      Log.error(`map "${m.id}": save names no known biome ("${rec.biome}")`);
     else {
       const grid = ColonyLevel.restore(cells, rec.terrain);
       if (grid !== null) {
@@ -133,21 +138,13 @@ globalThis.ColonyMap = {
     rec.spawn = built.spawn;
     rec.entries = ColonyMap._entryTable(level.grid, built.entries);
     rec.terrain = built.terrain;
+    rec.biome = data.meta.biome;
+    rec.persistent = data.meta.persistent === true;
     Grassland.clearBuilt(level);
     // A trip arrival transfers the existing player instead.
     if (player) EntityPreset.spawn(level.entities, "player", built.spawn.x, built.spawn.y);
 
     // A level without an authored settlement stays unsettled until one is founded in play.
-    const entities = level.entities;
-    const self = level.self;
-    entities.add(self, ColonyMap.BIOME, data.meta.biome);
-    const prof = contentBiomes.BIOMES[data.meta.biome];
-    if (prof !== undefined && prof.wind !== undefined)
-      entities.add(self, ColonyMap.WIND, prof.wind);
-    if (data.meta.indoor === true) entities.add(self, ColonyMap.INDOOR, true);
-    if (data.meta.climate !== undefined)
-      entities.add(self, ColonyMap.CLIMATE, data.meta.climate);
-    if (data.meta.persistent === true) ColonyMap.persist(level);
     const s = data.meta.settlement;
     if (s !== undefined)
       Settlement.found(level, {
