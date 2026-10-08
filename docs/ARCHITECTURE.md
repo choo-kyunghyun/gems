@@ -119,10 +119,11 @@ and are cited from here, never restated):
       `InputContext`'s stack, `UI.roots`, `Music`'s handle, `Time`, `Settings`,
       `SaveGame`'s index and the load bundle a scene hands the next) plus the GUI singletons that
       span every scene (`GameOverlay`, `Toast`, `Tooltip`); a scene may push into it
-      but never owns it, so the switch (`Game._apply`, Create_0) sweeps every app member a scene
-      can touch in ONE list — a scene's `destroy` drops only what that scene itself wired (its UI
-      root, its injected hooks, its `World`), and a new app member a scene can dirty gets its line
-      in the sweep, not in a scene.
+      but never owns it, so the switch (`App`) sweeps every app member a scene can touch in ONE
+      list (`App.sweep`, wired by the `Game` object) and puts back every hook the scene wired
+      through `App.hook` — a scene's `destroy` frees only what that scene itself made (its UI
+      root, its `World`), and a new app member a scene can dirty gets its line in the sweep, not
+      in a scene.
         - Anything DERIVED from a level's data and kept between frames — a collider generation, a nav
       grid, a room mirror, a broadphase, a camera's view record — is a DERIVED entry:
       a component of the level's own entity that its owner alone reaches through
@@ -158,13 +159,15 @@ and are cited from here, never restated):
   keeps it, and the switch is `Maps`': `enter` makes a pooled level live and parks the rest,
   `park` takes one out of the room's queries and viewport, and `close` frees the pool — a park is
   a camera unassign and a resume a pointer swap. Which map stays pooled is the scene's policy, and
-  the world's `remove` frees one, live or parked, renderer and all. There is no scene manager: the `Game` object holds the one
-  active scene pointer and drives it from its own events (its Create_0 owns the switch/pause
-  contract). Exactly one scene is live and a switch destroys it — a scene is never frozen, so it
-  carries no state across a swap.
+  the world's `remove` frees one, live or parked, renderer and all. `App` holds the one live scene
+  and its switch (the scene contract is its), and the `Game` object drives it from its own events,
+  the pause gate included. Exactly one scene is live and a switch destroys it — a scene is never
+  frozen, so it carries no state across a swap. A world-space effect (`FloatingText`,
+  `ParticleFx`, a tracer) is a derived entry of its level like the renderer, so it parks and
+  frees with its map and no switch clears it.
 - Composition over inheritance — GMRT breaks subclassing (#15067, GMRT.md): "kinds of X" are a flat
-  class plus a `components: []` queried by `instanceof` (`Item`, `UIElement`); scene screens are
-  standalone classes satisfying the duck-typed `Scene` contract, never `extends Scene`.
+  class plus a `components: []` queried by `instanceof` (`Item`, `UIElement`); a scene is a
+  standalone class satisfying `App`'s duck-typed contract.
 - Singleton shape: a global with one live instance is a plain object (`globalThis.Log = { … }`),
   its properties config, hooks and scratch (its DATA lives in one of the four homes above) and
   self-reference through the global name (`WorldClock.state` inside `WorldClock`), never `this`, so
@@ -240,10 +243,12 @@ and are cited from here, never restated):
   `Puppet`/`Solid` and the tile map, never a JS sweep; a cast walks the cells in JS, since the
   runtime names a tile map crossed but no cell. What only needs a box's world-space edges reads
   them off Position + BBox (the anchor contract at `BBox`).
-- Injection idiom: a module stays model-agnostic by exposing a hook its consumer wires at scene
-  setup — Core to Game (`RenderLighting`'s `ambient`, `UIQuestTracker`'s `source`) and, inside
-  Game, a system to the scene that owns the stat model (`Combat.mitigate`,
-  `Effects.onStatsChanged`, `Consumption.grantAttr`, all wired in `sceneColony.create`).
+- Injection idiom: a module stays model-agnostic by exposing a hook, with its no-op default, that
+  its consumer wires at scene setup — Core to Game (`RenderLighting`'s `ambient`,
+  `UIQuestTracker`'s `source`) and, inside Game, a system to the scene that owns the stat model
+  (`Combat.mitigate`, `Effects.onStatsChanged`, `Consumption.grantAttr`). A scene wires a
+  singleton's hook through `App.hook`, so the switch restores the default and no hook outlives
+  its scene.
   Extend through the seam; never make Core reach down into Game.
 - The view rule (a UI module holds no rule, as a system holds no state): a `*UI` page, a HUD
   module or a panel-handle module (`Hud`, `Interactable`, `BuildMode`) takes the scene for its

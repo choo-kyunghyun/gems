@@ -204,17 +204,17 @@ globalThis.SaveGame = {
 
   SLOTS: 3,
 
-  /** `game` owns the live scene: Save reads it, Load switches it. */
-  buildMenuTab(game) {
+  /** Save reads the live scene; Load switches to a fresh colony. */
+  buildMenuTab() {
     const scroll = facetScroll({ grow: true });
     const sec = facetSection(I18n.textRef("SAVE_TITLE"));
     for (let i = 1; i <= SaveGame.SLOTS; i++)
-      sec.insertChild(SaveGame._slotRow(game, "slot" + i, i));
+      sec.insertChild(SaveGame._slotRow("slot" + i, i));
     scroll.scrollBody.insertChild(sec);
     return scroll;
   },
 
-  _slotRow(game, slot, n) {
+  _slotRow(slot, n) {
     const row = new UIElement({
       width: "100%",
       height: FacetTheme.rowH,
@@ -238,7 +238,7 @@ globalThis.SaveGame = {
     row.insertChild(
       facetButton(
         I18n.textRef("SAVE_ACTION"),
-        () => SaveGame._menuSave(game, slot, n),
+        () => SaveGame._menuSave(slot, n),
         {
           width: 120,
           primary: true,
@@ -248,7 +248,7 @@ globalThis.SaveGame = {
     row.insertChild(
       facetButton(
         I18n.textRef("LOAD_ACTION"),
-        () => SaveGame._menuLoad(game, slot, n),
+        () => SaveGame._menuLoad(slot, n),
         {
           width: 120,
         },
@@ -271,8 +271,8 @@ globalThis.SaveGame = {
   },
 
   /** The current scene if it has a level and a player, else null. */
-  _saveable(game) {
-    const s = game.scene;
+  _saveable() {
+    const s = App.scene;
     if (
       s === null ||
       s === undefined ||
@@ -284,8 +284,8 @@ globalThis.SaveGame = {
     return s;
   },
 
-  _menuSave(game, slot, n) {
-    const s = SaveGame._saveable(game);
+  _menuSave(slot, n) {
+    const s = SaveGame._saveable();
     if (s === null) {
       Toast.push(I18n.text("SAVE_TOAST_NOSCENE"));
       return;
@@ -294,7 +294,7 @@ globalThis.SaveGame = {
     Toast.push(I18n.text("SAVE_TOAST_SAVED", n), { type: "success" });
   },
 
-  _menuLoad(game, slot, n) {
+  _menuLoad(slot, n) {
     if (!SaveGame.has(slot)) {
       Toast.push(I18n.text("SAVE_TOAST_EMPTY", n));
       return;
@@ -304,7 +304,7 @@ globalThis.SaveGame = {
       return;
     }
     GameOverlay.close();
-    game.switchTo(sceneColony); // a fresh scene restores the parked bundle
+    App.open(sceneColony); // a fresh scene restores the parked bundle
   },
 
   _credits(inv) {

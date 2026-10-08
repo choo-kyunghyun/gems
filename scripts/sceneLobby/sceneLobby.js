@@ -1,88 +1,77 @@
 // Boot scene + dev launcher: a flat button list of every registered scene, then the global
 // actions. There is no separate title/credits scene.
 
-globalThis.sceneLobby = () =>
-  Object.assign(new Scene(), {
-    label: "Lobby",
+globalThis.sceneLobby = () => new _SceneLobbyClass();
 
-    create(openScene) {
-      this._openScene = openScene; // kept so retheme() can rebuild the button callbacks
-      this._buildUI();
-    },
+class _SceneLobbyClass {
+  create() {
+    this._buildUI();
+  }
 
-    /** The lobby holds no world state, so a plain UI rebuild bakes the new palette. */
-    retheme() {
-      UI.remove(this.ui);
-      this.ui.destroy();
-      this._buildUI();
-    },
+  update() {}
 
-    _buildUI() {
-      const openScene = this._openScene;
-      this.ui = facetRoot({ maxWidth: 720 });
-      UI.insert(this.ui);
+  draw() {}
 
-      this.ui.body.insertChild(
-        facetHeader(I18n.textRef("APP_NAME"), { halign: fa_center }),
-      );
+  /** The lobby holds no world state, so a plain UI rebuild bakes the new palette. */
+  retheme() {
+    UI.remove(this.ui);
+    this.ui.destroy();
+    this._buildUI();
+  }
 
-      const col = facetList();
+  _buildUI() {
+    this.ui = facetRoot({ maxWidth: 720 });
+    UI.insert(this.ui);
 
-      // fixed display priority so the list is stable regardless of resource load order
-      const CAT_ORDER = ["SCENE_CAT_GAME", "SCENE_CAT_UI", "SCENE_CAT_DEV"];
-      const entries = [];
-      const groups = Scene.byCategory();
-      // the dev category is filtered HERE, not at registration: the catalogue fills at script
-      // load, before DEV_MODE is set
-      for (let g = 0; g < groups.length; g++) {
-        if (groups[g].category === "SCENE_CAT_DEV" && !DEV_MODE) continue;
-        for (let e = 0; e < groups[g].entries.length; e++)
-          entries.push(groups[g].entries[e]);
-      }
-      const rank = (cat) => {
-        const i = CAT_ORDER.indexOf(cat);
-        return i < 0 ? CAT_ORDER.length : i;
-      };
-      // BUG: [#15593] sort indices, tie-breaking same-category entries on registration order.
-      const order = [];
-      for (let i = 0; i < entries.length; i++) order.push(i);
-      order.sort((a, b) => {
-        const ra = rank(entries[a].category);
-        const rb = rank(entries[b].category);
-        if (ra !== rb) return ra < rb ? -1 : 1;
-        return a < b ? -1 : 1;
-      });
-      for (let i = 0; i < order.length; i++) {
-        const entry = entries[order[i]];
-        col.insertChild(
-          facetButton(entry.label, () => openScene(entry.factory)),
-        );
-      }
+    this.ui.body.insertChild(
+      facetHeader(I18n.textRef("APP_NAME"), { halign: fa_center }),
+    );
 
-      // the About tab
-      col.insertChild(
-        facetButton(I18n.textRef("TITLE_CREDITS"), () => GameOverlay.open(2)),
-      );
-      col.insertChild(
-        facetButton(I18n.textRef("TITLE_SETTINGS"), () => GameOverlay.open()),
-      );
-      col.insertChild(
-        facetButton(I18n.textRef("TITLE_QUIT"), () =>
-          openScene(() =>
-            Object.assign(new Scene(), {
-              create() {
-                game_end();
-              },
-            }),
-          ),
-        ),
-      );
+    const col = facetList();
 
-      this.ui.body.insertChild(col);
-    },
+    // fixed display priority so the list is stable regardless of resource load order
+    const CAT_ORDER = ["SCENE_CAT_GAME", "SCENE_CAT_UI", "SCENE_CAT_DEV"];
+    const entries = [];
+    const groups = Scene.byCategory();
+    // the dev category is filtered HERE, not at registration: the catalogue fills at script
+    // load, before DEV_MODE is set
+    for (let g = 0; g < groups.length; g++) {
+      if (groups[g].category === "SCENE_CAT_DEV" && !DEV_MODE) continue;
+      for (let e = 0; e < groups[g].entries.length; e++)
+        entries.push(groups[g].entries[e]);
+    }
+    const rank = (cat) => {
+      const i = CAT_ORDER.indexOf(cat);
+      return i < 0 ? CAT_ORDER.length : i;
+    };
+    // BUG: [#15593] sort indices, tie-breaking same-category entries on registration order.
+    const order = [];
+    for (let i = 0; i < entries.length; i++) order.push(i);
+    order.sort((a, b) => {
+      const ra = rank(entries[a].category);
+      const rb = rank(entries[b].category);
+      if (ra !== rb) return ra < rb ? -1 : 1;
+      return a < b ? -1 : 1;
+    });
+    for (let i = 0; i < order.length; i++) {
+      const entry = entries[order[i]];
+      col.insertChild(facetButton(entry.label, () => App.open(entry.factory)));
+    }
 
-    destroy() {
-      UI.remove(this.ui);
-      this.ui.destroy();
-    },
-  });
+    // the About tab
+    col.insertChild(
+      facetButton(I18n.textRef("TITLE_CREDITS"), () => GameOverlay.open(2)),
+    );
+    col.insertChild(
+      facetButton(I18n.textRef("TITLE_SETTINGS"), () => GameOverlay.open()),
+    );
+    col.insertChild(facetButton(I18n.textRef("TITLE_QUIT"), () => App.quit()));
+
+    this.ui.body.insertChild(col);
+  }
+
+  destroy() {
+    UI.remove(this.ui);
+    this.ui.destroy();
+  }
+}

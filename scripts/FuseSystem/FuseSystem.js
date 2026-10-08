@@ -13,7 +13,7 @@ globalThis.FuseSystem = {
         damage: fuse.damage,
         penetration: fuse.penetration,
       });
-      ParticleFx.burst({
+      ParticleFx.burst(level, {
         asset: psExplosion,
         x: pos.x,
         y: pos.y,

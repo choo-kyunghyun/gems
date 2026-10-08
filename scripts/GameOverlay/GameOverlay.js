@@ -7,7 +7,6 @@
  */
 globalThis.GameOverlay = {
   _root: null,
-  _game: null, // re-latched each update()
   _scale: 1, // the time scale to restore on resume
   // extra tabs { label, short, build } injected at boot, keeping the page free of scene/save
   // concerns
@@ -28,9 +27,8 @@ globalThis.GameOverlay = {
   },
 
   /** Per-frame pause/open driver. */
-  update(game) {
-    GameOverlay._game = game;
-    const scene = game.scene;
+  update() {
+    const scene = App.scene;
 
     if (GameOverlay._root !== null) {
       if (Input.keyPressed(vk_f1) || Input.padPressed(gp_start)) {
@@ -64,7 +62,7 @@ globalThis.GameOverlay = {
       GameOverlay.close();
       return true;
     }
-    const scene = GameOverlay._game !== null ? GameOverlay._game.scene : null;
+    const scene = App.scene;
     if (scene === null || scene.gameplay !== true) return false;
     const handled = scene.handleEscape !== undefined ? scene.handleEscape() : false;
     if (handled) return true;
@@ -207,11 +205,8 @@ globalThis.GameOverlay = {
     SceneTransition.start(() => {
       FacetTheme.setMode(mode);
       UINav.color = Color.parse(FacetTheme.accent);
-      const game = GameOverlay._game;
-      if (game !== null) {
-        game.background = Color.parse(FacetTheme.bg);
-        game.retheme();
-      }
+      App.background = Color.parse(FacetTheme.bg);
+      App.retheme();
       UINav.reset(); // focus was on now-destroyed elements
       GameOverlay.reopen(1);
     });
@@ -233,7 +228,7 @@ globalThis.GameOverlay = {
         facetButton(
           I18n.textRef("SYS_QUIT"),
           () => {
-            GameOverlay._game.switchTo(GameOverlay.quitTo);
+            App.open(GameOverlay.quitTo);
             GameOverlay.close();
           },
           { width: 200 },

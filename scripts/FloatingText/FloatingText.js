@@ -1,7 +1,8 @@
 // Floating combat numbers, drawn in world space under the camera. They age by sim time, so a
-// paused sim holds them (docs/ARCHITECTURE.md → clock split).
+// paused sim holds them (docs/ARCHITECTURE.md → clock split), and live on their level, in its
+// coordinates, so a parked map keeps its own and a freed one takes them with it.
 globalThis.FloatingText = {
-  _items: [], // { x, y, text, color, age, life, rise, scale }
+  KEY: "floating_text", // the numbers' derived token on the level's own entity
 
   life: 0.9, // seconds on screen, fades included
   rise: 60, // world px risen over life
@@ -23,10 +24,15 @@ globalThis.FloatingText = {
     info: Color.parse("#cfd6e4"),
   },
 
+  /** The level's numbers, `{ x, y, text, color, age, life, rise, scale }` each. */
+  items(level) {
+    return level.entities.derive(level.self, FloatingText.KEY, () => []);
+  },
+
   /** opts: { type, color, life, rise, scale }. */
-  push(x, y, text, opts = {}) {
+  push(level, x, y, text, opts = {}) {
     const type = opts.type ?? "damage";
-    FloatingText._items.push({
+    FloatingText.items(level).push({
       x: x,
       y: y,
       text: "" + text,
@@ -39,26 +45,22 @@ globalThis.FloatingText = {
     });
   },
 
-  clear() {
-    FloatingText._items = [];
-  },
-
   /**
-   * Ages, culls and draws, in world space after the entities. `pitchDeg` tilts each number to
-   * face a pitched camera head-on for readability; 0 is flat top-down.
+   * Ages, culls and draws the level's numbers, in world space after the entities. `pitchDeg`
+   * tilts each number to face a pitched camera head-on for readability; 0 is flat top-down.
    */
-  draw(pitchDeg = 0) {
-    const items = FloatingText._items;
-    if (items.length === 0) return;
+  draw(level, pitchDeg = 0) {
+    const live = FloatingText.items(level);
+    if (live.length === 0) return;
 
     const dt = Time.delta;
-    const live = [];
-    for (let i = 0; i < items.length; i++) {
-      items[i].age += dt;
-      if (items[i].age < items[i].life) live.push(items[i]);
+    let w = 0;
+    for (let i = 0; i < live.length; i++) {
+      live[i].age += dt;
+      if (live[i].age < live[i].life) live[w++] = live[i];
     }
-    FloatingText._items = live;
-    if (live.length === 0) return;
+    live.length = w;
+    if (w === 0) return;
 
     const font = draw_get_font();
     const halign = draw_get_halign();

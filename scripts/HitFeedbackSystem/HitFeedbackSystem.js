@@ -46,7 +46,7 @@ globalThis.HitFeedbackSystem = {
       if (pos !== undefined) {
         const d = hp.hp - prev;
         if (d < 0) {
-          FloatingText.push(pos.x, pos.y - POP_Y, -d, {
+          FloatingText.push(level, pos.x, pos.y - POP_Y, -d, {
             type: isAlly ? "hurt" : "damage",
           });
           // An enemy's killing blow is left to the death's own sound.
@@ -58,7 +58,7 @@ globalThis.HitFeedbackSystem = {
           else if (hp.hp > 0)
             Audio.play({ sound: sound ?? sndHitsoundFlesh, position: at });
         } else {
-          FloatingText.push(pos.x, pos.y - POP_Y, "+" + d, { type: "heal" });
+          FloatingText.push(level, pos.x, pos.y - POP_Y, "+" + d, { type: "heal" });
         }
       }
     }

@@ -6,11 +6,6 @@ globalThis.StructureSystem = {
   /** Hook: an owned structure built from `item` was destroyed. */
   onLost(item) {},
 
-  /** Drop the hook. */
-  reset() {
-    StructureSystem.onLost = function (item) {};
-  },
-
   update(level) {
     const entities = level.entities;
     const own = Build.free || Build.allied(level);

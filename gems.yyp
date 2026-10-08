@@ -209,6 +209,7 @@
     {"id":{"name":"Achievement","path":"scripts/Achievement/Achievement.yy",},},
     {"id":{"name":"Ammo","path":"scripts/Ammo/Ammo.yy",},},
     {"id":{"name":"Anim","path":"scripts/Anim/Anim.yy",},},
+    {"id":{"name":"App","path":"scripts/App/App.yy",},},
     {"id":{"name":"Appearance","path":"scripts/Appearance/Appearance.yy",},},
     {"id":{"name":"AppearanceSystem","path":"scripts/AppearanceSystem/AppearanceSystem.yy",},},
     {"id":{"name":"Asleep","path":"scripts/Asleep/Asleep.yy",},},

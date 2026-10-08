@@ -6,6 +6,7 @@
 globalThis.RenderParticles = class RenderParticles {
   constructor(opt = {}) {
     this.enabled = true;
+    this.level = opt.level;
     this.camera = opt.camera;
   }
 
@@ -14,6 +15,6 @@ globalThis.RenderParticles = class RenderParticles {
   draw(entities) {
     const pitchDeg = (this.camera.pitch * 180) / Math.PI;
     ParticleEmitterSystem.draw(entities, pitchDeg);
-    ParticleFx.draw(pitchDeg);
+    ParticleFx.draw(this.level, pitchDeg);
   }
 };

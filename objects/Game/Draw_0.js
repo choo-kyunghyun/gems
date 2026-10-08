@@ -1,2 +1,2 @@
-draw_clear(this.background);
-this.scene.draw();
+draw_clear(App.background);
+App.scene.draw();

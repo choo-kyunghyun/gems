@@ -10,11 +10,7 @@ Scene.register(sceneFacet, {
 });
 
 class _SceneFacetClass {
-  constructor() {
-    this.label = "Facet"; // in the constructor, never a class field (docs/GMRT.md)
-  }
-
-  create(openScene) {
+  create() {
     this.typed = "";
     this.clicks = 0;
     this.toggleOn = true;
@@ -87,7 +83,7 @@ class _SceneFacetClass {
     body.insertChild(card);
 
     body.insertChild(
-      facetButton(I18n.textRef("FACET_BACK"), () => openScene(sceneLobby), {
+      facetButton(I18n.textRef("FACET_BACK"), () => App.open(sceneLobby), {
         tooltip: I18n.textRef("FACET_TIP_BACK"),
       }),
     );
@@ -291,8 +287,6 @@ class _SceneFacetClass {
         objectives: [{ kind: "talk", target: "sage", count: 1 }],
       },
     ]);
-    // no achievement content here: drop any rules hook a prior scene left
-    Tracker.rules = null;
     // the demo progression starts blank
     this.world = World.open();
     Tracker.accept("uikit_q1");

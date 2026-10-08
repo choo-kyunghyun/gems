@@ -9,44 +9,39 @@ Scene.register(sceneColony, {
  * persistent UI, and states the order of every system in a frame.
  */
 class _SceneColonyClass {
-  constructor() {
-    this.label = "Colony"; // in the constructor, never a class field (docs/GMRT.md)
-  }
-
-  create(openScene) {
+  create() {
     contentQuests.register();
     contentAchievements.register();
-    Tracker.rules = contentAchievements;
+    App.hook(Tracker, "rules", contentAchievements);
 
-    // static hooks: they survive map reloads
-    Combat.mitigate = PlayerSystem.mitigate;
-    Consumption.grantAttr = StatModel.grant;
-    Effects.onStatsChanged = StatModel.recompute;
+    // the stat model behind the combat and item rules
+    App.hook(Combat, "mitigate", PlayerSystem.mitigate);
+    App.hook(Consumption, "grantAttr", StatModel.grant);
+    App.hook(Effects, "onStatsChanged", StatModel.recompute);
     // progress shows as toasts, a reward as a refreshed bag
-    Progression.onUnlock = (achId) => {
+    App.hook(Progression, "onUnlock", (achId) => {
       const a = Achievement.get(achId);
       Toast.push(I18n.text("ACH_TOAST", I18n.text(a.name)), { type: "success" });
-    };
-    Progression.onReward = () => {
+    });
+    App.hook(Progression, "onReward", () => {
       this.window.dirty = true;
-    };
+    });
     // a lost build, a squad member's knock-out and its recovery show as toasts
-    StructureSystem.onLost = BuildMode.lost;
-    Mortality.onDown = (entities, id) => {
+    App.hook(StructureSystem, "onLost", BuildMode.lost);
+    App.hook(Mortality, "onDown", (entities, id) => {
       Toast.push(I18n.text("FOLLOWER_DOWN", this._followerName(entities, id)), {
         type: "warn",
       });
-    };
-    Mortality.onRecover = (entities, id) => {
+    });
+    App.hook(Mortality, "onRecover", (entities, id) => {
       Toast.push(I18n.text("FOLLOWER_RECOVERED", this._followerName(entities, id)), {
         type: "success",
       });
-    };
+    });
     // a fresh session starts from a blank world; a load imports its records below
     this.world = World.open();
     // the BGM fallback is the active map's bed, read live so one hook serves every map
-    Radio.reset();
-    Radio.ambient = () => ColonyMap.bed(this.level);
+    App.hook(Radio, "ambient", () => ColonyMap.bed(this.level));
 
     this.dialogue = Dialogue.make(); // what an NPC is saying
 
@@ -264,7 +259,7 @@ class _SceneColonyClass {
 
   /** The frame's sight and sound on the sim clock. */
   _present() {
-    ParticleFx.update();
+    ParticleFx.update(this.level);
     // the sim-clock camera policies; the wall-clock one runs from draw() so it keeps moving
     // while the sim is paused
     CameraSystem.update(this.level);
@@ -383,12 +378,8 @@ class _SceneColonyClass {
     BuildMode.drawWorld(this, this.build);
   }
 
-  /** Release only what this scene wired. */
+  /** Free what this scene made: its world and its UI. */
   destroy() {
-    Radio.reset();
-    Progression.reset();
-    Mortality.reset();
-    StructureSystem.reset();
     Maps.close(this.world);
     if (this.ui) {
       UI.remove(this.ui);

@@ -6,12 +6,13 @@
 globalThis.RenderFloatingText = class RenderFloatingText {
   constructor(opt = {}) {
     this.enabled = true;
+    this.level = opt.level;
     this.camera = opt.camera;
   }
 
   destroy() {}
 
   draw(_entities) {
-    FloatingText.draw((this.camera.pitch * 180) / Math.PI);
+    FloatingText.draw(this.level, (this.camera.pitch * 180) / Math.PI);
   }
 };

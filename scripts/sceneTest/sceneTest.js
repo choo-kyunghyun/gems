@@ -14,12 +14,7 @@ Scene.register(sceneTest, {
 });
 
 class _SceneTestClass {
-  constructor() {
-    this.label = "Test"; // in the constructor, never a class field (docs/GMRT.md)
-  }
-
-  create(openScene) {
-    this._openScene = openScene; // for retheme() to rebuild the button callbacks
+  create() {
     this._cases = [];
     this._cursor = 0; // the case the next update() serves
     this._frame = 0; // frames the current case has been given
@@ -40,7 +35,6 @@ class _SceneTestClass {
   }
 
   _buildUI() {
-    const openScene = this._openScene;
     this.ui = facetRoot({ maxWidth: 720 });
     UI.insert(this.ui);
     const body = this.ui.body;
@@ -63,7 +57,7 @@ class _SceneTestClass {
       }),
     );
     col.insertChild(
-      facetButton(I18n.textRef("TEST_BACK"), () => openScene(sceneLobby)),
+      facetButton(I18n.textRef("TEST_BACK"), () => App.open(sceneLobby)),
     );
     body.insertChild(col);
   }

@@ -86,12 +86,4 @@ globalThis.Radio = {
     else Music.stop();
     Audio.play({ sound: sndRadioClose });
   },
-
-  /**
-   * Drop the bed hook. The dial itself goes with the world's records and the track with the
-   * scene, so no fade runs here.
-   */
-  reset() {
-    Radio.ambient = null;
-  },
 };

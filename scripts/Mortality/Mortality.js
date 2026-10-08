@@ -15,12 +15,6 @@ globalThis.Mortality = {
   /** Hook: a knocked-out mortal recovered. */
   onRecover(entities, id) {},
 
-  /** Drop the hooks. */
-  reset() {
-    Mortality.onDown = function (entities, id) {};
-    Mortality.onRecover = function (entities, id) {};
-  },
-
   /** The body's species as its kill-report target; "" for none. */
   species(entities, id) {
     const rows = Mortality.SPECIES;

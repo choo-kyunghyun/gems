@@ -6,12 +6,13 @@
 globalThis.RenderWorldOverlay = class RenderWorldOverlay {
   constructor(opt = {}) {
     this.enabled = true;
+    this.level = opt.level;
     this.camera = opt.camera;
   }
 
   destroy() {}
 
-  draw(entities) {
-    WorldOverlay.draw(entities, this.camera.pitch);
+  draw(_entities) {
+    WorldOverlay.draw(this.level, this.camera.pitch);
   }
 };

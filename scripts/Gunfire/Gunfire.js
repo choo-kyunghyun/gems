@@ -34,10 +34,10 @@ globalThis.Gunfire = {
       penetration: wpn.penetration ?? 0,
       pierce: 1,
     });
-    WorldOverlay.pushTracer(pos.x, pos.y, shot.x, shot.y);
+    WorldOverlay.pushTracer(level, pos.x, pos.y, shot.x, shot.y);
     slot.rounds -= 1;
 
-    ParticleFx.burst({
+    ParticleFx.burst(level, {
       asset: psMuzzle,
       x: pos.x + nx * MUZZLE,
       y: pos.y + ny * MUZZLE,

@@ -3,17 +3,12 @@ Input.poll(); // THE frame poll: latch every device once + clear last frame's cl
 Music.update(); // reap a finished BGM cross-fade (wall clock — runs even while the sim is paused)
 UI.step();
 // dev-only: F2 returns to lobby without a restart
-if (DEV_MODE && Input.keyPressed(vk_f2)) this.switchTo(sceneLobby);
+if (DEV_MODE && Input.keyPressed(vk_f2)) App.open(sceneLobby);
 
-// flush a queued scene swap: it applies at full fade cover; then advance the fade timer.
-if (this._pending !== null && !SceneTransition.isBusy()) {
-  const factory = this._pending;
-  this._pending = null;
-  SceneTransition.start(() => this._apply(factory));
-}
-SceneTransition.update();
+// after the UI step, so a switch the UI queued lands at full fade cover, between frames
+App.step();
 
 // THE sim tick, held while the pause menu is open.
-if (!GameOverlay.isOpen()) this.scene.update();
+if (!GameOverlay.isOpen()) App.scene.update();
 
 Log.flush();

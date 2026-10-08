@@ -93,65 +93,17 @@ contentSounds.register(); // sound metadata (tempo per track) — the sim tempo 
 contentParticles.register(); // particle metadata (density per system) before any burst or stream
 contentMeshes.register(); // model metadata (density per model) before any level draws or sizes one
 
-this.background = Color.parse(FacetTheme.bg); // scene backdrop; re-read on a theme swap (Draw_0)
+App.background = Color.parse(FacetTheme.bg); // re-read on a theme swap
 
 UINav.color = Color.parse(FacetTheme.accent); // focus ring from kit theme
 UINav.back = GameOverlay.back; // the pause menu backs out on the cancel the UI left
 // the global F1 pause menu, driven inside the GUI pass
-UI.menu = () => GameOverlay.update(this);
+UI.menu = () => GameOverlay.update();
 UI.sounds.click = sndButtonClick; // widget cues from the game's own SFX
 UI.sounds.tick = sndButtonMuted;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// THE SCENE. Game owns the active Scene outright — there is no scene manager: this pointer IS
-// the lifecycle. Step_0 flushes a queued swap then calls update(), Draw_0 calls draw(), CleanUp
-// destroys. switchTo() below is the only transition, and the closures are defined here because
-// instance state (the pointer, the queue) lives on the instance.
-//
-// Exactly ONE scene is live: a switch DESTROYS it and sweeps the app singletons before the target
-// builds, so nothing of a scene survives the swap — no stack, no frozen scene. The sweep in _apply
-// is THE list (docs/ARCHITECTURE.md → the four homes of state): an app singleton a scene can touch
-// is reset here, never in a scene's destroy, which drops only what that scene itself wired.
-// ─────────────────────────────────────────────────────────────────────────────
-this.scene = null; // the live Scene — stepped + drawn
-this._label = null; // its resolved display label (localized), or null
-this._pending = null; // queued switch factory, applied next Step_0
-
-/**
- * THE transition: queue a scene switch, applied next Step (after UI.update, so the UI tree isn't
- * torn down mid-traversal) at full fade cover, DESTROYING the live scene. Ignored mid-fade so a
- * spammed button can't stack swaps. This is the `openScene` callback handed to every create().
- */
-this.switchTo = (factory) => {
-  if (SceneTransition.isBusy()) return;
-  this._pending = factory;
-};
-
-/**
- * Live theme swap: rebuild the active scene's UI in place (colors are baked at build, so a
- * palette change only shows after a rebuild). Delegates to the scene's optional retheme() — a
- * UI-only rebuild that never regenerates world/gameplay state. A scene that
- * doesn't implement it keeps its old-palette UI until its next natural rebuild.
- */
-this.retheme = () => {
-  if (this.scene !== null && this.scene.retheme !== undefined)
-    this.scene.retheme();
-};
-
-/** Display label of the active scene: the registered (localized) one, else its instance label. */
-this.label = () => {
-  const lbl = this._label;
-  if (lbl != null) return typeof lbl === "function" ? lbl() : lbl;
-  const s = this.scene;
-  return s !== null && s.label != null && s.label !== "" ? s.label : "-";
-};
-
-/**
- * Apply a switch NOW (Step_0 calls it at full fade cover): destroy the live scene, reset the
- * cross-scene singletons, then build the target.
- */
-this._apply = (factory) => {
-  this._destroyScene();
+// the app members a scene can dirty, reset between two scenes (contract at App)
+App.sweep = () => {
   // input + GUI
   UINav.reset(); // drop focus held on the outgoing scene's UI
   InputContext.reset(); // back to the "default" base context
@@ -161,36 +113,19 @@ this._apply = (factory) => {
   // clocks: a scene starts at full speed
   Time.scale = 1;
   Time.tempo = 1;
-  // world-space transients (their coords are map-local)
-  FloatingText.clear();
-  ParticleFx.clear();
-  WorldOverlay.clearTracers();
   Audio.restart(); // one scene's BGM/SFX must not bleed into the next
-  // A class scene's `label` field never sets (GMRT skips subclass field inits — #15067), so the
-  // registered label (localized) is the reliable source; built-ins fall back to their instance one.
-  this.scene = factory();
-  this._label = Scene.labelOf(factory);
-  this.scene.create((f) => this.switchTo(f));
-};
-
-this._destroyScene = () => {
-  if (this.scene !== null) this.scene.destroy();
-  this.scene = null;
-  this._label = null;
 };
 
 GameOverlay.quitTo = sceneLobby;
 GameOverlay.settingsFile = SETTINGS_FILE;
 GameOverlay.keymap = ColonyKeymap.rows(); // the Settings tab's key-binding list
-// lobby is the boot scene + dev launcher; F2 (Step_0) also returns here. Applied immediately —
-// nothing to fade out from, so the boot fades IN from black instead.
-this._apply(TEST_AUTORUN !== "" ? sceneTest : sceneLobby);
-SceneTransition.reveal();
-
 // Inject the Save/Load tab into the GameOverlay (the injection seam keeps GameOverlay free of
 // SaveGame/sceneColony). Save is gated on a saveable scene; Load boots a fresh colony.
 GameOverlay.addTab(
   I18n.textRef("SYS_TAB_SAVELOAD"),
   I18n.textRef("SYS_TAB_SAVELOAD_ABBR"),
-  () => SaveGame.buildMenuTab(this),
+  () => SaveGame.buildMenuTab(),
 );
+
+// lobby is the boot scene + dev launcher; F2 (Step_0) also returns here
+App.start(TEST_AUTORUN !== "" ? sceneTest : sceneLobby);

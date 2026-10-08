@@ -14,12 +14,6 @@ globalThis.Progression = {
   /** Hook: a reward landed in the player's bag. */
   onReward() {},
 
-  /** Drop the hooks. */
-  reset() {
-    Progression.onUnlock = function (achId) {};
-    Progression.onReward = function () {};
-  },
-
   /** Returns the tracker's `{ unlocked, ready }` for this report alone. */
   report(entities, kind, target, n = 1) {
     const r = Tracker.report(kind, target, n);

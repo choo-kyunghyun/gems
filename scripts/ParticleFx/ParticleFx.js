@@ -3,9 +3,9 @@
  * die, so concurrent instances stay bounded. An effect that must live as long as an entity is
  * not a burst.
  *
- * update() runs once per frame from the scene's step, so bursts freeze on pause; clear() on a
- * map swap, since world coords are map-local. The stepper advances in whole frames, so update()
- * ticks per frame, not per Time.delta.
+ * A burst lives on its level, in its coordinates: update() runs once per frame over the live
+ * level, so bursts freeze on pause and on a parked map, and a freed level destroys its own. The
+ * stepper advances in whole frames, so update() ticks per frame, not per Time.delta.
  */
 
 /**
@@ -18,10 +18,26 @@
  * @property {number} [scale=1]        design scale; the asset's declared density divides it
  */
 globalThis.ParticleFx = {
-  _active: [],
+  KEY: "particle_fx", // the bursts' derived token on the level's own entity
+
+  /** The level's live bursts, `{ sys, x, y, scale }` each. */
+  bursts(level) {
+    return level.entities.derive(level.self, ParticleFx.KEY, ParticleFx._seed).list;
+  },
+
+  _seed() {
+    const list = [];
+    return {
+      list,
+      destroy: () => {
+        for (let i = 0; i < list.length; i++) part_system_destroy(list[i].sys);
+        list.length = 0;
+      },
+    };
+  },
 
   /** @param {BurstParams} params */
-  burst(params) {
+  burst(level, params) {
     const s = part_system_create(params.asset);
     part_system_automatic_draw(s, false);
     part_system_automatic_update(s, false); // ticked here, so it pauses with the scene
@@ -29,27 +45,27 @@ globalThis.ParticleFx = {
       part_system_angle(s, params.angle - (params.base ?? 90));
     // a baked burst fires on the first update, in asset space; the draw places and scales it
     const scale = AssetMeta.fit(params.asset, params.scale ?? 1);
-    ParticleFx._active.push({ sys: s, x: params.x, y: params.y, scale: scale });
+    ParticleFx.bursts(level).push({ sys: s, x: params.x, y: params.y, scale: scale });
   },
 
-  update() {
-    const a = ParticleFx._active;
-    const live = [];
+  update(level) {
+    const a = ParticleFx.bursts(level);
+    let w = 0;
     for (let i = 0; i < a.length; i++) {
       part_system_update(a[i].sys);
-      if (part_particles_count(a[i].sys) > 0) live.push(a[i]);
+      if (part_particles_count(a[i].sys) > 0) a[w++] = a[i];
       else part_system_destroy(a[i].sys);
     }
-    ParticleFx._active = live;
+    a.length = w;
   },
 
   /**
    * World space, after the renderer. `pitchDeg` (the camera pitch) stands each burst up on a
    * camera-facing plane, so it keeps its authored shape on screen.
    */
-  draw(pitchDeg = 0) {
+  draw(level, pitchDeg = 0) {
     const tilt = -pitchDeg;
-    const a = ParticleFx._active;
+    const a = ParticleFx.bursts(level);
     for (let i = 0; i < a.length; i++) {
       const b = a[i];
       const s = b.scale;
@@ -59,15 +75,9 @@ globalThis.ParticleFx = {
     matrix_set(matrix_world, matrix_build_identity());
   },
 
-  clear() {
-    const a = ParticleFx._active;
-    for (let i = 0; i < a.length; i++) part_system_destroy(a[i].sys);
-    ParticleFx._active = [];
-  },
-
-  /** Total live particles (diagnostic). */
-  count() {
-    const a = ParticleFx._active;
+  /** Total live particles on the level (diagnostic). */
+  count(level) {
+    const a = ParticleFx.bursts(level);
     let n = 0;
     for (let i = 0; i < a.length; i++) n += part_particles_count(a[i].sys);
     return n;

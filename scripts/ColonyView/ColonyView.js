@@ -126,10 +126,10 @@ globalThis.ColonyView = {
         camera: ctx.camera,
       }),
     );
-    ctx.renderer.insert(new RenderWorldOverlay({ camera: ctx.camera }));
+    ctx.renderer.insert(new RenderWorldOverlay({ level: ctx.level, camera: ctx.camera }));
     // additive, so bright over the day/night tint
-    ctx.renderer.insert(new RenderParticles({ camera: ctx.camera }));
-    ctx.renderer.insert(new RenderFloatingText({ camera: ctx.camera }));
+    ctx.renderer.insert(new RenderParticles({ level: ctx.level, camera: ctx.camera }));
+    ctx.renderer.insert(new RenderFloatingText({ level: ctx.level, camera: ctx.camera }));
     const renderer = ctx.renderer;
     return { renderer, bbox, destroy: () => renderer.destroy() };
   },

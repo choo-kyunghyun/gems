@@ -1,21 +1,22 @@
 /**
  * World-space gameplay overlay for the colony scene: hidden drops' silhouettes, projectiles,
  * fading hitscan tracers and the Reach regions. Drawn after the world, whose ground passes
- * paint an opaque fill that would hide it.
+ * paint an opaque fill that would hide it. A tracer lives on its level, in its coordinates.
  */
 globalThis.WorldOverlay = {
   LIFT: 32, // world px the in-air cues rise under a pitched camera
   DOT: 4, // a bullet's radius, world px
   NUDGE: 1, // world px a hidden drop's silhouette steps toward the camera
-  _tracers: [], // aged on real time
+  KEY: "tracers", // the tracers' derived token on the level's own entity
   _flatU: undefined, // the world shader's uniforms, looked up on the first silhouette
 
-  pushTracer(x0, y0, x1, y1) {
-    WorldOverlay._tracers.push({ x0, y0, x1, y1, age: 0, life: 0.07 });
+  /** The level's tracers, `{ x0, y0, x1, y1, age, life }` each, aged on real time. */
+  tracers(level) {
+    return level.entities.derive(level.self, WorldOverlay.KEY, () => []);
   },
 
-  clearTracers() {
-    WorldOverlay._tracers = [];
+  pushTracer(level, x0, y0, x1, y1) {
+    WorldOverlay.tracers(level).push({ x0, y0, x1, y1, age: 0, life: 0.07 });
   },
 
   /**
@@ -32,7 +33,8 @@ globalThis.WorldOverlay = {
   },
 
   /** `pitch` is the camera's, in radians; 0 is flat top-down. */
-  draw(entities, pitch) {
+  draw(level, pitch) {
+    const entities = level.entities;
     if (pitch !== 0) WorldOverlay._hiddenDrops(entities, pitch);
     // in-air cues lift off the ground so they read as flying, with no depth test so a body they
     // pass can't hide them.
@@ -50,7 +52,7 @@ globalThis.WorldOverlay = {
         draw_sprite_ext(pixItemGrenadeFrag, 0, p.x, p.y, f, f, 0, c_white, 1);
       } else draw_circle(p.x, p.y, WorldOverlay.DOT, false);
     });
-    const tracers = WorldOverlay._tracers;
+    const tracers = WorldOverlay.tracers(level);
     for (let i = tracers.length - 1; i >= 0; i--) {
       const tr = tracers[i];
       tr.age += Time.raw;

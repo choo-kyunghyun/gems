@@ -105,16 +105,10 @@ globalThis.ColonyTravel = {
     ColonyTravel._enter(scene, level, ColonyMap.of(level).spawn, squad); // already entry-resolved
   },
 
-  /**
-   * The map's climate takes over and the previous map's world-space effects drop, as their
-   * coordinates are map-local; then the scene resets its own.
-   */
+  /** The map's climate takes over; then the scene resets its own. */
   _land(scene) {
     const level = scene.level;
     Weather.setClimate(level.entities.get(level.self, ColonyMap.CLIMATE));
-    FloatingText.clear();
-    ParticleFx.clear();
-    WorldOverlay.clearTracers();
     scene.arrive();
   },
 

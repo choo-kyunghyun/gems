@@ -1,0 +1,14 @@
+{
+  "$GMScript":"v1",
+  "%Name":"App",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"App",
+  "parent":{
+    "name":"App",
+    "path":"folders/Core/App.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+  "scriptSource":"App.js",
+}
